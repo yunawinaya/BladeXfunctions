@@ -8502,7 +8502,7 @@
                     "isLabelWidth": false,
                     "hidden": false,
                     "dataBind": true,
-                    "precision": 0,
+                    "precision": 3,
                     "customProps": {
                       "progressColor": "",
                       "dividingNumber": "",
@@ -8515,7 +8515,13 @@
                     "remoteFunc": "func_vvqwgkkk",
                     "remoteOption": "option_vvqwgkkk",
                     "tableColumn": false,
-                    "subform": false
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
                   },
                   "events": {
                     "onChange": "",
@@ -8601,852 +8607,2370 @@
           "rules": []
         },
         {
-          "name": "Item Balance",
-          "type": "table",
-          "mainIcon": "子表单",
-          "typeIcon": "子表单",
-          "icon": "icon-table",
-          "group": "Container",
-          "groupSort": 0,
+          "version": "1.0.0",
+          "type": "tabs",
+          "mainIcon": "标签页",
+          "typeIcon": "标签页",
+          "icon": "icon-tabs",
+          "group": "Layout",
+          "groupSort": 2,
           "enableScopes": ["Component", "Table", "Page"],
-          "options": {
-            "defaultValue": "",
-            "customClass": "",
-            "labelWidth": 100,
-            "isLabelWidth": false,
-            "hidden": false,
-            "dataBind": true,
-            "disabled": false,
-            "required": false,
-            "validatorCheck": false,
-            "validator": "",
-            "paging": false,
-            "pageSize": 5,
-            "isAdd": false,
-            "isDelete": true,
-            "showControl": true,
-            "virtualTable": true,
-            "sortable": true,
-            "tip": "",
-            "remoteFunc": "func_wbuak62e",
-            "remoteOption": "option_wbuak62e",
-            "tableColumn": false,
-            "subform": false,
-            "labelWrap": true,
-            "hideLabel": true,
-            "select-card_n7ge7fmb": [],
-            "left": 3,
-            "right": 4,
-            "pad": "*",
-            "desensitization_pattern": "",
-            "desensitization_replace": "",
-            "useTableV2Height": 400,
-            "highPerformanceMode": true,
-            "useVTable": true
-          },
-          "events": {
-            "onChange": "",
-            "onRowAdd": "",
-            "onRowRemove": "",
-            "onPageChange": ""
-          },
-          "tableColumns": [
+          "tabs": [
             {
-              "type": "input",
-              "mainIcon": "单行文本",
-              "typeIcon": "单行文本",
-              "icon": "icon-input",
-              "group": "Text",
-              "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-input",
-              "options": {
-                "width": "",
-                "defaultValue": "",
-                "required": false,
-                "requiredMessage": "",
-                "dataType": "",
-                "dataTypeCheck": false,
-                "dataTypeMessage": "",
-                "pattern": "",
-                "patternCheck": false,
-                "patternMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "placeholder": "",
-                "customClass": "",
-                "disabled": true,
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": true,
-                "dataBind": true,
-                "showPassword": false,
-                "clearable": false,
-                "maxlength": "",
-                "showWordLimit": false,
-                "customProps": {},
-                "tip": "",
-                "remoteFunc": "func_7udv5uv3",
-                "remoteOption": "option_7udv5uv3",
-                "tableColumn": true,
-                "subform": false
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "name": "Serial Number",
-              "novalid": {},
-              "key": "7udv5uv3",
-              "model": "serial_number",
-              "rules": []
-            },
-            {
-              "name": "Batch No",
-              "type": "select",
-              "mainIcon": "下拉单选",
-              "typeIcon": "下拉单选",
-              "icon": "icon-select",
-              "group": "Select",
-              "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-select",
-              "options": {
-                "defaultValue": "",
-                "multiple": false,
-                "disabled": true,
-                "clearable": false,
-                "placeholder": "",
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "width": "",
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1"
+              "label": "Handling Unit",
+              "name": "handling_unit",
+              "list": [
+                {
+                  "type": "table",
+                  "mainIcon": "子表单",
+                  "typeIcon": "子表单",
+                  "icon": "icon-table",
+                  "group": "Container",
+                  "groupSort": 0,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "defaultValue": [],
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "disabled": false,
+                    "required": false,
+                    "validatorCheck": false,
+                    "validator": "",
+                    "paging": true,
+                    "pageSize": 10,
+                    "autoPaging": false,
+                    "autoPageSize": 10,
+                    "autoLoadDelay": 500,
+                    "isAdd": true,
+                    "isDelete": true,
+                    "generateSubTable": false,
+                    "showControl": true,
+                    "virtualTable": true,
+                    "sortable": true,
+                    "tip": "",
+                    "remoteFunc": "func_hr4nq20g",
+                    "remoteOption": "option_hr4nq20g",
+                    "tableColumn": false,
+                    "subform": false,
+                    "select-card_n7ge7fmb": ["dataBind"],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "hideLabel": true,
+                    "useVTable": true,
+                    "useTableV2": false,
+                    "useTableV2Height": 1,
+                    "filters": [],
+                    "filter_collapse": 0,
+                    "rowActions": [],
+                    "collapse_all": 0,
+                    "rowSelectionType": "None",
+                    "batchOperate": [],
+                    "resizable": 0,
+                    "emptyTip": "",
+                    "tableHeightMode": "fixed",
+                    "tableFixedHeight": null,
+                    "tableMaxHeight": null,
+                    "rowHeightType": "auto",
+                    "hideIndex": false,
+                    "showTableBorder": 0,
+                    "stripe": 0,
+                    "rowColor": "#FFFFFF",
+                    "styles": {},
+                    "customProps": {
+                      "toolbar": [
+                        {
+                          "title": "全屏",
+                          "type": "fullscreenBtn",
+                          "icon": "",
+                          "events": []
+                        },
+                        {
+                          "title": "列操作",
+                          "type": "columnBtn",
+                          "icon": "",
+                          "events": []
+                        }
+                      ]
+                    },
+                    "desensitization": null,
+                    "groupBy": "",
+                    "highlightSelectedRow": false,
+                    "highlightHoverRow": false,
+                    "headerBgColor": "#FFFFFF"
                   },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2"
+                  "events": {
+                    "onRead": "",
+                    "onChange": "",
+                    "onRowAdd": "",
+                    "onRowBatchAdd": "",
+                    "onRowRemove": "",
+                    "onPageChange": "",
+                    "onRowImport": ""
                   },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_1mrktarm",
-                "filterable": true,
-                "pagingEnabled": true,
-                "remoteOptions": [],
-                "props": {
-                  "value": "id",
-                  "label": "batch_number",
-                  "cascade": "",
-                  "children": "",
-                  "image": "",
-                  "icon": ""
-                },
-                "remoteFunc": "func_1mrktarm",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "customProps": {},
-                "tip": "",
-                "tableColumn": true,
-                "subform": false,
-                "paging_enabled": 1,
-                "paging_way": "Pagination",
-                "page_size": 10,
-                "more_fields": [],
-                "datasource": {
-                  "source": "Batch:Table:1902719754154655746",
-                  "rules": {
-                    "collectionId": "1902719754154655746",
-                    "list": [
-                      {
-                        "id": 1746374298476,
-                        "parentId": 1746374298475,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "",
-                        "valueType": "",
-                        "value": "",
-                        "type": "leaf",
-                        "level": 1
-                      }
-                    ]
-                  }
-                },
-                "url_params": {
-                  "list": [
+                  "tableColumns": [
                     {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "body_params": {
-                  "list": [
+                      "version": "1.0.0",
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_em1i0rlv",
+                        "remoteOption": "option_em1i0rlv",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_4c8m22dh": [],
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Handling Unit ID",
+                      "novalid": {},
+                      "key": "m2vwepdh",
+                      "model": "handling_unit_id",
+                      "rules": []
+                    },
                     {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "request_params": {
-                  "list": [
+                      "version": "1.0.0",
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_em1i0rlv",
+                        "remoteOption": "option_em1i0rlv",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_4c8m22dh": [],
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Handling Unit No",
+                      "novalid": {},
+                      "key": "ju7bbczp",
+                      "model": "handling_no",
+                      "rules": []
+                    },
                     {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                }
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "9szpuywf",
-              "model": "batch_id",
-              "rules": []
-            },
-            {
-              "type": "date",
-              "mainIcon": "日期",
-              "typeIcon": "日期",
-              "icon": "icon-date",
-              "group": "DateTime",
-              "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
-              "options": {
-                "defaultValue": "",
-                "readonly": false,
-                "disabled": true,
-                "editable": false,
-                "clearable": true,
-                "placeholder": "",
-                "startPlaceholder": "",
-                "endPlaceholder": "",
-                "type": "date",
-                "timeStampType": "timestamp",
-                "format": "YYYY-MM",
-                "timestamp": false,
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "width": "",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": true,
-                "dataBind": true,
-                "customProps": {},
-                "tip": "",
-                "remoteFunc": "func_dyy5k9ny",
-                "remoteOption": "option_dyy5k9ny",
-                "tableColumn": true,
-                "subform": false,
-                "select-card_n7ge7fmb": [],
-                "left": 3,
-                "right": 4,
-                "pad": "*",
-                "desensitization_pattern": "",
-                "desensitization_replace": ""
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "name": "Manufacturing Date",
-              "novalid": {},
-              "key": "dyy5k9ny",
-              "model": "manufacturing_date",
-              "rules": []
-            },
-            {
-              "type": "date",
-              "mainIcon": "日期",
-              "typeIcon": "日期",
-              "icon": "icon-date",
-              "group": "DateTime",
-              "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
-              "options": {
-                "defaultValue": "",
-                "readonly": false,
-                "disabled": true,
-                "editable": false,
-                "clearable": true,
-                "placeholder": "",
-                "startPlaceholder": "",
-                "endPlaceholder": "",
-                "type": "date",
-                "timeStampType": "timestamp",
-                "format": "YYYY-MM",
-                "timestamp": false,
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "width": "",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": true,
-                "dataBind": true,
-                "customProps": {},
-                "tip": "",
-                "remoteFunc": "func_dyy5k9ny",
-                "remoteOption": "option_dyy5k9ny",
-                "tableColumn": true,
-                "subform": false,
-                "select-card_n7ge7fmb": [],
-                "left": 3,
-                "right": 4,
-                "pad": "*",
-                "desensitization_pattern": "",
-                "desensitization_replace": ""
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "name": "Expired Date",
-              "novalid": {},
-              "key": "blwufmpp",
-              "model": "expired_date",
-              "rules": []
-            },
-            {
-              "name": "Location",
-              "type": "select",
-              "mainIcon": "下拉单选",
-              "typeIcon": "下拉单选",
-              "icon": "icon-select",
-              "group": "Select",
-              "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-select",
-              "options": {
-                "defaultValue": "",
-                "multiple": false,
-                "disabled": true,
-                "clearable": false,
-                "placeholder": "",
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "width": "",
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1"
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2"
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_1mrktarm",
-                "filterable": true,
-                "pagingEnabled": true,
-                "remoteOptions": [],
-                "props": {
-                  "value": "id",
-                  "label": "bin_location_combine",
-                  "cascade": "",
-                  "children": "",
-                  "image": "",
-                  "icon": ""
-                },
-                "remoteFunc": "func_1mrktarm",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "customProps": {},
-                "tip": "",
-                "tableColumn": true,
-                "subform": false,
-                "paging_enabled": 1,
-                "paging_way": "Pagination",
-                "page_size": 10,
-                "more_fields": [],
-                "datasource": {
-                  "source": "Bin Location:Table:1902282127538507778",
-                  "rules": {
-                    "collectionId": "1902282127538507778",
-                    "list": [
-                      {
-                        "id": 1746374346723,
-                        "parentId": 1746374346722,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "",
-                        "valueType": "",
-                        "value": "",
-                        "type": "leaf",
-                        "level": 1
-                      }
-                    ]
-                  }
-                },
-                "url_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "body_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "request_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                }
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "xgug5xw7",
-              "model": "location_id",
-              "rules": []
-            },
-            {
-              "name": "Balance",
-              "type": "number",
-              "icon": "icon-number",
-              "mainIcon": "数字",
-              "typeIcon": "数字",
-              "group": "Number",
-              "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-number",
-              "options": {
-                "width": "",
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "defaultValue": 0,
-                "min": 0,
-                "step": 1,
-                "disabled": true,
-                "controls": false,
-                "controlsPosition": "",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "precision": 0,
-                "customProps": {
-                  "progressColor": "",
-                  "dividingNumber": "",
-                  "showNumber": "",
-                  "viewMode": "",
-                  "format": "rmb",
-                  "cacheProp": true
-                },
-                "tip": "",
-                "remoteFunc": "func_rr4g8wh9",
-                "remoteOption": "option_rr4g8wh9",
-                "tableColumn": true,
-                "subform": false,
-                "dynamicValueType": "fx",
-                "isDynamicValue": false
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "swh8f19o",
-              "model": "balance_quantity",
-              "rules": []
-            },
-            {
-              "name": "Category",
-              "type": "select",
-              "mainIcon": "下拉单选",
-              "typeIcon": "下拉单选",
-              "icon": "icon-select",
-              "group": "Select",
-              "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-select",
-              "options": {
-                "defaultValue": "",
-                "multiple": false,
-                "disabled": false,
-                "clearable": true,
-                "placeholder": "",
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "width": "",
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1"
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2"
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_2ie6dyty",
-                "filterable": false,
-                "pagingEnabled": true,
-                "remoteOptions": [],
-                "props": {
-                  "value": "dict_key",
-                  "label": "dict_key",
-                  "cascade": "",
-                  "children": "children",
-                  "image": "",
-                  "icon": ""
-                },
-                "remoteFunc": "func_2ie6dyty",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "customProps": {},
-                "tip": "",
-                "tableColumn": true,
-                "subform": false,
-                "paging_enabled": 1,
-                "paging_way": "Pagination",
-                "page_size": 10,
-                "more_fields": [],
-                "datasource": {
-                  "source": "系统字典(勿删):Table:1897577528487428098",
-                  "rules": {
-                    "collectionId": "1897577528487428098",
-                    "list": [
-                      {
-                        "id": 1746374729874,
-                        "parentId": 1746374729875,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
+                      "type": "select",
+                      "mainIcon": "下拉单选",
+                      "typeIcon": "下拉单选",
+                      "icon": "icon-select",
+                      "group": "Select",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-select",
+                      "options": {
+                        "defaultValue": "",
+                        "multiple": false,
+                        "disabled": true,
+                        "clearable": false,
+                        "placeholder": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "options": [
                           {
-                            "id": 1746374505140,
-                            "parentId": 1746374729874,
-                            "isTop": false,
-                            "prop": "parent_id",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": "1915303560812322818",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "父主键",
-                            "valueLabel": "",
-                            "operatorLabel": "等于",
-                            "valueTypeLabel": "值"
+                            "value": "Option 1",
+                            "label": "Option 1"
                           },
                           {
-                            "id": 1746374729877,
-                            "isTop": false,
-                            "parentId": 1746374729874,
-                            "type": "branch",
-                            "operator": "all",
-                            "level": 2,
-                            "children": [
+                            "value": "Option 2",
+                            "label": "Option 2"
+                          },
+                          {
+                            "value": "Option 3",
+                            "label": "Option 3"
+                          }
+                        ],
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "remoteOption": "option_erl1ge2b",
+                        "filterable": false,
+                        "pagingEnabled": true,
+                        "remoteOptions": [],
+                        "props": {
+                          "value": "id",
+                          "label": "material_code",
+                          "image": "",
+                          "icon": "",
+                          "cascade": "",
+                          "children": "",
+                          "explain": ""
+                        },
+                        "remoteFunc": "func_erl1ge2b",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "datasource": {
+                          "rules": {
+                            "collectionId": "1901546842240438273",
+                            "list": [
                               {
-                                "id": 1746374729876,
-                                "parentId": 1746374729877,
-                                "isTop": false,
-                                "prop": "dict_key",
-                                "operator": "notEqual",
-                                "valueType": "value",
-                                "value": "Reserved",
+                                "id": 1775011531763,
+                                "parentId": 1775011531762,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
                                 "type": "leaf",
-                                "level": 3,
-                                "propLabel": "字典值",
-                                "valueLabel": "",
-                                "operatorLabel": "不等于",
-                                "valueTypeLabel": "值"
-                              },
+                                "level": 1
+                              }
+                            ]
+                          },
+                          "source": "Item:Table:1901546842240438273"
+                        },
+                        "limit_count": null,
+                        "sorts": [],
+                        "paging_enabled": 0,
+                        "auto_refresh": 0,
+                        "auto_refresh_debounce": 100
+                      },
+                      "events": {
+                        "onReady": "",
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Item Code",
+                      "novalid": {},
+                      "key": "5ro2jk4j",
+                      "model": "material_id",
+                      "rules": []
+                    },
+                    {
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_w6ykcg7c",
+                        "remoteOption": "option_w6ykcg7c",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "select-card_4c8m22dh": []
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Item Name",
+                      "novalid": {},
+                      "key": "wvaf3jys",
+                      "model": "material_name",
+                      "rules": []
+                    },
+                    {
+                      "type": "select",
+                      "mainIcon": "下拉单选",
+                      "typeIcon": "下拉单选",
+                      "icon": "icon-select",
+                      "group": "Select",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-select",
+                      "options": {
+                        "defaultValue": "",
+                        "multiple": false,
+                        "disabled": true,
+                        "clearable": false,
+                        "placeholder": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "options": [
+                          {
+                            "value": "Option 1",
+                            "label": "Option 1"
+                          },
+                          {
+                            "value": "Option 2",
+                            "label": "Option 2"
+                          },
+                          {
+                            "value": "Option 3",
+                            "label": "Option 3"
+                          }
+                        ],
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "remoteOption": "option_06154l0w",
+                        "filterable": false,
+                        "pagingEnabled": true,
+                        "remoteOptions": [],
+                        "props": {
+                          "value": "id",
+                          "label": "storage_location_name",
+                          "image": "",
+                          "icon": "",
+                          "cascade": "",
+                          "children": "",
+                          "explain": ""
+                        },
+                        "remoteFunc": "func_06154l0w",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "tableColumn": true,
+                        "subform": false,
+                        "datasource": {
+                          "rules": {
+                            "collectionId": "1986694920453566466",
+                            "list": [
                               {
-                                "id": 1746374729878,
-                                "parentId": 1746374729877,
-                                "isTop": false,
-                                "prop": "dict_key",
-                                "operator": "notEqual",
-                                "valueType": "value",
-                                "value": "In Transit",
+                                "id": 1775022515978,
+                                "parentId": 1775022515977,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
                                 "type": "leaf",
-                                "level": 3,
-                                "propLabel": "字典值",
-                                "valueLabel": "",
-                                "operatorLabel": "不等于",
-                                "valueTypeLabel": "值"
-                              },
+                                "level": 1
+                              }
+                            ]
+                          },
+                          "source": "Storage Location:Table:1986694920453566466"
+                        },
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "paging_enabled": 0,
+                        "sorts": [],
+                        "auto_refresh": 0,
+                        "auto_refresh_debounce": 100
+                      },
+                      "events": {
+                        "onReady": "",
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Storage Location",
+                      "novalid": {},
+                      "key": "4ouc4k4k",
+                      "model": "storage_location_id",
+                      "rules": []
+                    },
+                    {
+                      "type": "select",
+                      "mainIcon": "下拉单选",
+                      "typeIcon": "下拉单选",
+                      "icon": "icon-select",
+                      "group": "Select",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-select",
+                      "options": {
+                        "defaultValue": "",
+                        "multiple": false,
+                        "disabled": true,
+                        "clearable": false,
+                        "placeholder": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "options": [
+                          {
+                            "value": "Option 1",
+                            "label": "Option 1"
+                          },
+                          {
+                            "value": "Option 2",
+                            "label": "Option 2"
+                          },
+                          {
+                            "value": "Option 3",
+                            "label": "Option 3"
+                          }
+                        ],
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "remoteOption": "option_fnmc4ypo",
+                        "filterable": false,
+                        "pagingEnabled": true,
+                        "remoteOptions": [],
+                        "props": {
+                          "value": "id",
+                          "label": "bin_location_combine",
+                          "cascade": "",
+                          "children": "",
+                          "image": "",
+                          "icon": "",
+                          "explain": ""
+                        },
+                        "remoteFunc": "func_fnmc4ypo",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "tableColumn": true,
+                        "subform": false,
+                        "datasource": {
+                          "source": "Bin Location:Table:1902282127538507778",
+                          "rules": {
+                            "collectionId": "1902282127538507778",
+                            "list": [
                               {
-                                "id": 1753266507054,
-                                "parentId": 1746374729877,
-                                "isTop": false,
-                                "prop": "dict_key",
-                                "operator": "notEqual",
-                                "valueType": "value",
-                                "value": "Quality Inspection",
+                                "id": 1775022511240,
+                                "parentId": 1775022511239,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
                                 "type": "leaf",
-                                "level": 3,
-                                "propLabel": "字典值",
-                                "valueLabel": "",
-                                "operatorLabel": "不等于",
-                                "valueTypeLabel": "值"
+                                "level": 1
                               }
                             ]
                           }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "url_params": {
-                  "list": [
+                        },
+                        "more_fields": [],
+                        "paging_enabled": 0,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "auto_refresh": 1,
+                        "auto_refresh_debounce": 100,
+                        "sorts": []
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Bin Location",
+                      "novalid": {},
+                      "key": "tuiste96",
+                      "model": "location_id",
+                      "rules": []
+                    },
                     {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "body_params": {
-                  "list": [
+                      "name": "Batch Number",
+                      "type": "select",
+                      "mainIcon": "下拉单选",
+                      "typeIcon": "下拉单选",
+                      "icon": "icon-select",
+                      "group": "Select",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-select",
+                      "options": {
+                        "defaultValue": "",
+                        "multiple": false,
+                        "disabled": true,
+                        "clearable": false,
+                        "placeholder": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "options": [
+                          {
+                            "value": "Option 1",
+                            "label": "Option 1"
+                          },
+                          {
+                            "value": "Option 2",
+                            "label": "Option 2"
+                          },
+                          {
+                            "value": "Option 3",
+                            "label": "Option 3"
+                          }
+                        ],
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "remoteOption": "option_l953m1d5",
+                        "filterable": false,
+                        "pagingEnabled": true,
+                        "remoteOptions": [],
+                        "props": {
+                          "value": "id",
+                          "label": "batch_number",
+                          "cascade": "",
+                          "children": "",
+                          "image": "",
+                          "icon": "",
+                          "explain": ""
+                        },
+                        "remoteFunc": "func_l953m1d5",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "tableColumn": true,
+                        "subform": false,
+                        "paging_enabled": 1,
+                        "paging_way": "Pagination",
+                        "page_size": 10,
+                        "more_fields": [],
+                        "datasource": {
+                          "source": "Batch:Table:1902719754154655746",
+                          "rules": {
+                            "collectionId": "1902719754154655746",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "url_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "request_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "columns": [],
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "sorts": [],
+                        "auto_refresh": 0,
+                        "auto_refresh_debounce": 100
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "juwldcop",
+                      "model": "batch_id",
+                      "rules": []
+                    },
                     {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "request_params": {
-                  "list": [
+                      "type": "number",
+                      "name": "Item Quantity",
+                      "icon": "icon-number",
+                      "mainIcon": "数字",
+                      "typeIcon": "数字",
+                      "group": "Number",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-number",
+                      "options": {
+                        "width": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "defaultValue": 0,
+                        "min": 0,
+                        "step": 1,
+                        "disabled": true,
+                        "controls": false,
+                        "controlsPosition": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "precision": 3,
+                        "customProps": {
+                          "progressColor": "",
+                          "dividingNumber": "",
+                          "showNumber": "",
+                          "viewMode": "",
+                          "format": "rmb",
+                          "cacheProp": true
+                        },
+                        "tip": "",
+                        "remoteFunc": "func_zu6gb48s",
+                        "remoteOption": "option_zu6gb48s",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "081svcgg",
+                      "model": "item_quantity",
+                      "rules": []
+                    },
                     {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
+                      "type": "number",
+                      "name": "Return Quantity",
+                      "icon": "icon-number",
+                      "mainIcon": "数字",
+                      "typeIcon": "数字",
+                      "group": "Number",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-number",
+                      "options": {
+                        "width": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "defaultValue": 0,
+                        "min": 0,
+                        "step": 1,
+                        "disabled": "{{arguments[0].row.hu_material_id === ''}}",
+                        "controls": false,
+                        "controlsPosition": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "precision": 3,
+                        "customProps": {
+                          "progressColor": "",
+                          "dividingNumber": "",
+                          "showNumber": "",
+                          "viewMode": "",
+                          "format": "rmb",
+                          "cacheProp": true
+                        },
+                        "tip": "",
+                        "remoteFunc": "func_zu6gb48s",
+                        "remoteOption": "option_zu6gb48s",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "fixedColumn": true,
+                        "fixedColumnPosition": "right"
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "x4gpqaag",
+                      "model": "return_quantity",
+                      "rules": []
+                    },
+                    {
+                      "version": "1.0.0",
+                      "type": "switch",
+                      "mainIcon": "开关",
+                      "typeIcon": "开关",
+                      "icon": "icon-switch",
+                      "group": "Select",
+                      "groupSort": 8,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "defaultValue": 0,
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "disabled": false,
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "width": "",
+                        "customProps": {},
+                        "tip": "",
+                        "booleanValueMode": false,
+                        "alignright": false,
+                        "checkboxMode": true,
+                        "remoteFunc": "func_nwb0pj1c",
+                        "remoteOption": "option_nwb0pj1c",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "fixedColumn": true,
+                        "fixedColumnPosition": "right",
+                        "dataIdentifier": false
+                      },
+                      "events": {
+                        "onChange": "5ulwgpus"
+                      },
+                      "name": "Select HU / Item",
+                      "novalid": {},
+                      "key": "uk5wiblh",
+                      "model": "hu_select",
+                      "rules": []
+                    },
+                    {
+                      "version": "1.0.0",
+                      "type": "switch",
+                      "mainIcon": "开关",
+                      "typeIcon": "开关",
+                      "icon": "icon-switch",
+                      "group": "Select",
+                      "groupSort": 8,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "defaultValue": 0,
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "disabled": false,
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "width": "",
+                        "customProps": {},
+                        "tip": "",
+                        "booleanValueMode": false,
+                        "alignright": false,
+                        "checkboxMode": true,
+                        "remoteFunc": "func_nwb0pj1c",
+                        "remoteOption": "option_nwb0pj1c",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": ""
+                      },
+                      "name": "is HU Disabled",
+                      "novalid": {},
+                      "key": "a1z0f9wq",
+                      "model": "hu_disabled",
+                      "rules": []
+                    },
+                    {
+                      "type": "number",
+                      "name": "Gross Weight",
+                      "icon": "icon-number",
+                      "mainIcon": "数字",
+                      "typeIcon": "数字",
+                      "group": "Number",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-number",
+                      "options": {
+                        "width": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "defaultValue": 0,
+                        "min": 0,
+                        "step": 1,
+                        "disabled": true,
+                        "controls": false,
+                        "controlsPosition": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "precision": 3,
+                        "customProps": {
+                          "progressColor": "",
+                          "dividingNumber": "",
+                          "showNumber": "",
+                          "viewMode": "",
+                          "format": "rmb",
+                          "cacheProp": true
+                        },
+                        "tip": "",
+                        "remoteFunc": "func_zu6gb48s",
+                        "remoteOption": "option_zu6gb48s",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "s94alqef",
+                      "model": "gross_weight",
+                      "rules": []
+                    },
+                    {
+                      "type": "number",
+                      "name": "Net Weight",
+                      "icon": "icon-number",
+                      "mainIcon": "数字",
+                      "typeIcon": "数字",
+                      "group": "Number",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-number",
+                      "options": {
+                        "width": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "defaultValue": 0,
+                        "min": 0,
+                        "step": 1,
+                        "disabled": true,
+                        "controls": false,
+                        "controlsPosition": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "precision": 3,
+                        "customProps": {
+                          "progressColor": "",
+                          "dividingNumber": "",
+                          "showNumber": "",
+                          "viewMode": "",
+                          "format": "rmb",
+                          "cacheProp": true
+                        },
+                        "tip": "",
+                        "remoteFunc": "func_zu6gb48s",
+                        "remoteOption": "option_zu6gb48s",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "jf28wvlb",
+                      "model": "net_weight",
+                      "rules": []
+                    },
+                    {
+                      "type": "number",
+                      "name": "Net Volume",
+                      "icon": "icon-number",
+                      "mainIcon": "数字",
+                      "typeIcon": "数字",
+                      "group": "Number",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-number",
+                      "options": {
+                        "width": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "defaultValue": 0,
+                        "min": 0,
+                        "step": 1,
+                        "disabled": true,
+                        "controls": false,
+                        "controlsPosition": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "precision": 3,
+                        "customProps": {
+                          "progressColor": "",
+                          "dividingNumber": "",
+                          "showNumber": "",
+                          "viewMode": "",
+                          "format": "rmb",
+                          "cacheProp": true
+                        },
+                        "tip": "",
+                        "remoteFunc": "func_zu6gb48s",
+                        "remoteOption": "option_zu6gb48s",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "sf1pgaod",
+                      "model": "net_volume",
+                      "rules": []
+                    },
+                    {
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_w6ykcg7c",
+                        "remoteOption": "option_w6ykcg7c",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "select-card_4c8m22dh": []
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Status",
+                      "novalid": {},
+                      "key": "hbz94crt",
+                      "model": "hu_status",
+                      "rules": []
+                    },
+                    {
+                      "type": "textarea",
+                      "mainIcon": "多行文本",
+                      "typeIcon": "多行文本(1)",
+                      "icon": "icon-diy-com-textarea",
+                      "group": "Text",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "disabled": true,
+                        "pattern": "",
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "rows": 1,
+                        "autosize": true,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_4obxnfji",
+                        "remoteOption": "option_4obxnfji",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "select-card_4c8m22dh": []
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Remark",
+                      "novalid": {},
+                      "key": "zd26ncuk",
+                      "model": "remark",
+                      "rules": []
+                    },
+                    {
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_w6ykcg7c",
+                        "remoteOption": "option_w6ykcg7c",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "select-card_4c8m22dh": []
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Parent HU ID",
+                      "novalid": {},
+                      "key": "p34dnl2q",
+                      "model": "parent_hu_id",
+                      "rules": []
+                    },
+                    {
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_lvcqidjq",
+                        "remoteOption": "option_lvcqidjq",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "select-card_4c8m22dh": []
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Balance ID",
+                      "novalid": {},
+                      "key": "2nki0y3o",
+                      "model": "balance_id",
+                      "rules": []
+                    },
+                    {
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_lvcqidjq",
+                        "remoteOption": "option_lvcqidjq",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "select-card_4c8m22dh": []
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Row Type",
+                      "novalid": {},
+                      "key": "gxco6ogp",
+                      "model": "row_type",
+                      "rules": []
                     }
-                  ]
-                },
-                "columns": [],
-                "sorts": []
-              },
-              "events": {
-                "onChange": "jq9mk06q",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "oqmzzd96",
-              "model": "inventory_category",
-              "rules": []
+                  ],
+                  "name": "Table HU",
+                  "key": "aivl7fco",
+                  "model": "table_hu",
+                  "rules": []
+                }
+              ],
+              "key": "pbdbrkzv"
             },
             {
-              "name": "Category Balance",
-              "type": "number",
-              "icon": "icon-number",
-              "mainIcon": "数字",
-              "typeIcon": "数字",
-              "group": "Number",
-              "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-number",
-              "options": {
-                "width": "",
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "defaultValue": 0,
-                "min": 0,
-                "step": 1,
-                "disabled": true,
-                "controls": false,
-                "controlsPosition": "",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "precision": 0,
-                "customProps": {
-                  "progressColor": "",
-                  "dividingNumber": "",
-                  "showNumber": "",
-                  "viewMode": "",
-                  "format": "rmb",
-                  "cacheProp": true
-                },
-                "tip": "",
-                "remoteFunc": "func_rr4g8wh9",
-                "remoteOption": "option_rr4g8wh9",
-                "tableColumn": true,
-                "subform": false
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "rr4g8wh9",
-              "model": "category_balance",
-              "rules": []
-            },
-            {
-              "name": "Return Qty",
-              "type": "number",
-              "icon": "icon-number",
-              "mainIcon": "数字",
-              "typeIcon": "数字",
-              "group": "Number",
-              "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-number",
-              "options": {
-                "width": "",
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": true,
-                "validator": "const data = this.getValues();\nconst fieldParts = rule.field.split(\".\");\nconst index = fieldParts[2];\n\nconst balance_quantity =\n  data.confirm_inventory.table_item_balance[index].balance_quantity;\n\nconst category_balance =\n  data.confirm_inventory.table_item_balance[index].category_balance;\n\nconst category_type =\n  data.confirm_inventory.table_item_balance[index].inventory_category || null;\n\nif (!window.validationState) {\n  window.validationState = {};\n}\n\nif(category_type === null){\n  window.validationState[index] = false;\n  callback(\"Invalid category type\");\n}\n\nif (Object.keys(window.validationState).length === 0) {\n  const rowCount = data.confirm_inventory.table_item_balance.length;\n  for (let i = 0; i < rowCount; i++) {\n    window.validationState[i] = true;\n  }\n}\nif (balance_quantity < value || category_balance < value) {\n  window.validationState[index] = false;\n  callback(\"Not enough quantity to be returned\");\n} else {\n  window.validationState[index] = true;\n  callback();\n}\n",
-                "defaultValue": 0,
-                "min": 0,
-                "step": 1,
-                "disabled": false,
-                "controls": false,
-                "controlsPosition": "",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "precision": 0,
-                "customProps": {
-                  "progressColor": "",
-                  "dividingNumber": "",
-                  "showNumber": "",
-                  "viewMode": "",
-                  "format": "rmb",
-                  "cacheProp": true
-                },
-                "tip": "",
-                "remoteFunc": "func_flry19su",
-                "remoteOption": "option_flry19su",
-                "tableColumn": true,
-                "subform": false
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "flry19su",
-              "model": "return_quantity",
-              "rules": [
+              "key": "ez2nt5xz",
+              "label": "Inventory",
+              "name": "loose",
+              "list": [
                 {
-                  "func": "const data = this.getValues();\nconst fieldParts = rule.field.split(\".\");\nconst index = fieldParts[2];\n\nconst balance_quantity =\n  data.confirm_inventory.table_item_balance[index].balance_quantity;\n\nconst category_balance =\n  data.confirm_inventory.table_item_balance[index].category_balance;\n\nconst category_type =\n  data.confirm_inventory.table_item_balance[index].inventory_category || null;\n\nif (!window.validationState) {\n  window.validationState = {};\n}\n\nif(category_type === null){\n  window.validationState[index] = false;\n  callback(\"Invalid category type\");\n}\n\nif (Object.keys(window.validationState).length === 0) {\n  const rowCount = data.confirm_inventory.table_item_balance.length;\n  for (let i = 0; i < rowCount; i++) {\n    window.validationState[i] = true;\n  }\n}\nif (balance_quantity < value || category_balance < value) {\n  window.validationState[index] = false;\n  callback(\"Not enough quantity to be returned\");\n} else {\n  window.validationState[index] = true;\n  callback();\n}\n"
+                  "name": "Item Balance",
+                  "type": "table",
+                  "mainIcon": "子表单",
+                  "typeIcon": "子表单",
+                  "icon": "icon-table",
+                  "group": "Container",
+                  "groupSort": 0,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "defaultValue": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "disabled": false,
+                    "required": false,
+                    "validatorCheck": false,
+                    "validator": "",
+                    "paging": false,
+                    "pageSize": 5,
+                    "isAdd": false,
+                    "isDelete": true,
+                    "showControl": true,
+                    "virtualTable": true,
+                    "sortable": true,
+                    "tip": "",
+                    "remoteFunc": "func_wbuak62e",
+                    "remoteOption": "option_wbuak62e",
+                    "tableColumn": false,
+                    "subform": false,
+                    "labelWrap": true,
+                    "hideLabel": true,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "useTableV2Height": 400,
+                    "highPerformanceMode": true,
+                    "useVTable": true,
+                    "autoPaging": false,
+                    "autoPageSize": 5,
+                    "autoLoadDelay": 500,
+                    "useTableV2": false,
+                    "groupBy": "",
+                    "childRecordMode": false,
+                    "filters": [],
+                    "filter_collapse": 0,
+                    "rowActions": [],
+                    "collapse_all": 0,
+                    "rowSelectionType": "None",
+                    "batchOperate": [],
+                    "resizable": 0,
+                    "emptyTip": "",
+                    "tableHeightMode": "fixed",
+                    "tableFixedHeight": null,
+                    "tableMaxHeight": null,
+                    "rowHeightType": "auto",
+                    "inlineInsert": true,
+                    "hideIndex": false,
+                    "highlightSelectedRow": false,
+                    "highlightHoverRow": false,
+                    "showTableBorder": 0,
+                    "stripe": 0,
+                    "rowColor": "#FFFFFF",
+                    "headerBgColor": "#FFFFFF",
+                    "styles": {},
+                    "customProps": {
+                      "toolbar": [
+                        {
+                          "title": "全屏",
+                          "type": "fullscreenBtn",
+                          "icon": "",
+                          "events": [],
+                          "hidden": false,
+                          "disabled": false
+                        },
+                        {
+                          "title": "列操作",
+                          "type": "columnBtn",
+                          "icon": "",
+                          "events": [],
+                          "hidden": false,
+                          "disabled": false
+                        }
+                      ]
+                    }
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onRowAdd": "",
+                    "onRowRemove": "",
+                    "onPageChange": ""
+                  },
+                  "tableColumns": [
+                    {
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_7udv5uv3",
+                        "remoteOption": "option_7udv5uv3",
+                        "tableColumn": true,
+                        "subform": false
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Serial Number",
+                      "novalid": {},
+                      "key": "7udv5uv3",
+                      "model": "serial_number",
+                      "rules": []
+                    },
+                    {
+                      "name": "Batch No",
+                      "type": "select",
+                      "mainIcon": "下拉单选",
+                      "typeIcon": "下拉单选",
+                      "icon": "icon-select",
+                      "group": "Select",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-select",
+                      "options": {
+                        "defaultValue": "",
+                        "multiple": false,
+                        "disabled": true,
+                        "clearable": false,
+                        "placeholder": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "options": [
+                          {
+                            "value": "Option 1",
+                            "label": "Option 1"
+                          },
+                          {
+                            "value": "Option 2",
+                            "label": "Option 2"
+                          },
+                          {
+                            "value": "Option 3",
+                            "label": "Option 3"
+                          }
+                        ],
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "remoteOption": "option_1mrktarm",
+                        "filterable": true,
+                        "pagingEnabled": true,
+                        "remoteOptions": [],
+                        "props": {
+                          "value": "id",
+                          "label": "batch_number",
+                          "cascade": "",
+                          "children": "",
+                          "image": "",
+                          "icon": ""
+                        },
+                        "remoteFunc": "func_1mrktarm",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "tableColumn": true,
+                        "subform": false,
+                        "paging_enabled": 1,
+                        "paging_way": "Pagination",
+                        "page_size": 10,
+                        "more_fields": [],
+                        "datasource": {
+                          "source": "Batch:Table:1902719754154655746",
+                          "rules": {
+                            "collectionId": "1902719754154655746",
+                            "list": [
+                              {
+                                "id": 1746374298476,
+                                "parentId": 1746374298475,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "url_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "request_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "9szpuywf",
+                      "model": "batch_id",
+                      "rules": []
+                    },
+                    {
+                      "type": "date",
+                      "mainIcon": "日期",
+                      "typeIcon": "日期",
+                      "icon": "icon-date",
+                      "group": "DateTime",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "defaultValue": "",
+                        "readonly": false,
+                        "disabled": true,
+                        "editable": false,
+                        "clearable": true,
+                        "placeholder": "",
+                        "startPlaceholder": "",
+                        "endPlaceholder": "",
+                        "type": "date",
+                        "timeStampType": "timestamp",
+                        "format": "YYYY-MM",
+                        "timestamp": false,
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_dyy5k9ny",
+                        "remoteOption": "option_dyy5k9ny",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Manufacturing Date",
+                      "novalid": {},
+                      "key": "dyy5k9ny",
+                      "model": "manufacturing_date",
+                      "rules": []
+                    },
+                    {
+                      "type": "date",
+                      "mainIcon": "日期",
+                      "typeIcon": "日期",
+                      "icon": "icon-date",
+                      "group": "DateTime",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "defaultValue": "",
+                        "readonly": false,
+                        "disabled": true,
+                        "editable": false,
+                        "clearable": true,
+                        "placeholder": "",
+                        "startPlaceholder": "",
+                        "endPlaceholder": "",
+                        "type": "date",
+                        "timeStampType": "timestamp",
+                        "format": "YYYY-MM",
+                        "timestamp": false,
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_dyy5k9ny",
+                        "remoteOption": "option_dyy5k9ny",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Expired Date",
+                      "novalid": {},
+                      "key": "blwufmpp",
+                      "model": "expired_date",
+                      "rules": []
+                    },
+                    {
+                      "name": "Location",
+                      "type": "select",
+                      "mainIcon": "下拉单选",
+                      "typeIcon": "下拉单选",
+                      "icon": "icon-select",
+                      "group": "Select",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-select",
+                      "options": {
+                        "defaultValue": "",
+                        "multiple": false,
+                        "disabled": true,
+                        "clearable": false,
+                        "placeholder": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "options": [
+                          {
+                            "value": "Option 1",
+                            "label": "Option 1"
+                          },
+                          {
+                            "value": "Option 2",
+                            "label": "Option 2"
+                          },
+                          {
+                            "value": "Option 3",
+                            "label": "Option 3"
+                          }
+                        ],
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "remoteOption": "option_1mrktarm",
+                        "filterable": true,
+                        "pagingEnabled": true,
+                        "remoteOptions": [],
+                        "props": {
+                          "value": "id",
+                          "label": "bin_location_combine",
+                          "cascade": "",
+                          "children": "",
+                          "image": "",
+                          "icon": ""
+                        },
+                        "remoteFunc": "func_1mrktarm",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "tableColumn": true,
+                        "subform": false,
+                        "paging_enabled": 1,
+                        "paging_way": "Pagination",
+                        "page_size": 10,
+                        "more_fields": [],
+                        "datasource": {
+                          "source": "Bin Location:Table:1902282127538507778",
+                          "rules": {
+                            "collectionId": "1902282127538507778",
+                            "list": [
+                              {
+                                "id": 1746374346723,
+                                "parentId": 1746374346722,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "url_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "request_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "xgug5xw7",
+                      "model": "location_id",
+                      "rules": []
+                    },
+                    {
+                      "name": "Balance",
+                      "type": "number",
+                      "icon": "icon-number",
+                      "mainIcon": "数字",
+                      "typeIcon": "数字",
+                      "group": "Number",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-number",
+                      "options": {
+                        "width": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "defaultValue": 0,
+                        "min": 0,
+                        "step": 1,
+                        "disabled": true,
+                        "controls": false,
+                        "controlsPosition": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "precision": 3,
+                        "customProps": {
+                          "progressColor": "",
+                          "dividingNumber": "",
+                          "showNumber": "",
+                          "viewMode": "",
+                          "format": "rmb",
+                          "cacheProp": true
+                        },
+                        "tip": "",
+                        "remoteFunc": "func_rr4g8wh9",
+                        "remoteOption": "option_rr4g8wh9",
+                        "tableColumn": true,
+                        "subform": false,
+                        "dynamicValueType": "fx",
+                        "isDynamicValue": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "swh8f19o",
+                      "model": "balance_quantity",
+                      "rules": []
+                    },
+                    {
+                      "name": "Category",
+                      "type": "select",
+                      "mainIcon": "下拉单选",
+                      "typeIcon": "下拉单选",
+                      "icon": "icon-select",
+                      "group": "Select",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-select",
+                      "options": {
+                        "defaultValue": "",
+                        "multiple": false,
+                        "disabled": false,
+                        "clearable": true,
+                        "placeholder": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "width": "",
+                        "options": [
+                          {
+                            "value": "Option 1",
+                            "label": "Option 1"
+                          },
+                          {
+                            "value": "Option 2",
+                            "label": "Option 2"
+                          },
+                          {
+                            "value": "Option 3",
+                            "label": "Option 3"
+                          }
+                        ],
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "remoteOption": "option_2ie6dyty",
+                        "filterable": false,
+                        "pagingEnabled": true,
+                        "remoteOptions": [],
+                        "props": {
+                          "value": "dict_key",
+                          "label": "dict_key",
+                          "cascade": "",
+                          "children": "children",
+                          "image": "",
+                          "icon": "",
+                          "explain": ""
+                        },
+                        "remoteFunc": "func_2ie6dyty",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "customProps": {},
+                        "tip": "",
+                        "tableColumn": true,
+                        "subform": false,
+                        "paging_enabled": 1,
+                        "paging_way": "Pagination",
+                        "page_size": 10,
+                        "more_fields": [],
+                        "datasource": {
+                          "source": "系统字典(勿删):Table:1897577528487428098",
+                          "rules": {
+                            "collectionId": "1897577528487428098",
+                            "list": [
+                              {
+                                "id": 1746374729874,
+                                "parentId": 1746374729875,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1746374505140,
+                                    "parentId": 1746374729874,
+                                    "isTop": false,
+                                    "prop": "parent_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": "1915303560812322818",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "父主键",
+                                    "valueLabel": "",
+                                    "operatorLabel": "等于",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1746374729877,
+                                    "isTop": false,
+                                    "parentId": 1746374729874,
+                                    "type": "branch",
+                                    "operator": "all",
+                                    "level": 2,
+                                    "children": [
+                                      {
+                                        "id": 1746374729876,
+                                        "parentId": 1746374729877,
+                                        "isTop": false,
+                                        "prop": "dict_key",
+                                        "operator": "notEqual",
+                                        "valueType": "value",
+                                        "value": "Reserved",
+                                        "type": "leaf",
+                                        "level": 3,
+                                        "propLabel": "字典值",
+                                        "valueLabel": "",
+                                        "operatorLabel": "不等于",
+                                        "valueTypeLabel": "值"
+                                      },
+                                      {
+                                        "id": 1746374729878,
+                                        "parentId": 1746374729877,
+                                        "isTop": false,
+                                        "prop": "dict_key",
+                                        "operator": "notEqual",
+                                        "valueType": "value",
+                                        "value": "In Transit",
+                                        "type": "leaf",
+                                        "level": 3,
+                                        "propLabel": "字典值",
+                                        "valueLabel": "",
+                                        "operatorLabel": "不等于",
+                                        "valueTypeLabel": "值"
+                                      },
+                                      {
+                                        "id": 1753266507054,
+                                        "parentId": 1746374729877,
+                                        "isTop": false,
+                                        "prop": "dict_key",
+                                        "operator": "notEqual",
+                                        "valueType": "value",
+                                        "value": "Quality Inspection",
+                                        "type": "leaf",
+                                        "level": 3,
+                                        "propLabel": "字典值",
+                                        "valueLabel": "",
+                                        "operatorLabel": "不等于",
+                                        "valueTypeLabel": "值"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "url_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "request_params": {
+                          "list": [
+                            {
+                              "prop": "",
+                              "propLabel": "",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "columns": [],
+                        "sorts": [],
+                        "auto_refresh": 0,
+                        "auto_refresh_debounce": 100,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "jq9mk06q",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "oqmzzd96",
+                      "model": "inventory_category",
+                      "rules": []
+                    },
+                    {
+                      "name": "Category Balance",
+                      "type": "number",
+                      "icon": "icon-number",
+                      "mainIcon": "数字",
+                      "typeIcon": "数字",
+                      "group": "Number",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-number",
+                      "options": {
+                        "width": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "defaultValue": 0,
+                        "min": 0,
+                        "step": 1,
+                        "disabled": true,
+                        "controls": false,
+                        "controlsPosition": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "precision": 3,
+                        "customProps": {
+                          "progressColor": "",
+                          "dividingNumber": "",
+                          "showNumber": "",
+                          "viewMode": "",
+                          "format": "rmb",
+                          "cacheProp": true
+                        },
+                        "tip": "",
+                        "remoteFunc": "func_rr4g8wh9",
+                        "remoteOption": "option_rr4g8wh9",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "rr4g8wh9",
+                      "model": "category_balance",
+                      "rules": []
+                    },
+                    {
+                      "name": "Return Qty",
+                      "type": "number",
+                      "icon": "icon-number",
+                      "mainIcon": "数字",
+                      "typeIcon": "数字",
+                      "group": "Number",
+                      "groupSort": 2,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-number",
+                      "options": {
+                        "width": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "validatorCheck": true,
+                        "validator": "const data = this.getValues();\nconst fieldParts = rule.field.split(\".\");\nconst index = fieldParts[2];\n\nconst balance_quantity =\n  data.confirm_inventory.table_item_balance[index].balance_quantity;\n\nconst category_balance =\n  data.confirm_inventory.table_item_balance[index].category_balance;\n\nconst category_type =\n  data.confirm_inventory.table_item_balance[index].inventory_category || null;\n\nif (!window.validationState) {\n  window.validationState = {};\n}\n\nif(category_type === null){\n  window.validationState[index] = false;\n  callback(\"Invalid category type\");\n}\n\nif (Object.keys(window.validationState).length === 0) {\n  const rowCount = data.confirm_inventory.table_item_balance.length;\n  for (let i = 0; i < rowCount; i++) {\n    window.validationState[i] = true;\n  }\n}\nif (balance_quantity < value || category_balance < value) {\n  window.validationState[index] = false;\n  callback(\"Not enough quantity to be returned\");\n} else {\n  window.validationState[index] = true;\n  callback();\n}\n",
+                        "defaultValue": 0,
+                        "min": 0,
+                        "step": 1,
+                        "disabled": false,
+                        "controls": false,
+                        "controlsPosition": "",
+                        "customClass": "",
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": false,
+                        "dataBind": true,
+                        "precision": 3,
+                        "customProps": {
+                          "progressColor": "",
+                          "dividingNumber": "",
+                          "showNumber": "",
+                          "viewMode": "",
+                          "format": "rmb",
+                          "cacheProp": true
+                        },
+                        "tip": "",
+                        "remoteFunc": "func_flry19su",
+                        "remoteOption": "option_flry19su",
+                        "tableColumn": true,
+                        "subform": false,
+                        "select-card_n7ge7fmb": [],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": ""
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "flry19su",
+                      "model": "return_quantity",
+                      "rules": [
+                        {
+                          "func": "const data = this.getValues();\nconst fieldParts = rule.field.split(\".\");\nconst index = fieldParts[2];\n\nconst balance_quantity =\n  data.confirm_inventory.table_item_balance[index].balance_quantity;\n\nconst category_balance =\n  data.confirm_inventory.table_item_balance[index].category_balance;\n\nconst category_type =\n  data.confirm_inventory.table_item_balance[index].inventory_category || null;\n\nif (!window.validationState) {\n  window.validationState = {};\n}\n\nif(category_type === null){\n  window.validationState[index] = false;\n  callback(\"Invalid category type\");\n}\n\nif (Object.keys(window.validationState).length === 0) {\n  const rowCount = data.confirm_inventory.table_item_balance.length;\n  for (let i = 0; i < rowCount; i++) {\n    window.validationState[i] = true;\n  }\n}\nif (balance_quantity < value || category_balance < value) {\n  window.validationState[index] = false;\n  callback(\"Not enough quantity to be returned\");\n} else {\n  window.validationState[index] = true;\n  callback();\n}\n"
+                        }
+                      ]
+                    }
+                  ],
+                  "key": "rsjvh0lk",
+                  "model": "table_item_balance",
+                  "rules": []
                 }
               ]
             }
           ],
-          "key": "rsjvh0lk",
-          "model": "table_item_balance",
+          "options": {
+            "type": "",
+            "tabPosition": "top",
+            "customClass": "",
+            "hidden": false,
+            "lazyLoad": false,
+            "remoteFunc": "func_115tlqxp",
+            "remoteOption": "option_115tlqxp",
+            "tableColumn": false,
+            "subform": false,
+            "elementFxCurrent": "loose",
+            "dataIdentifier": false
+          },
+          "events": {
+            "onClick": ""
+          },
+          "name": "Tabs",
+          "key": "rjawrt7m",
+          "model": "inventory_tabs",
           "rules": []
         }
       ],
@@ -13743,7 +15267,7 @@
       {
         "key": "as9j8588",
         "name": "onConfirm_batchAddItem",
-        "func": "const fetchItemData = async (itemID) => {\n  const resItem = await db\n    .collection(\"Item\")\n    .field(\"material_costing_method,item_category\")\n    .where({ id: itemID })\n    .get();\n\n  if (!resItem || resItem.data.length === 0) return;\n  else return resItem.data[0];\n};\n\nconst fetchBatchID = async (batchNo, grNumber, itemID) => {\n  try {\n    const organizationID = this.getValue(\"organization_id\");\n    const plantID = this.getValue(\"plant\");\n\n    const resBatch = await db\n      .collection(\"batch\")\n      .where({\n        material_id: itemID,\n        batch_number: batchNo,\n        transaction_no: grNumber,\n        plant_id: plantID,\n        organization_id: organizationID,\n      })\n      .get();\n\n    if (!resBatch || resBatch.data.length === 0) return;\n    else return resBatch.data[0].id;\n  } catch (error) {\n    console.error(error);\n  }\n};\n\nconst processData = async (existingPRT, tablePRT) => {\n  for (const [rowIndex, prt] of tablePRT.entries()) {\n    const index = existingPRT.length + rowIndex;\n\n    if (!prt.material_id && prt.material_desc !== \"\") {\n      this.disabled(`table_prt.${index}.select_return_qty`, true);\n      this.disabled(`table_prt.${index}.return_quantity`, false);\n    } else {\n      this.disabled(`table_prt.${index}.select_return_qty`, false);\n      this.disabled(`table_prt.${index}.return_quantity`, true);\n    }\n\n    if (prt.batch_no !== \"-\") {\n      const batchID = await fetchBatchID(\n        prt.batch_no,\n        prt.gr_number,\n        prt.material_id\n      );\n\n      this.setData({ [`table_prt.${index}.batch_id`]: batchID });\n    }\n  }\n};\n\nconst convertToBaseUOM = (quantity, altUOM, itemData) => {\n  if (!altUOM || altUOM === itemData.based_uom) {\n    return quantity;\n  }\n\n  const uomConversion = itemData.table_uom_conversion?.find(\n    (conv) => conv.alt_uom_id === altUOM\n  );\n\n  if (uomConversion && uomConversion.base_qty) {\n    return quantity * uomConversion.base_qty;\n  }\n\n  return quantity;\n};\n\n(async () => {\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n  const currentItemArray = this.getValue(`dialog_select_item.item_array`);\n  let existingPRT = this.getValue(\"table_prt\");\n  const previousReferenceType = this.getValue(\"reference_type\");\n  const supplierName = this.getValue(\"supplier_id\");\n\n  let tablePRT = [];\n  let purchaseOrderNumber = [];\n  let poId = [];\n  let goodsReceivingNumber = [];\n  let grId = [];\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\"Please select at least one goods receiving / item.\", \"Error\", {\n      confirmButtonText: \"OK\",\n      type: \"error\",\n    });\n\n    return;\n  }\n\n  if (previousReferenceType && previousReferenceType !== referenceType) {\n    await this.$confirm(\n      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Reference Type Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      }\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPRT = [];\n  }\n\n  const uniqueSuppliers = new Set(currentItemArray.map((gr) => gr.supplier_id));\n  const allSameSupplier = uniqueSuppliers.size === 1;\n\n  if (!allSameSupplier) {\n    this.$alert(\n      \"Returned item(s) from more than two different suppliers is not allowed.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      }\n    );\n    return;\n  }\n\n  if (supplierName && supplierName !== [...uniqueSuppliers][0]) {\n    await this.$confirm(\n      `You've selected a different supplier than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Supplier Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      }\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPRT = [];\n  }\n\n  this.closeDialog(\"dialog_select_item\");\n  this.showLoading();\n\n  switch (referenceType) {\n    case \"Document\":\n      for (const gr of currentItemArray) {\n        // Filter out child rows - only count parent/regular/split-parent rows for returning\n        // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n        const grLines = gr.table_gr.filter(\n          (item) => item.parent_or_child !== \"Child\"\n        );\n\n        for (const grItem of grLines) {\n          let itemData;\n          if (grItem.item_id) {\n            itemData = await fetchItemData(grItem.item_id);\n          }\n\n          let receivedQuantity = grItem.received_qty;\n          let UOM = grItem.item_uom;\n\n          if (itemData && itemData.serial_number_management === 1) {\n            receivedQuantity = convertToBaseUOM(\n              grItem.received_qty,\n              grItem.item_uom,\n              itemData\n            );\n\n            UOM = itemData.based_uom;\n          }\n\n          const newtablePRTRecord = {\n            material_id: grItem.item_id || null,\n            material_name: grItem.item_name,\n            material_desc: grItem.item_desc,\n            more_desc: grItem.more_desc,\n            received_qty: parseFloat(receivedQuantity.toFixed(3)),\n            return_quantity: 0,\n            return_uom_id: UOM,\n            po_number: grItem.line_po_no,\n            gr_number: gr.gr_no,\n            gr_date: gr.gr_date,\n            line_remark_1: grItem.line_remark_1,\n            line_remark_2: grItem.line_remark_2,\n            batch_no: grItem.item_batch_no,\n            returned_quantity: parseFloat(grItem.return_quantity.toFixed(3)),\n            unit_price: grItem.unit_price,\n            total_price: grItem.total_price,\n            costing_method: itemData?.material_costing_method || null,\n            item_category_id: itemData?.item_category || null,\n            po_id: grItem.line_po_id,\n            po_line_id: grItem.po_line_item_id,\n            gr_id: gr.goods_receiving_id,\n            gr_line_id: grItem.id,\n            is_serialized_item: grItem.is_serialized_item,\n          };\n\n          tablePRT.push(newtablePRTRecord);\n        }\n      }\n\n      break;\n\n    case \"Item\":\n      // Filter out child rows - only count parent/regular/split-parent rows for returning\n      // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n      for (const grItem of currentItemArray.filter(\n        (item) => item.parent_or_child !== \"Child\"\n      )) {\n        let receivedQuantity = grItem.received_qty;\n        let UOM = grItem.item_uom;\n\n        if (grItem.is_serialized_item === 1) {\n          receivedQuantity = grItem.base_received_qty;\n          UOM = grItem.item.base_item_uom;\n        }\n\n        const newtablePRTRecord = {\n          material_id: grItem.item.id || null,\n          material_name: grItem.item.material_name,\n          material_desc: grItem.item_desc,\n          more_desc: grItem.more_desc,\n          received_qty: parseFloat(receivedQuantity.toFixed(3)),\n          return_quantity: 0,\n          return_uom_id: UOM,\n          po_number: grItem.purchase_order_id.purchase_order_no,\n          gr_number: grItem.goods_receiving_id.gr_no,\n          gr_date: grItem.goods_receiving_id.gr_date,\n          line_remark_1: grItem.line_remark_1,\n          line_remark_2: grItem.line_remark_2,\n          batch_no: grItem.item_batch_no,\n          returned_quantity: parseFloat(grItem.return_quantity.toFixed(3)),\n          unit_price: grItem.unit_price,\n          total_price: grItem.total_price,\n          costing_method: grItem.item?.material_costing_method || null,\n          item_category_id: grItem.item?.item_category || null,\n          po_id: grItem.purchase_order_id.id,\n          po_line_id: grItem.purchase_order_line_id.id,\n          gr_id: grItem.goods_receiving_id.id,\n          gr_line_id: grItem.goods_receiving_line_id,\n          is_serialized_item: grItem.is_serialized_item,\n        };\n\n        tablePRT.push(newtablePRTRecord);\n      }\n      break;\n  }\n\n  tablePRT = tablePRT.filter(\n    (prt) =>\n      prt.returned_quantity !== prt.received_qty &&\n      !existingPRT.find((prtItem) => prtItem.gr_line_id === prt.gr_line_id)\n  );\n\n  const latesttablePRT = [...existingPRT, ...tablePRT];\n  console.log(\"latesttablePRT\", latesttablePRT);\n\n  poId = [...new Set(latesttablePRT.map((prt) => prt.po_id))];\n  purchaseOrderNumber = [\n    ...new Set(latesttablePRT.map((prt) => prt.po_number)),\n  ];\n  grId = [...new Set(latesttablePRT.map((prt) => prt.gr_id))];\n  goodsReceivingNumber = [\n    ...new Set(latesttablePRT.map((prt) => prt.gr_number)),\n  ];\n\n  await this.setData({\n    supplier_id: currentItemArray[0].supplier_id,\n    table_prt: [...existingPRT, ...tablePRT],\n    po_no_display: purchaseOrderNumber.join(\", \"),\n    po_id: poId,\n    gr_no_display: goodsReceivingNumber.join(\", \"),\n    gr_id: grId,\n    reference_type: referenceType,\n  });\n\n  setTimeout(async () => {\n    await processData(existingPRT, tablePRT);\n  }, 50);\n\n  this.hideLoading();\n})();\n",
+        "func": "const fetchItemData = async (itemID) => {\n  const resItem = await db\n    .collection(\"Item\")\n    .field(\"material_costing_method,item_category\")\n    .where({ id: itemID })\n    .get();\n\n  if (!resItem || resItem.data.length === 0) return;\n  else return resItem.data[0];\n};\n\nconst fetchBatchID = async (batchNo, grNumber, itemID) => {\n  try {\n    const organizationID = this.getValue(\"organization_id\");\n    const plantID = this.getValue(\"plant\");\n\n    const resBatch = await db\n      .collection(\"batch\")\n      .where({\n        material_id: itemID,\n        batch_number: batchNo,\n        transaction_no: grNumber,\n        plant_id: plantID,\n        organization_id: organizationID,\n      })\n      .get();\n\n    if (!resBatch || resBatch.data.length === 0) return;\n    else return resBatch.data[0].id;\n  } catch (error) {\n    console.error(error);\n  }\n};\n\nconst processData = async (existingPRT, tablePRT) => {\n  for (const [rowIndex, prt] of tablePRT.entries()) {\n    const index = existingPRT.length + rowIndex;\n\n    if (!prt.material_id && prt.material_desc !== \"\") {\n      this.disabled(`table_prt.${index}.select_return_qty`, true);\n      this.disabled(`table_prt.${index}.return_quantity`, false);\n    } else {\n      this.disabled(`table_prt.${index}.select_return_qty`, false);\n      this.disabled(`table_prt.${index}.return_quantity`, true);\n    }\n\n    if (prt.batch_no !== \"-\") {\n      const batchID = await fetchBatchID(\n        prt.batch_no,\n        prt.gr_number,\n        prt.material_id,\n      );\n\n      this.setData({ [`table_prt.${index}.batch_id`]: batchID });\n    }\n  }\n};\n\nconst convertToBaseUOM = (quantity, altUOM, itemData) => {\n  if (!altUOM || altUOM === itemData.based_uom) {\n    return quantity;\n  }\n\n  const uomConversion = itemData.table_uom_conversion?.find(\n    (conv) => conv.alt_uom_id === altUOM,\n  );\n\n  if (uomConversion && uomConversion.base_qty) {\n    return quantity * uomConversion.base_qty;\n  }\n\n  return quantity;\n};\n\n(async () => {\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n  const currentItemArray = this.getValue(`dialog_select_item.item_array`);\n  let existingPRT = this.getValue(\"table_prt\");\n  const previousReferenceType = this.getValue(\"reference_type\");\n  const supplierName = this.getValue(\"supplier_id\");\n\n  let tablePRT = [];\n  let purchaseOrderNumber = [];\n  let poId = [];\n  let goodsReceivingNumber = [];\n  let grId = [];\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\"Please select at least one goods receiving / item.\", \"Error\", {\n      confirmButtonText: \"OK\",\n      type: \"error\",\n    });\n\n    return;\n  }\n\n  if (previousReferenceType && previousReferenceType !== referenceType) {\n    await this.$confirm(\n      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Reference Type Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPRT = [];\n  }\n\n  const uniqueSuppliers = new Set(currentItemArray.map((gr) => gr.supplier_id));\n  const allSameSupplier = uniqueSuppliers.size === 1;\n\n  if (!allSameSupplier) {\n    this.$alert(\n      \"Returned item(s) from more than two different suppliers is not allowed.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n    return;\n  }\n\n  if (supplierName && supplierName !== [...uniqueSuppliers][0]) {\n    await this.$confirm(\n      `You've selected a different supplier than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Supplier Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPRT = [];\n  }\n\n  this.closeDialog(\"dialog_select_item\");\n  this.showLoading();\n\n  switch (referenceType) {\n    case \"Document\":\n      for (const gr of currentItemArray) {\n        // Filter out child rows - only count parent/regular/split-parent rows for returning\n        // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n        const grLines = gr.table_gr.filter(\n          (item) => item.parent_or_child !== \"Child\",\n        );\n\n        for (const grItem of grLines) {\n          let itemData;\n          if (grItem.item_id) {\n            itemData = await fetchItemData(grItem.item_id);\n          }\n\n          let receivedQuantity = grItem.received_qty;\n          let UOM = grItem.item_uom;\n\n          if (itemData && itemData.serial_number_management === 1) {\n            receivedQuantity = convertToBaseUOM(\n              grItem.received_qty,\n              grItem.item_uom,\n              itemData,\n            );\n\n            UOM = itemData.based_uom;\n          }\n\n          const newtablePRTRecord = {\n            material_id: grItem.item_id || null,\n            material_name: grItem.item_name,\n            material_desc: grItem.item_desc,\n            more_desc: grItem.more_desc,\n            received_qty: parseFloat(receivedQuantity.toFixed(3)),\n            return_quantity: 0,\n            return_uom_id: UOM,\n            po_number: grItem.line_po_no,\n            gr_number: gr.gr_no,\n            gr_date: gr.gr_date,\n            line_remark_1: grItem.line_remark_1,\n            line_remark_2: grItem.line_remark_2,\n            batch_no: grItem.item_batch_no,\n            returned_quantity: parseFloat(grItem.return_quantity.toFixed(3)),\n            unit_price: grItem.unit_price,\n            total_price: grItem.total_price,\n            costing_method: itemData?.material_costing_method || null,\n            item_category_id: itemData?.item_category || null,\n            po_id: grItem.line_po_id,\n            po_line_id: grItem.po_line_item_id,\n            gr_id: gr.goods_receiving_id,\n            gr_line_id: grItem.id,\n            is_serialized_item: grItem.is_serialized_item,\n          };\n\n          tablePRT.push(newtablePRTRecord);\n        }\n      }\n\n      break;\n\n    case \"Item\":\n      // Filter out child rows - only count parent/regular/split-parent rows for returning\n      // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n      for (const grItem of currentItemArray.filter(\n        (item) => item.parent_or_child !== \"Child\",\n      )) {\n        let receivedQuantity = grItem.received_qty;\n        let UOM = grItem.item_uom;\n\n        if (grItem.is_serialized_item === 1) {\n          receivedQuantity = grItem.base_received_qty;\n          UOM = grItem.item.base_item_uom;\n        }\n\n        const newtablePRTRecord = {\n          material_id: grItem.item.id || null,\n          material_name: grItem.item.material_name,\n          material_desc: grItem.item_desc,\n          more_desc: grItem.more_desc,\n          received_qty: parseFloat(receivedQuantity.toFixed(3)),\n          return_quantity: 0,\n          return_uom_id: UOM,\n          po_number: grItem.purchase_order_id.purchase_order_no,\n          gr_number: grItem.goods_receiving_id.gr_no,\n          gr_date: grItem.goods_receiving_id.gr_date,\n          line_remark_1: grItem.line_remark_1,\n          line_remark_2: grItem.line_remark_2,\n          batch_no: grItem.item_batch_no,\n          returned_quantity: parseFloat(grItem.return_quantity.toFixed(3)),\n          unit_price: grItem.unit_price,\n          total_price: grItem.total_price,\n          costing_method: grItem.item?.material_costing_method || null,\n          item_category_id: grItem.item?.item_category || null,\n          po_id: grItem.purchase_order_id.id,\n          po_line_id: grItem.purchase_order_line_id.id,\n          gr_id: grItem.goods_receiving_id.id,\n          gr_line_id: grItem.goods_receiving_line_id,\n          is_serialized_item: grItem.is_serialized_item,\n        };\n\n        tablePRT.push(newtablePRTRecord);\n      }\n      break;\n  }\n\n  tablePRT = tablePRT.filter(\n    (prt) =>\n      prt.returned_quantity !== prt.received_qty &&\n      !existingPRT.find((prtItem) => prtItem.gr_line_id === prt.gr_line_id),\n  );\n\n  const latesttablePRT = [...existingPRT, ...tablePRT];\n  console.log(\"latesttablePRT\", latesttablePRT);\n\n  poId = [...new Set(latesttablePRT.map((prt) => prt.po_id))];\n  purchaseOrderNumber = [\n    ...new Set(latesttablePRT.map((prt) => prt.po_number)),\n  ];\n  grId = [...new Set(latesttablePRT.map((prt) => prt.gr_id))];\n  goodsReceivingNumber = [\n    ...new Set(latesttablePRT.map((prt) => prt.gr_number)),\n  ];\n\n  await this.setData({\n    supplier_id: currentItemArray[0].supplier_id,\n    table_prt: [...existingPRT, ...tablePRT],\n    po_no_display: purchaseOrderNumber.join(\", \"),\n    po_id: poId,\n    gr_no_display: goodsReceivingNumber.join(\", \"),\n    gr_id: grId,\n    reference_type: referenceType,\n  });\n\n  setTimeout(async () => {\n    await processData(existingPRT, tablePRT);\n  }, 50);\n\n  this.hideLoading();\n})();\n",
         "type": "js"
       },
       {
@@ -13791,7 +15315,7 @@
       {
         "key": "d7sai3uq",
         "name": "rowClick_addGRItem",
-        "func": "(async () => {\n  const currentGRArray = this.getValue(`dialog_select_item.item_array`);\n  const selectedGRItem = arguments[0].$eventArgs[0];\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n\n  console.log(\"arguments[0].$eventArgs[0]\", arguments[0].$eventArgs[0]);\n  const index = currentGRArray.findIndex(\n    (item) => item.goods_receiving_line_id === selectedGRItem.id\n  );\n  if (index !== -1) {\n    currentGRArray.splice(index, 1);\n  } else {\n    currentGRArray.push({\n      goods_receiving_line_id: selectedGRItem.id,\n      goods_receiving_id: selectedGRItem.goods_receiving_id,\n      purchase_order_id: selectedGRItem.line_po_id,\n      purchase_order_line_id: selectedGRItem.po_line_item_id,\n      item: selectedGRItem.item_id,\n      item_desc: selectedGRItem.item_desc,\n      more_desc: selectedGRItem.more_desc,\n      item_batch_no: selectedGRItem.item_batch_no,\n      item_uom: selectedGRItem.item_uom.id,\n      unit_price: selectedGRItem.unit_price,\n      total_price: selectedGRItem.total_price,\n      line_remark_1: selectedGRItem.line_remark_1,\n      line_remark_2: selectedGRItem.line_remark_2,\n      received_qty: selectedGRItem.received_qty,\n      return_quantity: selectedGRItem.return_quantity,\n      supplier_id: selectedGRItem.supplier_id.id,\n      is_serialized_item: selectedGRItem.is_serialized_item,\n      base_received_qty: selectedGRItem.base_received_qty,\n      base_item_uom: selectedGRItem.base_item_uom.id,\n      is_split: selectedGRItem.is_split,\n      parent_or_child: selectedGRItem.parent_or_child\n    });\n  }\n\n  console.log(\"currentGRArray\", currentGRArray);\n\n  const updatedGRNumber = currentGRArray.map(\n    (item) => item.goods_receiving_id.gr_no + \"\\t\" + item.item.material_code\n  );\n\n  console.log(\"updatedGRNumber\", updatedGRNumber.join(\", \"));\n\n  this.setData({\n    ...(!referenceType || referenceType === \"\"\n      ? { [`dialog_select_item.reference_type`]: \"Item\" }\n      : {}),\n    [`dialog_select_item.gr_number_array`]: updatedGRNumber.join(`\\n`),\n    [`dialog_select_item.item_array`]: currentGRArray,\n  });\n})();\n",
+        "func": "(async () => {\n  const currentGRArray = this.getValue(`dialog_select_item.item_array`);\n  const selectedGRItem = arguments[0].$eventArgs[0];\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n\n  console.log(\"arguments[0].$eventArgs[0]\", arguments[0].$eventArgs[0]);\n  const index = currentGRArray.findIndex(\n    (item) => item.goods_receiving_line_id === selectedGRItem.id\n  );\n  if (index !== -1) {\n    currentGRArray.splice(index, 1);\n  } else {\n    currentGRArray.push({\n      goods_receiving_line_id: selectedGRItem.id,\n      goods_receiving_id: selectedGRItem.goods_receiving_id,\n      purchase_order_id: selectedGRItem.line_po_id,\n      purchase_order_line_id: selectedGRItem.po_line_item_id,\n      item: selectedGRItem.item_id,\n      item_desc: selectedGRItem.item_desc,\n      more_desc: selectedGRItem.more_desc,\n      item_batch_no: selectedGRItem.item_batch_no,\n      item_uom: selectedGRItem.item_uom.id,\n      unit_price: selectedGRItem.unit_price,\n      total_price: selectedGRItem.total_price,\n      line_remark_1: selectedGRItem.line_remark_1,\n      line_remark_2: selectedGRItem.line_remark_2,\n      received_qty: selectedGRItem.received_qty,\n      return_quantity: selectedGRItem.return_quantity,\n      supplier_id: selectedGRItem.supplier_id.id,\n      is_serialized_item: selectedGRItem.is_serialized_item,\n      base_received_qty: selectedGRItem.base_received_qty,\n      base_item_uom: selectedGRItem.base_item_uom.id\n    });\n  }\n\n  console.log(\"currentGRArray\", currentGRArray);\n\n  const updatedGRNumber = currentGRArray.map(\n    (item) => item.goods_receiving_id.gr_no + \"\\t\" + item.item.material_code\n  );\n\n  console.log(\"updatedGRNumber\", updatedGRNumber.join(\", \"));\n\n  this.setData({\n    ...(!referenceType || referenceType === \"\"\n      ? { [`dialog_select_item.reference_type`]: \"Item\" }\n      : {}),\n    [`dialog_select_item.gr_number_array`]: updatedGRNumber.join(`\\n`),\n    [`dialog_select_item.item_array`]: currentGRArray,\n  });\n})();\n",
         "type": "js"
       },
       {
@@ -13834,6 +15358,82 @@
         "key": "0tt5w3j8",
         "name": "onChange_0tt5w3j8",
         "func": "const { value } = arguments[0];\nthis.setData({\n  purchase_return_no: ''\n});\nif(value === -9999) {\n   this.disabled('purchase_return_no', false)\n} else {\n   this.disabled('purchase_return_no', true)\n}",
+        "type": "js"
+      },
+      {
+        "key": "5ulwgpus",
+        "name": "onChange_selectHU",
+        "func": "// onChange handler for hu_select checkbox on HU header rows in the LOT inventory dialog.\n// When checked (1): sets sm_quantity_1 = item_quantity for all item rows in this HU.\n// When unchecked (0): sets sm_quantity_1 = 0 for all item rows in this HU.\n// LOT enforces NO_SPLIT (whole-HU pick), so this is always active.\n\n(async () => {\n  const data = this.getValues();\n  const { rowIndex, value } = arguments[0];\n\n  const huTableData = data.sm_item_balance?.table_hu || [];\n  const currentRow = huTableData[rowIndex];\n\n  // Only header rows have hu_select\n  if (!currentRow || currentRow.row_type !== \"header\") return;\n\n  // Don't allow selection of disabled HUs (defensive — LOT skips reserved HUs at load)\n  if (currentRow.hu_disabled) {\n    this.setData({\n      [`sm_item_balance.table_hu.${rowIndex}.hu_select`]: 0,\n    });\n    return;\n  }\n\n  const isSelected = value === 1 || value === true;\n  const handlingUnitId = currentRow.handling_unit_id;\n\n  // Find all item rows belonging to this HU\n  const updates = {};\n  huTableData.forEach((row, idx) => {\n    if (row.row_type === \"item\" && row.handling_unit_id === handlingUnitId) {\n      if (isSelected) {\n        // Checked: set sm_quantity_1 to full item_quantity\n        updates[`sm_item_balance.table_hu.${idx}.sm_quantity_1`] =\n          parseFloat(row.item_quantity) || 0;\n      } else {\n        // Unchecked: reset sm_quantity_1 to 0\n        updates[`sm_item_balance.table_hu.${idx}.sm_quantity_1`] = 0;\n      }\n    }\n  });\n\n  if (Object.keys(updates).length > 0) {\n    this.setData(updates);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "efnv3l7q",
+        "name": "onClick_SearchSN",
+        "func": "(async () => {\n  try {\n    const value = this.getValue(\"sm_item_balance.search_serial_number\");\n\n    const tableItemBalanceRaw = JSON.parse(\n      this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    const filteredSerialNumber = tableItemBalanceRaw.filter((item) =>\n      item.serial_number.includes(value)\n    );\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_1\": filteredSerialNumber,\n    });\n  } catch (error) {\n    console.error(\"Unexpected error in search serial number handler:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "vlxg4fno",
+        "name": "onClick_resetSN",
+        "func": "(async () => {\n  try {\n    const tableItemBalanceRaw = JSON.parse(\n      this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_1\": tableItemBalanceRaw,\n    });\n    await this.setData({\n      \"sm_item_balance.search_serial_number\": \"\",\n    });\n  } catch (error) {\n    console.error(\"Unexpected error in search serial number handler:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "bmxmqi0j",
+        "name": "onChange_selectCategory",
+        "func": "(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const category = arguments[0].value;\n\n    const serialNumber = await this.getValue(\n      `sm_item_balance.table_item_balance_1.${rowIndex}.serial_number`\n    );\n\n    if (!serialNumber || serialNumber === \"\") {\n      return;\n    }\n\n    let tableItemBalanceRaw = JSON.parse(\n      await this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    tableItemBalanceRaw.forEach((item) => {\n      if (item.serial_number === serialNumber) {\n        item.category = category;\n      }\n    });\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_raw\":\n        JSON.stringify(tableItemBalanceRaw),\n    });\n\n    console.log(\"Table Raw Updated\")\n  } catch (error) {\n    console.error(\"Unexpected error in on change SN qty handler:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "gdmh7k1i",
+        "name": "onChange_categoryFrom",
+        "func": "(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const category_from = arguments[0].value;\n\n    const serialNumber = await this.getValue(\n      `sm_item_balance.table_item_balance_1.${rowIndex}.serial_number`\n    );\n\n    if (!serialNumber || serialNumber === \"\") {\n      return;\n    }\n\n    let tableItemBalanceRaw = JSON.parse(\n      await this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    tableItemBalanceRaw.forEach((item) => {\n      if (item.serial_number === serialNumber) {\n        item.category_from = category_from;\n      }\n    });\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_raw\":\n        JSON.stringify(tableItemBalanceRaw),\n    });\n\n        console.log(\"Table Raw Updated\")\n\n  } catch (error) {\n    console.error(\"Unexpected error in on change SN qty handler:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "umqs4zz3",
+        "name": "onClick_CategoryFrom",
+        "func": "const allData = this.getValues();\nconst movementType = String(allData.movement_type || \"\");\nconst rowIndex = arguments[0]?.rowIndex;\nconst movementTypeCategories = {\n  \"Inter Operation Facility Transfer\": [\"Unrestricted\", \"Blocked\"],\n  \"Inter Operation Facility Transfer (Receiving)\": [\"Unrestricted\", \"Blocked\"],\n  \"Location Transfer\": [\"Unrestricted\", \"Blocked\"],\n  \"Miscellaneous Issue\": [\"Unrestricted\"],\n  \"Miscellaneous Receipt\": [\"Unrestricted\", \"Blocked\"],\n  \"Disposal/Scrap\": [\"Unrestricted\", \"Blocked\"],\n  \"Inventory Category Transfer Posting\": [\"Unrestricted\", \"Blocked\"],\n};\n\nconst fetchCategory = async () => {\n  try {\n    const categoryObjectResponse = await db\n      .collection(\"blade_dict\")\n      .where({ code: \"inventory_category\" })\n      .get();\n\n    // Filter categories based on movement type\n    const allowedCategories = movementTypeCategories[movementType] || [\n      \"Unrestricted\",\n    ];\n    const filteredCategories = categoryObjectResponse.data.filter((category) =>\n      allowedCategories.includes(category.dict_key)\n    );\n\n    // Conditionally set fields based on movement type\n    if (movementType === \"Inventory Category Transfer Posting\") {\n      this.setOptionData(\n        [\n          `sm_item_balance.table_item_balance_1.${rowIndex}.category_from`,\n          `sm_item_balance.table_item_balance_1.${rowIndex}.category_to`,\n        ],\n        filteredCategories\n      );\n    } else {\n      this.setOptionData(\n        [`sm_item_balance.table_item_balance_1.${rowIndex}.category`],\n        filteredCategories\n      );\n    }\n  } catch (error) {\n    console.error(\"Error fetching category:\", error);\n  }\n};\n\nfetchCategory();\n",
+        "type": "js",
+        "rules": [
+          {
+            "key": "4ebhog9j",
+            "action": "js",
+            "options": {
+              "func": "const allData = this.getValues();\nconst movementType = String(allData.movement_type || \"\");\nconst rowIndex = arguments[0]?.rowIndex;\nconst movementTypeCategories = {\n  \"Inter Operation Facility Transfer\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n  \"Inter Operation Facility Transfer (Receiving)\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n  \"Location Transfer\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n    \"Reserved\",\n  ],\n  \"Miscellaneous Issue\": [\"Unrestricted\"],\n  \"Miscellaneous Receipt\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n  \"Disposal/Scrap\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n  \"Inventory Category Transfer Posting\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n};\n\nconst fetchCategory = async () => {\n  try {\n    const categoryObjectResponse = await db\n      .collection(\"inventory_category\")\n      .get();\n\n    // Filter categories based on movement type\n    const allowedCategories = movementTypeCategories[movementType] || [\n      \"Unrestricted\",\n    ];\n    const filteredCategories = categoryObjectResponse.data.filter((category) =>\n      allowedCategories.includes(category.inventory_category_name)\n    );\n\n    // Conditionally set fields based on movement type\n    if (movementType === \"Inventory Category Transfer Posting\") {\n      this.setOptionData(\n        [\n          `sm_item_balance.table_item_balance.${rowIndex}.category_from`,\n          `sm_item_balance.table_item_balance.${rowIndex}.category_to`,\n        ],\n        filteredCategories\n      );\n    } else {\n      this.setOptionData(\n        [`sm_item_balance.table_item_balance.${rowIndex}.category`],\n        filteredCategories\n      );\n    }\n  } catch (error) {\n    console.error(\"Error fetching category:\", error);\n  }\n};\n\nfetchCategory();\n"
+            }
+          },
+          {
+            "key": "ho452hxn",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "sm_item_balance.table_item_balance.category_to",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "dc23nkxc",
+        "name": "onChange_categoryTo",
+        "func": "(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const category_to = arguments[0].value;\n\n    const serialNumber = await this.getValue(\n      `sm_item_balance.table_item_balance_1.${rowIndex}.serial_number`\n    );\n\n    if (!serialNumber || serialNumber === \"\") {\n      return;\n    }\n\n    let tableItemBalanceRaw = JSON.parse(\n      await this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    tableItemBalanceRaw.forEach((item) => {\n      if (item.serial_number === serialNumber) {\n        item.category_to = category_to;\n      }\n    });\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_raw\":\n        JSON.stringify(tableItemBalanceRaw),\n    });\n\n        console.log(\"Table Raw Updated\")\n  } catch (error) {\n    console.error(\"Unexpected error in on change SN qty handler:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "ana28wmu",
+        "name": "onClick_CategoryTo",
+        "func": "const allData = this.getValues();\nconst movementType = String(allData.movement_type || \"\");\nconst rowIndex = arguments[0]?.rowIndex;\nconst movementTypeCategories = {\n  \"Inter Operation Facility Transfer\": [\"Unrestricted\", \"Blocked\"],\n  \"Inter Operation Facility Transfer (Receiving)\": [\"Unrestricted\", \"Blocked\"],\n  \"Location Transfer\": [\"Unrestricted\", \"Blocked\"],\n  \"Miscellaneous Issue\": [\"Unrestricted\"],\n  \"Miscellaneous Receipt\": [\"Unrestricted\", \"Blocked\"],\n  \"Disposal/Scrap\": [\"Unrestricted\", \"Blocked\"],\n  \"Inventory Category Transfer Posting\": [\"Unrestricted\", \"Blocked\"],\n};\n\nconst fetchCategory = async () => {\n  try {\n    const categoryObjectResponse = await db\n      .collection(\"blade_dict\")\n      .where({ code: \"inventory_category\" })\n      .get();\n\n    // Filter categories based on movement type\n    const allowedCategories = movementTypeCategories[movementType] || [\n      \"Unrestricted\",\n    ];\n    const filteredCategories = categoryObjectResponse.data.filter((category) =>\n      allowedCategories.includes(category.dict_key)\n    );\n\n    // Conditionally set fields based on movement type\n    if (movementType === \"Inventory Category Transfer Posting\") {\n      this.setOptionData(\n        [\n          `sm_item_balance.table_item_balance_1.${rowIndex}.category_from`,\n          `sm_item_balance.table_item_balance_1.${rowIndex}.category_to`,\n        ],\n        filteredCategories\n      );\n    } else {\n      this.setOptionData(\n        [`sm_item_balance.table_item_balance_1.${rowIndex}.category`],\n        filteredCategories\n      );\n    }\n  } catch (error) {\n    console.error(\"Error fetching category:\", error);\n  }\n};\n\nfetchCategory();\n",
+        "type": "js"
+      },
+      {
+        "key": "cxk2kor9",
+        "name": "onChange_smQuantity",
+        "func": "(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const sm_quantity_1 = arguments[0].value;\n\n    const serialNumber = await this.getValue(\n      `sm_item_balance.table_item_balance_1.${rowIndex}.serial_number`\n    );\n\n    if (!serialNumber || serialNumber === \"\") {\n      return;\n    }\n\n    let tableItemBalanceRaw = JSON.parse(\n      await this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    tableItemBalanceRaw.forEach((item) => {\n      if (item.serial_number === serialNumber) {\n        item.sm_quantity_1 = sm_quantity_1;\n      }\n    });\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_raw\":\n        JSON.stringify(tableItemBalanceRaw),\n    });\n\n        console.log(\"Table Raw Updated\")\n  } catch (error) {\n    console.error(\"Unexpected error in on change SN qty handler:\", error);\n  }\n})();\n",
         "type": "js"
       }
     ],
