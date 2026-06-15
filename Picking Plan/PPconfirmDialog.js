@@ -1,6 +1,7 @@
 (async () => {
   // Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
-  const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
+  const roundQty = (value) =>
+    Math.round((parseFloat(value) || 0) * 1000) / 1000;
 
   const data = this.getValues();
   const temporaryData = data.to_item_balance.table_item_balance;
@@ -54,9 +55,13 @@
   }
 
   // Calculate total quantity from all rows with to_quantity > 0
-  const totalDialogQuantity = roundQty(temporaryData.reduce((sum, item) => {
-    return sum + (item.to_quantity > 0 ? parseFloat(item.to_quantity || 0) : 0);
-  }, 0));
+  const totalDialogQuantity = roundQty(
+    temporaryData.reduce((sum, item) => {
+      return (
+        sum + (item.to_quantity > 0 ? parseFloat(item.to_quantity || 0) : 0)
+      );
+    }, 0),
+  );
 
   const totalDeliveredQty = roundQty(initialDeliveredQty + totalDialogQuantity);
 
@@ -136,8 +141,7 @@
 
           if (pendingReservedRes?.data?.length > 0) {
             pendingReservedQty = pendingReservedRes.data.reduce(
-              (total, reserved) =>
-                total + parseFloat(reserved.open_qty || 0),
+              (total, reserved) => total + parseFloat(reserved.open_qty || 0),
               0,
             );
           }
@@ -199,8 +203,7 @@
 
           if (pendingReservedRes?.data?.length > 0) {
             pendingReservedQty = pendingReservedRes.data.reduce(
-              (total, reserved) =>
-                total + parseFloat(reserved.open_qty || 0),
+              (total, reserved) => total + parseFloat(reserved.open_qty || 0),
               0,
             );
           }
@@ -396,10 +399,9 @@
       return map;
     }, {});
 
-    const totalQty = roundQty(filteredData.reduce(
-      (sum, item) => sum + (item.to_quantity || 0),
-      0,
-    ));
+    const totalQty = roundQty(
+      filteredData.reduce((sum, item) => sum + (item.to_quantity || 0), 0),
+    );
 
     let summary = `Total: ${totalQty} ${toUOM}\n\nDETAILS:\n`;
 
@@ -471,10 +473,9 @@
   console.log("Row index:", rowIndex);
 
   // Sum up all to_quantity values from filtered data
-  const totalToQuantity = roundQty(filteredData.reduce(
-    (sum, item) => sum + (item.to_quantity || 0),
-    0,
-  ));
+  const totalToQuantity = roundQty(
+    filteredData.reduce((sum, item) => sum + (item.to_quantity || 0), 0),
+  );
   console.log("Total TO quantity:", totalToQuantity);
 
   // Get the initial delivered quantity from the table_to
