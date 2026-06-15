@@ -10,6 +10,9 @@
     const tempQtyData = lineItemData?.temp_qty_data;
     const tempHuData = lineItemData?.temp_hu_data;
     const organizationId = allData.organization_id;
+    // When the PR line is tied to a specific received batch, restrict the picker
+    // (both loose and HU tabs) to that batch only.
+    const lineBatchId = lineItemData?.batch_id || null;
     // Quantities are displayed/entered in the line's return UOM. PRTsaveAsCompleted
     // interprets temp.return_quantity as return_uom_id and converts to base via
     // table_uom_conversion, and the dialog's received_qty is also in the return
@@ -229,7 +232,10 @@
 
       for (const hu of allHUs) {
         const allActiveItems = (hu.table_hu_items || []).filter(
-          (item) => item.is_deleted !== 1 && item.material_id === matId,
+          (item) =>
+            item.is_deleted !== 1 &&
+            item.material_id === matId &&
+            (!lineBatchId || item.batch_id === lineBatchId),
         );
         if (allActiveItems.length === 0) continue;
 
@@ -540,7 +546,11 @@
           console.error("Error parsing temp_qty_data:", error);
         }
       }
-      return filterZeroQuantityRecords(finalData, itemDataLocal);
+      const returnable = filterZeroQuantityRecords(finalData, itemDataLocal);
+      // Line tied to a specific batch -> only that batch is returnable.
+      return lineBatchId
+        ? returnable.filter((r) => r.batch_id === lineBatchId)
+        : returnable;
     };
 
     let looseRowCount = 0;
