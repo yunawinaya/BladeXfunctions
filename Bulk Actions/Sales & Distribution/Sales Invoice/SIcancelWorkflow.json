@@ -1,0 +1,430 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "get_node_FPExdl9O",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Invoice:Table:1902525285396496385",
+          "rules": {
+            "collectionId": "1902525285396496385",
+            "list": [
+              {
+                "id": 1778512930876,
+                "parentId": 1778512930875,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:si_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get SI Data",
+        "isValidator": true,
+        "nodeName": "Get SI Data",
+        "name": "Get SI Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_LBv1T4sZ",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map SO/GD Line IDs",
+        "isValidator": true,
+        "nodeName": "Map SO/GD Line IDs",
+        "name": "Map SO/GD Line IDs",
+        "script": {
+          "type": "javascript",
+          "code": "const siData = {{node:get_node_FPExdl9O.data.data}};\nconst soLineIDs = siData.table_si.map(siItem => siItem.so_line_id);\nconst gdLineIDs = siData.table_si.map(siItem => siItem.gd_line_id);\n\nreturn { soLineIDs, gdLineIDs };"
+        },
+        "response_json": [
+          {
+            "key": "8g9dz4zf",
+            "name": "gdLineIDs",
+            "title": "gdLineIDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "m984tzsa",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          },
+          {
+            "key": "9y8i96zj",
+            "name": "soLineIDs",
+            "title": "soLineIDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "9at16qiq",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_V3rnGDPj",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Order:Table:1902773735979597826",
+          "rules": {
+            "collectionId": "1902773735979597826",
+            "list": [
+              {
+                "id": 1778513047209,
+                "parentId": 1778513047208,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:get_node_FPExdl9O.data.data.so_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get SO List",
+        "isValidator": true,
+        "nodeName": "Get SO List",
+        "name": "Get SO List"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_Gvy1Uni8",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Delivery:Table:1902054888473481218",
+          "rules": {
+            "collectionId": "1902054888473481218",
+            "list": [
+              {
+                "id": 1778513073424,
+                "parentId": 1778513073423,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:get_node_FPExdl9O.data.data.gd_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get GD List",
+        "isValidator": true,
+        "nodeName": "Get GD List",
+        "name": "Get GD List"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_CtfkSP3q",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Latest SO/GD list",
+        "isValidator": true,
+        "nodeName": "Map Latest SO/GD list",
+        "name": "Map Latest SO/GD list",
+        "script": {
+          "type": "javascript",
+          "code": "const data = {{node:get_node_FPExdl9O.data.data}};\nconst soList = {{node:search_node_V3rnGDPj.data.data}} || [];\nconst gdList = {{node:search_node_Gvy1Uni8.data.data}} || [];\n\n\nconst roundTo3 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 1000) / 1000;\n};\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.0000\";\n  return parseFloat(value).toFixed(3);\n};\n\n\nconst updateGoodsDelivery = (gdIds, tableSi) => {\n  let gdUpdatedList = [];\n  for(const gdID of gdIds) {\n    const gdData = gdList.find(gd => gd.id === gdID) || [];\n    const gdItems = gdData?.table_gd || [];\n\n    // Process GR items\n    const { updatedItems, newSIStatus } = processItems(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    gdUpdatedList.push({\n      gd_id: gdData.id,\n      si_status: newSIStatus,\n      table_gd: updatedItems\n    })\n  }\n\n  return gdUpdatedList;\n};\n\nconst updateSalesOrder = (soIds, tableSi) => {\n  let soUpdatedList = [];\n  for(const soID of soIds) {\n    const soData = soList.find(so => so.id === soID)\n    const soItems = soData.table_so || [];\n\n    const { updatedItems, newSIStatus } = processItems(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\",\n    );\n\n    soUpdatedList.push({\n      so_id: soData.id,\n      si_status: newSIStatus,\n      table_so: updatedItems\n    })\n  }\n\n  return soUpdatedList;\n};\n\nconst processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  // Filter SI items for the current document\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n\n  // Initialize tracking\n  let totalItems = items.length;\n  \n  // Update items using find() with id matching\n  const updatedItems = items.map((item) => {\n    const matchedSI = filteredSI.find(si => si[siLineIdKey] === item.id);\n    \n    if (matchedSI) {\n      const siInvoicedQty = roundTo3(matchedSI.invoice_qty);\n      const currentInvoicedQty = roundTo3(item.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty - siInvoicedQty);\n      const currentPostedQty = roundTo3(item.posted_qty);\n      const totalPostedQty = roundTo3(currentPostedQty - siInvoicedQty);\n      \n      const updatedItem = {\n        ...item,\n        invoice_qty: totalInvoicedQty,\n        posted_qty: totalPostedQty\n      };\n      \n      if (roundTo3(updatedItem.invoice_qty) > 0) {\n          updatedItem.si_status = \"Partially Invoiced\";\n          if (roundTo3(updatedItem.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {\n            updatedItem.si_status = \"Fully Invoiced\";\n          }\n      } else {\n        updatedItem.si_status = null;\n      }\n      \n      return updatedItem;\n    }\n    \n    return { ...item };\n  });\n\n  // Determine new SI status\n  let partiallyInvoicedItems = updatedItems.filter(item => item.si_status === \"Partially Invoiced\").length;\n  let fullyInvoicedItems = updatedItems.filter(item => item.si_status === \"Fully Invoiced\").length;\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0 || fullyInvoicedItems > 0;\n  let newSIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newSIStatus };\n};\n\nconst soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\nlet updatedGD = [];\nif (data.gd_id.length > 0) {\n  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);\n  updatedGD = updatedGDData\n}\n\nconst updatedSO = updateSalesOrder(soIds, data.table_si);\n\nreturn {\n  updatedGD, \n  updatedSO,\n  updatedSI: {\n    id: data.id,\n    si_status: \"Cancelled\",\n    sales_invoice_no: data.sales_invoice_no + \"-Cancelled\",\n  }\n}"
+        },
+        "response_json": [
+          {
+            "key": "aa4qussp",
+            "name": "updatedGD",
+            "title": "updatedGD",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "w5sqwxll",
+            "name": "updatedSO",
+            "title": "updatedSO",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6fvethpl",
+            "name": "updatedSI",
+            "title": "updatedSI",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_qrMaG8y2",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Order:Table:1902773735979597826",
+          "rules": {
+            "collectionId": "1902773735979597826",
+            "list": [
+              {
+                "id": 1778592077290,
+                "parentId": 1778592077289,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_CtfkSP3q.data.updatedSO.so_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update SO",
+        "isValidator": true,
+        "nodeName": "Update SO",
+        "name": "Update SO",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "id",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSO.so_id}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
+              "prop": "si_status",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSO.si_status}}",
+              "valueLabel": "",
+              "propLabel": "SI Completed Status"
+            },
+            {
+              "prop": "table_so",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSO.table_so}}",
+              "valueLabel": "",
+              "propLabel": "Sales Order Table"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_3zWZ9YIP",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Delivery:Table:1902054888473481218",
+          "rules": {
+            "collectionId": "1902054888473481218",
+            "list": [
+              {
+                "id": 1778592235890,
+                "parentId": 1778592235889,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_CtfkSP3q.data.updatedGD.gd_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update GD",
+        "isValidator": true,
+        "nodeName": "Update GD",
+        "name": "Update GD",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "id",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedGD.gd_id}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
+              "prop": "si_status",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedGD.si_status}}",
+              "valueLabel": "",
+              "propLabel": "SI Status"
+            },
+            {
+              "prop": "table_gd",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedGD.table_gd}}",
+              "valueLabel": "",
+              "propLabel": "table_gd"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_iH3XNTHq",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Invoice:Table:1902525285396496385",
+          "rules": {
+            "collectionId": "1902525285396496385",
+            "list": [
+              {
+                "id": 1778592311542,
+                "parentId": 1778592311541,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_CtfkSP3q.data.updatedSI.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update SI",
+        "isValidator": true,
+        "nodeName": "Update SI",
+        "name": "Update SI",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "id",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSI.id}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
+              "prop": "si_status",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSI.si_status}}",
+              "valueLabel": "",
+              "propLabel": "SI Status"
+            },
+            {
+              "prop": "sales_invoice_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSI.sales_invoice_no}}",
+              "valueLabel": "",
+              "propLabel": "Sales Invoice Number"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "3myngsyg",
+      "name": "si_id",
+      "title": "SI ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}
