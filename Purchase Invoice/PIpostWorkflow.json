@@ -1,0 +1,827 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "update_pi_pending",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Invoice:Table:1902777443710779394",
+          "rules": {
+            "collectionId": "1902777443710779394",
+            "list": [
+              {
+                "id": 1772697075060,
+                "parentId": 1772697075059,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:pi_ids}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "1. Update PI",
+        "isValidator": true,
+        "nodeName": "1. Update PI",
+        "name": "1. Update PI",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "id",
+              "valueType": "field",
+              "value": "{{workflowparams:pi_ids}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
+              "prop": "posted_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Pending Post",
+              "valueLabel": "",
+              "propLabel": "Posted Status"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_pi_data",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Invoice:Table:1902777443710779394",
+          "rules": {
+            "collectionId": "1902777443710779394",
+            "list": [
+              {
+                "id": 1772697295766,
+                "parentId": 1772697295765,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:pi_ids}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "2. Get PI Data",
+        "isValidator": true,
+        "nodeName": "2. Get PI Data",
+        "name": "2. Get PI Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_acc",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Condition",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_acc_item_sql",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "SQL",
+            "filter": {
+              "list": [
+                {
+                  "id": 1772697979576,
+                  "parentId": 1772697979575,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:acc_integration_type}}' == 'SQL Accounting'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "SQL",
+            "name": "SQL",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "workflow_sql_connect",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "SQL - Connect",
+                "isValidator": true,
+                "nodeName": "SQL - Connect",
+                "name": "SQL - Connect",
+                "workflow": {
+                  "source": "SQL_ACC_CONNECT:Workflow:1958732352162164738",
+                  "rules": {
+                    "collectionId": "1958732352162164738",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": { "list": [] }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_sql_running",
+              "type": "if",
+              "data": {
+                "title": "IF running?",
+                "isValidator": true,
+                "nodeName": "IF running?",
+                "name": "IF running?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_sql_connect.data.status}}' == 'running'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_sql_running_true",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "workflow_sql_post",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "SQL - Post PI",
+                        "isValidator": true,
+                        "nodeName": "SQL - Post PI",
+                        "name": "SQL - Post PI",
+                        "workflow": {
+                          "source": "SQL_ACC_POST_PURCHASE_INVOICE:Workflow:1902567744272973826",
+                          "rules": {
+                            "collectionId": "1902567744272973826",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": { "list": [] }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_sql_running_false",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "condition_acc_item_auto",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "AutoCount",
+            "filter": {
+              "list": [
+                {
+                  "id": 1772697988540,
+                  "parentId": 1772697988539,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:acc_integration_type}}' == 'AutoCount Accounting'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 2,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "AutoCount",
+            "name": "AutoCount",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "workflow_auto_post",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Auto - Post PI",
+                "isValidator": true,
+                "nodeName": "Auto - Post PI",
+                "name": "Auto - Post PI",
+                "workflow": {
+                  "source": "AC_V2_POST_PURCHASE_INVOICE:Workflow:1994273328786038785",
+                  "rules": {
+                    "collectionId": "1994273328786038785",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "pi_id",
+                      "propLabel": "pi_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{workflowparams:pi_ids}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_acc_item_v2",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "SQL V2 || AutoCount V2",
+            "filter": {
+              "list": [
+                {
+                  "id": 1774174575644,
+                  "parentId": 1774174575643,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:acc_integration_type}}' == 'SQL Accounting V2' || '{{workflowparams:acc_integration_type}}' == 'AutoCount Accounting V2'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 3,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "SQL V2 || AutoCount V2",
+            "name": "SQL V2 || AutoCount V2",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "get_agent_id",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Accounting Integration:Table:1930794597760651266",
+                  "rules": {
+                    "collectionId": "1930794597760651266",
+                    "list": [
+                      {
+                        "id": 1774174628097,
+                        "parentId": 1774174628096,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "numberEqual",
+                        "valueType": "field",
+                        "value": "{{node:search_pi_data.data.data.organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Agent ID",
+                "isValidator": true,
+                "nodeName": "Get Agent ID",
+                "name": "Get Agent ID"
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_acc_poll",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Run Acc Poll",
+                "isValidator": true,
+                "nodeName": "Run Acc Poll",
+                "name": "Run Acc Poll",
+                "workflow": {
+                  "source": "ACC_PRODUCER:Workflow:2013511169625042946",
+                  "rules": {
+                    "collectionId": "2013511169625042946",
+                    "list": [
+                      {
+                        "id": 1774174783467,
+                        "parentId": 1774174783466,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "agent_id",
+                      "propLabel": "agent_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:get_agent_id.data.data.agent_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "task_type",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "post_pi",
+                      "valueLabel": "",
+                      "propLabel": "task_type"
+                    },
+                    {
+                      "prop": "payload",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:pi_ids}}",
+                      "valueLabel": "",
+                      "propLabel": "payload"
+                    },
+                    {
+                      "prop": "priority",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "0",
+                      "valueLabel": "",
+                      "propLabel": "priority"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "end_v2",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 200,
+                "msg": { "type": "javascript", "code": "" }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_acc_item_other",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Other",
+            "isDefault": true,
+            "filter": { "list": [] },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": [
+            {
+              "id": "end_other",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 200,
+                "msg": { "type": "javascript", "code": "" }
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_filter_success",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Filter Success PI",
+        "isValidator": true,
+        "nodeName": "Filter Success PI",
+        "name": "Filter Success PI",
+        "script": {
+          "type": "javascript",
+          "code": "const workflowResponse = {{workflowparams:acc_integration_type}} === 'SQL Accounting' ? {{node:workflow_sql_post.data}} : {{node:workflow_auto_post.data}};\n\nconst workflowResult = (workflowResponse && workflowResponse.results) || [];\nconst successResult = workflowResult.filter((item) => item.status === 'SUCCESS');\n\nconst piIDs = successResult.map((item) => item.id);\n\nreturn { piIDs };"
+        },
+        "response_json": [
+          {
+            "key": "mrd7e0ro",
+            "name": "piIDs",
+            "title": "",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "z6wnv7pc",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_success_pi",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Invoice:Table:1902777443710779394",
+          "rules": {
+            "collectionId": "1902777443710779394",
+            "list": [
+              {
+                "id": 1772699862683,
+                "parentId": 1772699862682,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_filter_success.data.piIDs}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Success PI",
+        "isValidator": true,
+        "nodeName": "Get Success PI",
+        "name": "Get Success PI"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_collect_po",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Collect PO IDs",
+        "isValidator": true,
+        "nodeName": "Collect PO IDs",
+        "name": "Collect PO IDs",
+        "script": {
+          "type": "javascript",
+          "code": "const piList = {{node:search_success_pi.data.data}} || [];\n\nlet poIDs = [];\nfor (const pi of piList) {\n  const ids = Array.isArray(pi.po_id) ? pi.po_id : [pi.po_id];\n  poIDs.push(...ids);\n}\n\npoIDs = [...new Set(poIDs.filter(Boolean))];\n\nreturn { poIDs };"
+        },
+        "response_json": [
+          {
+            "key": "po0idlst",
+            "name": "poIDs",
+            "title": "",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "po0iditm",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_po_data",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Order:Table:1902776039445217282",
+          "rules": {
+            "collectionId": "1902776039445217282",
+            "list": [
+              {
+                "id": 1772699938822,
+                "parentId": 1772699938821,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_collect_po.data.poIDs}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get PO Data",
+        "isValidator": true,
+        "nodeName": "Get PO Data",
+        "name": "Get PO Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_map_po",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Updated PO",
+        "isValidator": true,
+        "nodeName": "Map Updated PO",
+        "name": "Map Updated PO",
+        "script": {
+          "type": "javascript",
+          "code": "const poList = {{node:search_po_data.data.data}} || [];\nconst piList = {{node:search_success_pi.data.data}} || [];\n\nconst roundTo3 = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\n\nlet allPiLines = [];\nfor (const pi of piList) {\n  allPiLines = allPiLines.concat(pi.table_pi || []);\n}\n\nconst processItems = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey) => {\n  const filteredPI = tablePi.filter((item) => item[docIdKey] === docId);\n\n  const countableItems = items.filter((item) => item.parent_or_child !== \"Child\");\n  let totalItems = countableItems.length;\n  let partiallyPostedItems = 0;\n  let fullyPostedItems = 0;\n\n  const updatedItems = items.map((item) => {\n    const matchedPI = filteredPI.find((pi) => pi[piLineIdKey] === item.id);\n    if (matchedPI) {\n      const piQty = roundTo3(matchedPI.invoice_qty);\n      const currentPosted = roundTo3(item.posted_qty);\n      return { ...item, posted_qty: roundTo3(currentPosted + piQty) };\n    }\n    return { ...item };\n  });\n\n  for (const item of updatedItems) {\n    if (item.parent_or_child === \"Child\") continue;\n    if (roundTo3(item.posted_qty) > 0) {\n      partiallyPostedItems++;\n      if (roundTo3(item.posted_qty) >= roundTo3(item[qtyKey] || 0)) {\n        fullyPostedItems++;\n      }\n    }\n  }\n\n  const allComplete = fullyPostedItems === totalItems;\n  const anyProcessing = partiallyPostedItems > 0;\n  const newStatus = anyProcessing ? (allComplete ? \"Fully Posted\" : \"Partially Posted\") : \"\";\n\n  return { updatedItems, newStatus };\n};\n\nlet updatedPO = [];\nfor (const po of poList) {\n  const poItems = po.table_po || [];\n  const { updatedItems, newStatus } = processItems(poItems, allPiLines, po.id, \"line_po_id\", \"po_line_id\", \"quantity\");\n  updatedPO.push({ po_id: po.id, pi_posted_status: newStatus, table_po: updatedItems });\n}\n\nreturn { updatedPO };"
+        },
+        "response_json": [
+          {
+            "key": "9yvajl0j",
+            "name": "updatedPO",
+            "title": "",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "gedjnyrs",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "object",
+                "isExpand": true,
+                "isArrayItem": true,
+                "children": [
+                  { "key": "jutcfffd", "name": "po_id", "title": "", "description": "", "bsonType": "string", "isExpand": false },
+                  { "key": "86a3z6gd", "name": "pi_posted_status", "title": "", "description": "", "bsonType": "string", "isExpand": false },
+                  {
+                    "key": "4raaw4ua",
+                    "name": "table_po",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      { "key": "bt8m7aj6", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_po",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Order:Table:1902776039445217282",
+          "rules": {
+            "collectionId": "1902776039445217282",
+            "list": [
+              {
+                "id": 1772700284923,
+                "parentId": 1772700284922,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_collect_po.data.poIDs}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update PO",
+        "isValidator": true,
+        "nodeName": "Update PO",
+        "name": "Update PO",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "id",
+              "valueType": "field",
+              "value": "{{node:code_map_po.data.updatedPO.po_id}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
+              "prop": "pi_posted_status",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_map_po.data.updatedPO.pi_posted_status}}",
+              "valueLabel": "",
+              "propLabel": "PI Posted Status"
+            },
+            {
+              "prop": "table_po",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_map_po.data.updatedPO.table_po}}",
+              "valueLabel": "",
+              "propLabel": "Purchase Order Table"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "hxhhqa6f",
+      "name": "pi_ids",
+      "title": "",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "2l06yt8d",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "isArrayItem": true
+        }
+      ]
+    },
+    {
+      "key": "sgplhbjg",
+      "name": "acc_integration_type",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}
