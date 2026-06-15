@@ -151,7 +151,13 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
   switch (referenceType) {
     case "Document":
       for (const gr of currentItemArray) {
-        for (const grItem of gr.table_gr) {
+        // Filter out child rows - only count parent/regular/split-parent rows for returning
+        // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty
+        const grLines = gr.table_gr.filter(
+          (item) => item.parent_or_child !== "Child",
+        );
+
+        for (const grItem of grLines) {
           let itemData;
           if (grItem.item_id) {
             itemData = await fetchItemData(grItem.item_id);
@@ -203,7 +209,11 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
       break;
 
     case "Item":
-      for (const grItem of currentItemArray) {
+      // Filter out child rows - only count parent/regular/split-parent rows for returning
+      // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty
+      for (const grItem of currentItemArray.filter(
+        (item) => item.parent_or_child !== "Child",
+      )) {
         let receivedQuantity = grItem.received_qty;
         let UOM = grItem.item_uom;
 
