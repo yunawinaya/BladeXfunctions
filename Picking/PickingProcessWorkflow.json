@@ -2165,7 +2165,7 @@
                         "value": "{{node:code_node_AmGrGNBz.data.huIds}}",
                         "type": "leaf",
                         "level": 1,
-                        "propLabel": "主键ID",
+                        "propLabel": "Primary Key ID",
                         "operatorLabel": "In",
                         "valueLabel": ""
                       }
@@ -2200,7 +2200,7 @@
                         "value": "{{node:code_node_AmGrGNBz.data.locationIds}}",
                         "type": "leaf",
                         "level": 1,
-                        "propLabel": "主键ID",
+                        "propLabel": "Primary Key ID",
                         "valueLabel": "",
                         "operatorLabel": "In"
                       }
@@ -2235,7 +2235,7 @@
                         "value": "{{node:code_node_AmGrGNBz.data.batchIds}}",
                         "type": "leaf",
                         "level": 1,
-                        "propLabel": "主键ID",
+                        "propLabel": "Primary Key ID",
                         "valueLabel": "",
                         "operatorLabel": "In"
                       }
@@ -3467,7 +3467,7 @@
                         "prop": "organization_id",
                         "operator": "equal",
                         "valueType": "field",
-                        "value": "{{workflowparams:allData.organization_id}}",
+                        "value": "{{global:firstLvDeptId}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "Organization ID",
