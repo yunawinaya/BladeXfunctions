@@ -1,0 +1,3546 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "if_aWrhMuyO",
+      "type": "if",
+      "data": {
+        "title": "Save Draft ?",
+        "isValidator": true,
+        "nodeName": "Save Draft ?",
+        "name": "Save Draft ?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1772596157760,
+              "parentId": 1772596157759,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:data.si_status}}' == 'Draft'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_CsTVgya0",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_2Pxz18TD",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Draft Check Doc No",
+                "isValidator": true,
+                "nodeName": "Draft Check Doc No",
+                "name": "Draft Check Doc No",
+                "script": {
+                  "type": "javascript",
+                  "code": "let table = {{workflowparams:data}};\n\nif(table.sales_invoice_no_type !== -9999 && (\n  !table.sales_invoice_no|| table.sales_invoice_no === null || table.sales_invoice_no === ''\n)) {\n  table.sales_invoice_no = 'draft'\n}\n\nreturn { table };"
+                },
+                "response_json": [
+                  {
+                    "key": "idwlt401",
+                    "name": "table",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_pFAvrqMt",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Draft Required Fields",
+                "isValidator": true,
+                "nodeName": "Draft Required Fields",
+                "name": "Draft Required Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant\" },\n  { name: \"sales_invoice_no\", label: \"Sales Invoice Number \" },\n  {\n    name: \"table_si\",\n    label: \"Item Information\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_node_2Pxz18TD.data.table.plant_id}},\n    sales_invoice_no: {{node:code_node_2Pxz18TD.data.table.sales_invoice_no}},\n    table_si: {{node:code_node_2Pxz18TD.data.table.table_si}}\n  })\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "iomd4yaj",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "z59j2g2u",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_node_sA0QWuCO",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Draft Run Check Required Workflow",
+                "isValidator": true,
+                "nodeName": "Draft Run Check Required Workflow",
+                "name": "Draft Run Check Required Workflow",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_pFAvrqMt.data.data}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_pFAvrqMt.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_snSOMjGm",
+              "type": "if",
+              "data": {
+                "title": "Validation Failed?",
+                "isValidator": true,
+                "nodeName": "Validation Failed?",
+                "name": "Validation Failed?",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_node_sA0QWuCO.data.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_4SLGdjnj",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_xosv0w1w",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 406,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_node_sA0QWuCO.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_NXZMrgJD",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_5iiRAyH4",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "code_node_QdIIcL7J",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Check Doc No",
+                "isValidator": true,
+                "nodeName": "Check Doc No",
+                "name": "Check Doc No",
+                "script": {
+                  "type": "javascript",
+                  "code": "let table = {{workflowparams:data}}\n\nif (\n  table.sales_invoice_no_type !== -9999 &&\n  (!table.sales_invoice_no ||\n    table.sales_invoice_no === null ||\n    table.sales_invoice_no === \"\" ||\n    table.previous_status !== \"Issued\")\n) {\n  table.sales_invoice_no = 'issued'\n}\n\nif(!table.need_cl|| table.need_cl === '' || table.need_cl === null) {\n  if(table.acc_integration_type !== 'No Accounting') {\n    table.need_cl = 'required'\n  } else {\n    table.need_cl = 'not required'\n  }\n}\n\nreturn { table };"
+                },
+                "response_json": [
+                  {
+                    "key": "idwlt401",
+                    "name": "table",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_zy0OA1sN",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Required Fields",
+                "isValidator": true,
+                "nodeName": "Required Fields",
+                "name": "Required Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant\" },\n  { name: \"sales_invoice_no\", label: \"Sales Invoice Number \" },\n  { name: \"sales_invoice_date\", label: \"Sales Invoice Date\" },\n  { name: \"si_description\", label: \"Description\" },\n  {\n    name: \"table_si\",\n    label: \"SI Items\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_node_QdIIcL7J.data.table.plant_id}},\n    sales_invoice_no: {{node:code_node_QdIIcL7J.data.table.sales_invoice_no}},\n    sales_invoice_date: {{node:code_node_QdIIcL7J.data.table.sales_invoice_date}},\n    si_description: {{node:code_node_QdIIcL7J.data.table.si_description}},\n    table_si: {{node:code_node_QdIIcL7J.data.table.table_si}}\n  })\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "iomd4yaj",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "z59j2g2u",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_node_1wzUt9V3",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Check Required Workflow",
+                "isValidator": true,
+                "nodeName": "Check Required Workflow",
+                "name": "Check Required Workflow",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_zy0OA1sN.data.data}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_zy0OA1sN.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_i3Hdh4gm",
+              "type": "if",
+              "data": {
+                "title": "Validation Failed?",
+                "isValidator": true,
+                "nodeName": "Validation Failed?",
+                "name": "Validation Failed?",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_node_1wzUt9V3.data.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_eEyK5BIo",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_7w09ASUe",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 406,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_node_1wzUt9V3.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_0et6se7W",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "code_node_QaPUxa3s",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Check Invoice Qty",
+                        "isValidator": true,
+                        "nodeName": "Check Invoice Qty",
+                        "name": "Check Invoice Qty",
+                        "script": {
+                          "type": "javascript",
+                          "code": "let entry = {{node:code_node_QdIIcL7J.data.table}};\nconst totalQuantity = entry.table_si.reduce((sum, item) => {\n    const { invoice_qty } = item;\n    return sum + (invoice_qty || 0); // Handle null/undefined received_qty\n  }, 0);\n\nif (totalQuantity === 0) {\n  return {\n    entry: {},\n    status: 'Failed',\n    code: 407,\n    message: 'Total invoiced quantity is 0.'\n  }\n}\n\nentry.table_si = entry.table_si.filter((item) => item.invoice_qty > 0);\nlet soID = [];\nlet gdID = [];\nlet salesOrderNumber = [];\nlet goodsDeliveryNumber = [];\nfor(const si of entry.table_si) {\n  if(si.line_gd_id && si.line_gd_id !== \"\") {\n    gdID.push(si.line_gd_id);\n    goodsDeliveryNumber.push(si.line_gd_no);\n  }\n\n  soID.push(si.line_so_id);\n  salesOrderNumber.push(si.line_so_no);\n}\n\nsoID = [...new Set(soID)];\ngdID = [...new Set(gdID)];\nsalesOrderNumber = [...new Set(salesOrderNumber)];\ngoodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n\nentry.so_id = soID;\nentry.gd_id = gdID;\nentry.so_no_display = salesOrderNumber.join(\", \");\nentry.gd_no_display = goodsDeliveryNumber.join(\", \");\n\nreturn {\n  entry: entry,\n  status: 'Success',\n  code: 200,\n  message: ''\n};"
+                        },
+                        "response_json": [
+                          {
+                            "key": "dit9mxq9",
+                            "name": "entry",
+                            "title": "Entry",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "5ofsebdq",
+                            "name": "status",
+                            "title": "Status",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "t5jewd5n",
+                            "name": "code",
+                            "title": "Code",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "kqmzib9j",
+                            "name": "message",
+                            "title": "Message",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_OnhRnKBf",
+                      "type": "if",
+                      "data": {
+                        "title": "Qty Validation Passed?",
+                        "isValidator": true,
+                        "nodeName": "Qty Validation Passed?",
+                        "name": "Qty Validation Passed?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_QaPUxa3s.data.status}}' == 'Success'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_YG8WVwdm",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "if_RYZU6f21",
+                              "type": "if",
+                              "data": {
+                                "title": "Need CL?",
+                                "isValidator": true,
+                                "nodeName": "Need CL?",
+                                "name": "Need CL?",
+                                "condition_type": "Expression",
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 1765427406584,
+                                      "parentId": 1765427406583,
+                                      "isTop": true,
+                                      "prop": "",
+                                      "operator": "",
+                                      "valueType": "",
+                                      "value": "",
+                                      "type": "leaf",
+                                      "level": 1
+                                    }
+                                  ]
+                                },
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{node:code_node_QaPUxa3s.data.entry.need_cl}}' == 'required'"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_oyJH4tQQ",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "workflow_node_G4KBFPGT",
+                                      "type": "workflow-node",
+                                      "data": {
+                                        "workflow_id": "",
+                                        "workflow_name": "",
+                                        "input_params": {},
+                                        "title": "Run CL Workflow",
+                                        "isValidator": true,
+                                        "nodeName": "Run CL Workflow",
+                                        "name": "Run CL Workflow",
+                                        "workflow": {
+                                          "source": "CREDIT_LIMIT_CHECK:Workflow:1990247316342333442",
+                                          "rules": {
+                                            "collectionId": "1990247316342333442",
+                                            "list": [
+                                              {
+                                                "id": 1723795236686,
+                                                "parentId": 1723795236685,
+                                                "isTop": true,
+                                                "prop": "",
+                                                "operator": "",
+                                                "valueType": "",
+                                                "value": "",
+                                                "type": "leaf",
+                                                "level": 1
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "remote": true,
+                                        "remoteType": "innerdatasource",
+                                        "body_params": {
+                                          "list": [
+                                            {
+                                              "prop": "customer_id",
+                                              "propLabel": "Customer ID",
+                                              "operator": "",
+                                              "operatorLabel": "",
+                                              "valueType": "field",
+                                              "valueTypeLabel": "",
+                                              "value": "{{node:code_node_QaPUxa3s.data.entry.customer_id}}",
+                                              "valueLabel": ""
+                                            },
+                                            {
+                                              "prop": "total",
+                                              "operator": "",
+                                              "valueType": "field",
+                                              "value": "{{node:code_node_QaPUxa3s.data.entry.invoice_total}}",
+                                              "valueLabel": "",
+                                              "propLabel": "Total Amount"
+                                            },
+                                            {
+                                              "prop": "document_type",
+                                              "operator": "",
+                                              "valueType": "value",
+                                              "value": "Sales Invoices",
+                                              "valueLabel": "",
+                                              "propLabel": "Document Type"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "if_yqk0qfvn",
+                                      "type": "if",
+                                      "data": {
+                                        "title": "Failed CL?",
+                                        "isValidator": true,
+                                        "nodeName": "Failed CL?",
+                                        "name": "Failed CL?",
+                                        "condition_type": "Expression",
+                                        "filter": {
+                                          "list": [
+                                            {
+                                              "id": 1736695973613,
+                                              "parentId": 1736695973612,
+                                              "isTop": true,
+                                              "prop": "",
+                                              "operator": "",
+                                              "valueType": "",
+                                              "value": "",
+                                              "type": "leaf",
+                                              "level": 1
+                                            }
+                                          ]
+                                        },
+                                        "expression": {
+                                          "type": "javascript",
+                                          "code": "'{{node:workflow_node_G4KBFPGT.data.result}}' == 'failed'"
+                                        }
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "ifBlock_1yWfSJkO",
+                                          "type": "ifBlock",
+                                          "data": { "title": "true" },
+                                          "blocks": [
+                                            {
+                                              "id": "if_7IMJkojx",
+                                              "type": "if",
+                                              "data": {
+                                                "title": "IF not from convert?",
+                                                "isValidator": true,
+                                                "nodeName": "IF not from convert?",
+                                                "name": "IF not from convert?",
+                                                "condition_type": "Expression",
+                                                "expression": {
+                                                  "type": "javascript",
+                                                  "code": "'{{workflowparams:data.page_status}}' != 'Convert'"
+                                                }
+                                              },
+                                              "blocks": [
+                                                {
+                                                  "id": "if_block_y3d7WeIv",
+                                                  "type": "ifBlock",
+                                                  "data": { "title": "true" },
+                                                  "blocks": [
+                                                    {
+                                                      "id": "code_node_bJcEEvRF",
+                                                      "type": "code-node",
+                                                      "data": {
+                                                        "language": "javascript",
+                                                        "code": "",
+                                                        "timeout": 30000,
+                                                        "title": "Define Block or Override",
+                                                        "isValidator": true,
+                                                        "nodeName": "Define Block or Override",
+                                                        "name": "Define Block or Override",
+                                                        "script": {
+                                                          "type": "javascript",
+                                                          "code": "const message = {{node:workflow_node_G4KBFPGT.data.message}};\nconst isBlock = message.indexOf('Block - ') !== -1 ? 'block' : 'override';\n\nreturn {\n  isBlock\n}"
+                                                        },
+                                                        "response_json": [
+                                                          {
+                                                            "key": "1r5i3659",
+                                                            "name": "isBlock",
+                                                            "title": "Is Block",
+                                                            "description": "",
+                                                            "bsonType": "string",
+                                                            "isExpand": false
+                                                          }
+                                                        ]
+                                                      },
+                                                      "blocks": []
+                                                    },
+                                                    {
+                                                      "id": "if_sRudeqlI",
+                                                      "type": "if",
+                                                      "data": {
+                                                        "title": "Block ?",
+                                                        "isValidator": true,
+                                                        "nodeName": "Block ?",
+                                                        "name": "Block ?",
+                                                        "condition_type": "Expression",
+                                                        "expression": {
+                                                          "type": "javascript",
+                                                          "code": "'{{node:code_node_bJcEEvRF.data.isBlock}}' == 'block'"
+                                                        }
+                                                      },
+                                                      "blocks": [
+                                                        {
+                                                          "id": "ifBlock_utUTdrjz",
+                                                          "type": "ifBlock",
+                                                          "data": {
+                                                            "title": "true"
+                                                          },
+                                                          "blocks": [
+                                                            {
+                                                              "id": "end_node_QowGlXAl",
+                                                              "type": "end-node",
+                                                              "data": {
+                                                                "title": "结束节点",
+                                                                "outputs": {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "result": {
+                                                                      "type": "string"
+                                                                    }
+                                                                  }
+                                                                },
+                                                                "isValidator": true,
+                                                                "nodeName": "结束节点",
+                                                                "name": "结束节点",
+                                                                "back_data_type": "Default",
+                                                                "code": 408,
+                                                                "msg": {
+                                                                  "type": "javascript",
+                                                                  "code": "{{node:workflow_node_G4KBFPGT.data.message}}"
+                                                                }
+                                                              },
+                                                              "blocks": []
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "id": "ifBlock_jcAnpmAn",
+                                                          "type": "ifBlock",
+                                                          "data": {
+                                                            "title": "false"
+                                                          },
+                                                          "blocks": [
+                                                            {
+                                                              "id": "end_node_26jDZHdB",
+                                                              "type": "end-node",
+                                                              "data": {
+                                                                "title": "结束节点",
+                                                                "outputs": {
+                                                                  "type": "object",
+                                                                  "properties": {
+                                                                    "result": {
+                                                                      "type": "string"
+                                                                    }
+                                                                  }
+                                                                },
+                                                                "isValidator": true,
+                                                                "nodeName": "结束节点",
+                                                                "name": "结束节点",
+                                                                "back_data_type": "Default",
+                                                                "code": 409,
+                                                                "msg": {
+                                                                  "type": "javascript",
+                                                                  "code": "{{node:workflow_node_G4KBFPGT.data.message}}"
+                                                                }
+                                                              },
+                                                              "blocks": []
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "id": "if_block_N33bfGOt",
+                                                  "type": "ifBlock",
+                                                  "data": { "title": "false" },
+                                                  "blocks": [
+                                                    {
+                                                      "id": "code_node_Z0Tcxb1v",
+                                                      "type": "code-node",
+                                                      "data": {
+                                                        "language": "javascript",
+                                                        "code": "",
+                                                        "timeout": 30000,
+                                                        "title": "Change Status to Draft",
+                                                        "isValidator": true,
+                                                        "nodeName": "Change Status to Draft",
+                                                        "name": "Change Status to Draft",
+                                                        "script": {
+                                                          "type": "javascript",
+                                                          "code": "const entry = {{node:code_node_QaPUxa3s.data.entry}};\n\nentry.si_status = 'Draft'\nentry.posted_status = ''\n\nreturn { entry }"
+                                                        },
+                                                        "response_json": [
+                                                          {
+                                                            "key": "kckfvmjt",
+                                                            "name": "entry",
+                                                            "title": "",
+                                                            "description": "",
+                                                            "bsonType": "any",
+                                                            "isExpand": false,
+                                                            "children": []
+                                                          }
+                                                        ]
+                                                      },
+                                                      "blocks": []
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "ifBlock_fmqrDPMP",
+                                          "type": "ifBlock",
+                                          "data": { "title": "false" },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_XjbbzHHY",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_xGaqxG2c",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": [
+                            {
+                              "id": "end_node_Xl2tnvr8",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": { "type": "string" }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "Default",
+                                "code": 407,
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": "{{node:code_node_QaPUxa3s.data.message}}"
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_JoF0YVzG",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Fillback Header Fields",
+        "isValidator": true,
+        "nodeName": "Fillback Header Fields",
+        "name": "Fillback Header Fields",
+        "script": {
+          "type": "javascript",
+          "code": "let entry = {{node:code_node_2Pxz18TD.data.table}} || {{node:code_node_QaPUxa3s.data.entry}} || {{node:code_node_Z0Tcxb1v.data.entry}}\n\nfor (const [index, siLineItem] of entry.table_si.entries()) {\n  siLineItem.customer_id = entry.customer_id || null;\n  siLineItem.plant_id = entry.plant_id || null;\n  siLineItem.payment_term_id = entry.si_payment_term_id || null;\n  siLineItem.billing_state_id = entry.billing_address_state || null;\n  siLineItem.billing_country_id = entry.billing_address_country || null;\n  siLineItem.shipping_state_id = entry.shipping_address_state || null;\n  siLineItem.shipping_country_id = entry.shipping_address_country || null;\n  siLineItem.line_index = index + 1;\n  siLineItem.agent_id = entry.sales_person_id;\n  siLineItem.tax_amount = parseFloat(siLineItem.tax_amount || 0).toFixed(4);\n  siLineItem.so_order_quantity = parseFloat(siLineItem.so_order_quantity || 0).toFixed(3);\n  siLineItem.si_discount = parseFloat(siLineItem.si_discount || 0).toFixed(4);\n  siLineItem.discount_amount = parseFloat(siLineItem.discount_amount || 0).toFixed(4);\n  siLineItem.invoice_qty = parseFloat(siLineItem.invoice_qty || 0).toFixed(3);\n  siLineItem.si_amount = parseFloat(siLineItem.si_amount || 0).toFixed(4);\n  siLineItem.gross = parseFloat(siLineItem.gross || 0).toFixed(4);\n  siLineItem.area_id = entry.si_area_id || '';\n  siLineItem.agent_user_id = entry.agent_user_id || '';\n}\n\nentry.invoice_subtotal = parseFloat(entry.invoice_subtotal || 0).toFixed(4);\nentry.invoice_total_discount = parseFloat(entry.invoice_total_discount || 0).toFixed(4);\nentry.invoice_taxes_amount = parseFloat(entry.invoice_taxes_amount || 0).toFixed(4);\nentry.invoice_total = parseFloat(entry.invoice_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\nentry.outstanding_amount = parseFloat(entry.invoice_total || 0).toFixed(4);\nentry.payment_status = entry.si_status === 'Draft' ? '' : 'Unpaid'\n\nreturn { entry };"
+        },
+        "response_json": [
+          {
+            "key": "nqkwxkgc",
+            "name": "entry",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_NDKdFanY",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Order:Table:1902773735979597826",
+          "rules": {
+            "collectionId": "1902773735979597826",
+            "list": [
+              {
+                "id": 1772617932161,
+                "parentId": 1772617932160,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_JoF0YVzG.data.entry.so_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Fetch SO Data",
+        "isValidator": true,
+        "nodeName": "Fetch SO Data",
+        "name": "Fetch SO Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_lTy219I0",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Delivery:Table:1902054888473481218",
+          "rules": {
+            "collectionId": "1902054888473481218",
+            "list": [
+              {
+                "id": 1772617963175,
+                "parentId": 1772617963174,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_JoF0YVzG.data.entry.gd_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Fetch GD Data",
+        "isValidator": true,
+        "nodeName": "Fetch GD Data",
+        "name": "Fetch GD Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_KzCWBJ76",
+      "type": "if",
+      "data": {
+        "title": "IF completed?",
+        "isValidator": true,
+        "nodeName": "IF completed?",
+        "name": "IF completed?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_JoF0YVzG.data.entry.si_status}}' == 'Completed'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_KpM9gwzu",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_hHnkhdFI",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Map Updated SO & GD",
+                "isValidator": true,
+                "nodeName": "Map Updated SO & GD",
+                "name": "Map Updated SO & GD",
+                "script": {
+                  "type": "javascript",
+                  "code": "const soList = {{node:search_node_NDKdFanY.data.data}} || [];\nconst gdList = {{node:search_node_lTy219I0.data.data}} || [];\nconst data = {{node:code_node_JoF0YVzG.data.entry}};\nlet allErrors = [];\n\nconst roundTo3 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 1000) / 1000;\n};\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.0000\";\n  return parseFloat(value).toFixed(3);\n};\n\n\nconst validateInvoiceQuantities = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n  \n  const errors = [];\n  \n  filteredSI.forEach((siItem) => {\n    const originalItem = items.find(item => item.id === siItem[siLineIdKey]);\n    \n    if (originalItem) {\n      const availableQty = roundTo3(originalItem[qtyKey]);\n      const currentInvoicedQty = roundTo3(originalItem.invoice_qty);\n      const newInvoiceQty = roundTo3(siItem.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + newInvoiceQty);\n      \n      if (totalInvoicedQty > availableQty) {\n        errors.push({\n          itemName: originalItem.item_id || originalItem.material_name || `Item ${originalItem.id}`,\n        });\n      }\n    }\n  });\n  \n  return errors;\n};\n\nconst updateGoodsDelivery = (gdIds, tableSi) => {\n  let gdUpdatedList = [];\n  for(const gdID of gdIds) {\n    const gdData = gdList.find(gd => gd.id === gdID)\n    const gdItems = gdData.table_gd || [];\n\n    const validationErrors = validateInvoiceQuantities(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    allErrors = [...allErrors, ...validationErrors];\n\n    // Process GR items\n    const { updatedItems, newSIStatus } = processItems(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    gdUpdatedList.push({\n      gd_id: gdData.id,\n      si_status: newSIStatus,\n      table_gd: updatedItems\n    })\n  }\n\n  return gdUpdatedList;\n};\n\nconst updateSalesOrder = (soIds, tableSi) => {\n  let soUpdatedList = [];\n  for(const soID of soIds) {\n    const soData = soList.find(so => so.id === soID)\n    const soItems = soData.table_so || [];\n\n    const validationErrors = validateInvoiceQuantities(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\"\n    );\n\n    allErrors = [...allErrors, ...validationErrors];\n\n    const { updatedItems, newSIStatus } = processItems(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\",\n    );\n\n    soUpdatedList.push({\n      so_id: soData.id,\n      si_status: newSIStatus,\n      table_so: updatedItems\n    })\n  }\n\n  return soUpdatedList;\n};\n\n\nconst processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  // Filter PI items for the current document\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n\n  // Filter items where item.id matches any siLineIdKey in filteredSI\n  const filteredItems = items.filter((item) =>\n    filteredSI.some((pi) => pi[siLineIdKey] === item.id),\n  );\n\n  // Initialize tracking\n  let totalItems = items.length;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n  const updatedItems = items.map((item) => ({ ...item }));\n\n  // Update invoice quantities\n  filteredItems.forEach((filteredItem, filteredIndex) => {\n    const originalIndex = updatedItems.findIndex(\n      (item) => item.id === filteredItem.id,\n    );\n\n    if (originalIndex === -1) return;\n\n    const itemQty = parseFloat(filteredItem[qtyKey] || 0);\n    const piInvoicedQty = roundTo3(\n      filteredSI[filteredIndex]?.invoice_qty\n    );\n    const currentInvoicedQty = roundTo3(\n      updatedItems[originalIndex].invoice_qty\n    );\n    const totalInvoicedQty = roundTo3(currentInvoicedQty + piInvoicedQty);\n\n    // Update invoice quantity\n    updatedItems[originalIndex].invoice_qty = totalInvoicedQty;\n  });\n\n  for (const [index, item] of updatedItems.entries()) {\n    if (roundTo3(item.invoice_qty) > 0) {\n      partiallyInvoicedItems++;\n      updatedItems[index].si_status = \"Partially Invoiced\";\n      if (roundTo3(item.invoice_qty) >= roundTo3(item[qtyKey])) {\n        fullyInvoicedItems++;\n        updatedItems[index].si_status = \"Fully Invoiced\";\n      }\n    }\n  }\n\n  // Determine new PI status\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newSIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newSIStatus };\n};\n\nconst soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\nlet updatedGD = [];\nif (data.gd_id.length > 0) {\n  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);\n  updatedGD = updatedGDData.flat();\n}\nlet updatedSO = updateSalesOrder(soIds, data.table_si);\nupdatedGD = updatedGD.filter(gd => gd.si_status === 'Fully Invoiced').map(gd => gd.gd_id)\nupdatedSO = updatedSO.filter(so => so.si_status === 'Fully Invoiced').map(so => so.so_id)\n\nreturn {\n  status: allErrors.length > 0 ? 'Failed' : 'Success', \n  allErrors, updatedGD, updatedSO\n}\n"
+                },
+                "response_json": [
+                  {
+                    "key": "2dfillv5",
+                    "name": "updatedGD",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "d1ejxm7o",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "9yvajl0j",
+                    "name": "updatedSO",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "gedjnyrs",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "jyrxr5fp",
+                    "name": "allErrors",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "sn9ne5cu",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "object",
+                        "isExpand": true,
+                        "isArrayItem": true,
+                        "children": [
+                          {
+                            "key": "2bl12hpm",
+                            "name": "itemName",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "key": "beqiqzdl",
+                    "name": "status",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_i2nGxo5C",
+              "type": "if",
+              "data": {
+                "title": "IF qty validate failed?",
+                "isValidator": true,
+                "nodeName": "IF qty validate failed?",
+                "name": "IF qty validate failed?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_hHnkhdFI.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_pcrquDOi",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "code_node_xRSPTIpa",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "410 Error Msg",
+                        "isValidator": true,
+                        "nodeName": "410 Error Msg",
+                        "name": "410 Error Msg",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const errMsg = {{node:code_node_hHnkhdFI.data.allErrors}}.map(err => err.itemName).join(', ')\n\nreturn {\n message: `${errMsg} invoice quantity exceed available invoice quantity.` \n}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "6xcza3ia",
+                            "name": "message",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "end_chFD_S_S",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_xRSPTIpa.data.message}}"
+                        },
+                        "code": 410
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block__kMSW4Ee",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_5P6g6Mcd",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_D49IflKy",
+      "type": "if",
+      "data": {
+        "title": "IF add?",
+        "isValidator": true,
+        "nodeName": "IF add?",
+        "name": "IF add?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:data.page_status}}' == 'Add' || '{{workflowparams:data.page_status}}' == 'Convert'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_ttA082eX",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "add_node_adYeQB4a",
+              "type": "add-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Invoice:Table:1902525285396496385",
+                  "rules": {
+                    "collectionId": "1902525285396496385",
+                    "list": [
+                      {
+                        "id": 1772607616373,
+                        "parentId": 1772607616372,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "Add Data",
+                "isValidator": true,
+                "nodeName": "Add Data",
+                "name": "Add Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "si_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SI Status"
+                    },
+                    {
+                      "prop": "si_ref_doc",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_ref_doc}}",
+                      "valueLabel": "",
+                      "propLabel": "Reference Documents"
+                    },
+                    {
+                      "prop": "created_source",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.created_source}}",
+                      "valueLabel": "",
+                      "propLabel": "Created Source"
+                    },
+                    {
+                      "prop": "wa_number",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.wa_number}}",
+                      "valueLabel": "",
+                      "propLabel": "Whatsapp No"
+                    },
+                    {
+                      "prop": "wa_group",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.wa_group}}",
+                      "valueLabel": "",
+                      "propLabel": "Whatsapp Group"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.plant_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "so_no_display",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.so_no_display}}",
+                      "valueLabel": "",
+                      "propLabel": "SO Number"
+                    },
+                    {
+                      "prop": "gd_no_display",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.gd_no_display}}",
+                      "valueLabel": "",
+                      "propLabel": "GD Number"
+                    },
+                    {
+                      "prop": "so_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.so_id}}",
+                      "valueLabel": "",
+                      "propLabel": "SO ID"
+                    },
+                    {
+                      "prop": "gd_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.gd_id}}",
+                      "valueLabel": "",
+                      "propLabel": "GD ID"
+                    },
+                    {
+                      "prop": "customer_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.customer_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Customer"
+                    },
+                    {
+                      "prop": "currency_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.currency_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Currency"
+                    },
+                    {
+                      "prop": "si_billing_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_billing_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address"
+                    },
+                    {
+                      "prop": "si_shipping_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_shipping_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address"
+                    },
+                    {
+                      "prop": "sales_invoice_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Sales Invoice Number"
+                    },
+                    {
+                      "prop": "sales_invoice_no_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_no_type}}",
+                      "valueLabel": "",
+                      "propLabel": "规则"
+                    },
+                    {
+                      "prop": "sales_invoice_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Sales Invoice Date"
+                    },
+                    {
+                      "prop": "sales_person_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.sales_person_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Sales Representative"
+                    },
+                    {
+                      "prop": "si_payment_term_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_payment_term_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Term"
+                    },
+                    {
+                      "prop": "exchange_rate_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.exchange_rate_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate"
+                    },
+                    {
+                      "prop": "exchange_rate",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.exchange_rate}}",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate"
+                    },
+                    {
+                      "prop": "si_description",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_description}}",
+                      "valueLabel": "",
+                      "propLabel": "Description"
+                    },
+                    {
+                      "prop": "posted_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.posted_status}}",
+                      "valueLabel": "",
+                      "propLabel": "Posted Status"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.organization_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "acc_integration_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.acc_integration_type}}",
+                      "valueLabel": "",
+                      "propLabel": "Accounting Integration Type"
+                    },
+                    {
+                      "prop": "customer_credit_limit",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.customer_credit_limit}}",
+                      "valueLabel": "",
+                      "propLabel": "Credit Limit"
+                    },
+                    {
+                      "prop": "overdue_limit",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.overdue_limit}}",
+                      "valueLabel": "",
+                      "propLabel": "Overdue Limit"
+                    },
+                    {
+                      "prop": "outstanding_balance",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.outstanding_balance}}",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Balance"
+                    },
+                    {
+                      "prop": "overdue_inv_total_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.overdue_inv_total_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Overdue Invoice Total Amount"
+                    },
+                    {
+                      "prop": "is_accurate",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.is_accurate}}",
+                      "valueLabel": "",
+                      "propLabel": "Is Accurate"
+                    },
+                    {
+                      "prop": "table_si",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.table_si}}",
+                      "valueLabel": "",
+                      "propLabel": "SI Item"
+                    },
+                    {
+                      "prop": "total_gross_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.total_gross_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Gross"
+                    },
+                    {
+                      "prop": "total_discount_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.total_discount_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount"
+                    },
+                    {
+                      "prop": "total_tax_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.total_tax_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Fee"
+                    },
+                    {
+                      "prop": "total_amount_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.total_amount_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount"
+                    },
+                    {
+                      "prop": "invoice_subtotal",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_subtotal}}",
+                      "valueLabel": "",
+                      "propLabel": "Sub Total"
+                    },
+                    {
+                      "prop": "invoice_total_discount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_total_discount}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount"
+                    },
+                    {
+                      "prop": "invoice_taxes_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_taxes_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Amount"
+                    },
+                    {
+                      "prop": "invoice_total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_total}}",
+                      "valueLabel": "",
+                      "propLabel": "Total"
+                    },
+                    {
+                      "prop": "myr_total_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.myr_total_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount "
+                    },
+                    {
+                      "prop": "tnc",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.tnc}}",
+                      "valueLabel": "",
+                      "propLabel": "Term and Conditions"
+                    },
+                    {
+                      "prop": "payment_term",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.payment_term}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Terms"
+                    },
+                    {
+                      "prop": "delivery_term",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.delivery_term}}",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Term"
+                    },
+                    {
+                      "prop": "remarks",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 1"
+                    },
+                    {
+                      "prop": "remarks2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks2}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "remarks3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks3}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
+                    },
+                    {
+                      "prop": "remarks4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks4}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 4"
+                    },
+                    {
+                      "prop": "remarks5",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks5}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 5"
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_2"
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_3"
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_4"
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Country"
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "billing_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Code"
+                    },
+                    {
+                      "prop": "shipping_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Code"
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_2"
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_3"
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_4"
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Country"
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "si_area_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_area_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Area"
+                    },
+                    {
+                      "prop": "outstanding_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.outstanding_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Amount"
+                    },
+                    {
+                      "prop": "payment_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.payment_status}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Status"
+                    },
+                    {
+                      "prop": "invoice_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_type}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Type"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_jzbjgHNc",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "update_node_I7KGszOE",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Invoice:Table:1902525285396496385",
+                  "rules": {
+                    "collectionId": "1902525285396496385",
+                    "list": [
+                      {
+                        "id": 1772674146119,
+                        "parentId": 1772674146118,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_JoF0YVzG.data.entry.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Data",
+                "isValidator": true,
+                "nodeName": "Update Data",
+                "name": "Update Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "si_ref_doc",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_ref_doc}}",
+                      "valueLabel": "",
+                      "propLabel": "Reference Documents"
+                    },
+                    {
+                      "prop": "created_source",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.created_source}}",
+                      "valueLabel": "",
+                      "propLabel": "Created Source"
+                    },
+                    {
+                      "prop": "wa_number",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.wa_number}}",
+                      "valueLabel": "",
+                      "propLabel": "Whatsapp No"
+                    },
+                    {
+                      "prop": "wa_group",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.wa_group}}",
+                      "valueLabel": "",
+                      "propLabel": "Whatsapp Group"
+                    },
+                    {
+                      "prop": "si_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_status}}",
+                      "valueLabel": "",
+                      "propLabel": "SI Status"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.plant_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "so_no_display",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.so_no_display}}",
+                      "valueLabel": "",
+                      "propLabel": "SO Number"
+                    },
+                    {
+                      "prop": "gd_no_display",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.gd_no_display}}",
+                      "valueLabel": "",
+                      "propLabel": "GD Number"
+                    },
+                    {
+                      "prop": "so_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.so_id}}",
+                      "valueLabel": "",
+                      "propLabel": "SO ID"
+                    },
+                    {
+                      "prop": "gd_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.gd_id}}",
+                      "valueLabel": "",
+                      "propLabel": "GD ID"
+                    },
+                    {
+                      "prop": "customer_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.customer_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Customer"
+                    },
+                    {
+                      "prop": "currency_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.currency_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Currency"
+                    },
+                    {
+                      "prop": "si_billing_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_billing_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address"
+                    },
+                    {
+                      "prop": "si_shipping_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_shipping_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address"
+                    },
+                    {
+                      "prop": "sales_invoice_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Sales Invoice Number"
+                    },
+                    {
+                      "prop": "sales_invoice_no_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_no_type}}",
+                      "valueLabel": "",
+                      "propLabel": "规则"
+                    },
+                    {
+                      "prop": "sales_invoice_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Sales Invoice Date"
+                    },
+                    {
+                      "prop": "sales_person_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.sales_person_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Sales Representative"
+                    },
+                    {
+                      "prop": "si_payment_term_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_payment_term_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Term"
+                    },
+                    {
+                      "prop": "exchange_rate_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.exchange_rate_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate"
+                    },
+                    {
+                      "prop": "exchange_rate",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.exchange_rate}}",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate"
+                    },
+                    {
+                      "prop": "si_description",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_description}}",
+                      "valueLabel": "",
+                      "propLabel": "Description"
+                    },
+                    {
+                      "prop": "posted_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.posted_status}}",
+                      "valueLabel": "",
+                      "propLabel": "Posted Status"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.organization_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "acc_integration_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.acc_integration_type}}",
+                      "valueLabel": "",
+                      "propLabel": "Accounting Integration Type"
+                    },
+                    {
+                      "prop": "customer_credit_limit",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.customer_credit_limit}}",
+                      "valueLabel": "",
+                      "propLabel": "Credit Limit"
+                    },
+                    {
+                      "prop": "overdue_limit",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.overdue_limit}}",
+                      "valueLabel": "",
+                      "propLabel": "Overdue Limit"
+                    },
+                    {
+                      "prop": "outstanding_balance",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.outstanding_balance}}",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Balance"
+                    },
+                    {
+                      "prop": "overdue_inv_total_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.overdue_inv_total_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Overdue Invoice Total Amount"
+                    },
+                    {
+                      "prop": "is_accurate",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.is_accurate}}",
+                      "valueLabel": "",
+                      "propLabel": "Is Accurate"
+                    },
+                    {
+                      "prop": "table_si",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.table_si}}",
+                      "valueLabel": "",
+                      "propLabel": "SI Item"
+                    },
+                    {
+                      "prop": "total_gross_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.total_gross_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Gross"
+                    },
+                    {
+                      "prop": "total_discount_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.total_discount_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount"
+                    },
+                    {
+                      "prop": "total_tax_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.total_tax_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Fee"
+                    },
+                    {
+                      "prop": "total_amount_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.total_amount_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount"
+                    },
+                    {
+                      "prop": "invoice_subtotal",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_subtotal}}",
+                      "valueLabel": "",
+                      "propLabel": "Sub Total"
+                    },
+                    {
+                      "prop": "invoice_total_discount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_total_discount}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount"
+                    },
+                    {
+                      "prop": "invoice_taxes_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_taxes_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Amount"
+                    },
+                    {
+                      "prop": "invoice_total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_total}}",
+                      "valueLabel": "",
+                      "propLabel": "Total"
+                    },
+                    {
+                      "prop": "myr_total_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.myr_total_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount "
+                    },
+                    {
+                      "prop": "tnc",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.tnc}}",
+                      "valueLabel": "",
+                      "propLabel": "Term and Conditions"
+                    },
+                    {
+                      "prop": "payment_term",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.payment_term}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Terms"
+                    },
+                    {
+                      "prop": "delivery_term",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.delivery_term}}",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Term"
+                    },
+                    {
+                      "prop": "remarks",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 1"
+                    },
+                    {
+                      "prop": "remarks2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks2}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "remarks3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks3}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
+                    },
+                    {
+                      "prop": "remarks4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks4}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 4"
+                    },
+                    {
+                      "prop": "remarks5",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.remarks5}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 5"
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_2"
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_3"
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_4"
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Country"
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "billing_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.billing_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Code"
+                    },
+                    {
+                      "prop": "shipping_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Code"
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_2"
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_3"
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_4"
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Country"
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.shipping_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "si_area_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.si_area_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Area"
+                    },
+                    {
+                      "prop": "outstanding_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.outstanding_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Amount"
+                    },
+                    {
+                      "prop": "payment_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.payment_status}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Status"
+                    },
+                    {
+                      "prop": "invoice_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.invoice_type}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Type"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_node_fcE2I4vj",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Invoice:Table:1902525285396496385",
+                  "rules": {
+                    "collectionId": "1902525285396496385",
+                    "list": [
+                      {
+                        "id": 1777279551551,
+                        "parentId": 1777279551550,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_JoF0YVzG.data.entry.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch SI",
+                "isValidator": true,
+                "nodeName": "Fetch SI",
+                "name": "Fetch SI"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_ytRbog2e",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Latest SI",
+        "isValidator": true,
+        "nodeName": "Map Latest SI",
+        "name": "Map Latest SI",
+        "script": {
+          "type": "javascript",
+          "code": "const siData = {{workflowparams:data.page_status}} === 'Add' ? {{node:add_node_adYeQB4a.data}}[0] : {{node:get_node_fcE2I4vj.data.data}};\n\nreturn { siData }"
+        },
+        "response_json": [
+          {
+            "key": "4jmzam09",
+            "name": "siData",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_5DHm2eA0",
+      "type": "if",
+      "data": {
+        "title": "IF completed?",
+        "isValidator": true,
+        "nodeName": "IF completed?",
+        "name": "IF completed?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_JoF0YVzG.data.entry.si_status}}' == 'Completed'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_wJFTcZvJ",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_4CvJopJk",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Map Updated SO & GD",
+                "isValidator": true,
+                "nodeName": "Map Updated SO & GD",
+                "name": "Map Updated SO & GD",
+                "script": {
+                  "type": "javascript",
+                  "code": "const soList = {{node:search_node_NDKdFanY.data.data}} || [];\nconst gdList = {{node:search_node_lTy219I0.data.data}} || [];\nconst data = {{node:code_node_JoF0YVzG.data.entry}};\n\nconst roundTo3 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 1000) / 1000;\n};\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.0000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst updateGoodsDelivery = (gdIds, tableSi) => {\n  let gdUpdatedList = [];\n  for(const gdID of gdIds) {\n    const gdData = gdList.find(gd => gd.id === gdID)\n    const gdItems = gdData.table_gd || [];\n\n    // Process GR items\n    const { updatedItems, newSIStatus } = processItems(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    gdUpdatedList.push({\n      gd_id: gdData.id,\n      si_status: newSIStatus,\n      table_gd: updatedItems\n    })\n  }\n\n  return gdUpdatedList;\n};\n\nconst updateSalesOrder = (soIds, tableSi) => {\n  let soUpdatedList = [];\n  for(const soID of soIds) {\n    const soData = soList.find(so => so.id === soID)\n    const soItems = soData.table_so || [];\n\n    const { updatedItems, newSIStatus } = processItems(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\",\n    );\n\n    soUpdatedList.push({\n      so_id: soData.id,\n      si_status: newSIStatus,\n      table_so: updatedItems\n    })\n  }\n\n  return soUpdatedList;\n};\n\nconst processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  // Filter SI items for the current document\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n\n  // Initialize tracking\n  let totalItems = items.length;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n  \n  // Update items using find() with id matching\n  const updatedItems = items.map((item) => {\n    const matchedSI = filteredSI.find(pi => pi[siLineIdKey] === item.id);\n    \n    if (matchedSI) {\n      const piInvoicedQty = roundTo3(matchedSI.invoice_qty);\n      const currentInvoicedQty = roundTo3(item.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + piInvoicedQty);\n\n      const updatedItem = {\n        ...item,\n        invoice_qty: totalInvoicedQty\n      };\n      \n      if (roundTo3(updatedItem.invoice_qty) > 0) {\n          partiallyInvoicedItems++;\n          updatedItem.si_status = \"Partially Invoiced\";\n          if (roundTo3(updatedItem.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {\n            fullyInvoicedItems++;\n            updatedItem.si_status = \"Fully Invoiced\";\n          }\n      }\n      \n      return updatedItem;\n    }\n    \n    return { ...item };\n  });\n\n  // Determine new SI status\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newSIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newSIStatus };\n};\n\nconst soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\nlet updatedGD = [];\nif (data.gd_id.length > 0) {\n  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);\n  updatedGD = updatedGDData\n}\n\nconst updatedSO = updateSalesOrder(soIds, data.table_si);\n\nreturn {\n  updatedGD, updatedSO\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "2dfillv5",
+                    "name": "updatedGD",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "d1ejxm7o",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "object",
+                        "isExpand": true,
+                        "isArrayItem": true,
+                        "children": [
+                          {
+                            "key": "c8pivrbp",
+                            "name": "gd_id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "bvznt3s2",
+                            "name": "si_status",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "9ennxcwz",
+                            "name": "table_gd",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "se3ktm9l",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "key": "9yvajl0j",
+                    "name": "updatedSO",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "gedjnyrs",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "object",
+                        "isExpand": true,
+                        "isArrayItem": true,
+                        "children": [
+                          {
+                            "key": "jutcfffd",
+                            "name": "so_id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "86a3z6gd",
+                            "name": "si_status",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "4raaw4ua",
+                            "name": "table_so",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "bt8m7aj6",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_I3e7ZpkH",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Invoice:Table:1902525285396496385",
+                  "rules": {
+                    "collectionId": "1902525285396496385",
+                    "list": [
+                      {
+                        "id": 1772769697185,
+                        "parentId": 1772769697186,
+                        "isTop": true,
+                        "prop": "so_id",
+                        "operator": "all",
+                        "valueType": "field",
+                        "value": "{{node:code_node_hHnkhdFI.data.updatedSO}}",
+                        "type": "branch",
+                        "level": 1,
+                        "propLabel": "SO ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In",
+                        "children": [
+                          {
+                            "id": 1772769697188,
+                            "isTop": false,
+                            "parentId": 1772769697185,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1772769697187,
+                                "parentId": 1772769697188,
+                                "isTop": false,
+                                "prop": "so_id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_hHnkhdFI.data.updatedSO}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "SO ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              },
+                              {
+                                "id": 1772769697189,
+                                "parentId": 1772769697188,
+                                "isTop": false,
+                                "prop": "gd_id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_hHnkhdFI.data.updatedGD}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "GD ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          },
+                          {
+                            "id": 1772769697187,
+                            "parentId": 1772769697185,
+                            "isTop": false,
+                            "prop": "si_status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Draft",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "SI Status",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Draft SI",
+                "isValidator": true,
+                "nodeName": "Get Draft SI",
+                "name": "Get Draft SI"
+              },
+              "blocks": []
+            },
+            {
+              "id": "delete_node_vpLUnjoe",
+              "type": "delete-node",
+              "data": {
+                "table_id": { "source": "" },
+                "condition": {},
+                "title": "Delete Draft SI",
+                "isValidator": true,
+                "nodeName": "Delete Draft SI",
+                "name": "Delete Draft SI",
+                "node_ids": ["search_node_I3e7ZpkH"]
+              },
+              "blocks": []
+            },
+            {
+              "id": "condition_all_bCtEHeEx",
+              "type": "condition-all-node",
+              "data": {
+                "title": "Parallel Branch",
+                "filter": { "list": [] },
+                "expression": { "code": "" },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "condition_all_node_item_8tQ82FnL",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 1",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1772677955313,
+                          "parentId": 1772677955312,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": { "code": "true", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 1",
+                    "name": "Branch 1",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "update_node_CTTDlnVN",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Sales Order:Table:1902773735979597826",
+                          "rules": {
+                            "collectionId": "1902773735979597826",
+                            "list": [
+                              {
+                                "id": 1772677979432,
+                                "parentId": 1772677979431,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_JoF0YVzG.data.entry.so_id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Update SO",
+                        "isValidator": true,
+                        "nodeName": "Update SO",
+                        "name": "Update SO",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4CvJopJk.data.updatedSO.so_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "si_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4CvJopJk.data.updatedSO.si_status}}",
+                              "valueLabel": "",
+                              "propLabel": "SI Completed Status"
+                            },
+                            {
+                              "prop": "table_so",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4CvJopJk.data.updatedSO.table_so}}",
+                              "valueLabel": "",
+                              "propLabel": "Sales Order Table"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_all_node_item_PhrzKoP9",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 2",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1772677970207,
+                          "parentId": 1772677970206,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": { "code": "true", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 2",
+                    "name": "Branch 2",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "update_node_co3J1EoF",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Goods Delivery:Table:1902054888473481218",
+                          "rules": {
+                            "collectionId": "1902054888473481218",
+                            "list": [
+                              {
+                                "id": 1772678110110,
+                                "parentId": 1772678110109,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_JoF0YVzG.data.entry.gd_id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Update GD",
+                        "isValidator": true,
+                        "nodeName": "Update GD",
+                        "name": "Update GD",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4CvJopJk.data.updatedGD.gd_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "si_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4CvJopJk.data.updatedGD.si_status}}",
+                              "valueLabel": "",
+                              "propLabel": "SI Status"
+                            },
+                            {
+                              "prop": "table_gd",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4CvJopJk.data.updatedGD.table_gd}}",
+                              "valueLabel": "",
+                              "propLabel": "table_gd"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "get_node_oLOE8Qt7",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Accounting Integration:Table:1930794597760651266",
+                  "rules": {
+                    "collectionId": "1930794597760651266",
+                    "list": [
+                      {
+                        "id": 1779628890133,
+                        "parentId": 1779628890132,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "numberEqual",
+                        "valueType": "field",
+                        "value": "{{workflowparams:data.organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Accounting Integration",
+                "isValidator": true,
+                "nodeName": "Get Accounting Integration",
+                "name": "Get Accounting Integration"
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_-xQaPih0",
+              "type": "if",
+              "data": {
+                "title": "IF auto post SI?",
+                "isValidator": true,
+                "nodeName": "IF",
+                "name": "IF",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "{{node:get_node_oLOE8Qt7.data.data.auto_post_si}} == 1"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_xaGRZfRf",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "code_node_gYlCQuTa",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Return SI IDs",
+                        "isValidator": true,
+                        "nodeName": "Return SI IDs",
+                        "name": "Return SI IDs",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const siData = {{node:code_node_ytRbog2e.data.siData}};\n\nreturn {\n  si_ids: [siData.id]\n}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "e55n2lir",
+                            "name": "si_ids",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "workflow_node_n5GEjrps",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Workflow",
+                        "isValidator": true,
+                        "nodeName": "Run Workflow",
+                        "name": "Run Workflow",
+                        "workflow": {
+                          "source": "SI_POST:Workflow:2029464545187823617",
+                          "rules": {
+                            "collectionId": "2029464545187823617",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "si_ids",
+                              "propLabel": "si_ids",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_gYlCQuTa.data.si_ids}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "acc_integration_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:get_node_oLOE8Qt7.data.data.acc_integration_type}}",
+                              "valueLabel": "",
+                              "propLabel": "acc_integration_type"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_Z8QjUUDp",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_T-6kKe6I",
+              "type": "if",
+              "data": {
+                "title": "IF invoice type == 'Cash'",
+                "isValidator": true,
+                "nodeName": "IF invoice type == 'Cash'",
+                "name": "IF invoice type == 'Cash'",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_JoF0YVzG.data.entry.invoice_type}}' == 'Cash' && {{node:code_node_JoF0YVzG.data.entry.invoice_total}} > 0"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_hxRcM4Wb",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "if_ehyBAz2c",
+                      "type": "if",
+                      "data": {
+                        "title": "IF payment == 'Unpaid'",
+                        "isValidator": true,
+                        "nodeName": "IF payment == 'Unpaid'",
+                        "name": "IF payment == 'Unpaid'",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_JoF0YVzG.data.entry.payment_status}}' == 'Unpaid' && '{{node:code_node_JoF0YVzG.data.entry.invoice_type}}' == 'Cash'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_Ja1XU0Yr",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "get_node_auG34VOC",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "流水号规则表:Table:1994006139209117697",
+                                  "rules": {
+                                    "collectionId": "1994006139209117697",
+                                    "list": [
+                                      {
+                                        "id": 1775722394955,
+                                        "parentId": 1775722394956,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "all",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "branch",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1775722394956,
+                                            "parentId": 1775722394955,
+                                            "isTop": false,
+                                            "prop": "department_id",
+                                            "operator": "numberEqual",
+                                            "valueType": "field",
+                                            "value": "{{workflowparams:data.organization_id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "部门ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1775722394957,
+                                            "parentId": 1775722394955,
+                                            "isTop": false,
+                                            "prop": "business_type",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "Customer Payment",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Document Type",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1775722394958,
+                                            "parentId": 1775722394955,
+                                            "isTop": false,
+                                            "prop": "is_default",
+                                            "operator": "numberEqual",
+                                            "valueType": "value",
+                                            "value": 1,
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Default",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get CP Format",
+                                "isValidator": true,
+                                "nodeName": "Get CP Format",
+                                "name": "Get CP Format"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "get_node_Jcmd2YdP",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Customer:Table:1902779099617804290",
+                                  "rules": {
+                                    "collectionId": "1902779099617804290",
+                                    "list": [
+                                      {
+                                        "id": 1775722566919,
+                                        "parentId": 1775722566918,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "numberEqual",
+                                        "valueType": "field",
+                                        "value": "{{workflowparams:data.customer_id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get Customer",
+                                "isValidator": true,
+                                "nodeName": "Get Customer",
+                                "name": "Get Customer"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_QfhrfMFO",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Map CP Data",
+                                "isValidator": true,
+                                "nodeName": "Map CP Data",
+                                "name": "Map CP Data",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const siData = {{workflowparams:data.page_status}} == 'Add' ? {{node:add_node_adYeQB4a.data}}[0] : {{node:code_node_JoF0YVzG.data.entry}};\n\nconst docFormat = {{node:get_node_auG34VOC.data.data}};\nconst customerData = {{node:get_node_Jcmd2YdP.data.data}};\n\nconst cpData = {\n  cp_no: 'issued',\n  area_id: siData.si_area_id,\n  irbm_id: customerData.customer_irbm_id,\n  agent_id: siData.sales_person_id,\n  plant_id: siData.plant_id,\n  table_cp: [\n    {\n      invoice_total: siData.invoice_total,\n      paid_amount: siData.invoice_total,\n      invoice_id: siData.id,\n      line_status: 'Completed',\n      outstanding_amount: 0\n    }\n  ],\n  cp_status: 'Completed',\n  cp_no_type: docFormat.id,\n  customer_id: siData.customer_id,\n  payment_date: new Date().toISOString().split('T')[0],\n  page_status: \"Add\",\n  exchange_rate: siData.exchange_rate,\n  organization_id: siData.organization_id,\n  unallocated_myr: 'MYR',\n  payment_currency: customerData.customer_currency_id,\n  customer_currency: customerData.customer_currency_id,\n  exchange_rate_myr: \"MYR\",\n  total_payment_myr: \"MYR\",\n  unallocated_amount: 0,\n  cust_payment_method: 'Cash',\n  payment_description: 'Customer Payment',\n  acc_integration_type: siData.acc_integration_type,\n  total_payment_amount: siData.invoice_total,\n  unallocated_currency: siData.currency_code,\n  exchange_rate_currency: siData.currency_code,\n  myr_unallocated_amount: 0,\n  total_payment_currency: siData.currency_code,\n  myr_total_payment_amount: siData.myr_total_amount\n}\n\nreturn { cpData }"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "4ng67bnk",
+                                    "name": "cpData",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "workflow_node_FCMmQkB9",
+                              "type": "workflow-node",
+                              "data": {
+                                "workflow_id": "",
+                                "workflow_name": "",
+                                "input_params": {},
+                                "title": "Create CP",
+                                "isValidator": true,
+                                "nodeName": "Create CP",
+                                "name": "Create CP",
+                                "workflow": {
+                                  "source": "CP_SAVE:Workflow:2037376510712283138",
+                                  "rules": {
+                                    "collectionId": "2037376510712283138",
+                                    "list": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1723795236685,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "remote": true,
+                                "remoteType": "innerdatasource",
+                                "body_params": {
+                                  "list": [
+                                    {
+                                      "prop": "allData",
+                                      "propLabel": "All Data",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_QfhrfMFO.data.cpData}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "saveAs",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "Completed",
+                                      "valueLabel": "",
+                                      "propLabel": "Save As"
+                                    },
+                                    {
+                                      "prop": "pageStatus",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "Add",
+                                      "valueLabel": "",
+                                      "propLabel": "Page Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_zWX-usdX",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_RvHp3Wua",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_XppvMt2n",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "msg": { "type": "javascript", "code": "" },
+        "response_value": {
+          "list": [
+            {
+              "prop": "id",
+              "propLabel": "id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:code_node_ytRbog2e.data.siData.id}}"
+            },
+            {
+              "prop": "si_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_ytRbog2e.data.siData.sales_invoice_no}}",
+              "valueLabel": "",
+              "propLabel": "si_no"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "7fwhjejv",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "17qzau8l",
+      "name": "id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "1zzbrzbq",
+      "name": "si_no",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
