@@ -5,15 +5,16 @@
     const allData = this.getValues();
     const lineItemData = arguments[0]?.row;
     const rowIndex = arguments[0]?.rowIndex;
-    const batchId = arguments[0]?.row?.batch_id;
-    const plant_id = allData.plant_id;
+    const plant_id = allData.plant_id || allData.plant;
     const materialId = lineItemData?.material_id;
     const tempQtyData = lineItemData?.temp_qty_data;
     const tempHuData = lineItemData?.temp_hu_data;
     const organizationId = allData.organization_id;
-    // PRT has no dialog UOM field / prt_order_uom_id, so HU display stays in base
-    // UOM to match the loose tab (altUOM resolves to undefined -> no conversion).
-    const altUOM = lineItemData?.prt_order_uom_id;
+    // Quantities are displayed/entered in the line's return UOM. PRTsaveAsCompleted
+    // interprets temp.return_quantity as return_uom_id and converts to base via
+    // table_uom_conversion, and the dialog's received_qty is also in the return
+    // UOM, so the displayed balances must be converted base -> return_uom_id.
+    const altUOM = lineItemData?.return_uom_id;
 
     if (!lineItemData || !materialId) {
       console.error("Invalid line item data or missing material ID");
@@ -93,7 +94,7 @@
     };
 
     // Restore the user's prior loose picks (return_quantity / inventory_category /
-    // category_balance / remarks) onto fresh DB rows, and re-append temp-only rows.
+    // remarks) onto fresh DB rows, and re-append any temp-only rows.
     const mergeWithTempData = (freshDbData, tempDataArray, itemData) => {
       if (!tempDataArray || tempDataArray.length === 0) {
         return freshDbData;
@@ -114,9 +115,13 @@
         if (tempItem) {
           return {
             ...dbItem,
-            return_quantity: tempItem.return_quantity,
-            inventory_category: tempItem.inventory_category,
-            category_balance: tempItem.category_balance,
+            return_quantity:
+              tempItem.return_quantity || tempItem.prt_quantity || 0,
+            inventory_category:
+              tempItem.inventory_category ||
+              tempItem.category ||
+              dbItem.inventory_category ||
+              "Unrestricted",
             remarks: tempItem.remarks || dbItem.remarks,
           };
         }
@@ -126,19 +131,51 @@
       tempDataArray.forEach((tempItem) => {
         const key = generateKey(tempItem, itemData);
         if (!freshKeySet.has(key)) {
-          mergedData.push(tempItem);
+          mergedData.push({
+            ...tempItem,
+            balance_id: tempItem.balance_id || tempItem.id,
+            inventory_category:
+              tempItem.inventory_category ||
+              tempItem.category ||
+              "Unrestricted",
+          });
         }
       });
 
       return mergedData;
     };
 
-    // Preserve original PRT record shape (keeps source `id`) and add balance_id.
+    // Map a balance record to a display row: add balance_id, convert the shown
+    // quantity fields base -> return UOM, alias block_qty -> blocked_qty for the
+    // column, and default the category to Unrestricted.
     const mapBalanceData = (itemBalanceData) => {
       const arr = Array.isArray(itemBalanceData)
         ? itemBalanceData
         : [itemBalanceData];
-      return arr.map((item) => ({ ...item, balance_id: item.id }));
+      return arr.map((item) => {
+        const blockAlt = convertBaseToAlt(
+          parseFloat(item.block_qty) || 0,
+          itemData,
+          altUOM,
+        );
+        return {
+          ...item,
+          balance_id: item.id,
+          unrestricted_qty: convertBaseToAlt(
+            parseFloat(item.unrestricted_qty) || 0,
+            itemData,
+            altUOM,
+          ),
+          block_qty: blockAlt,
+          blocked_qty: blockAlt,
+          balance_quantity: convertBaseToAlt(
+            parseFloat(item.balance_quantity) || 0,
+            itemData,
+            altUOM,
+          ),
+          inventory_category: item.inventory_category || "Unrestricted",
+        };
+      });
     };
 
     // Sum HU-bound qty by location/batch for current material — used to subtract
@@ -421,7 +458,7 @@
 
     this.setData({
       [`confirm_inventory.material_id`]: materialId,
-      [`confirm_inventory.material_name`]: materialId,
+      [`confirm_inventory.material_name`]: itemData.material_name,
       [`confirm_inventory.received_qty`]:
         lineItemData.received_qty - lineItemData.returned_quantity,
       [`confirm_inventory.row_index`]: rowIndex,
@@ -486,11 +523,12 @@
       return freshDbData;
     };
 
-    // Build loose-tab data: map -> (optionally) deduct HU qty -> merge temp picks
-    // (loose-only) -> filter to rows with any qty.
+    // Build loose-tab data: deduct HU-bound qty (in base units) -> map+convert to
+    // return UOM -> merge prior loose picks (loose-only) -> filter to rows w/ qty.
     const buildLoose = (rawData, itemDataLocal, deduct) => {
-      let mapped = mapBalanceData(rawData);
-      if (deduct) mapped = applyLooseDeduction(mapped);
+      let rows = rawData.map((r) => ({ ...r }));
+      if (deduct) rows = applyLooseDeduction(rows);
+      const mapped = mapBalanceData(rows);
       let finalData = mapped;
       if (tempQtyData) {
         try {
@@ -536,12 +574,7 @@
       ]);
       this.hide("confirm_inventory.table_item_balance.serial_number");
 
-      // Preserve PRT's current-batch exclusion (one line = one batch).
-      const filteredData = buildLoose(
-        balanceRes.data || [],
-        itemData,
-        true,
-      ).filter((item) => item.batch_id !== batchId);
+      const filteredData = buildLoose(balanceRes.data || [], itemData, true);
       looseRowCount = filteredData.length;
       this.setData({
         [`confirm_inventory.table_item_balance`]: filteredData,
