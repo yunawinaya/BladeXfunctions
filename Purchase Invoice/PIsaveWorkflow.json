@@ -476,30 +476,24 @@
                       "blocks": []
                     },
                     {
-                      "id": "if_pi_qty_passed",
+                      "id": "if_pi_qty_failed",
                       "type": "if",
                       "data": {
-                        "title": "Qty Validation Passed?",
+                        "title": "Qty Validation Failed?",
                         "isValidator": true,
-                        "nodeName": "Qty Validation Passed?",
-                        "name": "Qty Validation Passed?",
+                        "nodeName": "Qty Validation Failed?",
+                        "name": "Qty Validation Failed?",
                         "condition_type": "Expression",
                         "expression": {
                           "type": "javascript",
-                          "code": "'{{node:code_pi_checkqty.data.status}}' == 'Success'"
+                          "code": "'{{node:code_pi_checkqty.data.status}}' == 'Failed'"
                         }
                       },
                       "blocks": [
                         {
-                          "id": "ifBlock_pi_qty_passed_true",
+                          "id": "ifBlock_pi_qty_failed_true",
                           "type": "ifBlock",
                           "data": { "title": "true" },
-                          "blocks": []
-                        },
-                        {
-                          "id": "ifBlock_pi_qty_passed_false",
-                          "type": "ifBlock",
-                          "data": { "title": "false" },
                           "blocks": [
                             {
                               "id": "end_pi_qty_failed",
@@ -525,6 +519,12 @@
                               "blocks": []
                             }
                           ]
+                        },
+                        {
+                          "id": "ifBlock_pi_qty_failed_false",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
                         }
                       ]
                     }
