@@ -1,166 +1,140 @@
-const page_status = this.getParamsVariables("page_status");
-const self = this;
-
 const closeDialog = () => {
-  if (self.parentGenerateForm) {
-    self.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    self.parentGenerateForm.refresh();
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
+    this.hideLoading();
   }
 };
 
-const data = this.getValues();
+const validateForm = (data, requiredFields) => {
+  const missingFields = [];
 
-const {
-  purchase_return_no,
-  purchase_order_id,
-  goods_receiving_id,
-  gr_ids,
-  organization_id,
-  supplier_id,
-  prt_billing_name,
-  prt_billing_cp,
-  prt_billing_address,
-  prt_shipping_address,
-  gr_date,
-  plant,
-  purchase_return_date,
-  input_hvxpruem,
-  return_delivery_method,
-  purchase_return_ref,
-  shipping_details,
-  reason_for_return,
-  driver_name,
-  vehicle_no,
-  driver_contact,
-  pickup_date,
-  courier_company,
-  shipping_date,
-  estimated_arrival,
-  shipping_method,
-  freight_charge,
-  driver_name2,
-  driver_contact_no2,
-  estimated_arrival2,
-  vehicle_no2,
-  delivery_cost,
-  table_prt,
-  billing_address_line_1,
-  billing_address_line_2,
-  billing_address_line_3,
-  billing_address_line_4,
-  billing_address_city,
-  billing_address_state,
-  billing_address_country,
-  billing_postal_code,
-  shipping_address_line_1,
-  shipping_address_line_2,
-  shipping_address_line_3,
-  shipping_address_line_4,
-  shipping_address_city,
-  shipping_address_state,
-  shipping_address_country,
-  shipping_postal_code,
-} = data;
+  requiredFields.forEach((field) => {
+    const value = data[field.name];
 
-const prt = {
-  purchase_return_status: "Draft",
-  purchase_return_no,
-  purchase_order_id,
-  goods_receiving_id,
-  gr_ids,
-  organization_id,
-  supplier_id,
-  prt_billing_name,
-  prt_billing_cp,
-  prt_billing_address,
-  prt_shipping_address,
-  gr_date,
-  plant,
-  purchase_return_date,
-  input_hvxpruem,
-  return_delivery_method,
-  purchase_return_ref,
-  shipping_details,
-  reason_for_return,
-  driver_name,
-  vehicle_no,
-  driver_contact,
-  pickup_date,
-  courier_company,
-  shipping_date,
-  estimated_arrival,
-  shipping_method,
-  freight_charge,
-  driver_name2,
-  driver_contact_no2,
-  estimated_arrival2,
-  vehicle_no2,
-  delivery_cost,
-  table_prt,
-  billing_address_line_1,
-  billing_address_line_2,
-  billing_address_line_3,
-  billing_address_line_4,
-  billing_address_city,
-  billing_address_state,
-  billing_address_country,
-  billing_postal_code,
-  shipping_address_line_1,
-  shipping_address_line_2,
-  shipping_address_line_3,
-  shipping_address_line_4,
-  shipping_address_city,
-  shipping_address_state,
-  shipping_address_country,
-  shipping_postal_code,
-};
-
-if (page_status === "Add") {
-  let organizationId = this.getVarGlobal("deptParentId");
-  if (organizationId === "0") {
-    organizationId = this.getVarSystem("deptIds").split(",")[0];
-  }
-  db.collection("prefix_configuration")
-    .where({
-      document_types: "Purchase Returns",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get()
-    .then((prefixEntry) => {
-      if (!prefixEntry.data || prefixEntry.data.length === 0) {
-        return;
-      } else {
-        const currDraftNum = parseInt(prefixEntry.data[0].draft_number) + 1;
-        const newPrefix = "DRAFT-PRT-" + currDraftNum;
-        prt.purchase_return_no = newPrefix;
-
-        return db
-          .collection("prefix_configuration")
-          .where({ document_types: "Purchase Returns" })
-          .update({ draft_number: currDraftNum });
+    // Handle non-array fields (unchanged)
+    if (!field.isArray) {
+      if (validateField(value, field)) {
+        missingFields.push(field.label);
       }
-    })
-    .then(() => {
-      return db.collection("purchase_return_head").add(prt);
-    })
-    .then(() => {
-      closeDialog();
-    })
-    .catch((error) => {
-      alert(error);
-    });
-} else if (page_status === "Edit") {
-  const purchaseReturnId = this.getParamsVariables("purchase_return_no");
-  db.collection("purchase_return_head")
-    .doc(purchaseReturnId)
-    .update(prt)
+      return;
+    }
 
-    .then(() => {
-      closeDialog();
-    })
-    .catch((error) => {
-      alert(error);
-    });
-}
+    // Handle array fields
+    if (!Array.isArray(value)) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    if (value.length === 0) {
+      missingFields.push(`${field.label}`);
+      return;
+    }
+
+    // Check each item in the array
+    if (field.arrayType === "object" && field.arrayFields && value.length > 0) {
+      value.forEach((item, index) => {
+        field.arrayFields.forEach((subField) => {
+          const subValue = item[subField.name];
+          if (validateField(subValue, subField)) {
+            missingFields.push(
+              `${subField.label} (in ${field.label} #${index + 1})`,
+            );
+          }
+        });
+      });
+    }
+  });
+
+  return missingFields;
+};
+
+const validateField = (value, field) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return value <= 0;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return !value;
+};
+
+const fillbackHeaderFields = async (entry) => {
+  try {
+    for (const [index, prtLineItem] of entry.table_prt.entries()) {
+      prtLineItem.supplier_id = entry.supplier_id || null;
+      prtLineItem.plant_id = entry.plant || null;
+      prtLineItem.billing_state_id = entry.billing_address_state || null;
+      prtLineItem.billing_country_id = entry.billing_address_country || null;
+      prtLineItem.shipping_state_id = entry.shipping_address_state || null;
+      prtLineItem.shipping_country_id = entry.shipping_address_country || null;
+      prtLineItem.line_index = index + 1;
+    }
+    return entry.table_prt;
+  } catch (error) {
+    throw new Error("Error processing purchase return.");
+  }
+};
+
+(async () => {
+  try {
+    this.showLoading();
+    const data = this.getValues();
+    let entry = data;
+    const page_status = data.page_status;
+    const requiredFields = [
+      { name: "plant", label: "Plant" },
+      { name: "purchase_return_no", label: "Purchase Return No" },
+      {
+        name: "table_prt",
+        label: "Item Information",
+        isArray: true,
+        arrayType: "object",
+        arrayFields: [],
+      },
+    ];
+
+    if (page_status === "Add") {
+      if (
+        entry.purchase_return_no_type !== -9999 &&
+        (!entry.purchase_return_no ||
+          entry.purchase_return_no === null ||
+          entry.purchase_return_no === "")
+      ) {
+        entry.purchase_return_no = "draft";
+      }
+    }
+
+    const missingFields = await validateForm(entry, requiredFields);
+
+    if (missingFields.length === 0) {
+      const purchaseReturnId = this.getValue("id");
+
+      let organizationId = this.getVarGlobal("deptParentId");
+      if (organizationId === "0") {
+        organizationId = this.getVarSystem("deptIds").split(",")[0];
+      }
+
+      entry.purchase_return_status = "Draft";
+
+      entry.table_prt = await fillbackHeaderFields(entry);
+
+      if (page_status === "Add") {
+        await db.collection("purchase_return_head").add(entry);
+        this.$message.success("Add successfully");
+        closeDialog();
+      } else if (page_status === "Edit") {
+        await db
+          .collection("purchase_return_head")
+          .doc(purchaseReturnId)
+          .update(entry);
+        this.$message.success("Update successfully");
+        closeDialog();
+      }
+    } else {
+      this.hideLoading();
+      this.$message.error(`Validation errors: ${missingFields.join(", ")}`);
+    }
+  } catch (error) {
+    this.$message.error(error);
+  }
+})();

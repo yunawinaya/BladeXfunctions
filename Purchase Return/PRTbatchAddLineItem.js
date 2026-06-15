@@ -48,7 +48,7 @@ const processData = async (existingPRT, tablePRT) => {
       const batchID = await fetchBatchID(
         prt.batch_no,
         prt.gr_number,
-        prt.material_id
+        prt.material_id,
       );
 
       this.setData({ [`table_prt.${index}.batch_id`]: batchID });
@@ -62,7 +62,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
   }
 
   const uomConversion = itemData.table_uom_conversion?.find(
-    (conv) => conv.alt_uom_id === altUOM
+    (conv) => conv.alt_uom_id === altUOM,
   );
 
   if (uomConversion && uomConversion.base_qty) {
@@ -103,7 +103,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
         cancelButtonText: "Cancel",
         type: "error",
         dangerouslyUseHTMLString: true,
-      }
+      },
     ).catch(() => {
       console.log("User clicked Cancel or closed the dialog");
       throw new Error();
@@ -122,7 +122,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
       {
         confirmButtonText: "OK",
         type: "error",
-      }
+      },
     );
     return;
   }
@@ -136,7 +136,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
         cancelButtonText: "Cancel",
         type: "error",
         dangerouslyUseHTMLString: true,
-      }
+      },
     ).catch(() => {
       console.log("User clicked Cancel or closed the dialog");
       throw new Error();
@@ -164,7 +164,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
             receivedQuantity = convertToBaseUOM(
               grItem.received_qty,
               grItem.item_uom,
-              itemData
+              itemData,
             );
 
             UOM = itemData.based_uom;
@@ -246,7 +246,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
   tablePRT = tablePRT.filter(
     (prt) =>
       prt.returned_quantity !== prt.received_qty &&
-      !existingPRT.find((prtItem) => prtItem.gr_line_id === prt.gr_line_id)
+      !existingPRT.find((prtItem) => prtItem.gr_line_id === prt.gr_line_id),
   );
 
   const latesttablePRT = [...existingPRT, ...tablePRT];

@@ -30,7 +30,7 @@
     }
 
     const uomConversion = itemData.table_uom_conversion.find(
-      (conv) => conv.alt_uom_id === altUOM
+      (conv) => conv.alt_uom_id === altUOM,
     );
 
     if (!uomConversion || !uomConversion.base_qty) {
@@ -52,7 +52,7 @@
           processedRecord.block_qty = convertBaseToAlt(
             processedRecord.block_qty,
             itemData,
-            altUOM
+            altUOM,
           );
         }
 
@@ -60,7 +60,7 @@
           processedRecord.reserved_qty = convertBaseToAlt(
             processedRecord.reserved_qty,
             itemData,
-            altUOM
+            altUOM,
           );
         }
 
@@ -68,7 +68,7 @@
           processedRecord.unrestricted_qty = convertBaseToAlt(
             processedRecord.unrestricted_qty,
             itemData,
-            altUOM
+            altUOM,
           );
         }
 
@@ -76,7 +76,7 @@
           processedRecord.qualityinsp_qty = convertBaseToAlt(
             processedRecord.qualityinsp_qty,
             itemData,
-            altUOM
+            altUOM,
           );
         }
 
@@ -84,7 +84,7 @@
           processedRecord.intransit_qty = convertBaseToAlt(
             processedRecord.intransit_qty,
             itemData,
-            altUOM
+            altUOM,
           );
         }
 
@@ -92,7 +92,7 @@
           processedRecord.balance_quantity = convertBaseToAlt(
             processedRecord.balance_quantity,
             itemData,
-            altUOM
+            altUOM,
           );
         }
       }
@@ -157,7 +157,7 @@
 
       if (tempItem) {
         console.log(
-          `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp return_quantity=${tempItem.return_quantity}`
+          `Merging data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, temp return_quantity=${tempItem.return_quantity}`,
         );
         return {
           ...dbItem,
@@ -249,7 +249,7 @@
           (record.balance_quantity && record.balance_quantity > 0);
 
         console.log(
-          `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`
+          `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`,
         );
 
         return hasQuantity; // Only include if both serial exists AND has quantity > 0
@@ -295,7 +295,7 @@
       // Handle Serialized Items (takes priority over batch management)
       if (itemData.serial_number_management === 1) {
         console.log(
-          "Processing serialized item (may also have batch management)"
+          "Processing serialized item (may also have batch management)",
         );
 
         // Show serial number column
@@ -309,7 +309,7 @@
             "confirm_inventory.table_item_balance.manufacturing_date",
           ]);
           console.log(
-            "Serialized item with batch management - showing both serial and batch columns"
+            "Serialized item with batch management - showing both serial and batch columns",
           );
         } else {
           this.hide([
@@ -318,7 +318,7 @@
             "confirm_inventory.table_item_balance.manufacturing_date",
           ]);
           console.log(
-            "Serialized item without batch management - hiding batch column"
+            "Serialized item without batch management - hiding batch column",
           );
         }
 
@@ -335,7 +335,7 @@
             const processedFreshData = processItemBalanceData(
               freshDbData,
               itemData,
-              lineItemData.prt_order_uom_id
+              lineItemData.prt_order_uom_id,
             );
 
             let tempDataArray = [];
@@ -352,7 +352,7 @@
             const finalData = mergeWithTempData(
               processedFreshData,
               tempDataArray,
-              itemData
+              itemData,
             );
 
             // Filter out records with no serial numbers or zero quantities
@@ -393,7 +393,7 @@
             const processedFreshData = processItemBalanceData(
               freshDbData,
               itemData,
-              lineItemData.prt_order_uom_id
+              lineItemData.prt_order_uom_id,
             );
 
             let tempDataArray = [];
@@ -410,13 +410,13 @@
             const finalData = mergeWithTempData(
               processedFreshData,
               tempDataArray,
-              itemData
+              itemData,
             );
 
             // Filter out records with all zero quantities and exclude current batch
             const filteredData = filterZeroQuantityRecords(
               finalData,
-              itemData
+              itemData,
             ).filter((item) => item.batch_id !== batchId);
 
             console.log("Final filtered batch data:", filteredData);
@@ -454,7 +454,7 @@
             const processedFreshData = processItemBalanceData(
               freshDbData,
               itemData,
-              lineItemData.prt_order_uom_id
+              lineItemData.prt_order_uom_id,
             );
 
             let tempDataArray = [];
@@ -471,7 +471,7 @@
             const finalData = mergeWithTempData(
               processedFreshData,
               tempDataArray,
-              itemData
+              itemData,
             );
 
             // Filter out records with all zero quantities
