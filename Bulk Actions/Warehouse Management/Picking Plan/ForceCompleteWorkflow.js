@@ -33,11 +33,16 @@ const runPPWorkflow = async (data) => {
 
     if (selectedRecords && selectedRecords.length > 0) {
       let pickingPlanData = selectedRecords.filter(
-        (item) => item.to_status === "Created",
+        (item) =>
+          item.to_status === "Created" &&
+          item.picking_status &&
+          item.picking_status !== "Not Created",
       );
 
       if (pickingPlanData.length === 0) {
-        this.$message.error("Please select at least one created picking plan.");
+        this.$message.error(
+          "Please select at least one Created picking plan that has picking started. Picking plans with no picking (picking status empty or Not Created) have no picked data to force complete.",
+        );
         throw new Error();
       }
 
