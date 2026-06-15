@@ -42,7 +42,7 @@ const CONFIG = {
 const initMovementReason = async () => {
   const resType = await db
     .collection("blade_dict")
-    .where({ dict_key: "Category Transfer" })
+    .where({ dict_key: "Inventory Category Transfer Posting" })
     .get();
 
   const movementTypeId = resType.data[0]?.id;
