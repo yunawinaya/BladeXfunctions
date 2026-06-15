@@ -1579,11 +1579,26 @@ for (const processed of processedTableData) {
       materialName: processed.material_name || itemData?.material_name || "",
     };
 
+    // PP force-complete is the ONLY path that sends isGDPP=1 + saveAs="Completed"
+    // with empty picking_plan_line_id / line_pp_id (PP-direct; GD-from-PP always
+    // populates them — see PP vs GD form flow). Completing a Picking Plan is NOT
+    // a goods issue, so it must never run the delivery path. Instead finalize the
+    // reservation at the picked qty: keep the picked qty Reserved for a downstream
+    // GD and release the unpicked remainder back to Unrestricted. The
+    // allocate/release path (a decrease from reserved -> picked) does exactly that
+    // and moves no stock out.
+    const isPpDirectCompletion =
+      isGDPP === 1 &&
+      (!processed.picking_plan_line_id || processed.picking_plan_line_id === "") &&
+      (!processed.line_pp_id || processed.line_pp_id === "");
+
     let result;
     if (saveAs === "Created") {
       result = processCreatedAllocation(params);
     } else if (saveAs === "Completed") {
-      result = processDeliveredAllocation(params);
+      result = isPpDirectCompletion
+        ? processCreatedAllocation(params)
+        : processDeliveredAllocation(params);
     } else if (saveAs === "Cancelled") {
       // For cancelled, use release logic (similar to decreasing qty to 0)
       params.quantity = 0;
@@ -1601,8 +1616,14 @@ for (const processed of processedTableData) {
     if (result.inventoryMovements) {
       allInventoryMovements.push(...result.inventoryMovements);
     }
-    // Collect HU updates for Completed status
-    if (saveAs === "Completed" && params.handlingUnitId && quantity > 0) {
+    // Collect HU updates for Completed status (real delivery only — PP
+    // force-complete does not deliver, so it must not reduce HU quantities).
+    if (
+      saveAs === "Completed" &&
+      !isPpDirectCompletion &&
+      params.handlingUnitId &&
+      quantity > 0
+    ) {
       allHuUpdates.push({
         handling_unit_id: params.handlingUnitId,
         material_id: params.materialId,
