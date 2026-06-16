@@ -869,12 +869,12 @@
                               "valueLabel": ""
                             },
                             {
-                              "prop": " category",
+                              "prop": "category",
                               "operator": "",
                               "valueType": "field",
                               "value": "{{node:code_node_l7SCHo67.data.inventory_category}}",
                               "valueLabel": "",
-                              "propLabel": " category"
+                              "propLabel": "Category"
                             }
                           ]
                         }
@@ -1947,7 +1947,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balancesToProcess = {{node:code_node_PeidsgXa.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_V3E6xZfN.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nlet inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst po_no = balance.po_no || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1,\n  po_no: po_no\n};\n\n"
+                          "code": "const balancesToProcess = {{node:code_node_PeidsgXa.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_V3E6xZfN.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nlet inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst po_no = balance.po_no || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1,\n  po_no: po_no,\n  handling_unit_id: handling_unit_id\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -2021,6 +2021,14 @@
                             "key": "lmubn9lh",
                             "name": "po_no",
                             "title": "po_no",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "6uj782dp",
+                            "name": "handling_unit_id",
+                            "title": "handling_unit_id",
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
@@ -2192,6 +2200,14 @@
                               "value": "{{node:code_node_SXZuEFWW.data.po_no}}",
                               "valueLabel": "",
                               "propLabel": "Parent Trx No"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SXZuEFWW.data.handling_unit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit ID"
                             }
                           ]
                         }
@@ -2267,12 +2283,6 @@
                                 },
                                 "return_raw_data": 0
                               },
-                              "blocks": []
-                            },
-                            {
-                              "id": "breakLoop_Fj3EyGF5",
-                              "type": "breakLoop",
-                              "data": { "title": "退出循环" },
                               "blocks": []
                             }
                           ]

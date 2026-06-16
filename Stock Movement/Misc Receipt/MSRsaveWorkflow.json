@@ -3,7 +3,12 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
       "blocks": []
     },
     {
@@ -19,7 +24,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  // Format qty and price fields\n  smLineItem.received_quantity = formatNumber(smLineItem.received_quantity);\n  smLineItem.unit_price = formatNumber(smLineItem.unit_price);\n  smLineItem.amount = formatNumber(smLineItem.amount);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\";\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    allData.stock_movement_no_type !== -9999 &&\n    (!allData.stock_movement_no ||\n      allData.stock_movement_no === null ||\n      allData.stock_movement_no === \"\")\n  ) {\n    allData.stock_movement_no = \"draft\";\n  }\n} else {\n  if (\n    allData.stock_movement_no_type !== -9999 &&\n    (!allData.stock_movement_no ||\n      allData.stock_movement_no === null ||\n      allData.stock_movement_no === \"\" ||\n      allData.stock_movement_status !== \"In Progress\")\n  ) {\n    allData.stock_movement_no = \"issued\";\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n  acc_integration_type: allData.acc_integration_type,\n};\n"
+          "code": "let allData = {{workflowparams:allData}}\nconst filterZero = {{workflowparams:filter_zero}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  // Format qty and price fields\n  smLineItem.received_quantity = formatNumber(smLineItem.received_quantity);\n  smLineItem.unit_price = formatNumber(smLineItem.unit_price);\n  smLineItem.amount = formatNumber(smLineItem.amount);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM;\n\nif(filterZero === 'Yes') {\n  allData.stock_movement = allData.stock_movement.filter(item => item.received_quantity > 0)\n}\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\";\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    allData.stock_movement_no_type !== -9999 &&\n    (!allData.stock_movement_no ||\n      allData.stock_movement_no === null ||\n      allData.stock_movement_no === \"\")\n  ) {\n    allData.stock_movement_no = \"draft\";\n  }\n} else {\n  if (\n    allData.stock_movement_no_type !== -9999 &&\n    (!allData.stock_movement_no ||\n      allData.stock_movement_no === null ||\n      allData.stock_movement_no === \"\" ||\n      allData.stock_movement_status !== \"In Progress\")\n  ) {\n    allData.stock_movement_no = \"issued\";\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n  acc_integration_type: allData.acc_integration_type,\n};\n"
         },
         "response_json": [
           {
@@ -274,7 +279,7 @@
                 "name": "Validate Location, Quantity, Category",
                 "script": {
                   "type": "javascript",
-                  "code": "const allData = {{node:code_node_oW7T9VBW.data.allData}}\nconst subformData = allData.stock_movement\n\nlet locationFailed = 0;\nlet quantityFailed = 0;\nlet categoryFailed = 0;\nlet locationMessage\nlet quantityMessage\nlet categoryMessage\n\nfor (let i = 0; i < subformData.length; i++) {\n  const item = subformData[i];\n\n  // Skip split parent rows\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") {\n    continue;\n  }\n\n  if (!item.location_id) {\n    locationFailed = 1;\n    locationMessage = `Location ID is required for item ${i + 1} in Miscellaneous Receipt`\n    break;\n  }\n}\n\nfor (let i = 0; i < subformData.length; i++) {\n  const item = subformData[i];\n\n  // Skip split parent rows\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") {\n    continue;\n  }\n  \n  if (!item.received_quantity || item.received_quantity <= 0) {\n    quantityFailed = 1;\n    quantityMessage = `Quantity is required for item ${i + 1} in Miscellaneous Receipt`\n    break;\n  }\n}\n\nfor (let i = 0; i < subformData.length; i++) {\n  const item = subformData[i];\n\n  // Skip split parent rows\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") {\n    continue;\n  }\n  \n  if (!item.category) {\n    categoryFailed = 1;\n    categoryMessage = `Category is required for item ${i + 1} in Miscellaneous Receipt`\n    break;\n  }\n}\n\n\nreturn {\n  locationFailed: locationFailed,\n  quantityFailed: quantityFailed,\n  categoryFailed: categoryFailed,\n  locationMessage: locationMessage,\n  quantityMessage: quantityMessage,\n  categoryMessage: categoryMessage\n};"
+                  "code": "const allData = {{node:code_node_oW7T9VBW.data.allData}}\nconst subformData = allData.stock_movement\nconst filterZero = {{workflowparams:filter_zero}};\n\nlet locationFailed = 0;\nlet quantityFailed = 0;\nlet categoryFailed = 0;\nlet locationMessage\nlet quantityMessage\nlet categoryMessage\n\nfor (let i = 0; i < subformData.length; i++) {\n  const item = subformData[i];\n\n  // Skip split parent rows\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") {\n    continue;\n  }\n\n  if (!item.location_id) {\n    locationFailed = 1;\n    locationMessage = `Location ID is required for item ${i + 1} in Miscellaneous Receipt`\n    break;\n  }\n}\n\nfor (let i = 0; i < subformData.length; i++) {\n  const item = subformData[i];\n\n  // Skip split parent rows\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") {\n    continue;\n  }\n  \n  if ((!item.received_quantity || item.received_quantity <= 0) && filterZero === 'No') {\n    quantityFailed = 1;\n    quantityMessage = `Quantity is required for item ${i + 1} in Miscellaneous Receipt`\n    break;\n  }\n}\n\nfor (let i = 0; i < subformData.length; i++) {\n  const item = subformData[i];\n\n  // Skip split parent rows\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") {\n    continue;\n  }\n  \n  if (!item.category) {\n    categoryFailed = 1;\n    categoryMessage = `Category is required for item ${i + 1} in Miscellaneous Receipt`\n    break;\n  }\n}\n\n\nreturn {\n  locationFailed: locationFailed,\n  quantityFailed: quantityFailed,\n  categoryFailed: categoryFailed,\n  locationMessage: locationMessage,\n  quantityMessage: quantityMessage + '<br><br>If proceed, it will remove the line.',\n  categoryMessage: categoryMessage\n};"
                 },
                 "response_json": [
                   {
@@ -466,7 +471,7 @@
                               "operatorLabel": "",
                               "valueType": "value",
                               "valueTypeLabel": "",
-                              "value": "400",
+                              "value": "401",
                               "valueLabel": ""
                             },
                             {
@@ -629,10 +634,7 @@
                 "isValidator": true,
                 "nodeName": "Init Batch Gen Index",
                 "name": "Init Batch Gen Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "batchGenIndex_{{workflowparams:allData.issued_by}}"
               },
               "blocks": []
@@ -648,10 +650,7 @@
                 "isValidator": true,
                 "nodeName": "Init Generated Batches",
                 "name": "Init Generated Batches",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "[]"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "[]" },
                 "redis_key": "generatedBatches_{{workflowparams:allData.issued_by}}"
               },
               "blocks": []
@@ -730,7 +729,7 @@
                     "name": "Batch Gen Prep",
                     "script": {
                       "type": "javascript",
-                      "code": "const allData = {{node:code_node_oW7T9VBW.data.allData}};\nconst subformData = allData.stock_movement || [];\nconst currentIndexRaw = {{node:get_cache_node_BGIDXget.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst item = subformData[index] || {};\n\n// Only generate for auto-batch rows that are NOT hierarchy children\nconst needsGen = (item.batch_id === \"Auto-generated batch number\" && item.parent_or_child !== \"Child\") ? 1 : 0;\n\nreturn {\n  item_id: item.item_selection || \"\",\n  needsGen: needsGen,\n  index: index,\n  nextIndex: index + 1\n};"
+                      "code": "const allData = {{node:code_node_oW7T9VBW.data.allData}};\nconst subformData = allData.stock_movement || [];\nconst currentIndexRaw = {{node:get_cache_node_BGIDXget.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst item = subformData[index] || {};\n\n// Only generate for auto-batch rows that are NOT hierarchy children\nconst needsGen = (item.batch_id === \"Auto-generated batch number\" && item.parent_or_child !== \"Child\") ? 1 : 0;\n\nreturn {\n  item_id: item.item_selection || \"\",\n  needsGen: needsGen,\n  document_date: allData.issue_date || '',\n  manufacturing_date: item.manufacturing_date || '',\n  expired_date: item.expired_date || '',\n  index: index,\n  nextIndex: index + 1\n};"
                     },
                     "response_json": [
                       {
@@ -766,6 +765,33 @@
                         "title": "nextIndex",
                         "description": "",
                         "bsonType": "number",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "aze4novj",
+                        "name": "document_date",
+                        "title": "document_date",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "3xoot1f8",
+                        "name": "expired_date",
+                        "title": "expired_date",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pr0wi3ad",
+                        "name": "manufacturing_date",
+                        "title": "manufacturing_date",
+                        "description": "",
+                        "bsonType": "any",
                         "isExpand": false,
                         "children": []
                       }
@@ -806,9 +832,7 @@
                     {
                       "id": "if_NeedsGen_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "workflow_node_GenBatch",
@@ -853,6 +877,30 @@
                                   "valueTypeLabel": "",
                                   "value": "{{node:code_node_BatchGenPrep.data.item_id}}",
                                   "valueLabel": ""
+                                },
+                                {
+                                  "prop": "document_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_BatchGenPrep.data.document_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Document Date"
+                                },
+                                {
+                                  "prop": "expired_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_BatchGenPrep.data.expired_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Expired Date"
+                                },
+                                {
+                                  "prop": "manufacturing_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_BatchGenPrep.data.manufacturing_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Manufacturing Date"
                                 }
                               ]
                             }
@@ -939,9 +987,7 @@
                             {
                               "id": "if_BatchErr_t",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "return_node_BatchErr",
@@ -984,9 +1030,7 @@
                             {
                               "id": "if_BatchErr_f",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -1057,9 +1101,7 @@
                     {
                       "id": "if_NeedsGen_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -4333,6 +4375,14 @@
       "key": "dymmfecf",
       "name": "pageStatus",
       "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "owfc2wm3",
+      "name": "filter_zero",
+      "title": "Filter Zero",
       "description": "",
       "bsonType": "string",
       "isExpand": false
