@@ -55,18 +55,18 @@ const updateEntry = async (entry, stockCountId) => {
       // Calculate total_counted: locked items / total items
       const totalItems = data.table_stock_count.length;
       const lockedItems = data.table_stock_count.filter(
-        (item) => item.is_counted === 1
+        (item) => item.is_counted === 1,
       ).length;
       const total_counted = `${lockedItems} / ${totalItems}`;
 
       // Calculate total_variance: (total variance_qty / total system_qty) * 100
       const totalCountQty = data.table_stock_count.reduce(
         (sum, item) => sum + (parseFloat(item.count_qty) || 0),
-        0
+        0,
       );
       const totalSystemQty = data.table_stock_count.reduce(
         (sum, item) => sum + (parseFloat(item.system_qty) || 0),
-        0
+        0,
       );
 
       const totalVarianceQty = totalCountQty - totalSystemQty;
@@ -112,13 +112,13 @@ const updateEntry = async (entry, stockCountId) => {
 
       // Check if any item has is_counted = 0 (not locked)
       const hasUnlockedItems = entry.table_stock_count.some(
-        (item) => item.is_counted === 0 || !item.is_counted
+        (item) => item.is_counted === 0 || !item.is_counted,
       );
 
       // Determine stock count status based on locked state
       if (hasUnlockedItems) {
         const unlockedCount = entry.table_stock_count.filter(
-          (item) => item.is_counted === 0 || !item.is_counted
+          (item) => item.is_counted === 0 || !item.is_counted,
         ).length;
 
         const result = await this.$confirm(
@@ -129,7 +129,7 @@ const updateEntry = async (entry, stockCountId) => {
             cancelButtonText: "Cancel",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         ).catch(() => {
           this.hideLoading();
           return null;
