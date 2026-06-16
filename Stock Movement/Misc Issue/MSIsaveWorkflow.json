@@ -24,7 +24,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  if (!smLineItem.total_quantity || parseFloat(smLineItem.total_quantity) === 0) {\n    continue;\n  }\n  // Format qty and price fields\n  smLineItem.requested_qty = formatNumber(smLineItem.requested_qty);\n  smLineItem.total_quantity = formatNumber(smLineItem.total_quantity);\n  smLineItem.unit_price = formatNumber(smLineItem.unit_price);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\nallData.po_id = [...new Set(updatedSM.map((sm) => sm.po_id).filter(poID => poID))]\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n}\n"
+          "code": "let allData = {{workflowparams:allData}}\nconst filterZero = {{workflowparams:filter_zero}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  // Format qty and price fields\n  smLineItem.requested_qty = formatNumber(smLineItem.requested_qty);\n  smLineItem.total_quantity = formatNumber(smLineItem.total_quantity);\n  smLineItem.unit_price = formatNumber(smLineItem.unit_price);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\n\nif (filterZero === 'Yes') {\n  allData.stock_movement = allData.stock_movement.filter(item => item.total_quantity && parseFloat(item.total_quantity) > 0)\n}\n\nallData.po_id = [...new Set(allData.stock_movement.map((sm) => sm.po_id).filter(poID => poID))]\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n}\n"
         },
         "response_json": [
           {
@@ -270,7 +270,7 @@
                 "name": "Validate Location & Quantity",
                 "script": {
                   "type": "javascript",
-                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}}\nconst subformData = allData.stock_movement || []\n\nlet quantityFailed = 0\nlet quantityMessage\n\nconst hasQuantity = subformData.some((line) => {\n  if (!line.temp_qty_data) return false;\n  try {\n    const parsed = JSON.parse(line.temp_qty_data);\n    return Array.isArray(parsed) && parsed.some(\n      (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n    );\n  } catch (e) {\n    return false;\n  }\n});\n\nif (!hasQuantity) {\n  quantityFailed = 1\n  quantityMessage = 'No quantity selected to issue'\n}\n\nreturn {\n  quantityFailed: quantityFailed,\n  quantityMessage: quantityMessage\n};"
+                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}}\nconst subformData = allData.stock_movement || []\nconst filterZero = {{workflowparams:filter_zero}};\n\nlet quantityFailed = 0\nlet quantityMessage\n\nfor (let i = 0; i < subformData.length; i++) {\n  const item = subformData[i];\n\n  let lineHasQty = false;\n  if (item.temp_qty_data) {\n    try {\n      const parsed = JSON.parse(item.temp_qty_data);\n      lineHasQty = Array.isArray(parsed) && parsed.some(\n        (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n      );\n    } catch (e) {\n      lineHasQty = false;\n    }\n  }\n\n  if (!lineHasQty && filterZero === 'No') {\n    quantityFailed = 1;\n    quantityMessage = `Quantity is required for item ${i + 1} in Miscellaneous Issue`;\n    break;\n  }\n}\n\nreturn {\n  quantityFailed: quantityFailed,\n  quantityMessage: (quantityMessage || '') + '<br><br>If proceed, it will remove the line.'\n};"
                 },
                 "response_json": [
                   {
@@ -347,7 +347,7 @@
                               "operatorLabel": "",
                               "valueType": "value",
                               "valueTypeLabel": "",
-                              "value": "400",
+                              "value": "401",
                               "valueLabel": ""
                             },
                             {
@@ -3340,6 +3340,14 @@
       "key": "chwjdl8m",
       "name": "pageStatus",
       "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "owfc2wm3",
+      "name": "filter_zero",
+      "title": "Filter Zero",
       "description": "",
       "bsonType": "string",
       "isExpand": false

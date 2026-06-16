@@ -84,6 +84,85 @@ const postToAccounting = async (
   }
 };
 
+// Runs the Completed workflow, handling the zero-quantity filter confirmation.
+// Returns the stock movement id on success, or null if the save did not complete.
+const runCompleteWorkflow = async (data, filterZero) => {
+  let workflowResult;
+
+  await this.runWorkflow(
+    "2015602242971631618",
+    {
+      allData: data,
+      saveAs: "Completed",
+      pageStatus: data.page_status,
+      filter_zero: filterZero,
+    },
+    async (res) => {
+      workflowResult = res;
+    },
+    (err) => {
+      console.error("Failed to save Misc Issue:", err);
+      this.hideLoading();
+      workflowResult = err;
+    },
+  );
+
+  if (!workflowResult || !workflowResult.data) {
+    this.hideLoading();
+    this.$message.error("No response from workflow");
+    return null;
+  }
+
+  if (
+    workflowResult.data.code === "400" ||
+    workflowResult.data.code === 400 ||
+    workflowResult.data.success === false
+  ) {
+    this.hideLoading();
+    const errorMessage =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Failed to save Misc Issue";
+    this.$message.error(errorMessage);
+    return null;
+  }
+
+  if (
+    workflowResult.data.code === "401" ||
+    workflowResult.data.code === 401 ||
+    workflowResult.data.success === false
+  ) {
+    this.hideLoading();
+    await this.$confirm(
+      workflowResult.data.msg ||
+        workflowResult.data.message ||
+        "Failed to save Misc Issue",
+      "Confirmation",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      },
+    );
+
+    this.showLoading("Saving Misc Issue as Completed & Posting...");
+    return await runCompleteWorkflow(data, "Yes");
+  }
+
+  if (
+    workflowResult.data.code === "200" ||
+    workflowResult.data.code === 200 ||
+    workflowResult.data.success === true
+  ) {
+    return workflowResult.data.id;
+  }
+
+  this.hideLoading();
+  this.$message.error("Unknown workflow status");
+  return null;
+};
+
 (async () => {
   try {
     this.showLoading("Saving Misc Issue as Completed & Posting...");
@@ -95,68 +174,23 @@ const postToAccounting = async (
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    let workflowResult;
+    // Step 1: Run the Completed workflow (with zero-quantity filter handling)
+    const stockMovementId = await runCompleteWorkflow(data, "No");
 
-    // Step 1: Run the Completed workflow
-    await this.runWorkflow(
-      "2015602242971631618",
-      { allData: data, saveAs: "Completed", pageStatus: data.page_status },
-      async (res) => {
-        workflowResult = res;
-      },
-      (err) => {
-        console.error("Failed to save Misc Issue:", err);
-        this.hideLoading();
-        workflowResult = err;
-      },
-    );
-
-    if (!workflowResult || !workflowResult.data) {
-      this.hideLoading();
-      this.$message.error("No response from workflow");
+    if (!stockMovementId) {
       return;
     }
 
-    if (
-      workflowResult.data.code === "400" ||
-      workflowResult.data.code === 400 ||
-      workflowResult.data.success === false
-    ) {
-      this.hideLoading();
-      const errorMessage =
-        workflowResult.data.msg ||
-        workflowResult.data.message ||
-        "Failed to save Misc Issue";
-      this.$message.error(errorMessage);
-      return;
-    }
+    // Step 2: Update stock movement with posted status
+    await db.collection("sm_misc_issue").doc(stockMovementId).update({
+      stock_movement_status: "Completed",
+      posted_status: "Pending Post",
+    });
 
-    // Step 2: If Completed workflow succeeded, proceed to Post
-    if (
-      workflowResult.data.code === "200" ||
-      workflowResult.data.code === 200 ||
-      workflowResult.data.success === true
-    ) {
-      const stockMovementId = workflowResult.data.id;
+    const accIntegrationType = this.getValue("acc_integration_type");
 
-      // Update stock movement with posted status
-      await db.collection("sm_misc_issue").doc(stockMovementId).update({
-        stock_movement_status: "Completed",
-        posted_status: "Pending Post",
-      });
-
-      const accIntegrationType = this.getValue("acc_integration_type");
-
-      // Step 3: Call posting workflow based on accounting integration type
-      await postToAccounting(
-        stockMovementId,
-        accIntegrationType,
-        organizationId,
-      );
-    } else {
-      this.hideLoading();
-      this.$message.error("Unknown workflow status");
-    }
+    // Step 3: Call posting workflow based on accounting integration type
+    await postToAccounting(stockMovementId, accIntegrationType, organizationId);
   } catch (error) {
     this.hideLoading();
     console.error("Error:", error);
