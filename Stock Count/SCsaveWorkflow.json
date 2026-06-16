@@ -1,0 +1,2425 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "cond_save_as",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Save As",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        }
+      },
+      "blocks": [
+        {
+          "id": "cond_item_draft",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Draft",
+            "condition_type": "ConditionRule",
+            "filter": {
+              "list": [
+                {
+                  "id": 1773389220945,
+                  "parentId": 1773389220900,
+                  "isTop": true,
+                  "prop": "workflowparams.saveAs",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Draft",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "saveAs",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "code_draft",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Draft Prepare",
+                "isValidator": true,
+                "nodeName": "Draft Prepare",
+                "name": "Draft Prepare",
+                "script": {
+                  "type": "javascript",
+                  "code": "let entry = {{workflowparams:allData}};\nentry.stock_count_status = \"Draft\";\nconst pageStatus = '{{workflowparams:pageStatus}}';\nif (pageStatus === \"Add\") {\n  if (entry.stock_count_no_type !== -9999 && (!entry.stock_count_no || entry.stock_count_no === null || entry.stock_count_no === \"\")) {\n    entry.stock_count_no = \"draft\";\n  }\n}\nentry.organization_id = '{{workflowparams:organizationId}}';\nreturn { entry };"
+                },
+                "response_json": [
+                  {
+                    "key": "k07",
+                    "name": "entry",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_draft_required",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Draft Required Fields",
+                "isValidator": true,
+                "nodeName": "Draft Required Fields",
+                "name": "Draft Required Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  required_fields: JSON.stringify([\n    { name: \"plant_id\", label: \"Plant\" },\n    { name: \"count_type\", label: \"Count Type\" },\n    { name: \"stock_count_no\", label: \"Stock Count No\" },\n    { name: \"table_stock_count\", label: \"Stock Count Items\", isArray: true, arrayType: \"object\", arrayFields: [] }\n  ]),\n  data: JSON.stringify({\n    plant_id: {{node:code_draft.data.entry.plant_id}},\n    count_type: {{node:code_draft.data.entry.count_type}},\n    stock_count_no: {{node:code_draft.data.entry.stock_count_no}},\n    table_stock_count: {{node:code_draft.data.entry.table_stock_count}}\n  })\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "k1e",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k2l",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_draft_check",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Draft Run Check Required",
+                "isValidator": true,
+                "nodeName": "Draft Run Check Required",
+                "name": "Draft Run Check Required",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_draft_required.data.data}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_draft_required.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_draft_failed",
+              "type": "if",
+              "data": {
+                "title": "Draft Validation Failed?",
+                "isValidator": true,
+                "nodeName": "Draft Validation Failed?",
+                "name": "Draft Validation Failed?",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973616,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "node.workflow_draft_check.data.data.status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Failed",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_draft_failed_true",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_draft_failed",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 406,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_draft_check.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_draft_failed_false",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cond_item_issued",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Issued",
+            "condition_type": "ConditionRule",
+            "filter": {
+              "list": [
+                {
+                  "id": 1773389220946,
+                  "parentId": 1773389220900,
+                  "isTop": true,
+                  "prop": "workflowparams.saveAs",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Issued",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "saveAs",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "code_issued",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Issued Prepare",
+                "isValidator": true,
+                "nodeName": "Issued Prepare",
+                "name": "Issued Prepare",
+                "script": {
+                  "type": "javascript",
+                  "code": "let entry = {{workflowparams:allData}};\nentry.table_stock_count = entry.table_stock_count || [];\nentry.stock_count_status = \"Issued\";\nentry.total_counted = `0 / ${entry.table_stock_count.length}`;\nentry.total_variance = `0.00%`;\nif (entry.stock_count_no_type !== -9999 && (!entry.stock_count_no || entry.stock_count_no === null || entry.stock_count_no === \"\" || entry.previous_status === \"Draft\")) {\n  entry.stock_count_no = \"issued\";\n}\nentry.organization_id = '{{workflowparams:organizationId}}';\nreturn { entry };"
+                },
+                "response_json": [
+                  {
+                    "key": "k4z",
+                    "name": "entry",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_issued_required",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Issued Required Fields",
+                "isValidator": true,
+                "nodeName": "Issued Required Fields",
+                "name": "Issued Required Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  required_fields: JSON.stringify([\n    { name: \"plant_id\", label: \"Plant\" },\n    { name: \"stock_count_no\", label: \"Stock Count No\" },\n    { name: \"count_type\", label: \"Count Type\" },\n    { name: \"table_stock_count\", label: \"Stock Count Items\", isArray: true, arrayType: \"object\", arrayFields: [] }\n  ]),\n  data: JSON.stringify({\n    plant_id: {{node:code_issued.data.entry.plant_id}},\n    stock_count_no: {{node:code_issued.data.entry.stock_count_no}},\n    count_type: {{node:code_issued.data.entry.count_type}},\n    table_stock_count: {{node:code_issued.data.entry.table_stock_count}}\n  })\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "k516",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k61d",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_issued_check",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Issued Run Check Required",
+                "isValidator": true,
+                "nodeName": "Issued Run Check Required",
+                "name": "Issued Run Check Required",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_issued_required.data.data}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_issued_required.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_issued_failed",
+              "type": "if",
+              "data": {
+                "title": "Issued Validation Failed?",
+                "isValidator": true,
+                "nodeName": "Issued Validation Failed?",
+                "name": "Issued Validation Failed?",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973620,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "node.workflow_issued_check.data.data.status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Failed",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_issued_failed_true",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_issued_failed",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 406,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_issued_check.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_issued_failed_false",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cond_item_stockcount",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Stock Count",
+            "condition_type": "ConditionRule",
+            "filter": {
+              "list": [
+                {
+                  "id": 1773389220947,
+                  "parentId": 1773389220900,
+                  "isTop": true,
+                  "prop": "workflowparams.saveAs",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Stock Count",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "saveAs",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "code_stockcount",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Stock Count Prepare",
+                "isValidator": true,
+                "nodeName": "Stock Count Prepare",
+                "name": "Stock Count Prepare",
+                "script": {
+                  "type": "javascript",
+                  "code": "let entry = {{workflowparams:allData}};\nentry.table_stock_count = entry.table_stock_count || [];\nconst approvedItems = entry.approvedItems || [];\nif (approvedItems.length > 0) {\n  entry.table_stock_count = [...entry.table_stock_count, ...approvedItems];\n}\nconst totalItems = entry.table_stock_count.length;\nconst lockedItems = entry.table_stock_count.filter((item) => item.is_counted === 1).length;\nconst total_counted = `${lockedItems} / ${totalItems}`;\nconst totalCountQty = entry.table_stock_count.reduce((sum, item) => sum + (parseFloat(item.count_qty) || 0), 0);\nconst totalSystemQty = entry.table_stock_count.reduce((sum, item) => sum + (parseFloat(item.system_qty) || 0), 0);\nconst totalVarianceQty = totalCountQty - totalSystemQty;\nconst variancePercentage = totalSystemQty > 0 ? Math.abs(totalVarianceQty / totalSystemQty) * 100 : 0;\nentry.total_counted = total_counted;\nentry.total_variance = `${variancePercentage.toFixed(2)}%`;\nentry.review_status = (entry.review_status === \"Recount\" || !entry.review_status || entry.review_status === \"\") ? \"To Be Reviewed\" : entry.review_status;\nentry.organization_id = '{{workflowparams:organizationId}}';\nconst hasUnlockedItems = entry.table_stock_count.some((item) => item.is_counted === 0 || !item.is_counted);\nentry.stock_count_status = hasUnlockedItems ? \"In Progress\" : \"Completed\";\nreturn { entry };"
+                },
+                "response_json": [
+                  {
+                    "key": "k81r",
+                    "name": "entry",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_stockcount_required",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Stock Count Required Fields",
+                "isValidator": true,
+                "nodeName": "Stock Count Required Fields",
+                "name": "Stock Count Required Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  required_fields: JSON.stringify([\n    { name: \"plant_id\", label: \"Plant\" },\n    { name: \"count_type\", label: \"Count Type\" },\n    { name: \"table_stock_count\", label: \"Stock Count Items\", isArray: true, arrayType: \"object\", arrayFields: [] }\n  ]),\n  data: JSON.stringify({\n    plant_id: {{node:code_stockcount.data.entry.plant_id}},\n    count_type: {{node:code_stockcount.data.entry.count_type}},\n    table_stock_count: {{node:code_stockcount.data.entry.table_stock_count}}\n  })\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "k91y",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ka25",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_stockcount_check",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Stock Count Run Check Required",
+                "isValidator": true,
+                "nodeName": "Stock Count Run Check Required",
+                "name": "Stock Count Run Check Required",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_stockcount_required.data.data}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_stockcount_required.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_stockcount_failed",
+              "type": "if",
+              "data": {
+                "title": "Stock Count Validation Failed?",
+                "isValidator": true,
+                "nodeName": "Stock Count Validation Failed?",
+                "name": "Stock Count Validation Failed?",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973624,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "node.workflow_stockcount_check.data.data.status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Failed",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_stockcount_failed_true",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_stockcount_failed",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 406,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_stockcount_check.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_stockcount_failed_false",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cond_item_review",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Review",
+            "condition_type": "ConditionRule",
+            "filter": {
+              "list": [
+                {
+                  "id": 1773389220948,
+                  "parentId": 1773389220900,
+                  "isTop": true,
+                  "prop": "workflowparams.saveAs",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Review",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "saveAs",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "code_review_prep",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Review Prepare",
+                "isValidator": true,
+                "nodeName": "Review Prepare",
+                "name": "Review Prepare",
+                "script": {
+                  "type": "javascript",
+                  "code": "let entry = {{workflowparams:allData}};\nconst createAdjustment = '{{workflowparams:createAdjustment}}';\nentry.table_stock_count = (entry.table_stock_count || []).filter((item) => item.line_status !== \"Cancel\");\n\nconst totalItems = entry.table_stock_count.length;\nconst lockedItems = entry.table_stock_count.filter((item) => item.is_counted === 1).length;\nentry.total_counted = `${lockedItems} / ${totalItems}`;\n\nconst totalSystemQty = entry.table_stock_count.reduce((sum, item) => sum + (parseFloat(item.system_qty) || 0), 0);\nconst totalVarianceQty = entry.table_stock_count.reduce((sum, item) => {\n  const varianceQty = parseFloat(item.variance_qty) || 0;\n  const adjustedQty = parseFloat(item.adjusted_qty);\n  const actualVariance = (!isNaN(adjustedQty) && adjustedQty !== null && adjustedQty !== varianceQty) ? adjustedQty : varianceQty;\n  return sum + actualVariance;\n}, 0);\nconst variancePercentage = totalSystemQty > 0 ? Math.abs(totalVarianceQty / totalSystemQty) * 100 : 0;\nentry.total_variance = `${variancePercentage.toFixed(2)}%`;\nentry.organization_id = '{{workflowparams:organizationId}}';\n\nconst hasRecountItems = entry.table_stock_count.some((item) => item.line_status === \"Recount\");\nconst allApproved = entry.table_stock_count.every((item) => item.line_status === \"Approved\" || item.line_status === \"Adjusted\");\n\nif (hasRecountItems) {\n  entry.review_status = \"Recount\";\n  entry.stock_count_status = \"In Progress\";\n} else if (allApproved) {\n  entry.review_status = \"Completed\";\n  entry.stock_count_status = \"Completed\";\n} else {\n  entry.review_status = \"In Review\";\n}\n\nconst approvedItems = entry.table_stock_count.filter((item) => item.review_status === \"Approved\" && item.line_status !== \"Adjusted\");\nconst itemsWithVariance = approvedItems.filter((item) => item.variance_qty !== 0 && item.line_status === \"Approved\");\n\nconst doProcess = (approvedItems.length > 0 && (allApproved || createAdjustment === \"Yes\")) ? 1 : 0;\nconst hasApprovedVariance = (doProcess === 1 && itemsWithVariance.length > 0) ? 1 : 0;\n\nlet materialIds = [...new Set(itemsWithVariance.map((i) => i.material_id))];\nlet locationIds = [...new Set(itemsWithVariance.map((i) => i.location_id))];\nlet baseUomIds = [...new Set(itemsWithVariance.map((i) => i.base_uom_id))];\nlet batchIds = [...new Set(itemsWithVariance.filter((i) => i.batch_id).map((i) => i.batch_id))];\nif (materialIds.length === 0) materialIds = [\"__none__\"];\nif (locationIds.length === 0) locationIds = [\"__none__\"];\nif (baseUomIds.length === 0) baseUomIds = [\"__none__\"];\nif (batchIds.length === 0) batchIds = [\"__none__\"];\n\nreturn { entry, itemsWithVariance, doProcess, hasApprovedVariance, materialIds, locationIds, baseUomIds, batchIds };"
+                },
+                "response_json": [
+                  {
+                    "key": "kc2j",
+                    "name": "entry",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kd2q",
+                    "name": "itemsWithVariance",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ke2x",
+                    "name": "doProcess",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kf34",
+                    "name": "hasApprovedVariance",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kg3b",
+                    "name": "materialIds",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kh3i",
+                    "name": "locationIds",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ki3p",
+                    "name": "baseUomIds",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kj3w",
+                    "name": "batchIds",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_review_required",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Review Required Fields",
+                "isValidator": true,
+                "nodeName": "Review Required Fields",
+                "name": "Review Required Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  required_fields: JSON.stringify([\n    { name: \"plant_id\", label: \"Plant\" },\n    { name: \"count_type\", label: \"Count Type\" },\n    { name: \"table_stock_count\", label: \"Stock Count Items\", isArray: true, arrayType: \"object\", arrayFields: [] }\n  ]),\n  data: JSON.stringify({\n    plant_id: {{node:code_review_prep.data.entry.plant_id}},\n    count_type: {{node:code_review_prep.data.entry.count_type}},\n    table_stock_count: {{node:code_review_prep.data.entry.table_stock_count}}\n  })\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "kk43",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kl4a",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_review_check",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Review Run Check Required",
+                "isValidator": true,
+                "nodeName": "Review Run Check Required",
+                "name": "Review Run Check Required",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_review_required.data.data}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_review_required.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_review_failed",
+              "type": "if",
+              "data": {
+                "title": "Review Validation Failed?",
+                "isValidator": true,
+                "nodeName": "Review Validation Failed?",
+                "name": "Review Validation Failed?",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973654,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "node.workflow_review_check.data.data.status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Failed",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_review_failed_true",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_review_failed",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 406,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_review_check.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_review_failed_false",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "search_item",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 1772617932183,
+                        "parentId": 1772617932160,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_review_prep.data.materialIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Items",
+                "isValidator": true,
+                "nodeName": "Fetch Items",
+                "name": "Fetch Items",
+                "limit": 1000
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_item_balance",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item Balance:Table:1902698977724317697",
+                  "rules": {
+                    "collectionId": "1902698977724317697",
+                    "list": [
+                      {
+                        "id": 1770688051311,
+                        "parentId": 1770688051289,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1770000000024,
+                            "parentId": 1770000000001,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_review_prep.data.materialIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "material_id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 1770000000025,
+                            "parentId": 1770000000001,
+                            "isTop": false,
+                            "prop": "is_deleted",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 0,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_deleted",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Item Balance",
+                "isValidator": true,
+                "nodeName": "Fetch Item Balance",
+                "name": "Fetch Item Balance",
+                "limit": 1000
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_item_batch_balance",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item Batch Balance:Table:1902718803880558594",
+                  "rules": {
+                    "collectionId": "1902718803880558594",
+                    "list": [
+                      {
+                        "id": 1770688051314,
+                        "parentId": 1770688051289,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1770000000027,
+                            "parentId": 1770000000001,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_review_prep.data.materialIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "material_id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 1770000000028,
+                            "parentId": 1770000000001,
+                            "isTop": false,
+                            "prop": "is_deleted",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 0,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_deleted",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Item Batch Balance",
+                "isValidator": true,
+                "nodeName": "Fetch Item Batch Balance",
+                "name": "Fetch Item Batch Balance",
+                "limit": 1000
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_bin_location",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Bin Location:Table:1902282127538507778",
+                  "rules": {
+                    "collectionId": "1902282127538507778",
+                    "list": [
+                      {
+                        "id": 1772617932190,
+                        "parentId": 1772617932160,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_review_prep.data.locationIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Bin Locations",
+                "isValidator": true,
+                "nodeName": "Fetch Bin Locations",
+                "name": "Fetch Bin Locations",
+                "limit": 1000
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_uom",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "UOM:Table:1901805375573839874",
+                  "rules": {
+                    "collectionId": "1901805375573839874",
+                    "list": [
+                      {
+                        "id": 1772617932191,
+                        "parentId": 1772617932160,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_review_prep.data.baseUomIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch UOMs",
+                "isValidator": true,
+                "nodeName": "Fetch UOMs",
+                "name": "Fetch UOMs",
+                "limit": 1000
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_batch",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Batch:Table:1902719754154655746",
+                  "rules": {
+                    "collectionId": "1902719754154655746",
+                    "list": [
+                      {
+                        "id": 1772617932192,
+                        "parentId": 1772617932160,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_review_prep.data.batchIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Batches",
+                "isValidator": true,
+                "nodeName": "Fetch Batches",
+                "name": "Fetch Batches",
+                "limit": 1000
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_sa_prefix",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "流水号规则表:Table:1994006139209117697",
+                  "rules": {
+                    "collectionId": "1994006139209117697",
+                    "list": [
+                      {
+                        "id": 1770688051320,
+                        "parentId": 1770688051289,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1770000000033,
+                            "parentId": 1770000000001,
+                            "isTop": false,
+                            "prop": "business_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Stock Adjustment",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "business_type",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 1770000000034,
+                            "parentId": 1770000000001,
+                            "isTop": false,
+                            "prop": "department_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organizationId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "department_id",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          },
+                          {
+                            "id": 1770000000035,
+                            "parentId": 1770000000001,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_default",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get SA Prefix Rule",
+                "isValidator": true,
+                "nodeName": "Get SA Prefix Rule",
+                "name": "Get SA Prefix Rule"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_review_build_sa",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Build Stock Adjustment Doc",
+                "isValidator": true,
+                "nodeName": "Build Stock Adjustment Doc",
+                "name": "Build Stock Adjustment Doc",
+                "script": {
+                  "type": "javascript",
+                  "code": "const itemsWithVariance = {{node:code_review_prep.data.itemsWithVariance}} || [];\nconst entry = {{node:code_review_prep.data.entry}};\nconst itemList = {{node:search_item.data.data}} || [];\nconst balanceList = {{node:search_item_balance.data.data}} || [];\nconst batchBalanceList = {{node:search_item_batch_balance.data.data}} || [];\nconst binList = {{node:search_bin_location.data.data}} || [];\nconst uomList = {{node:search_uom.data.data}} || [];\nconst batchList = {{node:search_batch.data.data}} || [];\nlet prefixRule = {{node:get_sa_prefix.data.data}};\nif (Array.isArray(prefixRule)) prefixRule = prefixRule[0];\n\nconst organizationId = '{{workflowparams:organizationId}}';\nconst nickname = '{{workflowparams:nickname}}';\nconst adjustmentDate = '{{workflowparams:adjustmentDate}}';\n\nconst isActive = (b) => b.is_deleted === 0 || b.is_deleted === \"0\" || !b.is_deleted;\n\nconst groupedByMaterial = {};\nfor (const item of itemsWithVariance) {\n  if (!groupedByMaterial[item.material_id]) groupedByMaterial[item.material_id] = [];\n  groupedByMaterial[item.material_id].push(item);\n}\n\nconst stockAdjustmentTable = [];\nfor (const materialId in groupedByMaterial) {\n  const items = groupedByMaterial[materialId];\n  const firstItem = items[0];\n  const balanceIndex = [];\n  let totalQuantity = 0;\n  const adjSummaryDetails = [];\n\n  for (const item of items) {\n    let varianceToUse = item.variance_qty;\n    if (item.adjusted_qty !== undefined && item.adjusted_qty !== null && item.adjusted_qty !== item.variance_qty) {\n      varianceToUse = item.adjusted_qty;\n    }\n    let varianceQtyInBaseUOM = varianceToUse;\n    if (item.uom_id !== item.base_uom_id) {\n      let tableUOMConversion = item.table_uom_conversion;\n      if (!tableUOMConversion) {\n        const itemData = itemList.find((it) => it.id === item.material_id);\n        if (itemData) tableUOMConversion = itemData.table_uom_conversion;\n      }\n      if (typeof tableUOMConversion === \"string\") {\n        try { tableUOMConversion = JSON.parse(tableUOMConversion); } catch (e) { tableUOMConversion = null; }\n      }\n      if (tableUOMConversion && !Array.isArray(tableUOMConversion)) tableUOMConversion = [tableUOMConversion];\n      if (tableUOMConversion && Array.isArray(tableUOMConversion)) {\n        const currentUOMConversion = tableUOMConversion.find((conv) => conv.alt_uom_id === item.uom_id);\n        if (currentUOMConversion && currentUOMConversion.base_qty) {\n          varianceQtyInBaseUOM = varianceToUse * currentUOMConversion.base_qty;\n        }\n      }\n    }\n\n    let balanceData;\n    if (item.batch_id) {\n      balanceData = batchBalanceList.find((b) => b.material_id === item.material_id && b.plant_id === item.plant_id && b.location_id === item.location_id && b.batch_id === item.batch_id && isActive(b));\n    } else {\n      balanceData = balanceList.find((b) => b.material_id === item.material_id && b.plant_id === item.plant_id && b.location_id === item.location_id && isActive(b));\n    }\n\n    if (balanceData) {\n      const movementType = varianceQtyInBaseUOM > 0 ? \"In\" : \"Out\";\n      const saQuantity = Math.abs(varianceQtyInBaseUOM);\n      totalQuantity += saQuantity;\n\n      balanceIndex.push({\n        balance_id: balanceData.id,\n        material_id: balanceData.material_id,\n        plant_id: balanceData.plant_id,\n        location_id: balanceData.location_id,\n        batch_id: balanceData.batch_id || null,\n        balance_quantity: balanceData.balance_quantity,\n        unrestricted_qty: balanceData.unrestricted_qty,\n        block_qty: balanceData.block_qty,\n        qualityinsp_qty: balanceData.qualityinsp_qty,\n        reserved_qty: balanceData.reserved_qty,\n        intransit_qty: balanceData.intransit_qty,\n        organization_id: balanceData.organization_id,\n        tenant_id: balanceData.tenant_id,\n        create_user: balanceData.create_user,\n        create_time: balanceData.create_time,\n        create_dept: balanceData.create_dept,\n        update_user: balanceData.update_user,\n        update_time: balanceData.update_time,\n        is_deleted: balanceData.is_deleted,\n        category: \"Unrestricted\",\n        movement_type: movementType,\n        sa_quantity: saQuantity\n      });\n\n      const locationName = (binList.find((b) => b.id === item.location_id) || {}).bin_location_combine || item.location_id;\n      const uomName = (uomList.find((u) => u.id === item.base_uom_id) || {}).uom_name || \"\";\n      let batchName = \"\";\n      if (item.batch_id) batchName = (batchList.find((bt) => bt.id === item.batch_id) || {}).batch_number || \"\";\n      const categoryAbbr = \"UNR\";\n      const movementTypeLabel = movementType === \"In\" ? \"IN\" : \"OUT\";\n      let detailLine = `${locationName}: ${saQuantity} ${uomName} (${categoryAbbr}) - ${movementTypeLabel}`;\n      if (batchName) detailLine += `\\n[${batchName}]`;\n      adjSummaryDetails.push(detailLine);\n    }\n  }\n\n  const baseUomName = (uomList.find((u) => u.id === firstItem.base_uom_id) || {}).uom_name || \"\";\n  const adjSummary = `Total: ${totalQuantity} ${baseUomName}\\nDETAILS:\\n${adjSummaryDetails.map((detail, idx) => `${idx + 1}. ${detail}`).join(\"\\n\")}`;\n  const materialName = (itemList.find((it) => it.id === materialId) || {}).material_name || \"\";\n\n  stockAdjustmentTable.push({\n    material_id: materialId,\n    uom_id: firstItem.base_uom_id,\n    material_name: materialName,\n    item_category: firstItem.item_category,\n    is_serialized_item: firstItem.is_serialized || 0,\n    is_single_serial: firstItem.is_single || 0,\n    total_quantity: totalQuantity,\n    balance_index: JSON.stringify(balanceIndex),\n    adj_summary: adjSummary\n  });\n}\n\nconst stockAdjustmentDoc = {\n  stock_adjustment_status: \"Draft\",\n  organization_id: organizationId,\n  adjustment_no: \"draft\",\n  adjustment_no_type: (prefixRule && prefixRule.id) ? prefixRule.id : null,\n  stock_count_id: entry.id,\n  adjustment_date: adjustmentDate,\n  adjustment_type: \"Stock Count\",\n  adjusted_by: nickname,\n  plant_id: entry.plant_id,\n  adjustment_remarks: entry.stock_count_remark || \"\",\n  adjustment_remarks2: entry.stock_count_remark2 || \"\",\n  adjustment_remarks3: entry.stock_count_remark3 || \"\",\n  stock_adjustment: stockAdjustmentTable\n};\n\nreturn { stockAdjustmentDoc };"
+                },
+                "response_json": [
+                  {
+                    "key": "k1077",
+                    "name": "stockAdjustmentDoc",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_has_approved_variance",
+              "type": "if",
+              "data": {
+                "title": "Has Approved Variance?",
+                "isValidator": true,
+                "nodeName": "Has Approved Variance?",
+                "name": "Has Approved Variance?",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973655,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "node.code_review_prep.data.hasApprovedVariance",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "hasApprovedVariance",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_has_approved_variance_true",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "add_node_sa",
+                      "type": "add-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Stock Adjustment:Table:1902274108952006658",
+                          "rules": {
+                            "collectionId": "1902274108952006658",
+                            "list": [
+                              {
+                                "id": 1772607616410,
+                                "parentId": 1772607616372,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "title": "Add Stock Adjustment",
+                        "isValidator": true,
+                        "nodeName": "Add Stock Adjustment",
+                        "name": "Add Stock Adjustment",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "stock_adjustment_status",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.stock_adjustment_status}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Status"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.organization_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Organization"
+                            },
+                            {
+                              "prop": "adjustment_no",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.adjustment_no}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Adjustment No"
+                            },
+                            {
+                              "prop": "adjustment_no_type",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.adjustment_no_type}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "规则"
+                            },
+                            {
+                              "prop": "stock_count_id",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.stock_count_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Stock Count"
+                            },
+                            {
+                              "prop": "adjustment_date",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.adjustment_date}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Adjustment Date"
+                            },
+                            {
+                              "prop": "adjustment_type",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.adjustment_type}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Adjustment Type"
+                            },
+                            {
+                              "prop": "adjusted_by",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.adjusted_by}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Adjusted By"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.plant_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Plant"
+                            },
+                            {
+                              "prop": "adjustment_remarks",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.adjustment_remarks}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Remarks"
+                            },
+                            {
+                              "prop": "adjustment_remarks2",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.adjustment_remarks2}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Remarks 2"
+                            },
+                            {
+                              "prop": "adjustment_remarks3",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.adjustment_remarks3}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Remarks 3"
+                            },
+                            {
+                              "prop": "stock_adjustment",
+                              "valueType": "field",
+                              "value": "{{node:code_review_build_sa.data.stockAdjustmentDoc.stock_adjustment}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Stock Adjustment Table"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_capture_sa",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Capture SA Id",
+                        "isValidator": true,
+                        "nodeName": "Capture SA Id",
+                        "name": "Capture SA Id",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const saResult = {{node:add_node_sa.data}}[0];\nreturn { stockAdjustmentId: saResult ? saResult.id : \"\", stockAdjustmentNo: saResult ? saResult.adjustment_no : \"\" };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "k127l",
+                            "name": "stockAdjustmentId",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k137s",
+                            "name": "stockAdjustmentNo",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_has_approved_variance_false",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_do_process",
+              "type": "if",
+              "data": {
+                "title": "Mark Adjusted?",
+                "isValidator": true,
+                "nodeName": "Mark Adjusted?",
+                "name": "Mark Adjusted?",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973656,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "node.code_review_prep.data.doProcess",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "doProcess",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_do_process_true",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_review_mark",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Mark Adjusted Items",
+                        "isValidator": true,
+                        "nodeName": "Mark Adjusted Items",
+                        "name": "Mark Adjusted Items",
+                        "script": {
+                          "type": "javascript",
+                          "code": "let entry = {{node:code_review_prep.data.entry}};\nentry.table_stock_count = entry.table_stock_count.map((item) => {\n  if (item.review_status === \"Approved\" && item.line_status !== \"Adjusted\") {\n    return { ...item, line_status: \"Adjusted\" };\n  }\n  return item;\n});\nconst allAdjusted = entry.table_stock_count.every((item) => item.line_status === \"Adjusted\");\nentry.adjustment_status = allAdjusted ? \"Fully Adjusted\" : \"Partially Adjusted\";\nreturn { entry };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "k147z",
+                            "name": "entry",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_do_process_false",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_fillback",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Fillback Entry",
+        "isValidator": true,
+        "nodeName": "Fillback Entry",
+        "name": "Fillback Entry",
+        "script": {
+          "type": "javascript",
+          "code": "let entry = {{node:code_draft.data.entry}} || {{node:code_issued.data.entry}} || {{node:code_stockcount.data.entry}} || {{node:code_review_mark.data.entry}} || {{node:code_review_prep.data.entry}};\nentry.table_stock_count = entry.table_stock_count || [];\nfor (const [index, row] of entry.table_stock_count.entries()) {\n  row.line_index = index + 1;\n}\nentry.organization_id = '{{workflowparams:organizationId}}';\nreturn { entry };"
+        },
+        "response_json": [
+          {
+            "key": "k1c9j",
+            "name": "entry",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_add",
+      "type": "if",
+      "data": {
+        "title": "IF add?",
+        "isValidator": true,
+        "nodeName": "IF add?",
+        "name": "IF add?",
+        "condition_type": "ConditionRule",
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973665,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "workflowparams.pageStatus",
+              "operator": "equal",
+              "valueType": "value",
+              "value": "Add",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "pageStatus",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_add_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "add_node_sc",
+              "type": "add-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock Count:Table:1970062686583369729",
+                  "rules": {
+                    "collectionId": "1970062686583369729",
+                    "list": [
+                      {
+                        "id": 1772607616422,
+                        "parentId": 1772607616372,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "Add Stock Count",
+                "isValidator": true,
+                "nodeName": "Add Stock Count",
+                "name": "Add Stock Count",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "stock_count_status",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Stock Count Status"
+                    },
+                    {
+                      "prop": "stock_count_no",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Stock Count No"
+                    },
+                    {
+                      "prop": "stock_count_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "规则"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.plant_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.organization_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "count_type",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.count_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Count Type"
+                    },
+                    {
+                      "prop": "count_method",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.count_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Count Method"
+                    },
+                    {
+                      "prop": "item_list",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.item_list}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Item List"
+                    },
+                    {
+                      "prop": "start_date",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.start_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Start Date"
+                    },
+                    {
+                      "prop": "end_date",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.end_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "End Date"
+                    },
+                    {
+                      "prop": "assignees",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.assignees}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Assignees"
+                    },
+                    {
+                      "prop": "user_assignees",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.user_assignees}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "User Assignees"
+                    },
+                    {
+                      "prop": "work_group_assignees",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.work_group_assignees}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Work Group Assignees"
+                    },
+                    {
+                      "prop": "blind_count",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.blind_count}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Blind Count"
+                    },
+                    {
+                      "prop": "total_counted",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.total_counted}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Counted"
+                    },
+                    {
+                      "prop": "total_variance",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.total_variance}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Variance"
+                    },
+                    {
+                      "prop": "review_status",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.review_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Review Status"
+                    },
+                    {
+                      "prop": "adjustment_status",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.adjustment_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Adjustment Status"
+                    },
+                    {
+                      "prop": "stock_count_remark",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_remark}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark"
+                    },
+                    {
+                      "prop": "stock_count_remark2",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_remark2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "stock_count_remark3",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_remark3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
+                    },
+                    {
+                      "prop": "attachment",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.attachment}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attachment"
+                    },
+                    {
+                      "prop": "previous_status",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.previous_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Previous Status"
+                    },
+                    {
+                      "prop": "table_stock_count",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.table_stock_count}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Stock Count Items"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_add_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": [
+            {
+              "id": "update_node_sc",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock Count:Table:1970062686583369729",
+                  "rules": {
+                    "collectionId": "1970062686583369729",
+                    "list": [
+                      {
+                        "id": 1772674146169,
+                        "parentId": 1772674146118,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_fillback.data.entry.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "Update Stock Count",
+                "isValidator": true,
+                "nodeName": "Update Stock Count",
+                "name": "Update Stock Count",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "stock_count_status",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Stock Count Status"
+                    },
+                    {
+                      "prop": "stock_count_no",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Stock Count No"
+                    },
+                    {
+                      "prop": "stock_count_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "规则"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.plant_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.organization_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "count_type",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.count_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Count Type"
+                    },
+                    {
+                      "prop": "count_method",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.count_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Count Method"
+                    },
+                    {
+                      "prop": "item_list",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.item_list}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Item List"
+                    },
+                    {
+                      "prop": "start_date",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.start_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Start Date"
+                    },
+                    {
+                      "prop": "end_date",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.end_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "End Date"
+                    },
+                    {
+                      "prop": "assignees",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.assignees}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Assignees"
+                    },
+                    {
+                      "prop": "user_assignees",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.user_assignees}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "User Assignees"
+                    },
+                    {
+                      "prop": "work_group_assignees",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.work_group_assignees}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Work Group Assignees"
+                    },
+                    {
+                      "prop": "blind_count",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.blind_count}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Blind Count"
+                    },
+                    {
+                      "prop": "total_counted",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.total_counted}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Counted"
+                    },
+                    {
+                      "prop": "total_variance",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.total_variance}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Variance"
+                    },
+                    {
+                      "prop": "review_status",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.review_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Review Status"
+                    },
+                    {
+                      "prop": "adjustment_status",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.adjustment_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Adjustment Status"
+                    },
+                    {
+                      "prop": "stock_count_remark",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_remark}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark"
+                    },
+                    {
+                      "prop": "stock_count_remark2",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_remark2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "stock_count_remark3",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.stock_count_remark3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
+                    },
+                    {
+                      "prop": "attachment",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.attachment}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attachment"
+                    },
+                    {
+                      "prop": "previous_status",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.previous_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Previous Status"
+                    },
+                    {
+                      "prop": "table_stock_count",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.table_stock_count}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Stock Count Items"
+                    }
+                  ]
+                },
+                "condition": {}
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_node_sc",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock Count:Table:1970062686583369729",
+                  "rules": {
+                    "collectionId": "1970062686583369729",
+                    "list": [
+                      {
+                        "id": 1772617932212,
+                        "parentId": 1772617932160,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_fillback.data.entry.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Stock Count",
+                "isValidator": true,
+                "nodeName": "Fetch Stock Count",
+                "name": "Fetch Stock Count"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_maplatest",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Latest Stock Count",
+        "isValidator": true,
+        "nodeName": "Map Latest Stock Count",
+        "name": "Map Latest Stock Count",
+        "script": {
+          "type": "javascript",
+          "code": "const scData = ('{{workflowparams:pageStatus}}' === 'Add') ? {{node:add_node_sc.data}}[0] : {{node:get_node_sc.data.data}};\nreturn { scData };"
+        },
+        "response_json": [
+          {
+            "key": "k1hai",
+            "name": "scData",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
+        "response_value": {
+          "list": [
+            {
+              "prop": "id",
+              "propLabel": "id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:code_maplatest.data.scData.id}}"
+            },
+            {
+              "prop": "stock_count_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_maplatest.data.scData.stock_count_no}}",
+              "valueLabel": "",
+              "propLabel": "stock_count_no"
+            },
+            {
+              "prop": "stockAdjustmentId",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_capture_sa.data.stockAdjustmentId}}",
+              "valueLabel": "",
+              "propLabel": "stockAdjustmentId"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "k1iap",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "k1jaw",
+      "name": "saveAs",
+      "title": "saveAs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "k1kb3",
+      "name": "pageStatus",
+      "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "k1lba",
+      "name": "organizationId",
+      "title": "organizationId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "k1mbh",
+      "name": "nickname",
+      "title": "nickname",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "k1nbo",
+      "name": "adjustmentDate",
+      "title": "adjustmentDate",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "k1obv",
+      "name": "proceedReview",
+      "title": "proceedReview",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "k1pc2",
+      "name": "createAdjustment",
+      "title": "createAdjustment",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "k1qc9",
+      "name": "id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "k1rcg",
+      "name": "stock_count_no",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "k1scn",
+      "name": "stockAdjustmentId",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
