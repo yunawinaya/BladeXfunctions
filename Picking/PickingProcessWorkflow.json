@@ -3687,10 +3687,10 @@
                                     "valueType": "field",
                                     "type": "leaf",
                                     "level": 2,
-                                    "propLabel": "部门ID",
+                                    "propLabel": "Organization ID",
                                     "valueLabel": "",
                                     "operatorLabel": "Equal",
-                                    "value": "{{workflowparams:allData.organization_id}}"
+                                    "value": "{{global:firstLvDeptId}}"
                                   }
                                 ]
                               }
