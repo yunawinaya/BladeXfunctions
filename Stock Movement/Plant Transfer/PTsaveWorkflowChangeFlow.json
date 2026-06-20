@@ -3763,10 +3763,7 @@
                 "isValidator": true,
                 "nodeName": "Init Batch Gen Index",
                 "name": "Init Batch Gen Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "batchGenIndex_{{workflowparams:allData.issued_by}}"
               },
               "blocks": []
@@ -3782,10 +3779,7 @@
                 "isValidator": true,
                 "nodeName": "Init Generated Batches",
                 "name": "Init Generated Batches",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "[]"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "[]" },
                 "redis_key": "generatedBatches_{{workflowparams:allData.issued_by}}"
               },
               "blocks": []
@@ -3823,9 +3817,7 @@
                 {
                   "id": "if_GenNewBatch_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "loop_BatchGen",
@@ -3901,7 +3893,7 @@
                             "name": "Batch Gen Prep",
                             "script": {
                               "type": "javascript",
-                              "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst subformData = allData.stock_movement || [];\nconst currentIndexRaw = {{node:get_cache_node_BGIDXget.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst item = subformData[index] || {};\n\n// Generate for any auto-batch row (Plant Transfer has no split rows)\nconst needsGen = (item.batch_no === \"Auto-generated batch number\") ? 1 : 0;\n\nreturn {\n  item_id: item.item_selection || \"\",\n  needsGen: needsGen,\n  index: index,\n  nextIndex: index + 1\n};"
+                              "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst subformData = allData.stock_movement || [];\nconst currentIndexRaw = {{node:get_cache_node_BGIDXget.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst item = subformData[index] || {};\n\n// Generate for any auto-batch row (Plant Transfer has no split rows)\nconst needsGen = (item.batch_no === \"Auto-generated batch number\") ? 1 : 0;\n\nreturn {\n  item_id: item.item_selection || \"\",\n  needsGen: needsGen,\n  document_date: allData.issue_date || '',\n  manufacturing_date: item.manufacturing_date || '',\n  expired_date: item.expired_date || '',\n  index: index,\n  nextIndex: index + 1\n};"
                             },
                             "response_json": [
                               {
@@ -3937,6 +3929,33 @@
                                 "title": "nextIndex",
                                 "description": "",
                                 "bsonType": "number",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "s6tyslx2",
+                                "name": "document_date",
+                                "title": "document_date",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "aq6h3s2i",
+                                "name": "expired_date",
+                                "title": "expired_date",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "3powapqn",
+                                "name": "manufacturing_date",
+                                "title": "manufacturing_date",
+                                "description": "",
+                                "bsonType": "any",
                                 "isExpand": false,
                                 "children": []
                               }
@@ -3977,9 +3996,7 @@
                             {
                               "id": "if_NeedsGen_t",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "workflow_node_GenBatch",
@@ -4024,6 +4041,30 @@
                                           "valueTypeLabel": "",
                                           "value": "{{node:code_node_BatchGenPrep.data.item_id}}",
                                           "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "document_date",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_BatchGenPrep.data.document_date}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Document Date"
+                                        },
+                                        {
+                                          "prop": "expired_date",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_BatchGenPrep.data.expired_date}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Expired Date"
+                                        },
+                                        {
+                                          "prop": "manufacturing_date",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_BatchGenPrep.data.manufacturing_date}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Manufacturing Date"
                                         }
                                       ]
                                     }
@@ -4110,9 +4151,7 @@
                                     {
                                       "id": "if_BatchErr_t",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "true"
-                                      },
+                                      "data": { "title": "true" },
                                       "blocks": [
                                         {
                                           "id": "return_node_BatchErr",
@@ -4155,9 +4194,7 @@
                                     {
                                       "id": "if_BatchErr_f",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "false"
-                                      },
+                                      "data": { "title": "false" },
                                       "blocks": []
                                     }
                                   ]
@@ -4228,9 +4265,7 @@
                             {
                               "id": "if_NeedsGen_f",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -4261,9 +4296,7 @@
                 {
                   "id": "if_GenNewBatch_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -10640,7 +10673,7 @@
                                       "prop": "isMovingInv",
                                       "operator": "",
                                       "valueType": "value",
-                                      "value": 1,
+                                      "value": 0,
                                       "valueLabel": "",
                                       "propLabel": "Moving Inventory?"
                                     },
@@ -10930,7 +10963,7 @@
                                       "prop": "isMovingInv",
                                       "operator": "",
                                       "valueType": "value",
-                                      "value": 1,
+                                      "value": 0,
                                       "valueLabel": "",
                                       "propLabel": "Moving Inventory?"
                                     },
@@ -13011,7 +13044,7 @@
                                       "prop": "isMovingInv",
                                       "operator": "",
                                       "valueType": "value",
-                                      "value": 0,
+                                      "value": 1,
                                       "valueLabel": "",
                                       "propLabel": "Moving Inventory?"
                                     },
@@ -13359,7 +13392,7 @@
                                           "prop": "isMovingInv",
                                           "operator": "",
                                           "valueType": "value",
-                                          "value": 0,
+                                          "value": 1,
                                           "valueLabel": "",
                                           "propLabel": "Moving Inventory?"
                                         },
@@ -13658,7 +13691,7 @@
                                           "prop": "isMovingInv",
                                           "operator": "",
                                           "valueType": "value",
-                                          "value": 0,
+                                          "value": 1,
                                           "valueLabel": "",
                                           "propLabel": "Moving Inventory?"
                                         },
