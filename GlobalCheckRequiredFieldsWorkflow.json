@@ -1,0 +1,110 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_AeSdXE85",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Run Script",
+        "isValidator": true,
+        "nodeName": "Run Script",
+        "name": "Run Script",
+        "script": {
+          "type": "javascript",
+          "code": "const validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (typeof value === \"number\") return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst entry = JSON.parse({{workflowparams:entry}});\nconst requiredFields = JSON.parse({{workflowparams:required_fields}});\nconst missingFields = validateForm(entry, requiredFields);\n\nif(missingFields.length === 0){\n  return {\n    status: 'Passed',\n    message: ''\n  }\n} else {\n  return {\n    status: 'Failed',\n    message: 'Validation Error: ' + missingFields.join(', ')\n  }\n}"
+        },
+        "response_json": [
+          {
+            "key": "4r6rz2lh",
+            "name": "status",
+            "title": "Status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "kozy2toj",
+            "name": "message",
+            "title": "Message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_ZmIbg3X3",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "data",
+              "propLabel": "Data",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_AeSdXE85.data}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "o51qd0ik",
+      "name": "entry",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "a4a1gdac",
+      "name": "required_fields",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "in46tvhb",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ]
+}
