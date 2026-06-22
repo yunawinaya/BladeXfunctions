@@ -1,83 +1,20 @@
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
-  );
-  return generated;
-};
+const setPlant = async (organizationId, pageStatus) => {
+  const currentDept = this.getVarSystem("deptIds");
 
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("purchase_return_head")
-    .where({
-      purchase_return_no: generatedPrefix,
-      organization_id: organizationId,
-    })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
+  if (currentDept === organizationId) {
+    this.disabled("plant", false);
+    this.disabled("table_prt", true);
+  } else {
+    if (pageStatus === "Add") {
+      setTimeout(() => {
+        this.setData({
+          plant: currentDept,
+          return_by: this.getVarGlobal("nickname"),
+        });
+      }, 50);
     }
+    this.disabled("plant", true);
   }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Purchase Return number after maximum attempts"
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await getPrefixData(organizationId);
-
-  const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-
-  this.setData({
-    purchase_return_no: prefixToShow,
-    return_by: this.getVarGlobal("nickname"),
-  });
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Purchase Returns",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-  const prefixData = await prefixEntry.data[0];
-
-  if (prefixData.is_active === 0) {
-    this.disabled(["purchase_return_no"], false);
-  }
-
-  return prefixData;
 };
 
 const showStatusHTML = async (status) => {
@@ -97,7 +34,7 @@ const showStatusHTML = async (status) => {
 const displayDeliveryMethod = async () => {
   const deliveryMethod = this.getValue("return_delivery_method");
 
-  if (Object.keys(deliveryMethod).length > 0) {
+  if (deliveryMethod && Object.keys(deliveryMethod).length > 0) {
     this.setData({ delivery_method_text: deliveryMethod });
 
     const visibilityMap = {
@@ -129,9 +66,9 @@ const displayDeliveryMethod = async () => {
 };
 
 const displayAddress = async () => {
-  const purchaseOrderId = this.getValue("purchase_order_id");
+  const grID = this.getValue("gr_id");
 
-  if (purchaseOrderId) {
+  if (grID) {
     this.display("address_grid");
   }
 };
@@ -142,9 +79,6 @@ const disabledField = async (status) => {
       [
         "purchase_return_status",
         "purchase_return_no",
-        "fake_purchase_order_id",
-        "purchase_order_id",
-        "goods_receiving_id",
         "organization_id",
         "supplier_id",
         "prt_billing_name",
@@ -159,21 +93,34 @@ const disabledField = async (status) => {
         "purchase_return_ref",
         "shipping_details",
         "reason_for_return",
+
         "driver_name",
         "vehicle_no",
+        "cp_ic_no",
         "driver_contact",
         "pickup_date",
+
         "courier_company",
         "shipping_date",
         "estimated_arrival",
         "shipping_method",
         "freight_charge",
+
         "driver_name2",
+        "ct_ic_no",
         "driver_contact_no2",
         "estimated_arrival2",
         "vehicle_no2",
         "delivery_cost",
-        "table_prt",
+
+        "tpt_vehicle_number",
+        "tpt_transport_name",
+        "tpt_ic_no",
+        "tpt_driver_contact_no",
+
+        "table_prt.return_condition",
+        "confirm_inventory.table_item_balance",
+
         "billing_address_line_1",
         "billing_address_line_2",
         "billing_address_line_3",
@@ -191,7 +138,7 @@ const disabledField = async (status) => {
         "shipping_address_country",
         "shipping_postal_code",
       ],
-      true
+      true,
     );
 
     this.hide([
@@ -199,11 +146,21 @@ const disabledField = async (status) => {
       "link_shipping_address",
       "button_save_as_draft",
       "button_save_as_issue",
-      "fake_purchase_order_id",
-      "purchase_order_id",
     ]);
+  }
+};
 
-    this.display("po_no_display");
+const checkAccIntegrationType = async (organizationId) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+      this.setData({ acc_integration_type: aiData.acc_integration_type });
+    }
   }
 };
 
@@ -214,14 +171,14 @@ const disabledField = async (status) => {
     const pageStatus = this.isAdd
       ? "Add"
       : this.isEdit
-      ? "Edit"
-      : this.isView
-      ? "View"
-      : this.isCopy
-      ? "Clone"
-      : (() => {
-          this.$message.error("Invalid page status");
-        })();
+        ? "Edit"
+        : this.isView
+          ? "View"
+          : this.isCopy
+            ? "Clone"
+            : (() => {
+                this.$message.error("Invalid page status");
+              })();
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
@@ -233,41 +190,29 @@ const disabledField = async (status) => {
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
-        await setPrefix(organizationId);
+        await setPlant(organizationId, pageStatus);
+        await checkAccIntegrationType(organizationId);
         break;
 
       case "Edit":
-        await getPrefixData(organizationId);
+        this.setData({ previous_status: status });
         await disabledField(status);
-        if (status === "Draft") {
-          this.hide(["fake_purchase_order_id"]);
-          this.display("purchase_order_id");
-        } else {
-          this.display("po_no_display");
-        }
-
+        await checkAccIntegrationType(organizationId);
         await showStatusHTML(status);
         await displayDeliveryMethod();
         await displayAddress();
         break;
 
       case "View":
+        await showStatusHTML(status);
+        await displayDeliveryMethod();
+        await displayAddress();
         this.hide([
           "link_billing_address",
           "link_shipping_address",
           "button_save_as_draft",
           "button_save_as_issue",
-          "fake_purchase_order_id",
-          "purchase_order_id",
-          "table_prt.select_return_qty",
         ]);
-
-        if (status !== "Draft") {
-          this.display("po_no_display");
-        }
-        await showStatusHTML(status);
-        await displayDeliveryMethod();
-        await displayAddress();
 
         break;
     }
@@ -275,3 +220,36 @@ const disabledField = async (status) => {
     this.$message.error(error);
   }
 })();
+
+setTimeout(async () => {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("purchase_return_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("purchase_return_no");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("purchase_return_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("purchase_return_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        purchase_return_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ purchase_return_no_type: defaultData.value });
+    }
+  }
+}, 200);
