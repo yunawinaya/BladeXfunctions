@@ -748,7 +748,7 @@
                 "name": "Review Prepare",
                 "script": {
                   "type": "javascript",
-                  "code": "let entry = {{workflowparams:allData}};\nconst createAdjustment = {{workflowparams:createAdjustment}};\nentry.table_stock_count = (entry.table_stock_count || []).filter((item) => item.line_status !== \"Cancel\");\n\nconst totalItems = entry.table_stock_count.length;\nconst lockedItems = entry.table_stock_count.filter((item) => item.is_counted === 1).length;\nentry.total_counted = `${lockedItems} / ${totalItems}`;\n\nconst totalSystemQty = entry.table_stock_count.reduce((sum, item) => sum + (parseFloat(item.system_qty) || 0), 0);\nconst totalVarianceQty = entry.table_stock_count.reduce((sum, item) => {\n  const varianceQty = parseFloat(item.variance_qty) || 0;\n  const adjustedQty = parseFloat(item.adjusted_qty);\n  const actualVariance = (!isNaN(adjustedQty) && adjustedQty !== null && adjustedQty !== varianceQty) ? adjustedQty : varianceQty;\n  return sum + actualVariance;\n}, 0);\nconst variancePercentage = totalSystemQty > 0 ? Math.abs(totalVarianceQty / totalSystemQty) * 100 : 0;\nentry.total_variance = `${variancePercentage.toFixed(2)}%`;\nentry.organization_id = {{workflowparams:organizationId}};\n\nconst hasRecountItems = entry.table_stock_count.some((item) => item.line_status === \"Recount\");\nconst allApproved = entry.table_stock_count.every((item) => item.line_status === \"Approved\" || item.line_status === \"Adjusted\");\n\nif (hasRecountItems) {\n  entry.review_status = \"Recount\";\n  entry.stock_count_status = \"In Progress\";\n} else if (allApproved) {\n  entry.review_status = \"Completed\";\n  entry.stock_count_status = \"Completed\";\n} else {\n  entry.review_status = \"In Review\";\n}\n\nconst approvedItems = entry.table_stock_count.filter((item) => item.review_status === \"Approved\" && item.line_status !== \"Adjusted\");\nconst itemsWithVariance = approvedItems.filter((item) => item.variance_qty !== 0 && item.line_status === \"Approved\");\n\nconst doProcess = (approvedItems.length > 0 && (allApproved || createAdjustment === \"Yes\")) ? 1 : 0;\nconst hasApprovedVariance = (doProcess === 1 && itemsWithVariance.length > 0) ? 1 : 0;\n\nlet materialIds = [...new Set(itemsWithVariance.map((i) => i.material_id))];\nlet locationIds = [...new Set(itemsWithVariance.map((i) => i.location_id))];\nlet baseUomIds = [...new Set(itemsWithVariance.map((i) => i.base_uom_id))];\nlet batchIds = [...new Set(itemsWithVariance.filter((i) => i.batch_id).map((i) => i.batch_id))];\nif (materialIds.length === 0) materialIds = [\"__none__\"];\nif (locationIds.length === 0) locationIds = [\"__none__\"];\nif (baseUomIds.length === 0) baseUomIds = [\"__none__\"];\nif (batchIds.length === 0) batchIds = [\"__none__\"];\n\nreturn { entry, itemsWithVariance, doProcess, hasApprovedVariance, materialIds, locationIds, baseUomIds, batchIds };"
+                  "code": "let entry = {{workflowparams:allData}};\nconst createAdjustment = {{workflowparams:createAdjustment}};\nentry.table_stock_count = (entry.table_stock_count || []).filter((item) => item.line_status !== \"Cancel\");\n\nconst totalItems = entry.table_stock_count.length;\nconst lockedItems = entry.table_stock_count.filter((item) => item.is_counted === 1).length;\nentry.total_counted = `${lockedItems} / ${totalItems}`;\n\nconst totalSystemQty = entry.table_stock_count.reduce((sum, item) => sum + (parseFloat(item.system_qty) || 0), 0);\nconst totalVarianceQty = entry.table_stock_count.reduce((sum, item) => {\n  const varianceQty = parseFloat(item.variance_qty) || 0;\n  const adjustedQty = parseFloat(item.adjusted_qty);\n  const actualVariance = (!isNaN(adjustedQty) && adjustedQty !== null && adjustedQty !== varianceQty) ? adjustedQty : varianceQty;\n  return sum + actualVariance;\n}, 0);\nconst variancePercentage = totalSystemQty > 0 ? Math.abs(totalVarianceQty / totalSystemQty) * 100 : 0;\nentry.total_variance = `${variancePercentage.toFixed(2)}%`;\nentry.organization_id = {{workflowparams:organizationId}};\n\nconst hasRecountItems = entry.table_stock_count.some((item) => item.line_status === \"Recount\");\nconst allApproved = entry.table_stock_count.every((item) => item.line_status === \"Approved\" || item.line_status === \"Adjusted\");\n\nif (hasRecountItems) {\n  entry.review_status = \"Recount\";\n  entry.stock_count_status = \"In Progress\";\n} else if (allApproved) {\n  entry.review_status = \"Completed\";\n  entry.stock_count_status = \"Completed\";\n} else {\n  entry.review_status = \"In Review\";\n}\n\nconst approvedItems = entry.table_stock_count.filter((item) => item.review_status === \"Approved\" && item.line_status !== \"Adjusted\");\nconst itemsWithVariance = approvedItems.filter((item) => item.variance_qty !== 0 && item.line_status === \"Approved\");\n\nconst doProcess = (approvedItems.length > 0 && (allApproved || createAdjustment === \"Yes\")) ? 1 : 0;\nconst hasApprovedVariance = (doProcess === 1 && itemsWithVariance.length > 0) ? 1 : 0;\n\nlet materialIds = [...new Set(itemsWithVariance.map((i) => i.material_id))];\nlet locationIds = [...new Set(itemsWithVariance.map((i) => i.location_id))];\nlet baseUomIds = [...new Set(itemsWithVariance.map((i) => i.base_uom_id))];\nlet batchIds = [...new Set(itemsWithVariance.filter((i) => i.batch_id).map((i) => i.batch_id))];\nif (materialIds.length === 0) materialIds = [\"0\"];\nif (locationIds.length === 0) locationIds = [\"0\"];\nif (baseUomIds.length === 0) baseUomIds = [\"0\"];\nif (batchIds.length === 0) batchIds = [\"0\"];\n\nreturn { entry, itemsWithVariance, doProcess, hasApprovedVariance, materialIds, locationIds, baseUomIds, batchIds };"
                 },
                 "response_json": [
                   {
@@ -996,374 +996,6 @@
               ]
             },
             {
-              "id": "search_item",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "id": 1772617932183,
-                        "parentId": 1772617932160,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:code_review_prep.data.materialIds}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "id",
-                        "valueLabel": "",
-                        "operatorLabel": "in"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Fetch Items",
-                "isValidator": true,
-                "nodeName": "Fetch Items",
-                "name": "Fetch Items",
-                "limit": 1000
-              },
-              "blocks": []
-            },
-            {
-              "id": "search_item_balance",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "Item Balance:Table:1902698977724317697",
-                  "rules": {
-                    "collectionId": "1902698977724317697",
-                    "list": [
-                      {
-                        "id": 1770688051311,
-                        "parentId": 1770688051289,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1770000000024,
-                            "parentId": 1770000000001,
-                            "isTop": false,
-                            "prop": "material_id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_review_prep.data.materialIds}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "material_id",
-                            "valueLabel": "",
-                            "operatorLabel": "in"
-                          },
-                          {
-                            "id": 1770000000025,
-                            "parentId": 1770000000001,
-                            "isTop": false,
-                            "prop": "is_deleted",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 0,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "is_deleted",
-                            "valueLabel": "",
-                            "operatorLabel": "numberEqual"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Fetch Item Balance",
-                "isValidator": true,
-                "nodeName": "Fetch Item Balance",
-                "name": "Fetch Item Balance",
-                "limit": 1000
-              },
-              "blocks": []
-            },
-            {
-              "id": "search_item_batch_balance",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "Item Batch Balance:Table:1902718803880558594",
-                  "rules": {
-                    "collectionId": "1902718803880558594",
-                    "list": [
-                      {
-                        "id": 1770688051314,
-                        "parentId": 1770688051289,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1770000000027,
-                            "parentId": 1770000000001,
-                            "isTop": false,
-                            "prop": "material_id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_review_prep.data.materialIds}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "material_id",
-                            "valueLabel": "",
-                            "operatorLabel": "in"
-                          },
-                          {
-                            "id": 1770000000028,
-                            "parentId": 1770000000001,
-                            "isTop": false,
-                            "prop": "is_deleted",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 0,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "is_deleted",
-                            "valueLabel": "",
-                            "operatorLabel": "numberEqual"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Fetch Item Batch Balance",
-                "isValidator": true,
-                "nodeName": "Fetch Item Batch Balance",
-                "name": "Fetch Item Batch Balance",
-                "limit": 1000
-              },
-              "blocks": []
-            },
-            {
-              "id": "search_bin_location",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "Bin Location:Table:1902282127538507778",
-                  "rules": {
-                    "collectionId": "1902282127538507778",
-                    "list": [
-                      {
-                        "id": 1772617932190,
-                        "parentId": 1772617932160,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:code_review_prep.data.locationIds}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "id",
-                        "valueLabel": "",
-                        "operatorLabel": "in"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Fetch Bin Locations",
-                "isValidator": true,
-                "nodeName": "Fetch Bin Locations",
-                "name": "Fetch Bin Locations",
-                "limit": 1000
-              },
-              "blocks": []
-            },
-            {
-              "id": "search_uom",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "UOM:Table:1901805375573839874",
-                  "rules": {
-                    "collectionId": "1901805375573839874",
-                    "list": [
-                      {
-                        "id": 1772617932191,
-                        "parentId": 1772617932160,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:code_review_prep.data.baseUomIds}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "id",
-                        "valueLabel": "",
-                        "operatorLabel": "in"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Fetch UOMs",
-                "isValidator": true,
-                "nodeName": "Fetch UOMs",
-                "name": "Fetch UOMs",
-                "limit": 1000
-              },
-              "blocks": []
-            },
-            {
-              "id": "search_batch",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "Batch:Table:1902719754154655746",
-                  "rules": {
-                    "collectionId": "1902719754154655746",
-                    "list": [
-                      {
-                        "id": 1772617932192,
-                        "parentId": 1772617932160,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:code_review_prep.data.batchIds}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "id",
-                        "valueLabel": "",
-                        "operatorLabel": "in"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Fetch Batches",
-                "isValidator": true,
-                "nodeName": "Fetch Batches",
-                "name": "Fetch Batches",
-                "limit": 1000
-              },
-              "blocks": []
-            },
-            {
-              "id": "get_sa_prefix",
-              "type": "get-node",
-              "data": {
-                "table_id": {
-                  "source": "流水号规则表:Table:1994006139209117697",
-                  "rules": {
-                    "collectionId": "1994006139209117697",
-                    "list": [
-                      {
-                        "id": 1770688051320,
-                        "parentId": 1770688051289,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1770000000033,
-                            "parentId": 1770000000001,
-                            "isTop": false,
-                            "prop": "business_type",
-                            "operator": "equal",
-                            "valueType": "value",
-                            "value": "Stock Adjustment",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "business_type",
-                            "valueLabel": "",
-                            "operatorLabel": "equal"
-                          },
-                          {
-                            "id": 1770000000034,
-                            "parentId": 1770000000001,
-                            "isTop": false,
-                            "prop": "department_id",
-                            "operator": "numberEqual",
-                            "valueType": "field",
-                            "value": "{{workflowparams:organizationId}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "department_id",
-                            "valueLabel": "",
-                            "operatorLabel": "numberEqual"
-                          },
-                          {
-                            "id": 1770000000035,
-                            "parentId": 1770000000001,
-                            "isTop": false,
-                            "prop": "is_default",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 1,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "is_default",
-                            "valueLabel": "",
-                            "operatorLabel": "numberEqual"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Get SA Prefix Rule",
-                "isValidator": true,
-                "nodeName": "Get SA Prefix Rule",
-                "name": "Get SA Prefix Rule"
-              },
-              "blocks": []
-            },
-            {
-              "id": "code_review_build_sa",
-              "type": "code-node",
-              "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Build Stock Adjustment Doc",
-                "isValidator": true,
-                "nodeName": "Build Stock Adjustment Doc",
-                "name": "Build Stock Adjustment Doc",
-                "script": {
-                  "type": "javascript",
-                  "code": "const itemsWithVariance = {{node:code_review_prep.data.itemsWithVariance}} || [];\nconst entry = {{node:code_review_prep.data.entry}};\nconst itemList = {{node:search_item.data.data}} || [];\nconst balanceList = {{node:search_item_balance.data.data}} || [];\nconst batchBalanceList = {{node:search_item_batch_balance.data.data}} || [];\nconst binList = {{node:search_bin_location.data.data}} || [];\nconst uomList = {{node:search_uom.data.data}} || [];\nconst batchList = {{node:search_batch.data.data}} || [];\nlet prefixRule = {{node:get_sa_prefix.data.data}};\nif (Array.isArray(prefixRule)) prefixRule = prefixRule[0];\n\nconst organizationId = {{workflowparams:organizationId}};\nconst nickname = {{workflowparams:nickname}};\nconst adjustmentDate = {{workflowparams:adjustmentDate}};\n\nconst isActive = (b) => b.is_deleted === 0 || b.is_deleted === \"0\" || !b.is_deleted;\n\nconst groupedByMaterial = {};\nfor (const item of itemsWithVariance) {\n  if (!groupedByMaterial[item.material_id]) groupedByMaterial[item.material_id] = [];\n  groupedByMaterial[item.material_id].push(item);\n}\n\nconst stockAdjustmentTable = [];\nfor (const materialId in groupedByMaterial) {\n  const items = groupedByMaterial[materialId];\n  const firstItem = items[0];\n  const balanceIndex = [];\n  let totalQuantity = 0;\n  const adjSummaryDetails = [];\n\n  for (const item of items) {\n    let varianceToUse = item.variance_qty;\n    if (item.adjusted_qty !== undefined && item.adjusted_qty !== null && item.adjusted_qty !== item.variance_qty) {\n      varianceToUse = item.adjusted_qty;\n    }\n    let varianceQtyInBaseUOM = varianceToUse;\n    if (item.uom_id !== item.base_uom_id) {\n      let tableUOMConversion = item.table_uom_conversion;\n      if (!tableUOMConversion) {\n        const itemData = itemList.find((it) => it.id === item.material_id);\n        if (itemData) tableUOMConversion = itemData.table_uom_conversion;\n      }\n      if (typeof tableUOMConversion === \"string\") {\n        try { tableUOMConversion = JSON.parse(tableUOMConversion); } catch (e) { tableUOMConversion = null; }\n      }\n      if (tableUOMConversion && !Array.isArray(tableUOMConversion)) tableUOMConversion = [tableUOMConversion];\n      if (tableUOMConversion && Array.isArray(tableUOMConversion)) {\n        const currentUOMConversion = tableUOMConversion.find((conv) => conv.alt_uom_id === item.uom_id);\n        if (currentUOMConversion && currentUOMConversion.base_qty) {\n          varianceQtyInBaseUOM = varianceToUse * currentUOMConversion.base_qty;\n        }\n      }\n    }\n\n    let balanceData;\n    if (item.batch_id) {\n      balanceData = batchBalanceList.find((b) => b.material_id === item.material_id && b.plant_id === item.plant_id && b.location_id === item.location_id && b.batch_id === item.batch_id && isActive(b));\n    } else {\n      balanceData = balanceList.find((b) => b.material_id === item.material_id && b.plant_id === item.plant_id && b.location_id === item.location_id && isActive(b));\n    }\n\n    if (balanceData) {\n      const movementType = varianceQtyInBaseUOM > 0 ? \"In\" : \"Out\";\n      const saQuantity = Math.abs(varianceQtyInBaseUOM);\n      totalQuantity += saQuantity;\n\n      balanceIndex.push({\n        balance_id: balanceData.id,\n        material_id: balanceData.material_id,\n        plant_id: balanceData.plant_id,\n        location_id: balanceData.location_id,\n        batch_id: balanceData.batch_id || null,\n        balance_quantity: balanceData.balance_quantity,\n        unrestricted_qty: balanceData.unrestricted_qty,\n        block_qty: balanceData.block_qty,\n        qualityinsp_qty: balanceData.qualityinsp_qty,\n        reserved_qty: balanceData.reserved_qty,\n        intransit_qty: balanceData.intransit_qty,\n        organization_id: balanceData.organization_id,\n        tenant_id: balanceData.tenant_id,\n        create_user: balanceData.create_user,\n        create_time: balanceData.create_time,\n        create_dept: balanceData.create_dept,\n        update_user: balanceData.update_user,\n        update_time: balanceData.update_time,\n        is_deleted: balanceData.is_deleted,\n        category: \"Unrestricted\",\n        movement_type: movementType,\n        sa_quantity: saQuantity\n      });\n\n      const locationName = (binList.find((b) => b.id === item.location_id) || {}).bin_location_combine || item.location_id;\n      const uomName = (uomList.find((u) => u.id === item.base_uom_id) || {}).uom_name || \"\";\n      let batchName = \"\";\n      if (item.batch_id) batchName = (batchList.find((bt) => bt.id === item.batch_id) || {}).batch_number || \"\";\n      const categoryAbbr = \"UNR\";\n      const movementTypeLabel = movementType === \"In\" ? \"IN\" : \"OUT\";\n      let detailLine = `${locationName}: ${saQuantity} ${uomName} (${categoryAbbr}) - ${movementTypeLabel}`;\n      if (batchName) detailLine += `\\n[${batchName}]`;\n      adjSummaryDetails.push(detailLine);\n    }\n  }\n\n  const baseUomName = (uomList.find((u) => u.id === firstItem.base_uom_id) || {}).uom_name || \"\";\n  const adjSummary = `Total: ${totalQuantity} ${baseUomName}\\nDETAILS:\\n${adjSummaryDetails.map((detail, idx) => `${idx + 1}. ${detail}`).join(\"\\n\")}`;\n  const materialName = (itemList.find((it) => it.id === materialId) || {}).material_name || \"\";\n\n  stockAdjustmentTable.push({\n    material_id: materialId,\n    uom_id: firstItem.base_uom_id,\n    material_name: materialName,\n    item_category: firstItem.item_category,\n    is_serialized_item: firstItem.is_serialized || 0,\n    is_single_serial: firstItem.is_single || 0,\n    total_quantity: totalQuantity,\n    balance_index: JSON.stringify(balanceIndex),\n    adj_summary: adjSummary\n  });\n}\n\nconst stockAdjustmentDoc = {\n  stock_adjustment_status: \"Draft\",\n  organization_id: organizationId,\n  adjustment_no: \"draft\",\n  adjustment_no_type: (prefixRule && prefixRule.id) ? prefixRule.id : null,\n  stock_count_id: entry.id,\n  adjustment_date: adjustmentDate,\n  adjustment_type: \"Stock Count\",\n  adjusted_by: nickname,\n  plant_id: entry.plant_id,\n  adjustment_remarks: entry.stock_count_remark || \"\",\n  adjustment_remarks2: entry.stock_count_remark2 || \"\",\n  adjustment_remarks3: entry.stock_count_remark3 || \"\",\n  stock_adjustment: stockAdjustmentTable\n};\n\nreturn { stockAdjustmentDoc };"
-                },
-                "response_json": [
-                  {
-                    "key": "k1077",
-                    "name": "stockAdjustmentDoc",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "any",
-                    "isExpand": false,
-                    "children": []
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
               "id": "if_has_approved_variance",
               "type": "if",
               "data": {
@@ -1399,6 +1031,374 @@
                     "title": "true"
                   },
                   "blocks": [
+                    {
+                      "id": "search_item",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Item:Table:1901546842240438273",
+                          "rules": {
+                            "collectionId": "1901546842240438273",
+                            "list": [
+                              {
+                                "id": 1772617932183,
+                                "parentId": 1772617932160,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_review_prep.data.materialIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "id",
+                                "valueLabel": "",
+                                "operatorLabel": "in"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Fetch Items",
+                        "isValidator": true,
+                        "nodeName": "Fetch Items",
+                        "name": "Fetch Items",
+                        "limit": 1000
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_item_balance",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Item Balance:Table:1902698977724317697",
+                          "rules": {
+                            "collectionId": "1902698977724317697",
+                            "list": [
+                              {
+                                "id": 1770688051311,
+                                "parentId": 1770688051289,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1770000000024,
+                                    "parentId": 1770000000001,
+                                    "isTop": false,
+                                    "prop": "material_id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_review_prep.data.materialIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "material_id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  },
+                                  {
+                                    "id": 1770000000025,
+                                    "parentId": 1770000000001,
+                                    "isTop": false,
+                                    "prop": "is_deleted",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 0,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "is_deleted",
+                                    "valueLabel": "",
+                                    "operatorLabel": "numberEqual"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Fetch Item Balance",
+                        "isValidator": true,
+                        "nodeName": "Fetch Item Balance",
+                        "name": "Fetch Item Balance",
+                        "limit": 1000
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_item_batch_balance",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Item Batch Balance:Table:1902718803880558594",
+                          "rules": {
+                            "collectionId": "1902718803880558594",
+                            "list": [
+                              {
+                                "id": 1770688051314,
+                                "parentId": 1770688051289,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1770000000027,
+                                    "parentId": 1770000000001,
+                                    "isTop": false,
+                                    "prop": "material_id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_review_prep.data.materialIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "material_id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  },
+                                  {
+                                    "id": 1770000000028,
+                                    "parentId": 1770000000001,
+                                    "isTop": false,
+                                    "prop": "is_deleted",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 0,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "is_deleted",
+                                    "valueLabel": "",
+                                    "operatorLabel": "numberEqual"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Fetch Item Batch Balance",
+                        "isValidator": true,
+                        "nodeName": "Fetch Item Batch Balance",
+                        "name": "Fetch Item Batch Balance",
+                        "limit": 1000
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_bin_location",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Bin Location:Table:1902282127538507778",
+                          "rules": {
+                            "collectionId": "1902282127538507778",
+                            "list": [
+                              {
+                                "id": 1772617932190,
+                                "parentId": 1772617932160,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_review_prep.data.locationIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "id",
+                                "valueLabel": "",
+                                "operatorLabel": "in"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Fetch Bin Locations",
+                        "isValidator": true,
+                        "nodeName": "Fetch Bin Locations",
+                        "name": "Fetch Bin Locations",
+                        "limit": 1000
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_uom",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "UOM:Table:1901805375573839874",
+                          "rules": {
+                            "collectionId": "1901805375573839874",
+                            "list": [
+                              {
+                                "id": 1772617932191,
+                                "parentId": 1772617932160,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_review_prep.data.baseUomIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "id",
+                                "valueLabel": "",
+                                "operatorLabel": "in"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Fetch UOMs",
+                        "isValidator": true,
+                        "nodeName": "Fetch UOMs",
+                        "name": "Fetch UOMs",
+                        "limit": 1000
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_batch",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Batch:Table:1902719754154655746",
+                          "rules": {
+                            "collectionId": "1902719754154655746",
+                            "list": [
+                              {
+                                "id": 1772617932192,
+                                "parentId": 1772617932160,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_review_prep.data.batchIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "id",
+                                "valueLabel": "",
+                                "operatorLabel": "in"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Fetch Batches",
+                        "isValidator": true,
+                        "nodeName": "Fetch Batches",
+                        "name": "Fetch Batches",
+                        "limit": 1000
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "get_sa_prefix",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "流水号规则表:Table:1994006139209117697",
+                          "rules": {
+                            "collectionId": "1994006139209117697",
+                            "list": [
+                              {
+                                "id": 1770688051320,
+                                "parentId": 1770688051289,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1770000000033,
+                                    "parentId": 1770000000001,
+                                    "isTop": false,
+                                    "prop": "business_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Stock Adjustment",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "business_type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 1770000000034,
+                                    "parentId": 1770000000001,
+                                    "isTop": false,
+                                    "prop": "department_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:organizationId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "department_id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "numberEqual"
+                                  },
+                                  {
+                                    "id": 1770000000035,
+                                    "parentId": 1770000000001,
+                                    "isTop": false,
+                                    "prop": "is_default",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "is_default",
+                                    "valueLabel": "",
+                                    "operatorLabel": "numberEqual"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get SA Prefix Rule",
+                        "isValidator": true,
+                        "nodeName": "Get SA Prefix Rule",
+                        "name": "Get SA Prefix Rule"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_review_build_sa",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Build Stock Adjustment Doc",
+                        "isValidator": true,
+                        "nodeName": "Build Stock Adjustment Doc",
+                        "name": "Build Stock Adjustment Doc",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const itemsWithVariance = {{node:code_review_prep.data.itemsWithVariance}} || [];\nconst entry = {{node:code_review_prep.data.entry}};\nconst itemList = {{node:search_item.data.data}} || [];\nconst balanceList = {{node:search_item_balance.data.data}} || [];\nconst batchBalanceList = {{node:search_item_batch_balance.data.data}} || [];\nconst binList = {{node:search_bin_location.data.data}} || [];\nconst uomList = {{node:search_uom.data.data}} || [];\nconst batchList = {{node:search_batch.data.data}} || [];\nlet prefixRule = {{node:get_sa_prefix.data.data}};\nif (Array.isArray(prefixRule)) prefixRule = prefixRule[0];\n\nconst organizationId = {{workflowparams:organizationId}};\nconst nickname = {{workflowparams:nickname}};\nconst adjustmentDate = {{workflowparams:adjustmentDate}};\n\nconst isActive = (b) => b.is_deleted === 0 || b.is_deleted === \"0\" || !b.is_deleted;\n\nconst groupedByMaterial = {};\nfor (const item of itemsWithVariance) {\n  if (!groupedByMaterial[item.material_id]) groupedByMaterial[item.material_id] = [];\n  groupedByMaterial[item.material_id].push(item);\n}\n\nconst stockAdjustmentTable = [];\nfor (const materialId in groupedByMaterial) {\n  const items = groupedByMaterial[materialId];\n  const firstItem = items[0];\n  const balanceIndex = [];\n  let totalQuantity = 0;\n  const adjSummaryDetails = [];\n\n  for (const item of items) {\n    let varianceToUse = item.variance_qty;\n    if (item.adjusted_qty !== undefined && item.adjusted_qty !== null && item.adjusted_qty !== item.variance_qty) {\n      varianceToUse = item.adjusted_qty;\n    }\n    let varianceQtyInBaseUOM = varianceToUse;\n    if (item.uom_id !== item.base_uom_id) {\n      let tableUOMConversion = item.table_uom_conversion;\n      if (!tableUOMConversion) {\n        const itemData = itemList.find((it) => it.id === item.material_id);\n        if (itemData) tableUOMConversion = itemData.table_uom_conversion;\n      }\n      if (typeof tableUOMConversion === \"string\") {\n        try { tableUOMConversion = JSON.parse(tableUOMConversion); } catch (e) { tableUOMConversion = null; }\n      }\n      if (tableUOMConversion && !Array.isArray(tableUOMConversion)) tableUOMConversion = [tableUOMConversion];\n      if (tableUOMConversion && Array.isArray(tableUOMConversion)) {\n        const currentUOMConversion = tableUOMConversion.find((conv) => conv.alt_uom_id === item.uom_id);\n        if (currentUOMConversion && currentUOMConversion.base_qty) {\n          varianceQtyInBaseUOM = varianceToUse * currentUOMConversion.base_qty;\n        }\n      }\n    }\n\n    let balanceData;\n    if (item.batch_id) {\n      balanceData = batchBalanceList.find((b) => b.material_id === item.material_id && b.plant_id === item.plant_id && b.location_id === item.location_id && b.batch_id === item.batch_id && isActive(b));\n    } else {\n      balanceData = balanceList.find((b) => b.material_id === item.material_id && b.plant_id === item.plant_id && b.location_id === item.location_id && isActive(b));\n    }\n\n    if (balanceData) {\n      const movementType = varianceQtyInBaseUOM > 0 ? \"In\" : \"Out\";\n      const saQuantity = Math.abs(varianceQtyInBaseUOM);\n      totalQuantity += saQuantity;\n\n      balanceIndex.push({\n        balance_id: balanceData.id,\n        material_id: balanceData.material_id,\n        plant_id: balanceData.plant_id,\n        location_id: balanceData.location_id,\n        batch_id: balanceData.batch_id || null,\n        balance_quantity: balanceData.balance_quantity,\n        unrestricted_qty: balanceData.unrestricted_qty,\n        block_qty: balanceData.block_qty,\n        qualityinsp_qty: balanceData.qualityinsp_qty,\n        reserved_qty: balanceData.reserved_qty,\n        intransit_qty: balanceData.intransit_qty,\n        organization_id: balanceData.organization_id,\n        tenant_id: balanceData.tenant_id,\n        create_user: balanceData.create_user,\n        create_time: balanceData.create_time,\n        create_dept: balanceData.create_dept,\n        update_user: balanceData.update_user,\n        update_time: balanceData.update_time,\n        is_deleted: balanceData.is_deleted,\n        category: \"Unrestricted\",\n        movement_type: movementType,\n        sa_quantity: saQuantity\n      });\n\n      const locationName = (binList.find((b) => b.id === item.location_id) || {}).bin_location_combine || item.location_id;\n      const uomName = (uomList.find((u) => u.id === item.base_uom_id) || {}).uom_name || \"\";\n      let batchName = \"\";\n      if (item.batch_id) batchName = (batchList.find((bt) => bt.id === item.batch_id) || {}).batch_number || \"\";\n      const categoryAbbr = \"UNR\";\n      const movementTypeLabel = movementType === \"In\" ? \"IN\" : \"OUT\";\n      let detailLine = `${locationName}: ${saQuantity} ${uomName} (${categoryAbbr}) - ${movementTypeLabel}`;\n      if (batchName) detailLine += `\\n[${batchName}]`;\n      adjSummaryDetails.push(detailLine);\n    }\n  }\n\n  const baseUomName = (uomList.find((u) => u.id === firstItem.base_uom_id) || {}).uom_name || \"\";\n  const adjSummary = `Total: ${totalQuantity} ${baseUomName}\\nDETAILS:\\n${adjSummaryDetails.map((detail, idx) => `${idx + 1}. ${detail}`).join(\"\\n\")}`;\n  const materialName = (itemList.find((it) => it.id === materialId) || {}).material_name || \"\";\n\n  stockAdjustmentTable.push({\n    material_id: materialId,\n    uom_id: firstItem.base_uom_id,\n    material_name: materialName,\n    item_category: firstItem.item_category,\n    is_serialized_item: firstItem.is_serialized || 0,\n    is_single_serial: firstItem.is_single || 0,\n    total_quantity: totalQuantity,\n    balance_index: JSON.stringify(balanceIndex),\n    adj_summary: adjSummary\n  });\n}\n\nconst stockAdjustmentDoc = {\n  stock_adjustment_status: \"Draft\",\n  organization_id: organizationId,\n  adjustment_no: \"draft\",\n  adjustment_no_type: (prefixRule && prefixRule.id) ? prefixRule.id : null,\n  stock_count_id: entry.id,\n  adjustment_date: adjustmentDate,\n  adjustment_type: \"Stock Count\",\n  adjusted_by: nickname,\n  plant_id: entry.plant_id,\n  adjustment_remarks: entry.stock_count_remark || \"\",\n  adjustment_remarks2: entry.stock_count_remark2 || \"\",\n  adjustment_remarks3: entry.stock_count_remark3 || \"\",\n  stock_adjustment: stockAdjustmentTable\n};\n\nreturn { stockAdjustmentDoc };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "k1077",
+                            "name": "stockAdjustmentDoc",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
                     {
                       "id": "add_node_sa",
                       "type": "add-node",

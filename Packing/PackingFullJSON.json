@@ -2684,7 +2684,8 @@
                           }
                         ],
                         "hidden": "{{arguments[0].row.hu_status !== 'Completed'}}",
-                        "disabled": ""
+                        "disabled": "",
+                        "ignoreFormDisabled": false
                       }
                     ],
                     "collapse_all": 1,
@@ -2742,7 +2743,9 @@
                       ]
                     },
                     "highlightSelectedRow": false,
-                    "highlightHoverRow": false
+                    "highlightHoverRow": false,
+                    "childRecordMode": false,
+                    "inlineInsert": true
                   },
                   "events": {
                     "onRead": "",
@@ -13210,6 +13213,26 @@
       {
         "key": "onAfterUpdate",
         "name": "onAfterUpdate",
+        "func": ""
+      },
+      {
+        "key": "onCommentPublish",
+        "name": "onCommentPublish",
+        "func": ""
+      },
+      {
+        "key": "onCommentDelete",
+        "name": "onCommentDelete",
+        "func": ""
+      },
+      {
+        "key": "onMention",
+        "name": "onMention",
+        "func": ""
+      },
+      {
+        "key": "onLoad",
+        "name": "onLoad",
         "func": ""
       },
       {
