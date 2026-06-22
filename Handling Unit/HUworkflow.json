@@ -652,6 +652,14 @@
                               "value": "{{node:code_node_5TaNy6P5.data.hu_status}}",
                               "valueLabel": "",
                               "propLabel": "HU Status"
+                            },
+                            {
+                              "prop": "packing_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:packing_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Packing ID"
                             }
                           ]
                         }
@@ -1553,6 +1561,14 @@
       "key": "jc363fha",
       "name": "hu_status",
       "title": "hu_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "v6nyptnf",
+      "name": "packing_id",
+      "title": "packing_id",
       "description": "",
       "bsonType": "string",
       "isExpand": false
