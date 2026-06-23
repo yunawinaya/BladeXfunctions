@@ -476,6 +476,127 @@
               ]
             },
             {
+              "id": "code_node_PTvldLns1",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Validate Inventory Lines",
+                "isValidator": true,
+                "nodeName": "Validate Inventory Lines",
+                "name": "Validate Inventory Lines",
+                "script": {
+                  "type": "javascript",
+                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}}\nconst subform = (allData && allData.stock_movement) || []\n\nconst errors = []\nsubform.forEach((row, i) => {\n  const hasItem = !!row.item_selection\n  const qty = parseFloat(row.total_quantity || 0)\n  let temp = []\n  try { temp = JSON.parse(row.temp_qty_data || \"[]\") } catch (e) { temp = [] }\n  const hasSource = Array.isArray(temp) && temp.some((b) => parseFloat(b.sm_quantity || 0) > 0)\n  const hasQty = qty > 0 || hasSource\n\n  // Skip fully empty/description rows; every other row must have BOTH item and quantity\n  if (!hasItem && !hasQty) return\n\n  const label = row.item_name ? (\" (\" + row.item_name + \")\") : \"\"\n  if (hasItem && !hasQty) {\n    errors.push(\"Row \" + (i + 1) + label + \": item selected but no quantity entered\")\n  } else if (hasQty && !hasItem) {\n    errors.push(\"Row \" + (i + 1) + \": quantity entered but no item selected\")\n  }\n})\n\nconst lineValidationFailed = errors.length > 0 ? 1 : 0\nconst lineValidationMessage = errors.length > 0\n  ? (\"Cannot save - please fix these rows first:\\n\" + errors.join(\"\\n\"))\n  : \"\"\n\nreturn {\n  lineValidationFailed: lineValidationFailed,\n  lineValidationMessage: lineValidationMessage\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "ptvldf01",
+                    "name": "lineValidationFailed",
+                    "title": "lineValidationFailed",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ptvldm02",
+                    "name": "lineValidationMessage",
+                    "title": "lineValidationMessage",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_PTvldLnsFail",
+              "type": "if",
+              "data": {
+                "title": "IF Line Validation Failed",
+                "isValidator": true,
+                "nodeName": "IF Line Validation Failed",
+                "name": "IF Line Validation Failed",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695974001,
+                      "parentId": 1736695974000,
+                      "isTop": true,
+                      "prop": "node.code_node_PTvldLns1.data.lineValidationFailed",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "lineValidationFailed",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_PTvldTrue",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "return_node_PTvldFail",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PTvldLns1.data.lineValidationMessage}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_PTvldFalse",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "get_node_tt0natxw",
               "type": "get-node",
               "data": {
