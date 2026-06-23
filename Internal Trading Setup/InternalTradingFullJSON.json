@@ -115,7 +115,7 @@
           "groupSort": 6,
           "enableScopes": ["Component", "Table", "Page"],
           "options": {
-            "defaultValue": "Item Alias",
+            "defaultValue": "Internal Trading Setup",
             "customClass": "marginright",
             "hidden": false,
             "isRich": false,
@@ -163,7 +163,7 @@
             "onClick": ""
           },
           "key": "k7jwhr2g",
-          "model": "item_tittle",
+          "model": "internal_trading_tittle",
           "rules": [],
           "novalid": {}
         },
@@ -346,7 +346,10 @@
         "right": 4,
         "pad": "*",
         "desensitization_pattern": "",
-        "desensitization_replace": ""
+        "desensitization_replace": "",
+        "dynamicValueType": "fx",
+        "isDynamicValue": false,
+        "labelBold": true
       },
       "events": {
         "onChange": ""
@@ -533,7 +536,7 @@
                 "remoteOptions": [],
                 "props": {
                   "value": "id",
-                  "label": "material_code",
+                  "label": "supplier_code",
                   "image": "",
                   "icon": "",
                   "explain": "",
@@ -558,52 +561,25 @@
                 "desensitization_replace": "",
                 "datasource": {
                   "rules": {
-                    "collectionId": "1901546842240438273",
+                    "collectionId": "1901541078662762497",
                     "list": [
                       {
-                        "id": 1782185524803,
-                        "parentId": 1782185524804,
+                        "id": 1782189730934,
+                        "parentId": 1782189730933,
                         "isTop": true,
-                        "prop": "",
-                        "operator": "all",
-                        "valueType": "",
-                        "value": "",
-                        "type": "branch",
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:buyer_org_id}}",
+                        "type": "leaf",
                         "level": 1,
-                        "children": [
-                          {
-                            "id": 1723795236686,
-                            "parentId": 1782185524803,
-                            "isTop": false,
-                            "prop": "organization_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{value:buyer_org_id}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Organization",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1782185524805,
-                            "parentId": 1782185524803,
-                            "isTop": false,
-                            "prop": "is_active",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 1,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Active",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          }
-                        ]
+                        "propLabel": "Organization",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
                       }
                     ]
                   },
-                  "source": "Item:Table:1901546842240438273"
+                  "source": "Supplier:Table:1901541078662762497"
                 },
                 "auto_refresh": 0,
                 "auto_refresh_debounce": 100,
@@ -614,13 +590,160 @@
               },
               "events": {
                 "onReady": "",
-                "onChange": "kvf76v8h",
+                "onChange": "",
                 "onFocus": "",
                 "onBlur": ""
               },
-              "name": "Buyer Item Code",
+              "name": "Buyer Supplier",
               "key": "6vzxjh7g",
-              "model": "buyer_item_id",
+              "model": "buyer_supplier_id",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "version": "1.0.0",
+              "type": "switch",
+              "mainIcon": "开关",
+              "typeIcon": "开关",
+              "icon": "icon-switch",
+              "group": "Select",
+              "groupSort": 8,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": 1,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "disabled": false,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "width": "",
+                "customProps": {},
+                "tip": "",
+                "booleanValueMode": false,
+                "alignright": false,
+                "checkboxMode": false,
+                "remoteFunc": "func_u0xrbyc5",
+                "remoteOption": "option_u0xrbyc5",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "dynamicValueType": "fx",
+                "isDynamicValue": false
+              },
+              "events": {
+                "onChange": ""
+              },
+              "name": "Auto Create SO",
+              "key": "i0w1972a",
+              "model": "auto_create_so",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "version": "1.0.0",
+              "type": "switch",
+              "mainIcon": "开关",
+              "typeIcon": "开关",
+              "icon": "icon-switch",
+              "group": "Select",
+              "groupSort": 8,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": 0,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "disabled": false,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "width": "",
+                "customProps": {},
+                "tip": "",
+                "booleanValueMode": false,
+                "alignright": false,
+                "checkboxMode": false,
+                "remoteFunc": "func_u0xrbyc5",
+                "remoteOption": "option_u0xrbyc5",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "dynamicValueType": "fx",
+                "isDynamicValue": false
+              },
+              "events": {
+                "onChange": ""
+              },
+              "name": "Auto Create GD",
+              "key": "udp2o37p",
+              "model": "auto_create_gd",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "version": "1.0.0",
+              "type": "switch",
+              "mainIcon": "开关",
+              "typeIcon": "开关",
+              "icon": "icon-switch",
+              "group": "Select",
+              "groupSort": 8,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": 0,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "disabled": false,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "width": "",
+                "customProps": {},
+                "tip": "",
+                "booleanValueMode": false,
+                "alignright": false,
+                "checkboxMode": false,
+                "remoteFunc": "func_u0xrbyc5",
+                "remoteOption": "option_u0xrbyc5",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "dynamicValueType": "fx",
+                "isDynamicValue": false
+              },
+              "events": {
+                "onChange": ""
+              },
+              "name": "Auto Create SI",
+              "key": "zsl5695d",
+              "model": "auto_create_si",
               "rules": [],
               "novalid": {}
             },
@@ -635,9 +758,9 @@
               "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
-                "defaultValue": "",
+                "defaultValue": "po_price",
                 "multiple": false,
-                "disabled": "{{{{value:buyer_item_id}} === ''}}",
+                "disabled": false,
                 "clearable": false,
                 "placeholder": "",
                 "required": false,
@@ -647,34 +770,27 @@
                 "width": "",
                 "options": [
                   {
-                    "value": "Option 1",
-                    "label": "Option 1"
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2"
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
+                    "value": "po_price",
+                    "label": "Purchase Order Price",
+                    "explain": "",
+                    "disabled": false,
+                    "visible": true
                   }
                 ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_6vzxjh7g",
+                "remote": false,
+                "remoteType": "datasource",
+                "remoteOption": "option_23zjt23a",
                 "filterable": false,
                 "pagingEnabled": true,
                 "remoteOptions": [],
                 "props": {
-                  "value": "alt_uom_id.id",
-                  "label": "alt_uom_id.uom_name",
+                  "value": "",
+                  "label": "",
                   "image": "",
                   "icon": "",
-                  "explain": "",
-                  "cascade": "",
-                  "children": ""
+                  "explain": ""
                 },
-                "remoteFunc": "func_6vzxjh7g",
+                "remoteFunc": "func_23zjt23a",
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
@@ -684,103 +800,27 @@
                 "tip": "",
                 "tableColumn": false,
                 "subform": false,
-                "select-card_n7ge7fmb": [],
-                "left": 3,
-                "right": 4,
-                "pad": "*",
-                "desensitization_pattern": "",
-                "desensitization_replace": "",
                 "datasource": {
                   "rules": {
-                    "collectionId": "1939885252310573057",
+                    "collectionId": "",
                     "list": [
                       {
-                        "id": 1782185602322,
-                        "parentId": 1782185602321,
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
                         "isTop": true,
-                        "prop": "Item_id.id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{value:buyer_item_id}}",
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
                         "type": "leaf",
-                        "level": 1,
-                        "propLabel": "主键ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
+                        "level": 1
                       }
                     ]
                   },
-                  "source": "UOM Conversion(Item):Table:1939885252310573057"
+                  "source": "static"
                 },
                 "auto_refresh": 0,
                 "auto_refresh_debounce": 100,
-                "limit_count": null,
-                "sorts": [],
-                "paging_enabled": 1,
-                "page_size": 10
-              },
-              "events": {
-                "onReady": "",
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "name": "Item UOM",
-              "key": "2iek1q3r",
-              "model": "buyer_uom_id",
-              "rules": [],
-              "novalid": {}
-            },
-            {
-              "version": "1.0.0",
-              "name": "Conversion Rate",
-              "el": "su-fm-enhanced-number-input",
-              "mainIcon": "数字",
-              "typeIcon": "数字",
-              "group": "Number",
-              "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
-              "options": {
-                "width": "",
-                "defaultValue": 1,
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "disabled": "{{{{value:buyer_item_id}} === \"\" || {{value:seller_item_id}} === \"\"}}",
-                "dataBind": true,
-                "required": false,
-                "validator": "",
-                "hideLabel": false,
-                "placeholder": "",
-                "min": null,
-                "max": null,
-                "controls": false,
-                "step": 1,
-                "precision": 3,
-                "clearable": true,
-                "readonly": false,
-                "customProps": {
-                  "valueType": "int",
-                  "numberType": "number",
-                  "showPrefix": false,
-                  "prefixText": "",
-                  "showSuffix": false,
-                  "suffixText": "",
-                  "percentageType": "percent",
-                  "showPercentSymbol": true,
-                  "currency": "CNY",
-                  "customCurrencySymbol": "",
-                  "showThousandSeparator": true,
-                  "showCurrencySymbol": true,
-                  "showThousandSeparatorForNumber": false,
-                  "allowNegative": false,
-                  "autoFormat": true
-                },
-                "remoteFunc": "func_ayd6txhh",
-                "remoteOption": "option_ayd6txhh",
-                "tableColumn": false,
-                "subform": false,
                 "select-card_n7ge7fmb": [],
                 "left": 3,
                 "right": 4,
@@ -789,16 +829,206 @@
                 "desensitization_replace": ""
               },
               "events": {
+                "onReady": "",
                 "onChange": "",
                 "onFocus": "",
                 "onBlur": ""
               },
-              "source": "system",
-              "type": "custom",
-              "novalid": {},
-              "key": "ayd6txhh",
-              "model": "conversion_rate",
-              "rules": []
+              "name": "Pricing Source",
+              "key": "23zjt23a",
+              "model": "pricing_source",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "buyer_po",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "buyer_po",
+                    "label": "Buyer Purchase Order",
+                    "explain": "",
+                    "disabled": false,
+                    "visible": true
+                  }
+                ],
+                "remote": false,
+                "remoteType": "datasource",
+                "remoteOption": "option_23zjt23a",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "",
+                  "label": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_23zjt23a",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "static"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "paging_way": "Pagination",
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Tax Source",
+              "key": "g3662ywb",
+              "model": "tax_source",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "seller_customer",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "seller_customer",
+                    "label": "Seller Customer",
+                    "explain": "",
+                    "disabled": false,
+                    "visible": true
+                  }
+                ],
+                "remote": false,
+                "remoteType": "datasource",
+                "remoteOption": "option_23zjt23a",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "",
+                  "label": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_23zjt23a",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "static"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "paging_way": "Pagination",
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Payment Term Source",
+              "key": "9ql61ez6",
+              "model": "payment_term_source",
+              "rules": [],
+              "novalid": {}
             }
           ],
           "key": "jqxsma69",
@@ -970,7 +1200,7 @@
                 "remoteOptions": [],
                 "props": {
                   "value": "id",
-                  "label": "material_code",
+                  "label": "customer_id",
                   "image": "",
                   "icon": "",
                   "explain": "",
@@ -995,159 +1225,25 @@
                 "desensitization_replace": "",
                 "datasource": {
                   "rules": {
-                    "collectionId": "1901546842240438273",
+                    "collectionId": "1902779099617804290",
                     "list": [
                       {
-                        "id": 1782185492566,
-                        "parentId": 1782185492567,
+                        "id": 1782189794407,
+                        "parentId": 1782189794406,
                         "isTop": true,
-                        "prop": "",
-                        "operator": "all",
-                        "valueType": "",
-                        "value": "",
-                        "type": "branch",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1723795236686,
-                            "parentId": 1782185492566,
-                            "isTop": false,
-                            "prop": "organization_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{value:seller_org_id}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Organization",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1782185492568,
-                            "parentId": 1782185492566,
-                            "isTop": false,
-                            "prop": "is_active",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 1,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Active",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  "source": "Item:Table:1901546842240438273"
-                },
-                "auto_refresh": 0,
-                "auto_refresh_debounce": 100,
-                "limit_count": null,
-                "sorts": [],
-                "paging_enabled": 1,
-                "page_size": 10
-              },
-              "events": {
-                "onReady": "",
-                "onChange": "gozra1lw",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "name": "Seller Item Code",
-              "key": "z2g37mvw",
-              "model": "seller_item_id",
-              "rules": [],
-              "novalid": {}
-            },
-            {
-              "version": "1.0.0",
-              "type": "select",
-              "mainIcon": "下拉单选",
-              "typeIcon": "下拉单选",
-              "icon": "icon-select",
-              "group": "Select",
-              "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-select",
-              "options": {
-                "defaultValue": "",
-                "multiple": false,
-                "disabled": "{{{{value:seller_item_id}} === ''}}",
-                "clearable": false,
-                "placeholder": "",
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "width": "",
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1"
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2"
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_6vzxjh7g",
-                "filterable": false,
-                "pagingEnabled": true,
-                "remoteOptions": [],
-                "props": {
-                  "value": "alt_uom_id.id",
-                  "label": "alt_uom_id.uom_name",
-                  "image": "",
-                  "icon": "",
-                  "explain": "",
-                  "cascade": "",
-                  "children": ""
-                },
-                "remoteFunc": "func_6vzxjh7g",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "customProps": {},
-                "tip": "",
-                "tableColumn": false,
-                "subform": false,
-                "select-card_n7ge7fmb": [],
-                "left": 3,
-                "right": 4,
-                "pad": "*",
-                "desensitization_pattern": "",
-                "desensitization_replace": "",
-                "datasource": {
-                  "rules": {
-                    "collectionId": "1939885252310573057",
-                    "list": [
-                      {
-                        "id": 1782185602322,
-                        "parentId": 1782185602321,
-                        "isTop": true,
-                        "prop": "Item_id.id",
-                        "operator": "in",
+                        "prop": "organization_id",
+                        "operator": "equal",
                         "valueType": "field",
-                        "value": "{{value:seller_item_id}}",
+                        "value": "{{value:seller_org_id}}",
                         "type": "leaf",
                         "level": 1,
-                        "propLabel": "主键ID",
+                        "propLabel": "Organization",
                         "valueLabel": "",
-                        "operatorLabel": "In"
+                        "operatorLabel": "Equal"
                       }
                     ]
                   },
-                  "source": "UOM Conversion(Item):Table:1939885252310573057"
+                  "source": "Customer:Table:1902779099617804290"
                 },
                 "auto_refresh": 0,
                 "auto_refresh_debounce": 100,
@@ -1162,9 +1258,9 @@
                 "onFocus": "",
                 "onBlur": ""
               },
-              "name": "Item UOM",
-              "key": "s39c9y6u",
-              "model": "seller_uom_id",
+              "name": "Seller Customer",
+              "key": "z2g37mvw",
+              "model": "seller_customer_id",
               "rules": [],
               "novalid": {}
             }
@@ -1420,8 +1516,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "const showStatusHTML = async (status) => {\n  switch (status) {\n    case 1:\n      this.display([\"active_status\"]);\n      break;\n    case 0:\n      this.display([\"inactive_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\n(async () => {\n  try {\n    const activeStatus = await this.getValue(\"is_active\");\n\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else throw new Error(\"Invalid page state\");\n\n    this.setData({ page_status: pageStatus });\n\n    switch (pageStatus) {\n      case \"Add\":\n        this.display([\"active_status\"]);\n        break;\n\n      case \"Edit\":\n        showStatusHTML(activeStatus);\n        break;\n\n      case \"View\":\n        showStatusHTML(activeStatus);\n        this.hide([\"button_cancel\", \"button_save\"]);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
-        "type": "js"
+        "func": ""
       },
       {
         "key": "refresh",
@@ -1494,18 +1589,6 @@
         "key": "oq9hji9a",
         "name": "onClick_save_post",
         "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`,\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (typeof value === \"number\") return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    // Check array elements\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    // Check all object properties\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\nconst validateFormula = async (entry) => {\n  const successFormula = await this.getValue(\"success_formula\");\n  const formula = entry.formula;\n\n  if (formula) {\n    if (!successFormula || (successFormula && formula !== successFormula)) {\n      if (formula !== successFormula) {\n        await this.$alert(\n          `The entered formula is not validate yet. Please validate or clear the formula.`,\n          \"Unvalidated Formula Detected\",\n          {\n            confirmButtonText: \"Ok\",\n            type: \"error\",\n          },\n        );\n\n        throw new Error(\"Error processing formula.\");\n      }\n    }\n  }\n};\n\nconst validateUOMConversion = async (entry) => {\n  const uomConversion = entry.table_uom_conversion;\n\n  const latestConversion = uomConversion.filter(\n    (item) => item.alt_uom_id && item.alt_uom_id !== \"\",\n  );\n\n  console.log(\"latestConversion\", latestConversion);\n\n  const hasInvalidAltQty = latestConversion.filter(\n    (item) => item.base_qty === 0,\n  );\n\n  if (hasInvalidAltQty.length > 0) {\n    await this.$alert(\n      \"Invalid Base Qty. Base Qty must be not equal to 0.\",\n      \"Invalid Base Qty\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n    throw new Error(\"Invalid UOM Conversion\");\n  }\n\n  entry.table_uom_conversion = latestConversion;\n\n  return entry;\n};\n\nconst validateUOMPackingMirror = async (entry) => {\n  // table_packing_detail must mirror table_uom_conversion: same number of\n  // (meaningful) rows, and each row's uom_id equals the matching alt_uom_id.\n  const uomConversion = (entry.table_uom_conversion || []).filter(\n    (item) => item.alt_uom_id && item.alt_uom_id !== \"\",\n  );\n  const packingDetail = (entry.table_packing_detail || []).filter(\n    (item) => item.uom_id && item.uom_id !== \"\",\n  );\n\n  const isMirrored =\n    uomConversion.length === packingDetail.length &&\n    uomConversion.every(\n      (item, index) => item.alt_uom_id === packingDetail[index].uom_id,\n    );\n\n  if (!isMirrored) {\n    await this.$alert(\n      \"UOM Conversion and Packing Detail do not match. Each Alt UOM in UOM Conversion must mirror the UOM in Packing Detail.\",\n      \"Invalid Packing Detail\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n    throw new Error(\"UOM Conversion and Packing Detail mismatch\");\n  }\n};\n\nconst findMissingPriceLine = async (table, name) => {\n  console.log(\"table\", table);\n  const lineData = table.filter(\n    (item) =>\n      (!item[`${name.tableName}_id`] || item[`${name.tableName}_id`] === \"\") &&\n      (!item[`${name.fieldName}_price_tag_id`] ||\n        item[`${name.fieldName}_price_tag_id`] === \"\"),\n  );\n\n  return lineData;\n};\n\nconst findDuplicatePriceLine = async (table, name) => {\n  return table.filter(\n    (item) =>\n      item[`${name.tableName}_id`] &&\n      item[`${name.tableName}_id`] !== \"\" &&\n      item[`${name.fieldName}_price_tag_id`] &&\n      item[`${name.fieldName}_price_tag_id`] !== \"\",\n  );\n};\n\nconst checkValidDateInput = async (table, name) => {\n  const invalidDateLine = table.filter((item) => {\n    const dateFrom = item[`${name.fieldName}_price_date_from`];\n    const dateTo = item[`${name.fieldName}_price_date_to`];\n\n    // If both dates have values, check if to > from\n    if (dateFrom && dateTo) {\n      return new Date(dateFrom) >= new Date(dateTo);\n    }\n\n    // If either one is missing, ignore (return false to exclude from invalidDateLine)\n    return false;\n  });\n\n  return invalidDateLine;\n};\nconst validatePricingDetail = async (groupedPriceLine, name) => {\n  let errors = [];\n  Object.values(groupedPriceLine).forEach((group) => {\n    for (let i = 0; i < group.length; i++) {\n      // checking quantity\n      const currentItem = group[i];\n      console.log(\"currentItem\", currentItem);\n      for (let j = i + 1; j < group.length; j++) {\n        const comparedItem = j !== i ? group[j] : null;\n\n        if (!comparedItem) {\n          continue;\n        }\n\n        const currentFrom = currentItem[`${name.fieldName}_price_date_from`];\n        const currentTo = currentItem[`${name.fieldName}_price_date_to`];\n        const comparedFrom = comparedItem[`${name.fieldName}_price_date_from`];\n        const comparedTo = comparedItem[`${name.fieldName}_price_date_to`];\n\n        // If any date is null, treat it as infinity (no boundary)\n        const from1 = !currentFrom ? -Infinity : new Date(currentFrom);\n        const to1 = !currentTo ? Infinity : new Date(currentTo);\n        const from2 = !comparedFrom ? -Infinity : new Date(comparedFrom);\n        const to2 = !comparedTo ? Infinity : new Date(comparedTo);\n\n        const datesOverlap = from1 <= to2 && to1 >= from2;\n\n        if (datesOverlap) {\n          const currentMinQty =\n            currentItem[`${name.fieldName}_min_order_qty`] || 0;\n          const currentMaxQty =\n            currentItem[`${name.fieldName}_max_order_qty`] || 0;\n          const comparedMinQty =\n            comparedItem[`${name.fieldName}_min_order_qty`] || 0;\n          const comparedMaxQty =\n            comparedItem[`${name.fieldName}_max_order_qty`] || 0;\n\n          const min1 =\n            !currentMinQty || currentMinQty === 0 ? -Infinity : currentMinQty;\n          const max1 =\n            !currentMaxQty || currentMaxQty === 0 ? Infinity : currentMaxQty;\n          const min2 =\n            !comparedMinQty || comparedMinQty === 0\n              ? -Infinity\n              : comparedMinQty;\n          const max2 =\n            !comparedMaxQty || comparedMaxQty === 0 ? Infinity : comparedMaxQty;\n\n          const quantityOverlap = min1 <= max2 && max1 >= min2;\n\n          if (quantityOverlap) {\n            errors.push({\n              type: \"Quantity Range Overlap\",\n              message: `Overlapping quantity ranges within the same date found for table ${\n                name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n              } Line ${i + 1} and Line ${j + 1}`,\n              details: `[Min: ${currentMinQty}, Max: ${currentMaxQty}] vs [Min: ${comparedMinQty}, Max: ${comparedMaxQty}]`,\n            });\n          }\n        }\n      }\n\n      // checking unit price\n      const unitPrice = currentItem[`${name.fieldName}_price_unit_price`];\n      const minPrice = currentItem[`${name.fieldName}_price_min_price`];\n      const maxPrice = currentItem[`${name.fieldName}_price_max_price`];\n\n      if (minPrice && minPrice > 0 && unitPrice < minPrice) {\n        errors.push({\n          type: \"Unit Price Less Than Min Price\",\n          message: `Unit price is less than minimum price for table ${\n            name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n          } Line ${i + 1}`,\n          details: `[Unit Price: ${unitPrice}, Min Price: ${minPrice}]`,\n        });\n      }\n\n      if (maxPrice && maxPrice > 0 && unitPrice > maxPrice) {\n        errors.push({\n          type: \"Unit Price Greater Than Max Price\",\n          message: `Unit price is greater than maximum price for table ${\n            name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n          } Line ${i + 1}`,\n          details: `[Unit Price: ${unitPrice}, Max Price: ${maxPrice}]`,\n        });\n      }\n    }\n  });\n\n  return errors;\n};\n\nconst validatePurchaseAndSalesInformation = async (entry) => {\n  const fieldNameList = [\n    {\n      tableName: \"supplier\",\n      fieldName: \"sup\",\n    },\n    {\n      tableName: \"customer\",\n      fieldName: \"cust\",\n    },\n  ];\n\n  for (const name of fieldNameList) {\n    const priceTable = entry[`table_${name.tableName}_price`];\n    const accessTable = entry[`table_${name.fieldName}_item_access`];\n\n    console.log(\"priceTable\", priceTable);\n    console.log(\"accessTable\", accessTable);\n\n    // checking valid line data\n    const missingPriceLine = await findMissingPriceLine(priceTable, name);\n\n    const missingAccessLine = await findMissingPriceLine(accessTable, name);\n\n    if (missingPriceLine.length > 0 || missingAccessLine.length > 0) {\n      await this.$alert(\n        `Please fill in all ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } price lines.`,\n        `Missing ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`,\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n        },\n      );\n      throw new Error(\n        `Missing ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`,\n      );\n    }\n\n    const duplicatePriceAccess = await findDuplicatePriceLine(\n      accessTable,\n      name,\n    );\n\n    const duplicatePriceLine = await findDuplicatePriceLine(priceTable, name);\n\n    if (duplicatePriceAccess.length > 0 || duplicatePriceLine.length > 0) {\n      await this.$alert(\n        `Please fill in either <em>${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Code</em> or <em>${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Tag</em> <strong>ONLY</strong>.`,\n        \"Duplicate Input\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        },\n      );\n      throw new Error(\"Duplicate Input\");\n    }\n\n    const invalidDateLine = await checkValidDateInput(priceTable, name);\n\n    if (invalidDateLine.length > 0) {\n      await this.$alert(\n        `Please fill in valid date range for ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } price lines.`,\n        \"Invalid Date Input\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n        },\n      );\n      console.log(\"invalidDateLine\", invalidDateLine);\n      throw new Error(\"Invalid Date Input\");\n    }\n\n    // checking quantity\n    const groupedPriceLine = priceTable.reduce((acc, item) => {\n      const hasID =\n        item[`${name.tableName}_id`] && item[`${name.tableName}_id`] !== \"\";\n      const hasPriceTagID =\n        item[`${name.fieldName}_price_tag_id`] &&\n        item[`${name.fieldName}_price_tag_id`] !== \"\";\n\n      let key;\n\n      if (hasID) {\n        key = `${name.tableName}_${item[`${name.tableName}_id`]}`;\n      } else if (hasPriceTagID) {\n        key = `${name.fieldName}_price_tag_${\n          item[`${name.fieldName}_price_tag_id`]\n        }`;\n      } else {\n        key = \"no_id\"; // Handle items with no ID\n      }\n\n      if (!acc[key]) {\n        acc[key] = [];\n      }\n      acc[key].push(item);\n\n      return acc;\n    }, {});\n\n    console.log(\"groupedPriceLine\", groupedPriceLine);\n\n    const errors = await validatePricingDetail(groupedPriceLine, name);\n    console.log(\"errors\", errors);\n    if (errors.length > 0) {\n      await this.$alert(\n        `<strong>Error in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line:</strong><br> ${errors\n          .map((e) => e.message)\n          .join(\"<br>\")}<br><br><strong>Details:</strong><br>${errors\n          .map((e) => e.details)\n          .join(\"<br>\")}`,\n        `Invalid Data in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`,\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        },\n      );\n      throw new Error(\n        `Invalid Data in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`,\n      );\n    }\n  }\n};\n\nconst createBOM = async (data) => {\n  const autoBOM = data.auto_bom;\n\n  if (autoBOM) {\n    if (!data.bom_id || data.bom_id === \"\" || data.bom_id === null) {\n      const resBOM = await db.collection(\"bom_tree\").add({\n        bom_level: 1,\n        bom_sort: 0,\n        bom_path: \"/1/\",\n        organization_id: data.organization_id,\n\n        is_current_version: 1,\n        is_top_level: 1,\n        is_active: 1,\n        bom_status: \"Unready\",\n        bom_version: \"V1\",\n        base_quantity: 1,\n\n        material_id: data.id,\n        material_code: data.material_code,\n        material_name: data.material_name,\n        material_desc: data.material_desc,\n        category: data.item_category,\n        material_type: data.item_properties,\n        material_uom: data.based_uom,\n\n        bom_type: \"STANDARD\",\n      });\n\n      await db.collection(\"Item\").doc(data.id).update({\n        bom_id: resBOM.data[0].id,\n        bom_status: resBOM.data[0].bom_status,\n      });\n\n      await db\n        .collection(\"bom_tree\")\n        .doc(resBOM.data[0].id)\n        .update({\n          root_id: resBOM.data[0].id,\n          bom_path: \"/\" + resBOM.data[0].id + \"/\",\n        });\n    }\n  }\n};\n\nconst validateBatch = async (entry) => {\n  if (\n    entry.item_batch_management === 1 &&\n    entry.batch_number_genaration === \"According To System Settings\"\n  ) {\n    const resDefaultBatchConfig = await db\n      .collection(\"batch_number_config\")\n      .where({\n        organization_id: entry.organization_id,\n      })\n      .get();\n\n    if (resDefaultBatchConfig && resDefaultBatchConfig.data.length > 0) {\n      if (\n        resDefaultBatchConfig.data[0].batch_level_selection === \"Item Level\"\n      ) {\n        const itemBatchConfig = await db\n          .collection(\"batch_number_config\")\n          .where({\n            organization_id: entry.organization_id,\n            item_id: entry.id,\n          })\n          .get();\n\n        if (\n          (!entry.batch_config ||\n            Object.keys(entry.batch_config).length === 0) &&\n          (!itemBatchConfig || itemBatchConfig.data.length === 0)\n        ) {\n          await this.$alert(\"Please set batch configuration\", \"Invalid Data\", {\n            confirmButtonText: \"OK\",\n            type: \"error\",\n          });\n\n          throw new Error(\"Batch configuration is required\");\n        }\n      }\n    }\n  }\n};\n\nconst createBatch = async (itemId, batchNumberConfig, materialCode) => {\n  if (!batchNumberConfig || Object.keys(batchNumberConfig).length === 0) {\n    return;\n  }\n\n  const batchConfig = {\n    ...batchNumberConfig,\n    batch_format: batchNumberConfig.batch_format.replace(\n      /\\{itemCode\\}/g,\n      materialCode || \"\",\n    ),\n  };\n\n  await this.runWorkflow(\n    \"2058838457211068417\",\n    { allData: { ...batchConfig, item_id: itemId } },\n    (res) => {\n      console.log(\"Batch creation result:\", res);\n    },\n    async (err) => {\n      this.hideLoading();\n      if (err?.data?.code === 401) {\n        await this.$alert(err?.data?.msg, \"Error saving batch config\", {\n          confirmButtonText: \"Ok\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        });\n\n        throw new Error(err?.data?.msg);\n      }\n    },\n  );\n};\n\n(async () => {\n  try {\n    this.showLoading();\n\n    const data = this.getValues();\n\n    const page_status = data.page_status;\n    const item_no = data.id;\n\n    // Define required fields\n    const requiredFields = [\n      { name: \"item_properties\", label: \"Item Properties\" },\n      { name: \"material_name\", label: \"Item Name\" },\n      ...(data.material_code_type === -9999\n        ? [{ name: \"material_code\", label: \"Item Code\" }]\n        : []),\n      { name: \"item_category\", label: \"Item Category\" },\n      { name: \"based_uom\", label: \"Based UOM\" },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    await this.validate(\"material_code\");\n\n    if (missingFields.length === 0) {\n      // Get organization ID\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n\n      let entry = data;\n      entry.material_code =\n        entry.material_code_type === -9999 || this.isEdit\n          ? entry.material_code\n          : \"issued\";\n      entry.batch_number_genaration =\n        entry.batch_number_genaration || \"According To System Settings\";\n      entry.posted_status = \"Pending Post\";\n\n      await validateFormula(entry);\n      entry = await validateUOMConversion(entry);\n      // await validateUOMPackingMirror(entry);\n      await validatePurchaseAndSalesInformation(entry);\n      await validateBatch(entry);\n\n      console.log(\"entry\", entry);\n      let resItem = entry;\n\n      // Add or update based on page status\n      if (page_status === \"Add\" || page_status === \"Clone\") {\n        try {\n          resItem = await db.collection(\"Item\").add(entry);\n          await createBOM(resItem.data[0]);\n          await createBatch(\n            resItem.data[0].id,\n            entry.batch_config,\n            entry.material_code,\n          );\n        } catch (error) {\n          console.error(\"Error adding item:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message || \"An error occurred while adding the item.\",\n          );\n        }\n      } else if (page_status === \"Edit\") {\n        try {\n          // Update the existing item\n          if (!item_no) {\n            throw new Error(\"Item ID not found\");\n          }\n\n          await db.collection(\"Item\").doc(item_no).update(entry);\n          await createBOM(entry);\n          await createBatch(entry.id, entry.batch_config, entry.material_code);\n        } catch (error) {\n          console.error(\"Error updating item:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message || \"An error occurred while updating the item.\",\n          );\n        }\n      } else {\n        this.hideLoading();\n        this.$message.error(\"Invalid page status\");\n      }\n\n      if (organizationId) {\n        const resAI = await db\n          .collection(\"accounting_integration\")\n          .where({ organization_id: organizationId })\n          .get();\n\n        if (resAI && resAI.data.length > 0) {\n          const aiData = resAI.data[0];\n\n          switch (aiData.acc_integration_type) {\n            case \"SQL Accounting\":\n              // Run SQL workflow\n              console.log(\"Calling SQL Accounting workflow\");\n              // Run health check\n              await this.runWorkflow(\n                \"1958732352162164738\",\n                { key: \"value\" },\n                async (res) => {\n                  console.log(\"成功结果：\", res);\n                  if (res.data.status === \"running\") {\n                    // Run workflow\n                    await this.runWorkflow(\n                      \"1906666085143818241\",\n                      { key: \"value\" },\n                      (res) => {\n                        console.log(\"成功结果：\", res);\n                        this.$message.success(\"Save item successfully.\");\n                        closeDialog();\n                      },\n                      (err) => {\n                        console.error(\"失败结果：\", err);\n                        this.hideLoading();\n                        throw new Error(\n                          \"Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n                        );\n                      },\n                    );\n                  }\n                },\n                (err) => {\n                  console.log(\"失败结果：\", err);\n\n                  this.hideLoading();\n                  throw new Error(\n                    \"Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n                  );\n                },\n              );\n              break;\n\n            case \"AutoCount Accounting\":\n              await this.runWorkflow(\n                // \"1970722955815616514\",\n                \"1991400333408145410\",\n                { key: \"value\" },\n                (res) => {\n                  console.log(\"成功结果：\", res);\n                  this.$message.success(\"Save item successfully.\");\n                  closeDialog();\n                },\n                (err) => {\n                  console.error(\"失败结果：\", err);\n                  this.hideLoading();\n                  throw new Error(\n                    \"Your AutoCount accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n                  );\n                },\n              );\n              console.log(\"Calling AutoCount workflow\");\n              break;\n\n            case \"SQL Accounting V2\":\n            case \"AutoCount Accounting V2\":\n              await this.runWorkflow(\n                \"2013511169625042946\",\n                {\n                  agent_id: aiData.agent_id,\n                  task_type: \"post_item\",\n                  payload: [item_no ?? resItem?.data[0]?.id],\n                  priority: \"0\",\n                },\n                async (res) => {\n                  console.log(\"成功结果：\", res);\n                  this.$message.success(\"Save item successfully.\");\n                  closeDialog();\n                },\n                (err) => {\n                  console.log(\"失败结果：\", err);\n                  this.hideLoading();\n                },\n              );\n              break;\n\n            case \"No Accounting Integration\":\n              await closeDialog();\n              console.log(\"Not calling workflow\");\n              break;\n\n            default:\n              await closeDialog();\n              break;\n          }\n        }\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Validation errors: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n\n    console.error(error);\n    // Try to get message from standard locations first\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(errorMessage);\n  }\n})();\n",
-        "type": "js"
-      },
-      {
-        "key": "kvf76v8h",
-        "name": "onBuyerItemIdChange",
-        "func": "(async () => {\n  try {\n    const itemData = arguments[0].fieldModel.item;\n    const value = arguments[0].value;\n\n    if (value && value !== \"\") {\n      this.setData({ buyer_uom_id: itemData.based_uom });\n    } else {\n      this.setData({ buyer_uom_id: \"\" });\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
-        "type": "js"
-      },
-      {
-        "key": "gozra1lw",
-        "name": "onSellerItemIdChange",
-        "func": "(async () => {\n  try {\n    const itemData = arguments[0].fieldModel.item;\n    const value = arguments[0].value;\n\n    if (value && value !== \"\") {\n      this.setData({ seller_uom_id: itemData.based_uom });\n    } else {\n      this.setData({ seller_uom_id: \"\" });\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
         "type": "js"
       }
     ],
