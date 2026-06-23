@@ -349,7 +349,7 @@
         "desensitization_replace": "",
         "dynamicValueType": "fx",
         "isDynamicValue": false,
-        "labelBold": true
+        "labelBold": false
       },
       "events": {
         "onChange": ""
@@ -664,7 +664,7 @@
                 "requiredMessage": "",
                 "validatorCheck": false,
                 "validator": "",
-                "disabled": false,
+                "disabled": true,
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
@@ -713,7 +713,7 @@
                 "requiredMessage": "",
                 "validatorCheck": false,
                 "validator": "",
-                "disabled": false,
+                "disabled": true,
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
@@ -1024,7 +1024,7 @@
                 "onFocus": "",
                 "onBlur": ""
               },
-              "name": "Payment Term Source",
+              "name": "Payment Term Src",
               "key": "9ql61ez6",
               "model": "payment_term_source",
               "rules": [],
@@ -1516,7 +1516,8 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": ""
+        "func": "const showStatusHTML = async (status) => {\n  switch (status) {\n    case 1:\n      this.display([\"active_status\"]);\n      break;\n    case 0:\n      this.display([\"inactive_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\n(async () => {\n  try {\n    const activeStatus = await this.getValue(\"is_active\");\n\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else throw new Error(\"Invalid page state\");\n\n    this.setData({ page_status: pageStatus });\n\n    switch (pageStatus) {\n      case \"Add\":\n        this.display([\"active_status\"]);\n        break;\n\n      case \"Edit\":\n        showStatusHTML(activeStatus);\n        break;\n\n      case \"View\":\n        showStatusHTML(activeStatus);\n        this.hide([\"button_cancel\", \"button_save\"]);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
+        "type": "js"
       },
       {
         "key": "refresh",
@@ -1582,7 +1583,7 @@
       {
         "key": "m52vcpap",
         "name": "onClick_save",
-        "func": "",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (typeof value === \"number\") return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`,\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    // Check array elements\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    // Check all object properties\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\n(async () => {\n  try {\n    this.showLoading();\n\n    const data = this.getValues();\n\n    const page_status = data.page_status;\n    const internal_trading_no = data.id;\n\n    // Define required fields\n    const requiredFields = [\n      { name: \"buyer_org_id\", label: \"Buyer Organization\" },\n      { name: \"buyer_supplier_id\", label: \"Buyer Supplier\" },\n      { name: \"seller_org_id\", label: \"Seller Organization\" },\n      { name: \"seller_customer_id\", label: \"Seller Customer\" },\n      { name: \"pricing_source\", label: \"Pricing Source\" },\n      { name: \"tax_source\", label: \"Tax Source\" },\n      { name: \"payment_term_source\", label: \"Payment Term Source\" },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    if (missingFields.length === 0) {\n      const entry = data;\n\n      // Buyer and seller organizations must be different\n      if (entry.buyer_org_id === entry.seller_org_id) {\n        this.hideLoading();\n        this.$message.error(\n          \"Buyer Organization and Seller Organization cannot be the same.\",\n        );\n        return;\n      }\n\n      // Normalize auto-create switches: anything other than 1 becomes 0\n      entry.auto_create_so = entry.auto_create_so === 1 ? 1 : 0;\n      entry.auto_create_gd = entry.auto_create_gd === 1 ? 1 : 0;\n      entry.auto_create_si = entry.auto_create_si === 1 ? 1 : 0;\n\n      console.log(\"entry\", entry);\n\n      // Add or update based on page status\n      if (page_status === \"Add\" || page_status === \"Clone\") {\n        try {\n          await db.collection(\"internal_trading_setup\").add(entry);\n          this.$message.success(\"Add successfully.\");\n          await closeDialog();\n        } catch (error) {\n          console.error(\"Error adding internal trading setup:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message ||\n              \"An error occurred while adding the internal trading setup.\",\n          );\n        }\n      } else if (page_status === \"Edit\") {\n        try {\n          // Update the existing internal trading setup\n          if (!internal_trading_no) {\n            throw new Error(\"Internal Trading Setup ID not found\");\n          }\n\n          await db\n            .collection(\"internal_trading_setup\")\n            .doc(internal_trading_no)\n            .update(entry);\n          this.$message.success(\"Update successfully.\");\n          // Close dialog after successful operation\n          closeDialog();\n        } catch (error) {\n          console.error(\"Error updating internal trading setup:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message ||\n              \"An error occurred while updating the internal trading setup.\",\n          );\n        }\n      } else {\n        this.hideLoading();\n        this.$message.error(\"Invalid page status\");\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Validation errors: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n\n    // Try to get message from standard locations first\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(error);\n  }\n})();\n",
         "type": "js"
       },
       {
