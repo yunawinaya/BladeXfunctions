@@ -23,8 +23,8 @@
         "filter": {
           "list": [
             {
-              "id": 1700000000059,
-              "parentId": 1700000000060,
+              "id": 1700000000061,
+              "parentId": 1700000000062,
               "isTop": true,
               "prop": "",
               "operator": "",
@@ -988,7 +988,7 @@
                                         "name": "Map Error Message",
                                         "script": {
                                           "type": "javascript",
-                                          "code": "const draftGRCount = {{node:search_draft_gr.data.total}};\nconst draftPICount = {{node:search_draft_pi.data.total}};\nlet message = [];\nlet status = 'Passed';\n\nif(draftGRCount > 0) {\n  const draftGRNo = {{node:search_draft_gr.data.data.gr_no}};\n  message.push(draftGRNo);\n}\n\nif(draftPICount > 0) {\n  const draftPINo = {{node:search_draft_pi.data.data.purchase_invoice_no}};\n  message.push(draftPINo);\n}\n\nif(message.length > 0) {\n  status = 'Failed'\n}\n\nreturn {\n  status: status,\n  message: status === 'Passed' ? '' : 'The purchase order has existing GR/PI records in draft status. Proceeding will delete these record: ' + message.join(', ')\n}"
+                                          "code": "const draftGRCount = {{node:search_draft_gr.data.total}};\nconst draftPICount = {{node:search_draft_pi.data.total}};\nlet message = [];\nlet status = 'Passed';\n\nif(draftGRCount > 0) {\n  const grRows = {{node:search_draft_gr.data.data}} || [];\n  const draftGRNo = (Array.isArray(grRows) ? grRows : [grRows]).map(r => r.gr_no).filter(Boolean).join(', ');\n  if(draftGRNo) message.push(draftGRNo);\n}\n\nif(draftPICount > 0) {\n  const piRows = {{node:search_draft_pi.data.data}} || [];\n  const draftPINo = (Array.isArray(piRows) ? piRows : [piRows]).map(r => r.purchase_invoice_no).filter(Boolean).join(', ');\n  if(draftPINo) message.push(draftPINo);\n}\n\nif(message.length > 0) {\n  status = 'Failed'\n}\n\nreturn {\n  status: status,\n  message: status === 'Passed' ? '' : 'The purchase order has existing GR/PI records in draft status. Proceeding will delete these record: ' + message.join(', ')\n}"
                                         },
                                         "response_json": [
                                           {
@@ -1184,8 +1184,8 @@
         "filter": {
           "list": [
             {
-              "id": 1700000000067,
-              "parentId": 1700000000068,
+              "id": 1700000000069,
+              "parentId": 1700000000070,
               "isTop": true,
               "prop": "",
               "operator": "",
@@ -1219,8 +1219,8 @@
                     "collectionId": "1902776039445217282",
                     "list": [
                       {
-                        "id": 1700000000061,
-                        "parentId": 1700000000062,
+                        "id": 1700000000063,
+                        "parentId": 1700000000064,
                         "isTop": true,
                         "prop": "id",
                         "operator": "in",
@@ -1859,8 +1859,8 @@
                     "collectionId": "1902776039445217282",
                     "list": [
                       {
-                        "id": 1700000000063,
-                        "parentId": 1700000000064,
+                        "id": 1700000000065,
+                        "parentId": 1700000000066,
                         "isTop": true,
                         "prop": "id",
                         "operator": "in",
@@ -1902,8 +1902,8 @@
                     "collectionId": "1902776039445217282",
                     "list": [
                       {
-                        "id": 1700000000065,
-                        "parentId": 1700000000066,
+                        "id": 1700000000067,
+                        "parentId": 1700000000068,
                         "isTop": true,
                         "prop": "",
                         "operator": "",
@@ -2580,8 +2580,8 @@
             "collectionId": "1989229727911870466",
             "list": [
               {
-                "id": 1700000000069,
-                "parentId": 1700000000070,
+                "id": 1700000000071,
+                "parentId": 1700000000072,
                 "isTop": true,
                 "prop": "",
                 "operator": "",
@@ -2653,8 +2653,8 @@
         "filter": {
           "list": [
             {
-              "id": 1700000000071,
-              "parentId": 1700000000072,
+              "id": 1700000000073,
+              "parentId": 1700000000074,
               "isTop": true,
               "prop": "",
               "operator": "",
@@ -2810,7 +2810,7 @@
                     "list": [
                       {
                         "id": 1700000000041,
-                        "parentId": 1700000000043,
+                        "parentId": 1700000000045,
                         "isTop": true,
                         "type": "branch",
                         "operator": "all",
@@ -2823,15 +2823,43 @@
                             "id": 1700000000042,
                             "parentId": 1700000000041,
                             "isTop": false,
-                            "prop": "po_id",
-                            "operator": "in",
+                            "prop": "purchase_order_number",
+                            "operator": "equal",
                             "valueType": "field",
-                            "value": "{{node:code_get_latest.data.poData.id}}",
+                            "value": "{{node:get_po_full.data.data.purchase_order_no}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "PO ID",
+                            "propLabel": "PO Number",
                             "valueLabel": "",
-                            "operatorLabel": "In"
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1700000000043,
+                            "parentId": 1700000000041,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:get_po_full.data.data.po_plant}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1700000000044,
+                            "parentId": 1700000000041,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:get_po_full.data.data.organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
                           }
                         ]
                       }
@@ -2860,7 +2888,7 @@
                 "name": "Reconcile On Order",
                 "script": {
                   "type": "javascript",
-                  "code": "const latestLines = {{node:get_po_full.data.data.table_po}} || [];\nconst existing    = {{node:search_onorder.data.data}} || [];\nconst items       = {{node:search_items.data.data}} || [];\nconst poData      = {{node:code_get_latest.data.poData}};\nconst pageStatus  = poData.page_status;\n\nconst round3 = (n) => Math.round((parseFloat(n) || 0) * 1000) / 1000;\n\nconst baseQtyFor = (line) => {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  const altQty = parseFloat(line.quantity) || 0;\n  let baseQty = altQty;\n  if (itemData && Array.isArray(itemData.table_uom_conversion) && itemData.table_uom_conversion.length > 0) {\n    const conv = itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(line.quantity_uom));\n    if (conv) baseQty = round3(altQty * parseFloat(conv.base_qty));\n  }\n  return baseQty;\n};\n\nconst desired = [];\nfor (const [index, line] of latestLines.entries()) {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  if (!itemData) continue;\n  desired.push({\n    po_line_id: line.id,\n    purchase_order_number: poData.purchase_order_no,\n    material_id: line.item_id,\n    purchase_order_line: index + 1,\n    scheduled_qty: baseQtyFor(line),\n    plant_id: poData.po_plant,\n    organization_id: poData.organization_id,\n    po_id: poData.id,\n    parent_id: line.preq_id || null,\n    parent_line_id: line.preq_line_id || null\n  });\n}\n\nconst toAdd = [], toUpdate = [], toDelete = [];\nconst usedExistingIds = new Set();\n\nconst findExisting = (d) => {\n  let m = existing.find(e => e.po_line_id != null && String(e.po_line_id) === String(d.po_line_id) && !usedExistingIds.has(e.id));\n  if (m) return m;\n  return existing.find(e => !usedExistingIds.has(e.id) && String(e.material_id) === String(d.material_id) && Number(e.purchase_order_line) === Number(d.purchase_order_line));\n};\n\nconst isNew = (pageStatus === 'Add' || pageStatus === 'Clone');\n\nfor (const d of desired) {\n  const match = isNew ? null : findExisting(d);\n  if (!match) {\n    toAdd.push({\n      purchase_order_number: d.purchase_order_number,\n      material_id: d.material_id,\n      purchase_order_line: d.purchase_order_line,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: d.scheduled_qty,\n      received_qty: 0,\n      plant_id: d.plant_id,\n      organization_id: d.organization_id,\n      po_id: d.po_id,\n      po_line_id: d.po_line_id,\n      parent_id: d.parent_id,\n      parent_line_id: d.parent_line_id\n    });\n  } else {\n    usedExistingIds.add(match.id);\n    const received = Math.max(0, round3(match.received_qty || 0));\n    const newOpen = Math.max(0, round3(d.scheduled_qty - received));\n    toUpdate.push({\n      id: match.id,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: newOpen,\n      purchase_order_line: d.purchase_order_line,\n      po_line_id: d.po_line_id\n    });\n  }\n}\n\nif (!isNew) {\n  for (const e of existing) {\n    if (!usedExistingIds.has(e.id)) toDelete.push({ id: e.id });\n  }\n}\n\nreturn { toAdd, toUpdate, toDelete };"
+                  "code": "const poFull      = {{node:get_po_full.data.data}};\nconst latestLines = (poFull && poFull.table_po) || [];\nconst existing    = {{node:search_onorder.data.data}} || [];\nconst items       = {{node:search_items.data.data}} || [];\nconst pageStatus  = {{workflowparams:allData.page_status}};\n\nconst round3 = (n) => Math.round((parseFloat(n) || 0) * 1000) / 1000;\n\nconst baseQtyFor = (line) => {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  const altQty = parseFloat(line.quantity) || 0;\n  let baseQty = altQty;\n  if (itemData && Array.isArray(itemData.table_uom_conversion) && itemData.table_uom_conversion.length > 0) {\n    const conv = itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(line.quantity_uom));\n    if (conv) baseQty = round3(altQty * parseFloat(conv.base_qty));\n  }\n  return baseQty;\n};\n\nconst desired = [];\nfor (const [index, line] of latestLines.entries()) {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  if (!itemData) continue;\n  desired.push({\n    po_line_id: line.id,\n    purchase_order_number: poFull.purchase_order_no,\n    material_id: line.item_id,\n    purchase_order_line: index + 1,\n    scheduled_qty: baseQtyFor(line),\n    plant_id: poFull.po_plant,\n    organization_id: poFull.organization_id,\n    po_id: poFull.id,\n    parent_id: line.preq_id || null,\n    parent_line_id: line.preq_line_id || null\n  });\n}\n\nconst toAdd = [], toUpdate = [], toDelete = [];\nconst usedExistingIds = new Set();\n\nconst findExisting = (d) => {\n  let m = existing.find(e => e.po_line_id != null && String(e.po_line_id) === String(d.po_line_id) && !usedExistingIds.has(e.id));\n  if (m) return m;\n  return existing.find(e => !usedExistingIds.has(e.id) && String(e.material_id) === String(d.material_id) && Number(e.purchase_order_line) === Number(d.purchase_order_line));\n};\n\nconst isNew = (pageStatus === 'Add' || pageStatus === 'Clone');\n\nfor (const d of desired) {\n  const match = isNew ? null : findExisting(d);\n  if (!match) {\n    toAdd.push({\n      purchase_order_number: d.purchase_order_number,\n      material_id: d.material_id,\n      purchase_order_line: d.purchase_order_line,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: d.scheduled_qty,\n      received_qty: 0,\n      plant_id: d.plant_id,\n      organization_id: d.organization_id,\n      po_id: d.po_id,\n      po_line_id: d.po_line_id,\n      parent_id: d.parent_id,\n      parent_line_id: d.parent_line_id\n    });\n  } else {\n    usedExistingIds.add(match.id);\n    const received = Math.max(0, round3(match.received_qty || 0));\n    const newOpen = Math.max(0, round3(d.scheduled_qty - received));\n    toUpdate.push({\n      id: match.id,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: newOpen,\n      purchase_order_line: d.purchase_order_line,\n      po_line_id: d.po_line_id\n    });\n  }\n}\n\nif (!isNew) {\n  for (const e of existing) {\n    if (!usedExistingIds.has(e.id)) toDelete.push({ id: e.id });\n  }\n}\n\nreturn { toAdd, toUpdate, toDelete };"
                 },
                 "response_json": [
                   {
@@ -2906,8 +2934,8 @@
                 "filter": {
                   "list": [
                     {
-                      "id": 1700000000046,
-                      "parentId": 1700000000047,
+                      "id": 1700000000048,
+                      "parentId": 1700000000049,
                       "isTop": true,
                       "prop": "",
                       "operator": "",
@@ -2941,8 +2969,8 @@
                             "collectionId": "1902627276974047233",
                             "list": [
                               {
-                                "id": 1700000000044,
-                                "parentId": 1700000000045,
+                                "id": 1700000000046,
+                                "parentId": 1700000000047,
                                 "isTop": true,
                                 "prop": "",
                                 "operator": "",
@@ -3087,8 +3115,8 @@
                 "filter": {
                   "list": [
                     {
-                      "id": 1700000000050,
-                      "parentId": 1700000000051,
+                      "id": 1700000000052,
+                      "parentId": 1700000000053,
                       "isTop": true,
                       "prop": "",
                       "operator": "",
@@ -3122,8 +3150,8 @@
                             "collectionId": "1902627276974047233",
                             "list": [
                               {
-                                "id": 1700000000048,
-                                "parentId": 1700000000049,
+                                "id": 1700000000050,
+                                "parentId": 1700000000051,
                                 "isTop": true,
                                 "prop": "id",
                                 "operator": "in",
@@ -3216,8 +3244,8 @@
                 "filter": {
                   "list": [
                     {
-                      "id": 1700000000055,
-                      "parentId": 1700000000056,
+                      "id": 1700000000057,
+                      "parentId": 1700000000058,
                       "isTop": true,
                       "prop": "",
                       "operator": "",
@@ -3251,8 +3279,8 @@
                             "collectionId": "1902627276974047233",
                             "list": [
                               {
-                                "id": 1700000000052,
-                                "parentId": 1700000000054,
+                                "id": 1700000000054,
+                                "parentId": 1700000000056,
                                 "isTop": true,
                                 "type": "branch",
                                 "operator": "all",
@@ -3262,8 +3290,8 @@
                                 "level": 1,
                                 "children": [
                                   {
-                                    "id": 1700000000053,
-                                    "parentId": 1700000000052,
+                                    "id": 1700000000055,
+                                    "parentId": 1700000000054,
                                     "isTop": false,
                                     "prop": "id",
                                     "operator": "in",
@@ -3331,8 +3359,8 @@
                 "filter": {
                   "list": [
                     {
-                      "id": 1700000000057,
-                      "parentId": 1700000000058,
+                      "id": 1700000000059,
+                      "parentId": 1700000000060,
                       "isTop": true,
                       "prop": "",
                       "operator": "",
@@ -3345,7 +3373,7 @@
                 },
                 "expression": {
                   "type": "javascript",
-                  "code": "{{node:code_get_latest.data.poData.preq_id}} && {{node:code_get_latest.data.poData.preq_id}}.length > 0"
+                  "code": "{{node:get_po_full.data.data.preq_id}} && {{node:get_po_full.data.data.preq_id}}.length > 0"
                 }
               },
               "blocks": [
@@ -3383,7 +3411,7 @@
                                     "prop": "id",
                                     "operator": "in",
                                     "valueType": "field",
-                                    "value": "{{node:code_get_latest.data.poData.preq_id}}",
+                                    "value": "{{node:get_po_full.data.data.preq_id}}",
                                     "type": "leaf",
                                     "level": 2,
                                     "propLabel": "Primary Key ID",
@@ -3417,7 +3445,7 @@
                         "name": "Map PREQ Data",
                         "script": {
                           "type": "javascript",
-                          "code": "const poID = {{node:code_get_latest.data.poData.id}};\nconst poLineItem = {{node:get_po_full.data.data.table_po}} || [];\nconst preqData = {{node:search_preq.data.data}};\nconst onOrderData = {{node:search_onorder.data.data}} || [];\nlet latestPREQData = [];\n\nif(preqData && preqData.length > 0) {\n  for(const preq of preqData) {\n    let processedItems = preq.table_pr.map(item => {\n      const poItem = poLineItem.find(po => po.preq_line_id === item.id);\n      const newItem = { ...item };\n      let orderQty = 0;\n\n      if(poItem) {\n        const onOrderItem = onOrderData.length > 0 ? onOrderData.find(onOrder => onOrder.parent_line_id === item.id) : null;\n        if(onOrderItem) {\n          orderQty = parseFloat(item.order_qty || 0) - parseFloat(onOrderItem.scheduled_qty || 0) + parseFloat(poItem.quantity || 0);\n        } else {\n          orderQty = parseFloat(item.order_qty || 0) + parseFloat(poItem.quantity || 0);\n        }\n        newItem.order_qty = parseFloat(orderQty).toFixed(3);\n        newItem.po_id = [...(item.po_id || []), poID];\n        newItem.po_line_id = [...(item.po_line_id || []), poItem.id];\n      }\n\n      return newItem;\n    });\n\n    let preqStatus = preq.preq_status;\n    if(preq.preq_type === 'Contract' && preq.preq_status !== 'Force Completed') {\n      const isCompleted = processedItems.every(item =>\n        parseFloat(item.pr_line_qty) === parseFloat(item.order_qty || 0)\n      );\n      preqStatus = isCompleted ? 'Completed' : 'Processing';\n    } else if(preq.preq_status !== 'Force Completed') {\n      preqStatus = 'Completed';\n    }\n\n    processedItems = processedItems.map((it) => {\n      return { ...it, line_status: preqStatus };\n    });\n\n    latestPREQData.push({\n      id: preq.id,\n      preq_status: preqStatus,\n      table_pr: processedItems,\n    });\n  }\n}\n\nreturn { latestPREQData };"
+                          "code": "const poID = {{node:get_po_full.data.data.id}};\nconst poLineItem = {{node:get_po_full.data.data.table_po}} || [];\nconst preqData = {{node:search_preq.data.data}};\nconst onOrderData = {{node:search_onorder.data.data}} || [];\nlet latestPREQData = [];\n\nif(preqData && preqData.length > 0) {\n  for(const preq of preqData) {\n    let processedItems = preq.table_pr.map(item => {\n      const poItem = poLineItem.find(po => String(po.preq_line_id) === String(item.id));\n      const newItem = { ...item };\n      let orderQty = 0;\n\n      if(poItem) {\n        const onOrderItem = onOrderData.length > 0 ? onOrderData.find(onOrder => String(onOrder.parent_line_id) === String(item.id)) : null;\n        if(onOrderItem) {\n          orderQty = parseFloat(item.order_qty || 0) - parseFloat(onOrderItem.scheduled_qty || 0) + parseFloat(poItem.quantity || 0);\n        } else {\n          orderQty = parseFloat(item.order_qty || 0) + parseFloat(poItem.quantity || 0);\n        }\n        newItem.order_qty = parseFloat(orderQty).toFixed(3);\n        newItem.po_id = [...(item.po_id || []), poID];\n        newItem.po_line_id = [...(item.po_line_id || []), poItem.id];\n      }\n\n      return newItem;\n    });\n\n    let preqStatus = preq.preq_status;\n    if(preq.preq_type === 'Contract' && preq.preq_status !== 'Force Completed') {\n      const isCompleted = processedItems.every(item =>\n        parseFloat(item.pr_line_qty) === parseFloat(item.order_qty || 0)\n      );\n      preqStatus = isCompleted ? 'Completed' : 'Processing';\n    } else if(preq.preq_status !== 'Force Completed') {\n      preqStatus = 'Completed';\n    }\n\n    processedItems = processedItems.map((it) => {\n      return { ...it, line_status: preqStatus };\n    });\n\n    latestPREQData.push({\n      id: preq.id,\n      preq_status: preqStatus,\n      table_pr: processedItems,\n    });\n  }\n}\n\nreturn { latestPREQData };"
                         },
                         "response_json": [
                           {
