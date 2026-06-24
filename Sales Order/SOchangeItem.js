@@ -196,8 +196,11 @@ const fetchUnrestrictedQty = async (
   if (arguments[0].index) {
     rowIndex = arguments[0].index;
   }
+
+  console.log("arguments[0]", arguments[0]);
   const soItem = arguments[0].soItem;
   const plantId = this.getValue("plant_name");
+  const customerID = this.getValue("customer_name");
 
   let organizationId = this.getVarGlobal("deptParentId");
   if (organizationId === "0") {
@@ -206,6 +209,61 @@ const fetchUnrestrictedQty = async (
 
   if (arguments[0].fieldModel && !soItem) {
     await resetData(rowIndex);
+    await this.runWorkflow(
+      "2067818102244966401",
+      {
+        document_type: "SO",
+        supp_cust_id: customerID,
+        plant_id: plantId,
+        item_data: [
+          {
+            item_id: arguments[0].value,
+            line_index: rowIndex,
+            uom_id:
+              arguments[0].fieldModel.item.sales_default_uom ||
+              arguments[0].fieldModel.item.based_uom,
+          },
+        ],
+      },
+      async (result) => {
+        console.log("result", result);
+        const updates = {};
+
+        for (const item of result.data.data) {
+          updates[`table_so.${item.line_index}.so_item_price`] =
+            item.unit_price;
+          updates[`table_so.${item.line_index}.so_item_uom`] = item.uom_id;
+          updates[`table_so.${item.line_index}.so_tax_preference`] =
+            item.tax_rate;
+          updates[`table_so.${item.line_index}.so_tax_percentage`] =
+            item.tax_percent;
+          updates[`table_so.${item.line_index}.from_historical`] =
+            item.from_historical;
+          updates[`table_so.${item.line_index}.max_price`] = item.max_price;
+          updates[`table_so.${item.line_index}.min_price`] = item.min_price;
+          updates[`table_so.${item.line_index}.so_quantity`] = item.quantity;
+          updates[`table_so.${item.line_index}.so_discount`] = item.discount;
+          updates[`table_so.${item.line_index}.so_discount_uom`] =
+            item.discount_uom;
+          updates[`table_so.${item.line_index}.item_category_id`] =
+            arguments[0].fieldModel.item.item_category;
+          updates[`table_so.${item.line_index}.so_desc`] =
+            arguments[0].fieldModel.item.material_desc;
+          updates[`table_so.${item.line_index}.item_id`] =
+            arguments[0].fieldModel.item.material_name;
+          updates[`table_so.${item.line_index}.custom_fields`] =
+            arguments[0].fieldModel.item.custom_fields;
+        }
+        await this.setData(updates);
+        let Row = arguments[0];
+        Row.row = this.getValue(`table_so.${rowIndex}`);
+
+        await this.triggerEvent("SOCalculation", Row);
+      },
+      (error) => {
+        console.log("error", error);
+      },
+    );
     const {
       material_desc,
       material_name,
@@ -219,32 +277,6 @@ const fetchUnrestrictedQty = async (
       stock_control,
       item_category,
     } = arguments[0].fieldModel.item;
-
-    this.setData({
-      [`table_so.${rowIndex}.so_desc`]: material_desc,
-      [`table_so.${rowIndex}.item_id`]: material_name,
-      [`table_so.${rowIndex}.so_item_price`]: sales_unit_price,
-      [`table_so.${rowIndex}.item_category_id`]: item_category,
-      [`table_so.${rowIndex}.custom_fields`]:
-        arguments[0].fieldModel.item.custom_fields,
-    });
-
-    if (mat_sales_tax_id) {
-      this.setData({
-        [`table_so.${rowIndex}.so_tax_preference`]: mat_sales_tax_id,
-      });
-
-      const taxPercent =
-        arguments[0]?.fieldModel?.item?.sales_tax_percent || null;
-
-      if (taxPercent) {
-        setTimeout(() => {
-          this.setData({
-            [`table_so.${rowIndex}.so_tax_percentage`]: taxPercent,
-          });
-        }, 1000);
-      }
-    }
 
     this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
     this.refreshFieldOptionData([
@@ -269,7 +301,6 @@ const fetchUnrestrictedQty = async (
       );
 
       this.setData({
-        [`table_so.${rowIndex}.so_item_uom`]: sales_default_uom,
         [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
           finalQty.toFixed(4),
         ),
@@ -285,7 +316,6 @@ const fetchUnrestrictedQty = async (
       );
 
       this.setData({
-        [`table_so.${rowIndex}.so_item_uom`]: based_uom,
         [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
           finalQty.toFixed(4),
         ),
