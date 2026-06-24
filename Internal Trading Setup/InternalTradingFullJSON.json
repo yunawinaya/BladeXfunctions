@@ -691,7 +691,7 @@
                 "requiredMessage": "",
                 "validatorCheck": false,
                 "validator": "",
-                "disabled": true,
+                "disabled": "{{{{value:auto_create_so}} === 0 || {{value:auto_create_so}} === \"\" || {{value:auto_create_so}} === null}}",
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
@@ -722,6 +722,114 @@
               "name": "Auto Create GR",
               "key": "udp2o37p",
               "model": "auto_create_gr",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_m89cdxrr",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "dept_name",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": "children"
+                },
+                "remoteFunc": "func_m89cdxrr",
+                "customClass": "",
+                "labelWidth": 200,
+                "isLabelWidth": false,
+                "hidden": "{{{{value:auto_create_gr}} === 0 || {{value:auto_create_gr}} === \"\" || {{value:auto_create_gr}} === null}}",
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "1789995126399348747",
+                    "list": [
+                      {
+                        "id": 1782275183346,
+                        "parentId": 1782275183345,
+                        "isTop": true,
+                        "prop": "parent_id",
+                        "operator": "numberEqual",
+                        "valueType": "field",
+                        "value": "{{value:buyer_org_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Parent Primary Key",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "组织机构(勿删勿改):Table:1789995126399348747"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "paging_enabled": 1,
+                "sorts": [],
+                "labelWrap": false
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Buyer Plant",
+              "key": "11o7lmea",
+              "model": "buyer_plant_id",
               "rules": [],
               "novalid": {}
             },

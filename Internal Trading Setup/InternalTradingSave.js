@@ -106,6 +106,12 @@ const findFieldMessage = (obj) => {
       { name: "payment_term_source", label: "Payment Term Source" },
     ];
 
+    // Buyer Plant is required only when auto-creating the buyer GR — the
+    // seller-GD-triggered GR needs a receiving plant in the buyer org.
+    if (data.auto_create_gr === 1) {
+      requiredFields.push({ name: "buyer_plant_id", label: "Buyer Plant" });
+    }
+
     const missingFields = await validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
