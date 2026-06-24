@@ -120,6 +120,37 @@ const findFieldMessage = (obj) => {
         return;
       }
 
+      // Per-seller alias uniqueness: at most ONE active row may map a given
+      // (buyer item + buyer UOM) for the same buyer/seller org pair. The PO -> SO
+      // workflow loads aliases filtered by seller_org_id and keys its lookup on
+      // buyer_item_id|buyer_uom_id, so a second active row with the same key would
+      // silently overwrite (last-wins) and pick the wrong seller item. Mapping the
+      // same buyer item to a DIFFERENT seller org is allowed (seller_org_id
+      // disambiguates), so the seller org is part of the key. Inactive rows are not
+      // loaded by the workflow, so only guard when this row will be active.
+      if (entry.is_active !== 0) {
+        const dupRes = await db
+          .collection("item_alias")
+          .where({
+            buyer_org_id: entry.buyer_org_id,
+            seller_org_id: entry.seller_org_id,
+            buyer_item_id: entry.buyer_item_id,
+            buyer_uom_id: entry.buyer_uom_id,
+            is_active: 1,
+          })
+          .get();
+        const duplicate = (dupRes.data || []).find(
+          (r) => String(r.id) !== String(item_alias_no),
+        );
+        if (duplicate) {
+          this.hideLoading();
+          this.$message.error(
+            "An active alias already exists for this buyer item, UOM, and seller organization. Please edit the existing alias instead of creating a duplicate.",
+          );
+          return;
+        }
+      }
+
       console.log("entry", entry);
 
       // Add or update based on page status

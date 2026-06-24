@@ -120,6 +120,35 @@ const findFieldMessage = (obj) => {
         return;
       }
 
+      // One internal supplier maps to exactly ONE seller org. The PO -> SO
+      // workflow resolves the seller from internal_trading_setup by
+      // buyer_supplier_id with limit 1, so two active setups for the same
+      // supplier would resolve a seller non-deterministically and break
+      // item-alias coverage (items split across sellers would fail). Enforce
+      // uniqueness on (buyer_org_id, buyer_supplier_id) among active setups.
+      // Inactive setups are not loaded by the workflow, so only guard when this
+      // row will be active.
+      if (entry.is_active !== 0) {
+        const dupRes = await db
+          .collection("internal_trading_setup")
+          .where({
+            buyer_org_id: entry.buyer_org_id,
+            buyer_supplier_id: entry.buyer_supplier_id,
+            is_active: 1,
+          })
+          .get();
+        const duplicate = (dupRes.data || []).find(
+          (r) => String(r.id) !== String(internal_trading_no),
+        );
+        if (duplicate) {
+          this.hideLoading();
+          this.$message.error(
+            "This supplier is already set up for internal trading with a seller organization. Each supplier can map to only one seller organization.",
+          );
+          return;
+        }
+      }
+
       // Buyer Supplier and Seller Customer must share the same currency —
       // the PO -> SO auto-create blocks on a currency mismatch anyway, so reject
       // a mismatched setup up front. Compare by currency CODE, treating the base

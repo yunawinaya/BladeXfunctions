@@ -80,6 +80,88 @@ const saveWorkflow = async (data) => {
         return;
       }
 
+      if (soConfirm === 409) {
+        // Linked PO no longer eligible — confirm unlinking the SO.
+        this.hideLoading();
+        const proceed = await this.$confirm(
+          `${escapeHtml(out.msg)}<br><br><strong>Proceed and issue the purchase order unlinked?</strong>`,
+          `Sales Order will be unlinked`,
+          {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          },
+        )
+          .then(() => true)
+          .catch(() => false);
+        if (!proceed) {
+          this.hideLoading();
+          return;
+        }
+        this.showLoading("Saving Purchase Orders...");
+        data.unlink_confirmed = true;
+        await saveWorkflow(data);
+        return;
+      }
+
+      if (soConfirm === 410) {
+        // Supplier changed to a different internal org — unlink old + create new.
+        this.hideLoading();
+        const proceed = await this.$confirm(
+          `${escapeHtml(out.msg)}<br><br><strong>Proceed?</strong>`,
+          `Internal Trading – Re-link Sales Order`,
+          {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          },
+        )
+          .then(() => true)
+          .catch(() => false);
+        if (!proceed) {
+          this.hideLoading();
+          return;
+        }
+        this.showLoading("Saving Purchase Orders...");
+        data.swap_confirmed = true;
+        await saveWorkflow(data);
+        return;
+      }
+
+      if (soConfirm === 411) {
+        // Linked SO already being fulfilled — block the edit (no retry).
+        this.hideLoading();
+        await this.$alert(
+          `${escapeHtml(out.msg)}<br><br>The purchase order was not saved.`,
+          "Cannot edit a fulfilled Sales Order's purchase order",
+          {
+            confirmButtonText: "OK",
+            type: "error",
+            dangerouslyUseHTMLString: true,
+          },
+        );
+        this.hideLoading();
+        return;
+      }
+
+      if (soConfirm === 412) {
+        // PO saved, but reflecting changes into the linked SO failed (non-blocking).
+        this.hideLoading();
+        await this.$alert(
+          `The purchase order was saved, but the linked Sales Order could not be updated:<br><br>${escapeHtml(out.msg)}<br><br>Please update the Sales Order manually or contact your administrator.`,
+          "Sales Order not updated",
+          {
+            confirmButtonText: "OK",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          },
+        );
+        closeDialog();
+        return;
+      }
+
       // Normal success.
       this.$message.success(`${this.isEdit ? "Update" : "Add"} successfully`);
       closeDialog();
