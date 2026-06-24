@@ -33,7 +33,7 @@ const saveWorkflow = async (data) => {
       console.error(error);
       if (error.data?.code === 402) {
         // 402 - Existing draft GR/PI: delete then retry
-        await this.$confirm(
+        const proceed = await this.$confirm(
           `${escapeHtml(error.data.msg)}<br><br><strong>Do you wish to continue?</strong>`,
           `Existing draft records detected`,
           {
@@ -42,11 +42,15 @@ const saveWorkflow = async (data) => {
             type: "error",
             dangerouslyUseHTMLString: true,
           },
-        ).catch(async () => {
-          console.log("User clicked Cancel or closed the dialog");
+        )
+          .then(() => true)
+          .catch(() => false);
+
+        if (!proceed) {
+          // User cancelled — close quietly, not an error.
           this.hideLoading();
-          throw new Error("Saving purchase order cancelled.");
-        });
+          return;
+        }
 
         this.showLoading("Saving Purchase Orders...");
         await this.runWorkflow(
@@ -65,7 +69,7 @@ const saveWorkflow = async (data) => {
         // 406 - Internal trading auto-create SO skipped (item not linked in
         // Item Alias, or currency mismatch). Issue the PO without a linked SO,
         // or cancel. The dialog must live here (workflows cannot prompt).
-        await this.$confirm(
+        const proceed = await this.$confirm(
           `${escapeHtml(error.data.msg)}<br><br><strong>If you proceed, the purchase order will be issued but no Sales Order will be created or linked. Continue?</strong>`,
           `Auto-create Sales Order skipped`,
           {
@@ -74,11 +78,15 @@ const saveWorkflow = async (data) => {
             type: "warning",
             dangerouslyUseHTMLString: true,
           },
-        ).catch(() => {
-          console.log("User clicked Cancel or closed the dialog");
+        )
+          .then(() => true)
+          .catch(() => false);
+
+        if (!proceed) {
+          // User cancelled — close quietly, not an error.
           this.hideLoading();
-          throw new Error("Saving purchase order cancelled.");
-        });
+          return;
+        }
 
         this.showLoading("Saving Purchase Orders...");
         data.auto_so_skip = true;

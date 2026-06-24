@@ -4691,7 +4691,7 @@
                         "name": "Address Country/State IDs",
                         "script": {
                           "type": "javascript",
-                          "code": "const rows = {{node:search_addr.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\nconst countryIds = [...new Set(arr.map(a => a.address_country_id).filter(Boolean))];\nconst stateIds = [...new Set(arr.map(a => a.adddress_state).filter(Boolean))];\nreturn {\n  countryIds: countryIds.length ? countryIds : [\"__none__\"],\n  stateIds: stateIds.length ? stateIds : [\"__none__\"]\n};"
+                          "code": "const rows = {{node:search_addr.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\nconst countryIds = [...new Set(arr.map(a => a.address_country_id).filter(Boolean))];\nconst stateIds = [...new Set(arr.map(a => a.adddress_state).filter(Boolean))];\nreturn {\n  countryIds: countryIds.length ? countryIds : [\"0\"],\n  stateIds: stateIds.length ? stateIds : [\"0\"]\n};"
                         },
                         "response_json": [
                           {
@@ -4799,7 +4799,7 @@
                         "name": "Seller Item IDs",
                         "script": {
                           "type": "javascript",
-                          "code": "const aliasesRaw = {{node:search_alias.data.data}};\nconst arr = Array.isArray(aliasesRaw) ? aliasesRaw : (aliasesRaw ? [aliasesRaw] : []);\nconst ids = [...new Set(arr.map((a) => a.seller_item_id).filter(Boolean))];\nreturn { sellerItemIds: ids.length ? ids : [\"__none__\"] };"
+                          "code": "const aliasesRaw = {{node:search_alias.data.data}};\nconst arr = Array.isArray(aliasesRaw) ? aliasesRaw : (aliasesRaw ? [aliasesRaw] : []);\nconst ids = [...new Set(arr.map((a) => a.seller_item_id).filter(Boolean))];\nreturn { sellerItemIds: ids.length ? ids : [\"0\"] };"
                         },
                         "response_json": [
                           {
