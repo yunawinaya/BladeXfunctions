@@ -24,7 +24,63 @@ const saveWorkflow = async (data) => {
   await this.runWorkflow(
     "2069257894280118274",
     { allData: data },
-    (res) => {
+    async (res) => {
+      // The pre-save gate returns code 200 with { so_confirm, msg } when it needs
+      // a user decision — so it does NOT trigger the platform's error toast.
+      const out = (res && res.data && res.data.data) || (res && res.data) || {};
+      const soConfirm = Number(out.so_confirm);
+
+      if (soConfirm === 406) {
+        // Not eligible (item not in Item Alias / currency mismatch).
+        this.hideLoading();
+        const proceed = await this.$confirm(
+          `${escapeHtml(out.msg)}<br><br><strong>If you proceed, the purchase order will be issued but no Sales Order will be created or linked. Continue?</strong>`,
+          `Auto-create Sales Order skipped`,
+          {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          },
+        )
+          .then(() => true)
+          .catch(() => false);
+        if (!proceed) {
+          this.hideLoading();
+          return;
+        }
+        this.showLoading("Saving Purchase Orders...");
+        data.auto_so_skip = true;
+        await saveWorkflow(data);
+        return;
+      }
+
+      if (soConfirm === 408) {
+        // Eligible — ask whether to auto-create the linked Sales Order.
+        this.hideLoading();
+        const createSO = await this.$confirm(
+          `${escapeHtml(out.msg)}<br><br><strong>Do you want to auto-create the linked Sales Order now?</strong>`,
+          `Internal Trading – Auto-create Sales Order`,
+          {
+            confirmButtonText: "Yes, create SO",
+            cancelButtonText: "No, issue without SO",
+            type: "info",
+            dangerouslyUseHTMLString: true,
+          },
+        )
+          .then(() => true)
+          .catch(() => false);
+        this.showLoading("Saving Purchase Orders...");
+        if (createSO) {
+          data.auto_so_confirmed = true;
+        } else {
+          data.auto_so_skip = true;
+        }
+        await saveWorkflow(data);
+        return;
+      }
+
+      // Normal success.
       this.$message.success(`${this.isEdit ? "Update" : "Add"} successfully`);
       closeDialog();
     },
@@ -65,55 +121,6 @@ const saveWorkflow = async (data) => {
             console.error(error);
           },
         );
-      } else if (error.data?.code === 406) {
-        // 406 - Internal trading auto-create SO skipped (item not linked in
-        // Item Alias, or currency mismatch). Issue the PO without a linked SO,
-        // or cancel. The dialog must live here (workflows cannot prompt).
-        const proceed = await this.$confirm(
-          `${escapeHtml(error.data.msg)}<br><br><strong>If you proceed, the purchase order will be issued but no Sales Order will be created or linked. Continue?</strong>`,
-          `Auto-create Sales Order skipped`,
-          {
-            confirmButtonText: "Proceed",
-            cancelButtonText: "Cancel",
-            type: "warning",
-            dangerouslyUseHTMLString: true,
-          },
-        )
-          .then(() => true)
-          .catch(() => false);
-
-        if (!proceed) {
-          // User cancelled — close quietly, not an error.
-          this.hideLoading();
-          return;
-        }
-
-        this.showLoading("Saving Purchase Orders...");
-        data.auto_so_skip = true;
-        await saveWorkflow(data);
-      } else if (error.data?.code === 408) {
-        // 408 - PO is eligible for internal trading. Ask whether to auto-create
-        // the linked Sales Order. Yes -> create & link; No -> issue without SO.
-        const createSO = await this.$confirm(
-          `${escapeHtml(error.data.msg)}<br><br><strong>Do you want to auto-create the linked Sales Order now?</strong>`,
-          `Internal Trading – Auto-create Sales Order`,
-          {
-            confirmButtonText: "Yes, create SO",
-            cancelButtonText: "No, issue without SO",
-            type: "info",
-            dangerouslyUseHTMLString: true,
-          },
-        )
-          .then(() => true)
-          .catch(() => false);
-
-        this.showLoading("Saving Purchase Orders...");
-        if (createSO) {
-          data.auto_so_confirmed = true;
-        } else {
-          data.auto_so_skip = true;
-        }
-        await saveWorkflow(data);
       } else if (error.data?.code === 407) {
         // 407 - PO was issued, but the linked Sales Order auto-creation failed.
         // Non-blocking: the PO is already saved; just inform the user.

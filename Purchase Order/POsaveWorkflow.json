@@ -1497,7 +1497,7 @@
                         "name": "Pre Coverage Gate",
                         "script": {
                           "type": "javascript",
-                          "code": "const lines = {{workflowparams:allData.table_po}};\nconst aliasesRaw = {{node:search_alias_pre.data.data}};\nconst customerRaw = {{node:get_customer_pre.data.data}};\nconst currencyRaw = {{node:get_currency_pre.data.data}};\nconst poCurrency = {{workflowparams:allData.po_currency}};\nconst autoSkip = {{workflowparams:allData.auto_so_skip}} === true;\nconst autoConfirmed = {{workflowparams:allData.auto_so_confirmed}} === true;\nconst toArr = (x) => Array.isArray(x) ? x : (x ? [x] : []);\nconst one = (x) => Array.isArray(x) ? x[0] : x;\nconst aliasArr = toArr(aliasesRaw);\nconst aliasMap = {};\naliasArr.forEach((a) => { aliasMap[a.buyer_item_id + \"|\" + a.buyer_uom_id] = a; });\nconst stock = (lines || []).filter((l) => l.item_id && parseFloat(l.quantity) > 0);\nconst missing = [];\nstock.forEach((l) => { if (!aliasMap[l.item_id + \"|\" + l.quantity_uom]) missing.push(l.item_name || l.item_id); });\nconst cur = one(currencyRaw);\nconst curCode = cur ? (cur.currency_code || \"\") : \"\";\nconst currencyMismatch = !!(poCurrency && curCode && poCurrency !== curCode);\nconst customer = one(customerRaw);\nconst custName = customer && customer.customer_com_name ? customer.customer_com_name : \"the seller organization\";\n\nconst blocked = missing.length > 0 || currencyMismatch;\n// 406: not eligible (missing alias / currency) and not yet skipped\nconst block406 = blocked && !autoSkip;\n// 408: eligible, but the user hasn't decided whether to auto-create the SO\nconst confirm408 = !blocked && !autoConfirmed && !autoSkip;\n\nlet msg406 = \"\";\nif (missing.length > 0) {\n  msg406 = \"The following items are not linked in Item Alias for the seller organization: \" + missing.join(\", \");\n} else if (currencyMismatch) {\n  msg406 = \"PO currency (\" + poCurrency + \") does not match the seller organization currency (\" + curCode + \").\";\n}\nconst msg408 = \"This purchase order qualifies for internal trading. A linked Sales Order will be created for \" + custName + \".\";\n\nreturn { block406: block406, confirm408: confirm408, msg406: msg406, msg408: msg408 };"
+                          "code": "const lines = {{workflowparams:allData.table_po}};\nconst aliasesRaw = {{node:search_alias_pre.data.data}};\nconst customerRaw = {{node:get_customer_pre.data.data}};\nconst currencyRaw = {{node:get_currency_pre.data.data}};\nconst poCurrency = {{workflowparams:allData.po_currency}};\nconst autoSkip = {{workflowparams:allData.auto_so_skip}} === true;\nconst autoConfirmed = {{workflowparams:allData.auto_so_confirmed}} === true;\nconst toArr = (x) => Array.isArray(x) ? x : (x ? [x] : []);\nconst one = (x) => Array.isArray(x) ? x[0] : x;\nconst aliasArr = toArr(aliasesRaw);\nconst aliasMap = {};\naliasArr.forEach((a) => { aliasMap[a.buyer_item_id + \"|\" + a.buyer_uom_id] = a; });\nconst stock = (lines || []).filter((l) => l.item_id && parseFloat(l.quantity) > 0);\nconst missing = [];\nstock.forEach((l) => { if (!aliasMap[l.item_id + \"|\" + l.quantity_uom]) missing.push(l.item_name || l.item_id); });\nconst cur = one(currencyRaw);\nconst curCode = cur ? (cur.currency_code || \"\") : \"\";\nconst currencyMismatch = !!(poCurrency && curCode && poCurrency !== curCode);\nconst customer = one(customerRaw);\nconst custName = customer && customer.customer_com_name ? customer.customer_com_name : \"the seller organization\";\n\nconst blocked = missing.length > 0 || currencyMismatch;\n// 406: not eligible (missing alias / currency) and not yet skipped\nconst block406 = blocked && !autoSkip;\n// 408: eligible, but the user hasn't decided whether to auto-create the SO\nconst confirm408 = !blocked && !autoConfirmed && !autoSkip;\n\nlet msg406 = \"\";\nif (missing.length > 0) {\n  msg406 = \"The following items are not linked in Item Alias for the seller organization: \" + missing.join(\", \");\n} else if (currencyMismatch) {\n  msg406 = \"PO currency (\" + poCurrency + \") does not match the seller organization currency (\" + curCode + \").\";\n}\nconst msg408 = \"This purchase order qualifies for internal trading. A linked Sales Order will be created for \" + custName + \".\";\n\nreturn { block406: block406, confirm408: confirm408, msg406: msg406, msg408: msg408, out406: { so_confirm: 406, msg: msg406 }, out408: { so_confirm: 408, msg: msg408 } };"
                         },
                         "response_json": [
                           {
@@ -1530,6 +1530,24 @@
                           {
                             "key": "k1710000000079",
                             "name": "msg408",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k_out406",
+                            "name": "out406",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k_out408",
+                            "name": "out408",
                             "title": "",
                             "description": "",
                             "bsonType": "any",
@@ -1593,11 +1611,25 @@
                                 "isValidator": true,
                                 "nodeName": "结束节点",
                                 "name": "结束节点",
-                                "back_data_type": "Default",
-                                "code": 406,
+                                "back_data_type": "OutputParams",
+                                "code": "",
                                 "msg": {
                                   "type": "javascript",
-                                  "code": "{{node:code_gate.data.msg406}}"
+                                  "code": ""
+                                },
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "data",
+                                      "propLabel": "Data",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_gate.data.out406}}",
+                                      "valueLabel": ""
+                                    }
+                                  ]
                                 }
                               },
                               "blocks": []
@@ -1667,11 +1699,25 @@
                                 "isValidator": true,
                                 "nodeName": "结束节点",
                                 "name": "结束节点",
-                                "back_data_type": "Default",
-                                "code": 408,
+                                "back_data_type": "OutputParams",
+                                "code": "",
                                 "msg": {
                                   "type": "javascript",
-                                  "code": "{{node:code_gate.data.msg408}}"
+                                  "code": ""
+                                },
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "data",
+                                      "propLabel": "Data",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_gate.data.out408}}",
+                                      "valueLabel": ""
+                                    }
+                                  ]
                                 }
                               },
                               "blocks": []
