@@ -7,14 +7,16 @@ const closeDialog = () => {
 };
 
 const submitForm = async (data) => {
-  this.submit({
-    validate: false,
-  })
-    .then((res) => {
+  await this.runWorkflow(
+    "1988908545345945602",
+    {
+      allData: data,
+    },
+    (res) => {
       this.$message.success(`${this.isEdit ? "Update" : "Add"} successfully`);
       closeDialog();
-    })
-    .catch(async (error) => {
+    },
+    async (error) => {
       this.hideLoading();
       console.error(error);
       if (error.data?.code === 402) {
@@ -41,7 +43,7 @@ const submitForm = async (data) => {
         });
 
         this.showLoading("Saving Sales Order...");
-        this.models["need_cl"] = "not required";
+        data.need_cl = "not required";
 
         await submitForm(data);
       } else if (error.data?.code === 404) {
@@ -73,21 +75,41 @@ const submitForm = async (data) => {
             console.error(error);
           },
         );
+      } else if (error.data?.code === 405) {
+        // 405 - Create SI with 0 total amount
+        await this.$confirm(`${error.data.msg}`, `0 total amount detected`, {
+          confirmButtonText: "Proceed",
+          cancelButtonText: "Cancel",
+          type: "error",
+          dangerouslyUseHTMLString: true,
+        }).catch(() => {
+          console.log("User clicked Cancel or closed the dialog");
+          this.hideLoading();
+          throw new Error("Saving sales order cancelled.");
+        });
+        this.showLoading("Saving Sales Order...");
+        data.create_si = "Yes";
+
+        await submitForm(data);
       }
-    });
+    },
+  );
 };
 
 (async () => {
   this.showLoading("Saving Sales Order...");
   const data = this.getValues();
+  let entry = data;
 
-  for (const [index, soLineItem] of data.table_so.entries()) {
+  for (const [index, soLineItem] of entry.table_so.entries()) {
     await this.validate(`table_so.${index}.so_item_price`);
   }
 
-  this.models["so_status"] = "Issued";
-  this.models["production_status"] = "Not Created";
-  console.log("this.models", this.models);
+  entry.so_status =
+    entry.so_status === "Processing" ? entry.so_status : "Issued";
+  if (!entry.previous_status || entry.previous_status === "Draft") {
+    entry.production_status = "Not Created";
+  }
 
-  await submitForm(data);
+  await submitForm(entry);
 })();
