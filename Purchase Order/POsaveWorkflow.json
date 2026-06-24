@@ -44,7 +44,9 @@
         {
           "id": "if_save_draft_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_draft_check_doc_no",
@@ -203,7 +205,9 @@
                 {
                   "id": "if_draft_failed_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_draft_400",
@@ -212,7 +216,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -231,7 +239,9 @@
                 {
                   "id": "if_draft_failed_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -241,7 +251,9 @@
         {
           "id": "if_save_draft_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "code_check_doc_no",
@@ -400,7 +412,9 @@
                 {
                   "id": "if_required_failed_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_required_400",
@@ -409,7 +423,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -428,7 +446,9 @@
                 {
                   "id": "if_required_failed_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "code_map_validate_qty",
@@ -576,7 +596,9 @@
                         {
                           "id": "if_qty_passed_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "code_filter_lines",
@@ -669,7 +691,9 @@
                                 {
                                   "id": "if_empty_lines_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "end_empty_401",
@@ -679,7 +703,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -699,7 +725,9 @@
                                 {
                                   "id": "if_empty_lines_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -737,15 +765,21 @@
                                 {
                                   "id": "if_edit_draftcheck_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "cond_all_check",
                                       "type": "condition-all-node",
                                       "data": {
                                         "title": "Check Existing GR and PI",
-                                        "filter": { "list": [] },
-                                        "expression": { "code": "" },
+                                        "filter": {
+                                          "list": []
+                                        },
+                                        "expression": {
+                                          "code": ""
+                                        },
                                         "displayContent": "sdk.form.setCondition"
                                       },
                                       "blocks": [
@@ -1010,7 +1044,9 @@
                                         {
                                           "id": "if_draft_found_t",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "end_draft_404",
@@ -1042,7 +1078,9 @@
                                         {
                                           "id": "if_draft_found_f",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -1052,7 +1090,9 @@
                                 {
                                   "id": "if_edit_draftcheck_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -1062,7 +1102,9 @@
                         {
                           "id": "if_qty_passed_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "end_qty_401",
@@ -1072,7 +1114,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -1132,7 +1176,9 @@
         {
           "id": "if_pre_issued_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_its_pre",
@@ -1283,14 +1329,16 @@
                 },
                 "expression": {
                   "type": "javascript",
-                  "code": "{{node:code_its_pre.data.isInternal}} === true"
+                  "code": "{{node:code_its_pre.data.isInternal}} == true"
                 }
               },
               "blocks": [
                 {
                   "id": "if_internal_pre_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "search_alias_pre",
@@ -1518,14 +1566,16 @@
                         },
                         "expression": {
                           "type": "javascript",
-                          "code": "{{node:code_gate.data.block406}} === true"
+                          "code": "{{node:code_gate.data.block406}} == true"
                         }
                       },
                       "blocks": [
                         {
                           "id": "if_gate_406_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "end_pre_406",
@@ -1535,7 +1585,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -1555,7 +1607,9 @@
                         {
                           "id": "if_gate_406_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -1586,14 +1640,16 @@
                         },
                         "expression": {
                           "type": "javascript",
-                          "code": "{{node:code_gate.data.confirm408}} === true"
+                          "code": "{{node:code_gate.data.confirm408}} == true"
                         }
                       },
                       "blocks": [
                         {
                           "id": "if_gate_408_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "end_pre_408",
@@ -1603,7 +1659,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -1623,7 +1681,9 @@
                         {
                           "id": "if_gate_408_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -1633,7 +1693,9 @@
                 {
                   "id": "if_internal_pre_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1643,7 +1705,9 @@
         {
           "id": "if_pre_issued_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1710,7 +1774,9 @@
         {
           "id": "if_edit_persist_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "update_po",
@@ -2391,7 +2457,9 @@
         {
           "id": "if_edit_persist_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "add_po",
@@ -3175,7 +3243,9 @@
         {
           "id": "if_issued_downstream_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_po_full",
@@ -3454,7 +3524,9 @@
                 {
                   "id": "if_onorder_add_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "add_onorder",
@@ -3593,7 +3665,9 @@
                 {
                   "id": "if_onorder_add_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3631,7 +3705,9 @@
                 {
                   "id": "if_onorder_update_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_onorder",
@@ -3718,7 +3794,9 @@
                 {
                   "id": "if_onorder_update_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3756,7 +3834,9 @@
                 {
                   "id": "if_onorder_delete_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "search_onorder_orphans",
@@ -3810,13 +3890,17 @@
                       "id": "delete_onorder",
                       "type": "delete-node",
                       "data": {
-                        "table_id": { "source": "" },
+                        "table_id": {
+                          "source": ""
+                        },
                         "condition": {},
                         "title": "Delete On Order",
                         "isValidator": true,
                         "nodeName": "Delete On Order",
                         "name": "Delete On Order",
-                        "node_ids": ["search_onorder_orphans"]
+                        "node_ids": [
+                          "search_onorder_orphans"
+                        ]
                       },
                       "blocks": []
                     }
@@ -3825,7 +3909,9 @@
                 {
                   "id": "if_onorder_delete_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3863,7 +3949,9 @@
                 {
                   "id": "if_has_preq_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "search_preq",
@@ -4011,7 +4099,9 @@
                 {
                   "id": "if_has_preq_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -4165,14 +4255,16 @@
                 },
                 "expression": {
                   "type": "javascript",
-                  "code": "{{node:code_its.data.isInternal}} === true"
+                  "code": "{{node:code_its.data.isInternal}} == true"
                 }
               },
               "blocks": [
                 {
                   "id": "if_internal_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "search_existing_link",
@@ -4849,14 +4941,16 @@
                         },
                         "expression": {
                           "type": "javascript",
-                          "code": "{{node:code_build.data.doCreate}} === true"
+                          "code": "{{node:code_build.data.doCreate}} == true"
                         }
                       },
                       "blocks": [
                         {
                           "id": "if_so_create_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "wf_create_so",
@@ -4989,14 +5083,16 @@
                                 },
                                 "expression": {
                                   "type": "javascript",
-                                  "code": "{{node:code_so_result.data.ok}} === true"
+                                  "code": "{{node:code_so_result.data.ok}} == true"
                                 }
                               },
                               "blocks": [
                                 {
                                   "id": "if_so_ok_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "update_so_source",
@@ -5227,7 +5323,9 @@
                                 {
                                   "id": "if_so_ok_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -5258,14 +5356,16 @@
                                 },
                                 "expression": {
                                   "type": "javascript",
-                                  "code": "{{node:code_so_result.data.ok}} === false"
+                                  "code": "{{node:code_so_result.data.ok}} == false"
                                 }
                               },
                               "blocks": [
                                 {
                                   "id": "if_so_failed_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "end_so_fail",
@@ -5275,7 +5375,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -5295,7 +5397,9 @@
                                 {
                                   "id": "if_so_failed_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -5305,7 +5409,9 @@
                         {
                           "id": "if_so_create_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -5315,7 +5421,9 @@
                 {
                   "id": "if_internal_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5325,7 +5433,9 @@
         {
           "id": "if_issued_downstream_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -5369,7 +5479,10 @@
         "name": "End Node",
         "back_data_type": "OutputParams",
         "code": "",
-        "msg": { "type": "javascript", "code": "" },
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
         "response_value": {
           "list": [
             {
