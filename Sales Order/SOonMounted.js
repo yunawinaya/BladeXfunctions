@@ -141,6 +141,62 @@ const disabledField = async (status) => {
   }
 };
 
+// For a SO auto-created from an internal-trading PO (source_po_id set), lock
+// everything that comes from the PO and leave ONLY the line-level discount + tax
+// fields editable, so the seller org can apply its own discount/tax.
+const disableLinkedSOFields = async () => {
+  // Lock all header fields (do NOT hide save buttons — discount/tax stay savable).
+  this.disabled(
+    [
+      "so_status", "so_no", "so_date", "customer_name", "so_currency",
+      "plant_name", "organization_id", "partially_delivered", "fully_delivered",
+      "cust_billing_name", "cust_cp", "cust_billing_address", "cust_shipping_address",
+      "so_payment_term", "so_delivery_method", "so_shipping_date", "so_ref_doc",
+      "cp_driver_name", "cp_driver_contact_no", "cp_vehicle_number", "cp_pickup_date",
+      "cp_ic_no", "validity_of_collection", "cs_courier_company", "cs_shipping_date",
+      "est_arrival_date", "cs_tracking_number", "ct_driver_name", "ct_driver_contact_no",
+      "ct_delivery_cost", "ct_vehicle_number", "ct_est_delivery_date", "ct_ic_no",
+      "ss_shipping_company", "ss_shipping_date", "ss_freight_charges", "ss_shipping_method",
+      "ss_est_arrival_date", "ss_tracking_number", "so_sales_person", "so_total_gross",
+      "so_total_discount", "so_total_tax", "so_total", "so_remarks", "so_remarks2",
+      "so_remarks3", "cust_po", "cust_po_date", "so_tnc", "so_payment_details",
+      "billing_address_line_1", "billing_address_line_2", "billing_address_line_3",
+      "billing_address_line_4", "billing_address_city", "billing_address_state",
+      "billing_address_country", "billing_postal_code",
+      "shipping_address_line_1", "shipping_address_line_2", "shipping_address_line_3",
+      "shipping_address_line_4", "shipping_address_city", "shipping_address_state",
+      "shipping_address_country", "shipping_postal_code",
+      "exchange_rate", "myr_total_amount", "tpt_vehicle_number", "tpt_transport_name",
+      "tpt_ic_no", "tpt_driver_contact_no",
+    ],
+    true,
+  );
+
+  // Lock every editable line column EXCEPT discount + tax.
+  const tableSO = this.getValue("table_so") || [];
+  const lineColsToDisable = [
+    "item_name", "item_id", "so_desc", "more_desc", "so_quantity", "so_item_uom",
+    "so_item_price", "so_gross", "so_amount", "so_brand", "so_packaging_style",
+    "line_remark_1", "line_remark_2", "line_remark_3", "packing_uom", "packing_qty",
+    "packing_no", "hu_no", "net_weight", "weight_conversion",
+  ];
+  const lineColsToKeep = [
+    "so_discount", "so_discount_amount", "so_discount_uom",
+    "so_tax_preference", "so_tax_percentage", "so_tax_amount", "so_tax_inclusive",
+  ];
+  tableSO.forEach((_, index) => {
+    this.disabled(
+      lineColsToDisable.map((c) => `table_so.${index}.${c}`),
+      true,
+    );
+    // Ensure discount + tax stay editable regardless of status-based locking.
+    this.disabled(
+      lineColsToKeep.map((c) => `table_so.${index}.${c}`),
+      false,
+    );
+  });
+};
+
 const displayDeliveryMethod = async () => {
   const deliveryMethodName = this.getValue("so_delivery_method");
   console.log("deliveryMethodName", deliveryMethodName);
@@ -514,6 +570,10 @@ const fetchUnrestrictedQty = async () => {
         await displayDeliveryMethod();
         setTimeout(async () => {
           await enabledUOMField();
+          // A PO-linked SO: lock everything except line discount + tax.
+          if (this.getValue("source_po_id") && status !== "Completed") {
+            await disableLinkedSOFields();
+          }
         }, 50);
 
         //await fetchUnrestrictedQty();
