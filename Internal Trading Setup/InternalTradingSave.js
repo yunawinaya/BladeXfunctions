@@ -154,7 +154,10 @@ const findFieldMessage = (obj) => {
       // a mismatched setup up front. Compare by currency CODE, treating the base
       // code "----" as equal to "MYR".
       const [supRes, custRes] = await Promise.all([
-        db.collection("supplier_head").where({ id: entry.buyer_supplier_id }).get(),
+        db
+          .collection("supplier_head")
+          .where({ id: entry.buyer_supplier_id })
+          .get(),
         db.collection("Customer").where({ id: entry.seller_customer_id }).get(),
       ]);
       const supCurrencyId = supRes.data?.[0]?.currency_id || "";
@@ -182,8 +185,8 @@ const findFieldMessage = (obj) => {
 
       // Normalize auto-create switches: anything other than 1 becomes 0
       entry.auto_create_so = entry.auto_create_so === 1 ? 1 : 0;
-      entry.auto_create_gd = entry.auto_create_gd === 1 ? 1 : 0;
-      entry.auto_create_si = entry.auto_create_si === 1 ? 1 : 0;
+      entry.auto_create_gr = entry.auto_create_gr === 1 ? 1 : 0;
+      entry.auto_create_pi = entry.auto_create_pi === 1 ? 1 : 0;
 
       console.log("entry", entry);
 
