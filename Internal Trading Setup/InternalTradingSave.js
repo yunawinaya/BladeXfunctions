@@ -120,6 +120,37 @@ const findFieldMessage = (obj) => {
         return;
       }
 
+      // Buyer Supplier and Seller Customer must share the same currency —
+      // the PO -> SO auto-create blocks on a currency mismatch anyway, so reject
+      // a mismatched setup up front. Compare by currency CODE, treating the base
+      // code "----" as equal to "MYR".
+      const [supRes, custRes] = await Promise.all([
+        db.collection("supplier_head").where({ id: entry.buyer_supplier_id }).get(),
+        db.collection("Customer").where({ id: entry.seller_customer_id }).get(),
+      ]);
+      const supCurrencyId = supRes.data?.[0]?.currency_id || "";
+      const custCurrencyId = custRes.data?.[0]?.customer_currency_id || "";
+
+      if (String(supCurrencyId) !== String(custCurrencyId)) {
+        const normalizeCode = (code) => (code === "----" ? "MYR" : code || "");
+        const getCode = async (id) => {
+          if (!id) return "";
+          const res = await db.collection("currency").where({ id }).get();
+          return normalizeCode(res.data?.[0]?.currency_code);
+        };
+        const [supCode, custCode] = await Promise.all([
+          getCode(supCurrencyId),
+          getCode(custCurrencyId),
+        ]);
+        if (supCode !== custCode) {
+          this.hideLoading();
+          this.$message.error(
+            "Buyer Supplier and Seller Customer must have the same currency.",
+          );
+          return;
+        }
+      }
+
       // Normalize auto-create switches: anything other than 1 becomes 0
       entry.auto_create_so = entry.auto_create_so === 1 ? 1 : 0;
       entry.auto_create_gd = entry.auto_create_gd === 1 ? 1 : 0;
