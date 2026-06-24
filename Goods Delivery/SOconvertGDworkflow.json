@@ -1,0 +1,2124 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "开始节点" },
+      "blocks": []
+    },
+    {
+      "id": "search_node_ZidRIRxa",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Order:Table:1902773735979597826",
+          "rules": {
+            "collectionId": "1902773735979597826",
+            "list": [
+              {
+                "id": 1762160242039,
+                "parentId": 1762160242038,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:so_ids}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Primary Key ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get SO Data",
+        "isValidator": true,
+        "nodeName": "Get SO Data",
+        "name": "Get SO Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_or_CeuW2Oil",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Condition",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_or_node_item_uRJce5a6",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Multiple",
+            "filter": {
+              "list": [
+                {
+                  "id": 1762160192036,
+                  "parentId": 1762160192035,
+                  "isTop": true,
+                  "prop": "workflowparams.gd_type",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "multiple",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "GD Type",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Multiple",
+            "name": "Multiple",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "get_node_V65nP1ws",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "流水号规则表:Table:1994006139209117697",
+                  "rules": {
+                    "collectionId": "1994006139209117697",
+                    "list": [
+                      {
+                        "id": 1772420657623,
+                        "parentId": 1772420657624,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1772420669172,
+                            "parentId": 1772420657623,
+                            "isTop": false,
+                            "prop": "business_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Goods Delivery",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Document Type",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1772420657626,
+                            "parentId": 1772420657623,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Default",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1772420657625,
+                            "parentId": 1772420657623,
+                            "isTop": false,
+                            "prop": "department_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "部门ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get GD Prefix Config",
+                "isValidator": true,
+                "nodeName": "Get GD Prefix Config",
+                "name": "Get GD Prefix Config"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_node_item_yiiVzqPG",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Single",
+            "isDefault": true,
+            "filter": { "list": [] },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_HOWEZH5S",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Data",
+        "isValidator": true,
+        "nodeName": "Map Data",
+        "name": "Map Data",
+        "script": {
+          "type": "javascript",
+          "code": "const mapLineItem = (item, record) => {\n  const lineItemPromise = {\n    itemId: item.item_name,\n    itemName: item.item_id,\n    itemDesc: item.so_desc,\n    orderedQty: parseFloat(item.so_quantity || 0),\n    altUOM: item.so_item_uom || \"\",\n    unitPrice: parseFloat(item.so_item_price || 0),\n    custom_fields: item.custom_fields, // wzp 0530 edit\n    soAmount: parseFloat(item.so_amount || 0),\n    moreDesc: item.more_desc,\n    lineRemark1: item.line_remark_1,\n    lineRemark2: item.line_remark_2,\n    lineRemark3: item.line_remark_3,\n    deliveredQtyFromSource: parseFloat(item.delivered_qty || 0),\n    original_so_id: String(record.id),\n    so_no: record.so_no,\n    so_line_item_id: String(item.id),\n    item_category_id: String(item.item_category_id),\n    plannedQtyFromSource: parseFloat(item.planned_qty || 0),\n  };\n\n  return lineItemPromise;\n};\n\nconst mapGDLineItem = (item, record) => {\n  const gdLinePromise = {\n    material_id: item.item_name,\n    material_name: item.item_id,\n    gd_material_desc: item.so_desc,\n    more_desc: item.more_desc,\n    gd_order_quantity: parseFloat(item.so_quantity || 0),\n    gd_order_uom_id: item.so_item_uom || \"\",\n    good_delivery_uom_id: item.so_item_uom || \"\",\n    line_so_no: record.so_no,\n    so_line_item_id: String(item.id),\n    line_so_id: String(record.id),\n    item_category_id: String(item.item_category_id),\n    line_remark_1: item.line_remark_1,\n    line_remark_2: item.line_remark_2,\n    line_remark_3: item.line_remark_3,\n  };\n\n  return gdLinePromise;\n};\n\nconst mapHeaderData = (\n  record,\n  soNo,\n  gdPrefix,\n  soID,\n  allItems,\n  plantID,\n  tableGD\n) => {\n  const mappedData = {\n    gd_status: \"Draft\",\n    plant_id: plantID,\n    so_no: soNo,\n    so_id: soID,\n    all_item: allItems,\n    from_convert: \"Yes\",\n    table_gd: tableGD,\n    organization_id: record.organization_id,\n    delivery_no: gdPrefix,\n    delivery_date: new Date().toISOString().replace(\"T\", \" \"),\n    customer_name: record.customer_name,\n    currency_code: record.so_currency,\n    gd_delivery_method: record.so_delivery_method,\n    driver_name: record.cp_driver_name,\n    ic_no: record.cp_ic_no,\n    driver_contact_no: record.cp_driver_contact_no,\n    sp_vehicle_no: record.cp_vehicle_number,\n    pickup_date: record.cp_pickup_date,\n    validity_of_collection: record.validity_of_collection,\n\n    courier_company: record.cs_courier_company,\n    shipping_date: record.cs_shipping_date,\n    tracking_number: record.cs_tracking_number,\n    est_arrival_date: record.est_arrival_date,\n    freight_charges: record.cs_freight_charges,\n\n    driver_name: record.ct_driver_name,\n    driver_contact_no: record.ct_driver_contact_no,\n    ic_no: record.ct_ic_no,\n    vehicle_no: record.ct_vehicle_number,\n    est_delivery_date: record.ct_est_delivery_date,\n    delivery_cost: record.ct_delivery_cost,\n\n    shipping_company: record.ss_shipping_company,\n    shipping_date: record.ss_shipping_date,\n    freight_charges: record.ss_freight_charges,\n    shipping_method: record.ss_shipping_method,\n    est_arrival_date: record.ss_est_arrival_date,\n    tracking_number: record.ss_tracking_number,\n\n    tpt_vehicle_number: record.tpt_vehicle_number,\n    tpt_transport_name: record.tpt_transport_name,\n    tpt_ic_no: record.tpt_ic_no,\n    tpt_driver_contact_no: record.tpt_driver_contact_no,\n    tpt_driver_name: record.tpt_driver_name,\n\n    gd_billing_address: record.cust_billing_address,\n    gd_shipping_address: record.cust_shipping_address,\n\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    billing_address_code: record.billing_address_code,\n\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n    shipping_address_code: record.shipping_address_code,\n\n\n    gd_area_id: record.so_area_id || \"\",\n    order_tnc: record.so_tnc || \"\",\n    order_payment_details: record.so_payment_details || \"\",\n    order_delivery_term: record.so_delivery_term || \"\",\n    order_remark: record.so_remarks || \"\",\n    order_remark2: record.so_remarks2 || \"\",\n    order_remark3: record.so_remarks3 || \"\",\n    order_remark4: record.so_remarks4 || \"\",\n    order_remark5: record.so_remarks5 || \"\",\n  };\n\n  return mappedData;\n};\n\nconst gdConvertType = {{workflowparams:gd_type}};\nconst soData = {{node:search_node_ZidRIRxa.data.data}};\nconst plantID = {{workflowparams:plant_id}};\n\nlet gdData = [];\nif (gdConvertType === \"multiple\") {\n  for (const [index, record] of soData.entries()) {\n    let lineItemPromises = [];\n    let gdLineItemPromises = [];\n\n    for (const item of record.table_so) {\n      const lineItemPromise = mapLineItem(item, record);\n      const gdLinePromise = mapGDLineItem(item, record);\n      lineItemPromises.push(lineItemPromise);\n      gdLineItemPromises.push(gdLinePromise);\n    }\n\n    const mappedData = mapHeaderData(\n      record,\n      record.so_no,\n      'draft',\n      [record.id],\n      JSON.stringify(lineItemPromises),\n      plantID,\n      gdLineItemPromises\n    );\n\n    gdData.push(mappedData);\n  }\n} else {\n  let lineItemPromises = [];\n  for (const record of soData) {\n    for (const item of record.table_so) {\n      const lineItemPromise = mapLineItem(item, record);\n      lineItemPromises.push(lineItemPromise);\n    }\n  }\nconsole.log(111,soData)\n  const record = soData[0];\n  const soNo = soData.map((item) => item.so_no).join(\", \");\n  const soID = soData.map((item) => item.id);\n  const gdPrefix = \"\";\n  const mappedData = mapHeaderData(\n    record,\n    soNo,\n    gdPrefix,\n    soID,\n    JSON.stringify(lineItemPromises),\n    plantID,\n    []\n  );\n\n  gdData.push(mappedData);\n}\n\nreturn gdData;\n"
+        },
+        "response_json": [
+          {
+            "key": "9znlwg4k",
+            "name": "gd_status",
+            "title": "GD Status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.gd_status",
+            "label": "GD Status",
+            "model": "0",
+            "valueCom": "input"
+          },
+          {
+            "key": "izs2kbmu",
+            "name": "plant_id",
+            "title": "Plant ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.plant_id",
+            "label": "Plant ID",
+            "model": "1",
+            "valueCom": "input"
+          },
+          {
+            "key": "lwlxi9v6",
+            "name": "so_no",
+            "title": "SO NO",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.so_no",
+            "label": "SO NO",
+            "model": "2",
+            "valueCom": "input"
+          },
+          {
+            "key": "m3v8teya",
+            "name": "so_id",
+            "title": "SO IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "wawa4rke",
+                "name": "items",
+                "title": "SO ID",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true,
+                "isParamsNode": true,
+                "value": "node.code_node_HOWEZH5S.data.so_id.items",
+                "label": "SO ID",
+                "model": "0",
+                "valueCom": "input"
+              }
+            ],
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.so_id",
+            "label": "SO IDs",
+            "model": "3",
+            "valueCom": "itemInput"
+          },
+          {
+            "key": "30f1yh5g",
+            "name": "all_item",
+            "title": "All Items",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.all_item",
+            "label": "All Items",
+            "model": "4",
+            "valueCom": "input",
+            "children": []
+          },
+          {
+            "key": "5st5s4u7",
+            "name": "from_convert",
+            "title": "From Convert",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.from_convert",
+            "label": "From Convert",
+            "model": "5",
+            "valueCom": "input"
+          },
+          {
+            "key": "uw2pesle",
+            "name": "organization_id",
+            "title": "Organization ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.organization_id",
+            "label": "Organization ID",
+            "model": "6",
+            "valueCom": "input"
+          },
+          {
+            "key": "b0tvayoh",
+            "name": "delivery_no",
+            "title": "Delivery No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.delivery_no",
+            "label": "Delivery No",
+            "model": "7",
+            "valueCom": "input"
+          },
+          {
+            "key": "qpl39wmh",
+            "name": "delivery_date",
+            "title": "Delivery Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.delivery_date",
+            "label": "Delivery Date",
+            "model": "8",
+            "valueCom": "input"
+          },
+          {
+            "key": "l8a7x5qm",
+            "name": "customer_name",
+            "title": "Customer Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.customer_name",
+            "label": "Customer Name",
+            "model": "9",
+            "valueCom": "input"
+          },
+          {
+            "key": "2i53x2mg",
+            "name": "currency_code",
+            "title": "Currency Code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.currency_code",
+            "label": "Currency Code",
+            "model": "10",
+            "valueCom": "input"
+          },
+          {
+            "key": "oi8l3cia",
+            "name": "gd_delivery_method",
+            "title": "GD Delivery Method",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.gd_delivery_method",
+            "label": "GD Delivery Method",
+            "model": "11",
+            "valueCom": "input"
+          },
+          {
+            "key": "ouyo4qa9",
+            "name": "driver_name",
+            "title": "Driver Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.driver_name",
+            "label": "Driver Name",
+            "model": "12",
+            "valueCom": "input"
+          },
+          {
+            "key": "qtjumpjc",
+            "name": "ic_no",
+            "title": "IC NO",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.ic_no",
+            "label": "IC NO",
+            "model": "13",
+            "valueCom": "input"
+          },
+          {
+            "key": "p7ibguop",
+            "name": "driver_contact_no",
+            "title": "Driver Contact No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.driver_contact_no",
+            "label": "Driver Contact No",
+            "model": "14",
+            "valueCom": "input"
+          },
+          {
+            "key": "eufskief",
+            "name": "vehicle_no",
+            "title": "Vehicle No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.vehicle_no",
+            "label": "Vehicle No",
+            "model": "15",
+            "valueCom": "input"
+          },
+          {
+            "key": "9t1zybtg",
+            "name": "pickup_date",
+            "title": "Pickup Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.pickup_date",
+            "label": "Pickup Date",
+            "model": "16",
+            "valueCom": "input"
+          },
+          {
+            "key": "5i0pnzws",
+            "name": "validity_of_collection",
+            "title": "Validity of Collection",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.validity_of_collection",
+            "label": "Validity of Collection",
+            "model": "17",
+            "valueCom": "input"
+          },
+          {
+            "key": "4qbhisln",
+            "name": "courier_company",
+            "title": "Courier Company",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.courier_company",
+            "label": "Courier Company",
+            "model": "18",
+            "valueCom": "input"
+          },
+          {
+            "key": "5kvzl8es",
+            "name": "shipping_date",
+            "title": "Shipping Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_date",
+            "label": "Shipping Date",
+            "model": "19",
+            "valueCom": "input"
+          },
+          {
+            "key": "u7xaeh8r",
+            "name": "tracking_number",
+            "title": "Tracking Number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.tracking_number",
+            "label": "Tracking Number",
+            "model": "20",
+            "valueCom": "input"
+          },
+          {
+            "key": "x0p2fdry",
+            "name": "est_arrival_date",
+            "title": "Est Arrival Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.est_arrival_date",
+            "label": "Est Arrival Date",
+            "model": "21",
+            "valueCom": "input"
+          },
+          {
+            "key": "tx3acks9",
+            "name": "freight_charges",
+            "title": "Freight Charges",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.freight_charges",
+            "label": "Freight Charges",
+            "model": "22",
+            "valueCom": "input"
+          },
+          {
+            "key": "628t3bfe",
+            "name": "driver_name",
+            "title": "Driver Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.driver_name",
+            "label": "Driver Name",
+            "model": "23",
+            "valueCom": "input"
+          },
+          {
+            "key": "vfdn6ybm",
+            "name": "driver_contact_no",
+            "title": "Driver Contact No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.driver_contact_no",
+            "label": "Driver Contact No",
+            "model": "24",
+            "valueCom": "input"
+          },
+          {
+            "key": "mgmyswjf",
+            "name": "ic_no",
+            "title": "IC No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.ic_no",
+            "label": "IC No",
+            "model": "25",
+            "valueCom": "input"
+          },
+          {
+            "key": "0v3m48qs",
+            "name": "vehicle_no",
+            "title": "Vehicle No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.vehicle_no",
+            "label": "Vehicle No",
+            "model": "26",
+            "valueCom": "input"
+          },
+          {
+            "key": "3subspsr",
+            "name": "est_delivery_date",
+            "title": "Est Delivery Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.est_delivery_date",
+            "label": "Est Delivery Date",
+            "model": "27",
+            "valueCom": "input"
+          },
+          {
+            "key": "i4k3l4w8",
+            "name": "delivery_cost",
+            "title": "Delivery Cost",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.delivery_cost",
+            "label": "Delivery Cost",
+            "model": "28",
+            "valueCom": "input"
+          },
+          {
+            "key": "vvehhjxn",
+            "name": "shipping_company",
+            "title": "Shipping Company",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_company",
+            "label": "Shipping Company",
+            "model": "29",
+            "valueCom": "input"
+          },
+          {
+            "key": "ksot09ts",
+            "name": "shipping_date",
+            "title": "Shipping Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_date",
+            "label": "Shipping Date",
+            "model": "30",
+            "valueCom": "input"
+          },
+          {
+            "key": "q7nmolyg",
+            "name": "freight_charges",
+            "title": "Freight Charges",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.freight_charges",
+            "label": "Freight Charges",
+            "model": "31",
+            "valueCom": "input"
+          },
+          {
+            "key": "637xxd2h",
+            "name": "shipping_method",
+            "title": "Shipping Method",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_method",
+            "label": "Shipping Method",
+            "model": "32",
+            "valueCom": "input"
+          },
+          {
+            "key": "whwc226k",
+            "name": "est_arrival_date",
+            "title": "Est Arrival Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.est_arrival_date",
+            "label": "Est Arrival Date",
+            "model": "33",
+            "valueCom": "input"
+          },
+          {
+            "key": "x8g866b5",
+            "name": "tracking_number",
+            "title": "Tracking Number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.tracking_number",
+            "label": "Tracking Number",
+            "model": "34",
+            "valueCom": "input"
+          },
+          {
+            "key": "t7s0uc37",
+            "name": "tpt_vehicle_number",
+            "title": "Tpt Vehicle Number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.tpt_vehicle_number",
+            "label": "Tpt Vehicle Number",
+            "model": "35",
+            "valueCom": "input"
+          },
+          {
+            "key": "bu36f47j",
+            "name": "tpt_transport_name",
+            "title": "Tpt Transport Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.tpt_transport_name",
+            "label": "Tpt Transport Name",
+            "model": "36",
+            "valueCom": "input"
+          },
+          {
+            "key": "axqv577q",
+            "name": "tpt_ic_no",
+            "title": "Tpt IC NO",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.tpt_ic_no",
+            "label": "Tpt IC NO",
+            "model": "37",
+            "valueCom": "input"
+          },
+          {
+            "key": "9l4iddnh",
+            "name": "tpt_driver_contact_no",
+            "title": "Tpt Driver Contact No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.tpt_driver_contact_no",
+            "label": "Tpt Driver Contact No",
+            "model": "38",
+            "valueCom": "input"
+          },
+          {
+            "key": "jozvtuqk",
+            "name": "gd_billing_address",
+            "title": "GD Billing Address",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.gd_billing_address",
+            "label": "GD Billing Address",
+            "model": "39",
+            "valueCom": "input"
+          },
+          {
+            "key": "5reu7b5c",
+            "name": "gd_shipping_address",
+            "title": "GD Shipping Address",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.gd_shipping_address",
+            "label": "GD Shipping Address",
+            "model": "40",
+            "valueCom": "input"
+          },
+          {
+            "key": "6z9wbb4l",
+            "name": "billing_address_line_1",
+            "title": "Billing Line 1",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_line_1",
+            "label": "Billing Line 1",
+            "model": "41",
+            "valueCom": "input"
+          },
+          {
+            "key": "f0rhzrup",
+            "name": "billing_address_line_2",
+            "title": "Billing Line 2",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_line_2",
+            "label": "Billing Line 2",
+            "model": "42",
+            "valueCom": "input"
+          },
+          {
+            "key": "fzk1xjr6",
+            "name": "billing_address_line_3",
+            "title": "Billing Line 3",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_line_3",
+            "label": "Billing Line 3",
+            "model": "43",
+            "valueCom": "input"
+          },
+          {
+            "key": "czh8my0p",
+            "name": "billing_address_line_4",
+            "title": "Billing Line 4",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_line_4",
+            "label": "Billing Line 4",
+            "model": "44",
+            "valueCom": "input"
+          },
+          {
+            "key": "5q4aj6ib",
+            "name": "billing_address_city",
+            "title": "Billing City",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_city",
+            "label": "Billing City",
+            "model": "45",
+            "valueCom": "input"
+          },
+          {
+            "key": "rxn3et8f",
+            "name": "billing_postal_code",
+            "title": "Billing Code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_postal_code",
+            "label": "Billing Code",
+            "model": "46",
+            "valueCom": "input"
+          },
+          {
+            "key": "gzvlpdkg",
+            "name": "billing_address_state",
+            "title": "Billing State",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_state",
+            "label": "Billing State",
+            "model": "47",
+            "valueCom": "input"
+          },
+          {
+            "key": "prd7oj42",
+            "name": "billing_address_country",
+            "title": "Billing Country",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_country",
+            "label": "Billing Country",
+            "model": "48",
+            "valueCom": "input"
+          },
+          {
+            "key": "60c3rq3z",
+            "name": "billing_address_name",
+            "title": "Billing Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_name",
+            "label": "Billing Name",
+            "model": "49",
+            "valueCom": "input"
+          },
+          {
+            "key": "s12oon3h",
+            "name": "billing_address_phone",
+            "title": "Billing Phone",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_address_phone",
+            "label": "Billing Phone",
+            "model": "50",
+            "valueCom": "input"
+          },
+          {
+            "key": "823ihblq",
+            "name": "billing_attention",
+            "title": "Billing Attention",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.billing_attention",
+            "label": "Billing Attention",
+            "model": "51",
+            "valueCom": "input"
+          },
+          {
+            "key": "dfq7vby9",
+            "name": "shipping_address_line_1",
+            "title": "Shipping Line 1",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_line_1",
+            "label": "Shipping Line 1",
+            "model": "52",
+            "valueCom": "input"
+          },
+          {
+            "key": "qh5sdp38",
+            "name": "shipping_address_line_2",
+            "title": "Shipping Line 2",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_line_2",
+            "label": "Shipping Line 2",
+            "model": "53",
+            "valueCom": "input"
+          },
+          {
+            "key": "rb6rs9fh",
+            "name": "shipping_address_line_3",
+            "title": "Shipping Line 3",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_line_3",
+            "label": "Shipping Line 3",
+            "model": "54",
+            "valueCom": "input"
+          },
+          {
+            "key": "uo039ydx",
+            "name": "shipping_address_line_4",
+            "title": "Shipping Line 4",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_line_4",
+            "label": "Shipping Line 4",
+            "model": "55",
+            "valueCom": "input"
+          },
+          {
+            "key": "i88yjbtf",
+            "name": "shipping_address_city",
+            "title": "Shipping City",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_city",
+            "label": "Shipping City",
+            "model": "56",
+            "valueCom": "input"
+          },
+          {
+            "key": "vorlqyvk",
+            "name": "shipping_postal_code",
+            "title": "Shipping Code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_postal_code",
+            "label": "Shipping Code",
+            "model": "57",
+            "valueCom": "input"
+          },
+          {
+            "key": "9xcfgdng",
+            "name": "shipping_address_state",
+            "title": "Shipping State",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_state",
+            "label": "Shipping State",
+            "model": "58",
+            "valueCom": "input"
+          },
+          {
+            "key": "sdh1v7m9",
+            "name": "shipping_address_country",
+            "title": "Shipping Country",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_country",
+            "label": "Shipping Country",
+            "model": "59",
+            "valueCom": "input"
+          },
+          {
+            "key": "2omkr6b7",
+            "name": "shipping_address_name",
+            "title": "Shipping Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_name",
+            "label": "Shipping Name",
+            "model": "60",
+            "valueCom": "input"
+          },
+          {
+            "key": "ev78mnni",
+            "name": "shipping_address_phone",
+            "title": "Shipping Phone",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_address_phone",
+            "label": "Shipping Phone",
+            "model": "61",
+            "valueCom": "input"
+          },
+          {
+            "key": "nhjkobho",
+            "name": "shipping_attention",
+            "title": "Shipping Attention",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.shipping_attention",
+            "label": "Shipping Attention",
+            "model": "62",
+            "valueCom": "input"
+          },
+          {
+            "key": "22ty5pw9",
+            "name": "table_gd",
+            "title": "Table GD",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "gsqc9g11",
+                "name": "items",
+                "title": "Item",
+                "description": "",
+                "bsonType": "object",
+                "isExpand": true,
+                "isArrayItem": true,
+                "children": [
+                  {
+                    "key": "3ymwkrd4",
+                    "name": "material_id",
+                    "title": "Material ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "rkwxwi8c",
+                    "name": "material_name",
+                    "title": "Material Name",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "y413ztco",
+                    "name": "gd_material_desc",
+                    "title": "GD Material Desc",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "eek1yz0k",
+                    "name": "more_desc",
+                    "title": "More Desc",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "vrfknh27",
+                    "name": "gd_order_quantity",
+                    "title": "GD Order Qty",
+                    "description": "",
+                    "bsonType": "decimal",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "yqy7rv41",
+                    "name": "gd_order_uom_id",
+                    "title": "GD Order Uom ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "z8hz1vml",
+                    "name": "good_delivery_uom_id",
+                    "title": "GD Uom ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "i3xcprt8",
+                    "name": "line_so_no",
+                    "title": "Line So No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "j0do51eh",
+                    "name": "so_line_item_id",
+                    "title": "SO Line Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "t7vny77i",
+                    "name": "line_so_id",
+                    "title": "Line SO ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "l6ee8vbl",
+                    "name": "item_category_id",
+                    "title": "Item Category ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "h9elcrvp",
+                    "name": "line_remark_1",
+                    "title": "Line Remark 1",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "cddn69e9",
+                    "name": "line_remark_2",
+                    "title": "Line Remark 2",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "8w77kdvl",
+                    "name": "line_remark_3",
+                    "title": "Line Remark 3",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              }
+            ],
+            "isParamsNode": true,
+            "value": "node.code_node_HOWEZH5S.data.table_gd",
+            "label": "Table GD",
+            "model": "64",
+            "valueCom": "itemInput"
+          },
+          {
+            "key": "x103rqqq",
+            "name": "order_tnc",
+            "title": "TNC",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "iit0u7bp",
+            "name": "order_payment_details",
+            "title": "Payment Details",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "xubu7b9p",
+            "name": "order_delivery_term",
+            "title": "Delivery Term",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "g9sn3ul3",
+            "name": "order_remark",
+            "title": "Remark 1",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "0myrz3vn",
+            "name": "order_remark2",
+            "title": "Remark 2",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "fpnfyt7y",
+            "name": "order_remark3",
+            "title": "Remark 3",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "b4x19y3q",
+            "name": "order_remark4",
+            "title": "Remark 4",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "izv2vig9",
+            "name": "order_remark5",
+            "title": "Remark 5",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "esn9ca6z",
+            "name": "sp_vehicle_no",
+            "title": "Vehicle No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "2fevrci8",
+            "name": "gd_area_id",
+            "title": "GD Area ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "ozwwus4g",
+            "name": "tpt_driver_name",
+            "title": "Tpt Driver Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "r8c3fcei",
+            "name": "billing_address_code",
+            "title": "billing_address_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "q3csx8x1",
+            "name": "shipping_address_code",
+            "title": "shipping_address_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "phreyjao",
+            "name": "billing_address_fax",
+            "title": "billing_address_fax",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "bzf4yki7",
+            "name": "shipping_address_fax",
+            "title": "shipping_address_fax",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_or_DPK9j9Ph",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Condition",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_or_node_item_zUkftN4q",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Multiple",
+            "filter": {
+              "list": [
+                {
+                  "id": 1762222019932,
+                  "parentId": 1762222019931,
+                  "isTop": true,
+                  "prop": "workflowparams.gd_type",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "multiple",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "GD Type",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Multiple",
+            "name": "Multiple",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "add_node_sJZrsg5i",
+              "type": "add-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Delivery:Table:1902054888473481218",
+                  "rules": {
+                    "collectionId": "1902054888473481218",
+                    "list": [
+                      {
+                        "id": 1762222443625,
+                        "parentId": 1762222443624,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "Add Data",
+                "isValidator": true,
+                "nodeName": "Add Data",
+                "name": "Add Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "gd_status",
+                      "valueType": "value",
+                      "value": "Draft",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "GD Status"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.plant_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "so_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.so_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Sales Order Number"
+                    },
+                    {
+                      "prop": "so_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.so_id}}",
+                      "valueLabel": "",
+                      "propLabel": "SO ID"
+                    },
+                    {
+                      "prop": "all_item",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.all_item}}",
+                      "valueLabel": "",
+                      "propLabel": "allItems"
+                    },
+                    {
+                      "prop": "from_convert",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.from_convert}}",
+                      "valueLabel": "",
+                      "propLabel": "From Convert?"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.organization_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "delivery_no_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:get_node_V65nP1ws.data.data.id}}",
+                      "valueLabel": "",
+                      "propLabel": "规则"
+                    },
+                    {
+                      "prop": "delivery_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.delivery_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Date"
+                    },
+                    {
+                      "prop": "customer_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.customer_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Customer Name"
+                    },
+                    {
+                      "prop": "currency_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.currency_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Currency Code"
+                    },
+                    {
+                      "prop": "table_gd",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.table_gd}}",
+                      "valueLabel": "",
+                      "propLabel": "table_gd"
+                    },
+                    {
+                      "prop": "gd_delivery_method",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.gd_delivery_method}}",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Method"
+                    },
+                    {
+                      "prop": "driver_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.driver_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name"
+                    },
+                    {
+                      "prop": "ic_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.ic_no}}",
+                      "valueLabel": "",
+                      "propLabel": "IC No"
+                    },
+                    {
+                      "prop": "driver_contact_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.driver_contact_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No."
+                    },
+                    {
+                      "prop": "vehicle_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.vehicle_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number"
+                    },
+                    {
+                      "prop": "pickup_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.pickup_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Pickup Date"
+                    },
+                    {
+                      "prop": "validity_of_collection",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.validity_of_collection}}",
+                      "valueLabel": "",
+                      "propLabel": "Validity of Collection"
+                    },
+                    {
+                      "prop": "courier_company",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.courier_company}}",
+                      "valueLabel": "",
+                      "propLabel": "Courier Company"
+                    },
+                    {
+                      "prop": "shipping_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Date"
+                    },
+                    {
+                      "prop": "freight_charges",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.freight_charges}}",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges"
+                    },
+                    {
+                      "prop": "tracking_number",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.tracking_number}}",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number"
+                    },
+                    {
+                      "prop": "est_arrival_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.est_arrival_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Est. Arrival Date"
+                    },
+                    {
+                      "prop": "est_delivery_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.est_delivery_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Est. Delivery Date"
+                    },
+                    {
+                      "prop": "delivery_cost",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.delivery_cost}}",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Cost"
+                    },
+                    {
+                      "prop": "shipping_company",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_company}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Company"
+                    },
+                    {
+                      "prop": "shipping_method",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_method}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method"
+                    },
+                    {
+                      "prop": "tpt_vehicle_number",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.tpt_vehicle_number}}",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number"
+                    },
+                    {
+                      "prop": "tpt_transport_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.tpt_transport_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Transport Name"
+                    },
+                    {
+                      "prop": "tpt_ic_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.tpt_ic_no}}",
+                      "valueLabel": "",
+                      "propLabel": "IC No."
+                    },
+                    {
+                      "prop": "tpt_driver_contact_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.tpt_driver_contact_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No"
+                    },
+                    {
+                      "prop": "gd_billing_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.gd_billing_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing"
+                    },
+                    {
+                      "prop": "gd_shipping_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.gd_shipping_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping"
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 2"
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 3"
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 4"
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Country / Region"
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "billing_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.billing_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Code"
+                    },
+                    {
+                      "prop": "shipping_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Code"
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 2"
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 3"
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 4"
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Country / Region"
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.shipping_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "order_tnc",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.order_tnc}}",
+                      "valueLabel": "",
+                      "propLabel": "Term and Conditions"
+                    },
+                    {
+                      "prop": "order_payment_details",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.order_payment_details}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Details"
+                    },
+                    {
+                      "prop": "order_remark",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.order_remark}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 1"
+                    },
+                    {
+                      "prop": "order_remark2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.order_remark2}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "order_remark3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.order_remark3}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
+                    },
+                    {
+                      "prop": "order_remark4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.order_remark4}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 4"
+                    },
+                    {
+                      "prop": "order_remark5",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.order_remark5}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 5"
+                    },
+                    {
+                      "prop": "delivery_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.delivery_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Goods Delivery No"
+                    },
+                    {
+                      "prop": "sp_vehicle_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.sp_vehicle_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number"
+                    },
+                    {
+                      "prop": "gd_area_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.gd_area_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Area"
+                    },
+                    {
+                      "prop": "tpt_driver_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.tpt_driver_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name"
+                    },
+                    {
+                      "prop": "custom_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_HOWEZH5S.data.custom_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "Custom Fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_node_Xx3Ze45N",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "data",
+                      "propLabel": "Data",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:add_node_sJZrsg5i.data}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_node_item_CUqEcQ3C",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Single",
+            "isDefault": true,
+            "filter": { "list": [] },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": [
+            {
+              "id": "return_node_65XfFiOk",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "data",
+                      "propLabel": "Data",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_HOWEZH5S.data}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "结束节点",
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "OutputParams",
+        "response_value": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "elo9bo9c",
+      "name": "gd_type",
+      "title": "GD Type",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.gd_type",
+      "label": "GD Type",
+      "model": "0",
+      "valueCom": "input"
+    },
+    {
+      "key": "t91bcd6c",
+      "name": "so_ids",
+      "title": "SO IDs",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "isParamsNode": true,
+      "value": "workflowparams.so_ids",
+      "label": "SO IDs",
+      "model": "1",
+      "valueCom": "itemInput",
+      "children": [
+        {
+          "key": "1yc06tjp",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "isArrayItem": true,
+          "isParamsNode": true,
+          "value": "workflowparams.so_ids.items",
+          "label": "",
+          "model": "0",
+          "valueCom": "input"
+        }
+      ]
+    },
+    {
+      "key": "wrzmzik7",
+      "name": "plant_id",
+      "title": "Plant ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.plant_id",
+      "label": "Plant ID",
+      "model": "2",
+      "valueCom": "input"
+    },
+    {
+      "key": "pc58zp97",
+      "name": "organization_id",
+      "title": "Organization ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.organization_id",
+      "label": "Organization ID",
+      "model": "3",
+      "valueCom": "input"
+    }
+  ],
+  "response_json": [
+    {
+      "key": "1haz21dq",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
