@@ -44,9 +44,7 @@
         {
           "id": "if_save_draft_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_draft_check_doc_no",
@@ -205,9 +203,7 @@
                 {
                   "id": "if_draft_failed_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "end_draft_400",
@@ -216,11 +212,7 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": {
-                            "result": {
-                              "type": "string"
-                            }
-                          }
+                          "properties": { "result": { "type": "string" } }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -239,9 +231,7 @@
                 {
                   "id": "if_draft_failed_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -251,9 +241,7 @@
         {
           "id": "if_save_draft_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "code_check_doc_no",
@@ -412,9 +400,7 @@
                 {
                   "id": "if_required_failed_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "end_required_400",
@@ -423,11 +409,7 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": {
-                            "result": {
-                              "type": "string"
-                            }
-                          }
+                          "properties": { "result": { "type": "string" } }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -446,9 +428,7 @@
                 {
                   "id": "if_required_failed_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "code_map_validate_qty",
@@ -596,9 +576,7 @@
                         {
                           "id": "if_qty_passed_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "code_filter_lines",
@@ -691,9 +669,7 @@
                                 {
                                   "id": "if_empty_lines_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "end_empty_401",
@@ -703,9 +679,7 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": {
-                                              "type": "string"
-                                            }
+                                            "result": { "type": "string" }
                                           }
                                         },
                                         "isValidator": true,
@@ -725,9 +699,7 @@
                                 {
                                   "id": "if_empty_lines_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -765,21 +737,15 @@
                                 {
                                   "id": "if_edit_draftcheck_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "cond_all_check",
                                       "type": "condition-all-node",
                                       "data": {
                                         "title": "Check Existing GR and PI",
-                                        "filter": {
-                                          "list": []
-                                        },
-                                        "expression": {
-                                          "code": ""
-                                        },
+                                        "filter": { "list": [] },
+                                        "expression": { "code": "" },
                                         "displayContent": "sdk.form.setCondition"
                                       },
                                       "blocks": [
@@ -1044,9 +1010,7 @@
                                         {
                                           "id": "if_draft_found_t",
                                           "type": "ifBlock",
-                                          "data": {
-                                            "title": "true"
-                                          },
+                                          "data": { "title": "true" },
                                           "blocks": [
                                             {
                                               "id": "end_draft_404",
@@ -1078,9 +1042,7 @@
                                         {
                                           "id": "if_draft_found_f",
                                           "type": "ifBlock",
-                                          "data": {
-                                            "title": "false"
-                                          },
+                                          "data": { "title": "false" },
                                           "blocks": []
                                         }
                                       ]
@@ -1090,9 +1052,7 @@
                                 {
                                   "id": "if_edit_draftcheck_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -1102,9 +1062,7 @@
                         {
                           "id": "if_qty_passed_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": [
                             {
                               "id": "end_qty_401",
@@ -1114,9 +1072,7 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": {
-                                      "type": "string"
-                                    }
+                                    "result": { "type": "string" }
                                   }
                                 },
                                 "isValidator": true,
@@ -1155,8 +1111,8 @@
         "filter": {
           "list": [
             {
-              "id": 1710000000079,
-              "parentId": 1710000000080,
+              "id": 1710000000094,
+              "parentId": 1710000000095,
               "isTop": true,
               "prop": "",
               "operator": "",
@@ -1176,9 +1132,7 @@
         {
           "id": "if_pre_issued_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "get_its_pre",
@@ -1190,8 +1144,8 @@
                     "collectionId": "2069278647482400769",
                     "list": [
                       {
-                        "id": 1710000000071,
-                        "parentId": 1710000000075,
+                        "id": 1710000000084,
+                        "parentId": 1710000000088,
                         "isTop": true,
                         "type": "branch",
                         "operator": "all",
@@ -1201,8 +1155,8 @@
                         "level": 1,
                         "children": [
                           {
-                            "id": 1710000000072,
-                            "parentId": 1710000000071,
+                            "id": 1710000000085,
+                            "parentId": 1710000000084,
                             "isTop": false,
                             "prop": "buyer_org_id",
                             "operator": "equal",
@@ -1215,8 +1169,8 @@
                             "operatorLabel": "equal"
                           },
                           {
-                            "id": 1710000000073,
-                            "parentId": 1710000000071,
+                            "id": 1710000000086,
+                            "parentId": 1710000000084,
                             "isTop": false,
                             "prop": "buyer_supplier_id",
                             "operator": "equal",
@@ -1229,8 +1183,8 @@
                             "operatorLabel": "equal"
                           },
                           {
-                            "id": 1710000000074,
-                            "parentId": 1710000000071,
+                            "id": 1710000000087,
+                            "parentId": 1710000000084,
                             "isTop": false,
                             "prop": "is_active",
                             "operator": "numberEqual",
@@ -1273,8 +1227,26 @@
                 },
                 "response_json": [
                   {
-                    "key": "k1710000000076",
-                    "name": "data",
+                    "key": "k1710000000089",
+                    "name": "isInternal",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k1710000000090",
+                    "name": "sellerOrg",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k1710000000091",
+                    "name": "sellerCustomer",
                     "title": "",
                     "description": "",
                     "bsonType": "any",
@@ -1297,8 +1269,8 @@
                 "filter": {
                   "list": [
                     {
-                      "id": 1710000000077,
-                      "parentId": 1710000000078,
+                      "id": 1710000000092,
+                      "parentId": 1710000000093,
                       "isTop": true,
                       "prop": "",
                       "operator": "",
@@ -1318,9 +1290,7 @@
                 {
                   "id": "if_internal_pre_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "search_alias_pre",
@@ -1332,8 +1302,8 @@
                             "collectionId": "2031551233157959682",
                             "list": [
                               {
-                                "id": 1710000000057,
-                                "parentId": 1710000000061,
+                                "id": 1710000000067,
+                                "parentId": 1710000000071,
                                 "isTop": true,
                                 "type": "branch",
                                 "operator": "all",
@@ -1343,8 +1313,8 @@
                                 "level": 1,
                                 "children": [
                                   {
-                                    "id": 1710000000058,
-                                    "parentId": 1710000000057,
+                                    "id": 1710000000068,
+                                    "parentId": 1710000000067,
                                     "isTop": false,
                                     "prop": "buyer_org_id",
                                     "operator": "equal",
@@ -1357,8 +1327,8 @@
                                     "operatorLabel": "equal"
                                   },
                                   {
-                                    "id": 1710000000059,
-                                    "parentId": 1710000000057,
+                                    "id": 1710000000069,
+                                    "parentId": 1710000000067,
                                     "isTop": false,
                                     "prop": "seller_org_id",
                                     "operator": "equal",
@@ -1371,8 +1341,8 @@
                                     "operatorLabel": "equal"
                                   },
                                   {
-                                    "id": 1710000000060,
-                                    "parentId": 1710000000057,
+                                    "id": 1710000000070,
+                                    "parentId": 1710000000067,
                                     "isTop": false,
                                     "prop": "is_active",
                                     "operator": "numberEqual",
@@ -1408,8 +1378,8 @@
                             "collectionId": "1902779099617804290",
                             "list": [
                               {
-                                "id": 1710000000062,
-                                "parentId": 1710000000063,
+                                "id": 1710000000072,
+                                "parentId": 1710000000073,
                                 "isTop": true,
                                 "prop": "id",
                                 "operator": "in",
@@ -1442,8 +1412,8 @@
                             "collectionId": "1902047936116805633",
                             "list": [
                               {
-                                "id": 1710000000064,
-                                "parentId": 1710000000065,
+                                "id": 1710000000074,
+                                "parentId": 1710000000075,
                                 "isTop": true,
                                 "prop": "id",
                                 "operator": "in",
@@ -1483,8 +1453,35 @@
                         },
                         "response_json": [
                           {
-                            "key": "k1710000000066",
-                            "name": "data",
+                            "key": "k1710000000076",
+                            "name": "block406",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k1710000000077",
+                            "name": "confirm408",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k1710000000078",
+                            "name": "msg406",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k1710000000079",
+                            "name": "msg408",
                             "title": "",
                             "description": "",
                             "bsonType": "any",
@@ -1507,8 +1504,8 @@
                         "filter": {
                           "list": [
                             {
-                              "id": 1710000000067,
-                              "parentId": 1710000000068,
+                              "id": 1710000000080,
+                              "parentId": 1710000000081,
                               "isTop": true,
                               "prop": "",
                               "operator": "",
@@ -1528,9 +1525,7 @@
                         {
                           "id": "if_gate_406_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "end_pre_406",
@@ -1540,9 +1535,7 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": {
-                                      "type": "string"
-                                    }
+                                    "result": { "type": "string" }
                                   }
                                 },
                                 "isValidator": true,
@@ -1562,9 +1555,7 @@
                         {
                           "id": "if_gate_406_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -1581,8 +1572,8 @@
                         "filter": {
                           "list": [
                             {
-                              "id": 1710000000069,
-                              "parentId": 1710000000070,
+                              "id": 1710000000082,
+                              "parentId": 1710000000083,
                               "isTop": true,
                               "prop": "",
                               "operator": "",
@@ -1602,9 +1593,7 @@
                         {
                           "id": "if_gate_408_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "end_pre_408",
@@ -1614,9 +1603,7 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": {
-                                      "type": "string"
-                                    }
+                                    "result": { "type": "string" }
                                   }
                                 },
                                 "isValidator": true,
@@ -1636,9 +1623,7 @@
                         {
                           "id": "if_gate_408_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -1648,9 +1633,7 @@
                 {
                   "id": "if_internal_pre_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -1660,9 +1643,7 @@
         {
           "id": "if_pre_issued_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -1729,9 +1710,7 @@
         {
           "id": "if_edit_persist_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "update_po",
@@ -2412,9 +2391,7 @@
         {
           "id": "if_edit_persist_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "add_po",
@@ -3198,9 +3175,7 @@
         {
           "id": "if_issued_downstream_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "get_po_full",
@@ -3479,9 +3454,7 @@
                 {
                   "id": "if_onorder_add_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "add_onorder",
@@ -3620,9 +3593,7 @@
                 {
                   "id": "if_onorder_add_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3660,9 +3631,7 @@
                 {
                   "id": "if_onorder_update_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_onorder",
@@ -3749,9 +3718,7 @@
                 {
                   "id": "if_onorder_update_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3789,9 +3756,7 @@
                 {
                   "id": "if_onorder_delete_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "search_onorder_orphans",
@@ -3845,17 +3810,13 @@
                       "id": "delete_onorder",
                       "type": "delete-node",
                       "data": {
-                        "table_id": {
-                          "source": ""
-                        },
+                        "table_id": { "source": "" },
                         "condition": {},
                         "title": "Delete On Order",
                         "isValidator": true,
                         "nodeName": "Delete On Order",
                         "name": "Delete On Order",
-                        "node_ids": [
-                          "search_onorder_orphans"
-                        ]
+                        "node_ids": ["search_onorder_orphans"]
                       },
                       "blocks": []
                     }
@@ -3864,9 +3825,7 @@
                 {
                   "id": "if_onorder_delete_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3904,9 +3863,7 @@
                 {
                   "id": "if_has_preq_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "search_preq",
@@ -4054,9 +4011,7 @@
                 {
                   "id": "if_has_preq_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -4071,8 +4026,8 @@
                     "collectionId": "2069278647482400769",
                     "list": [
                       {
-                        "id": 1710000000049,
-                        "parentId": 1710000000053,
+                        "id": 1710000000057,
+                        "parentId": 1710000000061,
                         "isTop": true,
                         "type": "branch",
                         "operator": "all",
@@ -4082,8 +4037,8 @@
                         "level": 1,
                         "children": [
                           {
-                            "id": 1710000000050,
-                            "parentId": 1710000000049,
+                            "id": 1710000000058,
+                            "parentId": 1710000000057,
                             "isTop": false,
                             "prop": "buyer_org_id",
                             "operator": "equal",
@@ -4096,8 +4051,8 @@
                             "operatorLabel": "equal"
                           },
                           {
-                            "id": 1710000000051,
-                            "parentId": 1710000000049,
+                            "id": 1710000000059,
+                            "parentId": 1710000000057,
                             "isTop": false,
                             "prop": "buyer_supplier_id",
                             "operator": "equal",
@@ -4110,8 +4065,8 @@
                             "operatorLabel": "equal"
                           },
                           {
-                            "id": 1710000000052,
-                            "parentId": 1710000000049,
+                            "id": 1710000000060,
+                            "parentId": 1710000000057,
                             "isTop": false,
                             "prop": "is_active",
                             "operator": "numberEqual",
@@ -4154,8 +4109,26 @@
                 },
                 "response_json": [
                   {
-                    "key": "k1710000000054",
-                    "name": "data",
+                    "key": "k1710000000062",
+                    "name": "isInternal",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k1710000000063",
+                    "name": "sellerOrg",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k1710000000064",
+                    "name": "sellerCustomer",
                     "title": "",
                     "description": "",
                     "bsonType": "any",
@@ -4178,8 +4151,8 @@
                 "filter": {
                   "list": [
                     {
-                      "id": 1710000000055,
-                      "parentId": 1710000000056,
+                      "id": 1710000000065,
+                      "parentId": 1710000000066,
                       "isTop": true,
                       "prop": "",
                       "operator": "",
@@ -4199,9 +4172,7 @@
                 {
                   "id": "if_internal_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "search_existing_link",
@@ -4633,7 +4604,16 @@
                         "response_json": [
                           {
                             "key": "k1710000000027",
-                            "name": "data",
+                            "name": "countryIds",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k1710000000028",
+                            "name": "stateIds",
                             "title": "",
                             "description": "",
                             "bsonType": "any",
@@ -4654,8 +4634,8 @@
                             "collectionId": "1902728191097815041",
                             "list": [
                               {
-                                "id": 1710000000028,
-                                "parentId": 1710000000029,
+                                "id": 1710000000029,
+                                "parentId": 1710000000030,
                                 "isTop": true,
                                 "prop": "id",
                                 "operator": "in",
@@ -4689,8 +4669,8 @@
                             "collectionId": "1902728532698710017",
                             "list": [
                               {
-                                "id": 1710000000030,
-                                "parentId": 1710000000031,
+                                "id": 1710000000031,
+                                "parentId": 1710000000032,
                                 "isTop": true,
                                 "prop": "id",
                                 "operator": "in",
@@ -4731,8 +4711,8 @@
                         },
                         "response_json": [
                           {
-                            "key": "k1710000000032",
-                            "name": "data",
+                            "key": "k1710000000033",
+                            "name": "sellerItemIds",
                             "title": "",
                             "description": "",
                             "bsonType": "any",
@@ -4753,8 +4733,8 @@
                             "collectionId": "1901546842240438273",
                             "list": [
                               {
-                                "id": 1710000000033,
-                                "parentId": 1710000000034,
+                                "id": 1710000000034,
+                                "parentId": 1710000000035,
                                 "isTop": true,
                                 "prop": "id",
                                 "operator": "in",
@@ -4795,8 +4775,44 @@
                         },
                         "response_json": [
                           {
-                            "key": "k1710000000035",
-                            "name": "data",
+                            "key": "k1710000000036",
+                            "name": "doCreate",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k1710000000037",
+                            "name": "needConfirm",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k1710000000038",
+                            "name": "autoSkip",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k1710000000039",
+                            "name": "msg",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "k1710000000040",
+                            "name": "payload",
                             "title": "",
                             "description": "",
                             "bsonType": "any",
@@ -4819,8 +4835,8 @@
                         "filter": {
                           "list": [
                             {
-                              "id": 1710000000047,
-                              "parentId": 1710000000048,
+                              "id": 1710000000055,
+                              "parentId": 1710000000056,
                               "isTop": true,
                               "prop": "",
                               "operator": "",
@@ -4840,9 +4856,7 @@
                         {
                           "id": "if_so_create_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "wf_create_so",
@@ -4861,8 +4875,8 @@
                                     "collectionId": "1988908545345945602",
                                     "list": [
                                       {
-                                        "id": 1710000000036,
-                                        "parentId": 1710000000037,
+                                        "id": 1710000000041,
+                                        "parentId": 1710000000042,
                                         "isTop": true,
                                         "prop": "",
                                         "operator": "",
@@ -4910,8 +4924,35 @@
                                 },
                                 "response_json": [
                                   {
-                                    "key": "k1710000000038",
-                                    "name": "data",
+                                    "key": "k1710000000043",
+                                    "name": "ok",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "k1710000000044",
+                                    "name": "soId",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "k1710000000045",
+                                    "name": "soNo",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "k1710000000046",
+                                    "name": "errMsg",
                                     "title": "",
                                     "description": "",
                                     "bsonType": "any",
@@ -4934,8 +4975,8 @@
                                 "filter": {
                                   "list": [
                                     {
-                                      "id": 1710000000043,
-                                      "parentId": 1710000000044,
+                                      "id": 1710000000051,
+                                      "parentId": 1710000000052,
                                       "isTop": true,
                                       "prop": "",
                                       "operator": "",
@@ -4955,9 +4996,7 @@
                                 {
                                   "id": "if_so_ok_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "update_so_source",
@@ -4969,8 +5008,8 @@
                                             "collectionId": "1902773735979597826",
                                             "list": [
                                               {
-                                                "id": 1710000000039,
-                                                "parentId": 1710000000040,
+                                                "id": 1710000000047,
+                                                "parentId": 1710000000048,
                                                 "isTop": true,
                                                 "prop": "id",
                                                 "operator": "in",
@@ -5137,8 +5176,8 @@
                                             "collectionId": "1902776039445217282",
                                             "list": [
                                               {
-                                                "id": 1710000000041,
-                                                "parentId": 1710000000042,
+                                                "id": 1710000000049,
+                                                "parentId": 1710000000050,
                                                 "isTop": true,
                                                 "prop": "id",
                                                 "operator": "in",
@@ -5188,9 +5227,7 @@
                                 {
                                   "id": "if_so_ok_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -5207,8 +5244,8 @@
                                 "filter": {
                                   "list": [
                                     {
-                                      "id": 1710000000045,
-                                      "parentId": 1710000000046,
+                                      "id": 1710000000053,
+                                      "parentId": 1710000000054,
                                       "isTop": true,
                                       "prop": "",
                                       "operator": "",
@@ -5228,9 +5265,7 @@
                                 {
                                   "id": "if_so_failed_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "end_so_fail",
@@ -5240,9 +5275,7 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": {
-                                              "type": "string"
-                                            }
+                                            "result": { "type": "string" }
                                           }
                                         },
                                         "isValidator": true,
@@ -5262,9 +5295,7 @@
                                 {
                                   "id": "if_so_failed_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -5274,9 +5305,7 @@
                         {
                           "id": "if_so_create_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -5286,9 +5315,7 @@
                 {
                   "id": "if_internal_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -5298,9 +5325,7 @@
         {
           "id": "if_issued_downstream_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -5344,10 +5369,7 @@
         "name": "End Node",
         "back_data_type": "OutputParams",
         "code": "",
-        "msg": {
-          "type": "javascript",
-          "code": ""
-        },
+        "msg": { "type": "javascript", "code": "" },
         "response_value": {
           "list": [
             {
