@@ -5,6 +5,7 @@ const resetFormFields = () => {
     cust_billing_cp: "",
     cust_billing_address: "",
     cust_shipping_address: "",
+    so_area_id: "",
     billing_address_line_1: "",
     billing_address_line_2: "",
     billing_address_line_3: "",
@@ -15,7 +16,9 @@ const resetFormFields = () => {
     billing_address_country: "",
     billing_address_name: "",
     billing_address_phone: "",
+    billing_address_fax: "",
     billing_attention: "",
+    billing_address_code: "",
     shipping_address_line_1: "",
     shipping_address_line_2: "",
     shipping_address_line_3: "",
@@ -26,7 +29,9 @@ const resetFormFields = () => {
     shipping_address_country: "",
     shipping_address_name: "",
     shipping_address_phone: "",
+    shipping_address_fax: "",
     shipping_attention: "",
+    shipping_address_code: "",
   });
 };
 
@@ -43,6 +48,7 @@ const setDialogAddressFields = (addressType, address) => {
     [`${addressType}_address_name`]: address.address_name,
     [`${addressType}_address_phone`]: address.address_phone,
     [`${addressType}_attention`]: address.address_attention,
+    [`${addressType}_address_code`]: address.address_code,
   });
 };
 
@@ -131,7 +137,7 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
           .pop() || ""
       ).endsWith(",")
         ? " "
-        : ", "
+        : ", ",
     );
 
   const cityDetails = [
@@ -153,7 +159,7 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
           .pop() || ""
       ).endsWith(",")
         ? " "
-        : ", "
+        : ", ",
     );
 
   const addressAttention = address.address_attention
@@ -182,18 +188,30 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
   return formattedAddress;
 };
 
-const fetchLatestPricing = async (tableSO, overwriteMsg) => {
-  for (const [index, item] of tableSO.entries()) {
-    await this.triggerEvent("onBlur_quantity", {
-      row: {
-        item_name: item.item_name,
-        so_item_uom: item.so_item_uom,
-      },
-      rowIndex: index,
-      value: item.so_quantity,
-      overwrite: overwriteMsg,
-    });
+const fetchLatestPricing = async (result, overwrite) => {
+  const updates = {};
+
+  for (const item of result) {
+    if (overwrite === "Yes") {
+      updates[`table_so.${item.line_index}.so_item_price`] = item.unit_price;
+      updates[`table_so.${item.line_index}.so_item_uom`] = item.uom_id;
+      updates[`table_so.${item.line_index}.so_tax_preference`] = item.tax_rate;
+      updates[`table_so.${item.line_index}.so_tax_percentage`] =
+        item.tax_percent;
+      updates[`table_so.${item.line_index}.from_historical`] =
+        item.from_historical;
+
+      updates[`table_so.${item.line_index}.so_quantity`] = item.quantity;
+      updates[`table_so.${item.line_index}.so_discount`] = item.discount;
+      updates[`table_so.${item.line_index}.so_discount_uom`] =
+        item.discount_uom;
+    }
+
+    updates[`table_so.${item.line_index}.max_price`] = item.max_price;
+    updates[`table_so.${item.line_index}.min_price`] = item.min_price;
   }
+
+  await this.setData(updates);
 };
 
 (async () => {
@@ -201,35 +219,75 @@ const fetchLatestPricing = async (tableSO, overwriteMsg) => {
     const customerItem = arguments[0]?.fieldModel?.item;
     const customerId = customerItem?.id;
 
+    const plantID = this.getValue("plant_name");
+
     const tableSO = this.getValue("table_so");
     if (tableSO.length > 0) {
       const hasItemID = tableSO.some((item) => item.item_name);
 
       if (hasItemID) {
-        await this.$confirm(
-          `The customer has been changed. Please choose one: <br><br>Please choose one: <br>
+        await this.runWorkflow(
+          "2067818102244966401",
+          {
+            document_type: "SO",
+            supp_cust_id: customerId,
+            plant_id: plantID,
+            item_data: tableSO.map((item, index) => {
+              return {
+                item_id: item.item_name,
+                unit_price: item.so_item_price,
+                line_index: index,
+                uom_id: item.so_item_uom,
+                tax_rate: item.so_tax_preference || null,
+                tax_percent: item.so_tax_percentage || null,
+                quantity: item.so_quantity,
+                discount: item.so_discount,
+                discount_uom: item.so_discount_uom,
+              };
+            }),
+          },
+          async (result) => {
+            console.log("result", result);
+            if (result.data.needOverwrite === "No") return;
+
+            await this.$confirm(
+              `The customer has been changed. Please choose one: <br><br>Please choose one: <br>
         <strong>Overwrite:</strong> Replace the price based on the latest customer. <em>(If any)</em><br>
         <strong>Keep:</strong> Keep the existing item price.`,
-          "Customer Change Detected",
-          {
-            confirmButtonText: "Overwrite",
-            cancelButtonText: "Keep",
-            dangerouslyUseHTMLString: true,
-            type: "info",
-            distinguishCancelAndClose: true,
+              "Customer Change Detected",
+              {
+                confirmButtonText: "Overwrite",
+                cancelButtonText: "Keep",
+                dangerouslyUseHTMLString: true,
+                type: "info",
+                distinguishCancelAndClose: true,
 
-            beforeClose: async (action, instance, done) => {
-              if (action === "confirm") {
-                await fetchLatestPricing(tableSO, "Yes - from customer change");
-                done();
-              } else if (action === "cancel") {
-                await fetchLatestPricing(tableSO, "No - from customer change");
-                done();
-              } else {
-                done();
-              }
-            },
-          }
+                beforeClose: async (action, instance, done) => {
+                  if (action === "confirm") {
+                    await fetchLatestPricing(result.data.data, "Yes");
+                    done();
+                  } else if (action === "cancel") {
+                    await fetchLatestPricing(result.data.data, "No");
+                    done();
+                  } else {
+                    done();
+                  }
+                },
+              },
+            );
+
+            const tableSO = this.getValue("table_so");
+            for (const [index, item] of tableSO.entries()) {
+              let Row = {};
+              Row.row = item;
+              Row.rowIndex = index;
+
+              await this.triggerEvent("SOCalculation", Row);
+            }
+          },
+          (error) => {
+            console.log("error", error);
+          },
         );
       }
     }
@@ -242,7 +300,7 @@ const fetchLatestPricing = async (tableSO, overwriteMsg) => {
       const resCustomer = await db
         .collection("Customer")
         .field(
-          "customer_currency_id,customer_payment_term_id,customer_agent_id,last_sync_date,customer_credit_limit,overdue_limit,outstanding_balance,overdue_inv_total_amount,is_accurate,access_group,price_tag_id"
+          "customer_currency_id,customer_payment_term_id,customer_agent_id,last_sync_date,customer_credit_limit,overdue_limit,outstanding_balance,overdue_inv_total_amount,is_accurate,access_group,price_tag_id,customer_area_id",
         )
         .where({ id: customerId })
         .get();
@@ -260,6 +318,7 @@ const fetchLatestPricing = async (tableSO, overwriteMsg) => {
         so_sales_person: customerData.customer_agent_id || null,
         access_group: customerData.access_group || [],
         price_tag_id: customerData.price_tag_id || null,
+        so_area_id: customerData.customer_area_id || null,
       });
 
       const resAddress = await db
@@ -309,18 +368,18 @@ const fetchLatestPricing = async (tableSO, overwriteMsg) => {
             address,
             state,
             country,
-            addressTypeUpperCase
+            addressTypeUpperCase,
           );
 
           setDialogAddressFields(addressType, address);
 
           console.log(
             "cust_shipping_address before set Data",
-            this.getValue("cust_shipping_address")
+            this.getValue("cust_shipping_address"),
           );
           console.log(
             "cust_billing_address before set Data",
-            this.getValue("cust_billing_address")
+            this.getValue("cust_billing_address"),
           );
 
           if (addressType === "shipping") {
@@ -337,11 +396,11 @@ const fetchLatestPricing = async (tableSO, overwriteMsg) => {
 
           console.log(
             "cust_shipping_address after set Data",
-            this.getValue("cust_shipping_address")
+            this.getValue("cust_shipping_address"),
           );
           console.log(
             "cust_billing_address after set Data",
-            this.getValue("cust_billing_address")
+            this.getValue("cust_billing_address"),
           );
         }
 

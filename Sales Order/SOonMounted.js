@@ -48,7 +48,7 @@ const displayCurrency = async () => {
 };
 
 const disabledField = async (status) => {
-  if (status !== "Draft" && status !== "Issued") {
+  if (status === "Completed") {
     this.disabled(
       [
         "so_status",
@@ -120,7 +120,7 @@ const disabledField = async (status) => {
         "shipping_postal_code",
         "exchange_rate",
         "myr_total_amount",
-        "sqt_no",
+        "so_no",
         "tpt_vehicle_number",
         "tpt_transport_name",
         "tpt_ic_no",
@@ -135,8 +135,9 @@ const disabledField = async (status) => {
       "link_billing_address",
       "link_shipping_address",
     ]);
-  } else if (status === "Issued") {
+  } else if (status === "Issued" || status === "Processing") {
     this.hide("button_save_as_draft");
+    this.disabled(["so_type", "auto_si", "auto_gd"], true);
   }
 };
 
@@ -201,11 +202,15 @@ const displayTax = async () => {
 const enabledUOMField = async () => {
   const tableSO = this.getValue("table_so");
   console.log("enabledUOMField", tableSO);
-
+  console.log("component", this.getComponent("table_so"));
   tableSO.forEach((so, rowIndex) => {
-    if (so.item_name || so.so_desc !== "") {
-      this.triggerEvent("onChange_item", { soItem: so, index: rowIndex });
-      this.disabled([`table_so.${rowIndex}.so_item_uom`], false);
+    if (
+      so.line_status === "Processing" ||
+      so.line_status === "Completed" ||
+      so.planned_qty > 0 ||
+      so.delivered_qty > 0
+    ) {
+      this.disabled(`table_so.${rowIndex}`, true);
     }
   });
 };
@@ -249,10 +254,13 @@ const cloneResetQuantity = async () => {
     si_status: "",
     sr_status: "",
     srr_status: "",
+    so_no: "",
     sqt_no: "",
     sqt_id: [],
-
+    posted_status: "",
+    previous_status: "",
     table_so: tableSO,
+    create_si: "No",
     partially_delivered: `0 / ${tableSO.length}`,
     fully_delivered: `0 / ${tableSO.length}`,
   });
@@ -459,11 +467,18 @@ const fetchUnrestrictedQty = async () => {
         await checkAccIntegrationType(organizationId);
         await setPlant(organizationId, pageStatus);
         this.setData({
+          created_source: "Web",
           so_date: new Date().toISOString().split("T")[0],
           so_created_by: this.getVarGlobal("nickname"),
+          ...(this.getParamsVariables("sales_order_title") === "Sales Invoice"
+            ? { so_type: "Credit", auto_si: 1 }
+            : this.getParamsVariables("sales_order_title") === "Cash Sales"
+              ? { so_type: "Cash", auto_si: 1 }
+              : { so_type: "Credit" }),
+          create_si: "No",
         });
-        if (this.getValue("sqt_no")) {
-          this.display("sqt_no");
+        if (this.getValue("so_no")) {
+          this.display("so_no");
         }
 
         const customerID = this.getValue("customer_name");
@@ -478,15 +493,13 @@ const fetchUnrestrictedQty = async () => {
         await displayCurrency();
         await displayTax();
         await displayDeliveryMethod();
-        await enabledUOMField();
         //await fetchUnrestrictedQty();
         break;
 
       case "Edit":
-        console.log("onmounted so", this.getValue("table_so"));
         await setPlant(organizationId, pageStatus);
-        if (this.getValue("sqt_no")) {
-          this.display("sqt_no");
+        if (this.getValue("so_no")) {
+          this.display("so_no");
         }
 
         this.setData({ previous_status: status });
@@ -503,22 +516,26 @@ const fetchUnrestrictedQty = async () => {
           await enabledUOMField();
         }, 50);
 
-        this.display("price_history");
         //await fetchUnrestrictedQty();
         break;
 
       case "Clone":
         this.display(["draft_status"]);
         this.setData({
+          created_source: "Web",
           so_date: new Date().toISOString().split("T")[0],
           so_no: null,
           so_status: null,
+          gd_status: null,
+          so_type: "Credit",
+          auto_si: 0,
+          auto_gd: 0,
+          create_si: "No",
         });
         await setPlant(organizationId, pageStatus);
-        if (this.getValue("sqt_no")) {
-          this.display("sqt_no");
+        if (this.getValue("so_no")) {
+          this.display("so_no");
         }
-        await enabledUOMField();
         await cloneResetQuantity();
         await checkAccIntegrationType(organizationId);
         await displayCurrency();
@@ -544,8 +561,8 @@ const fetchUnrestrictedQty = async () => {
         await displayTax();
         await showStatusHTML(status);
         await displayDeliveryMethod();
-        if (this.getValue("sqt_no")) {
-          this.display("sqt_no");
+        if (this.getValue("so_no")) {
+          this.display("so_no");
         }
         break;
     }
@@ -556,37 +573,34 @@ const fetchUnrestrictedQty = async () => {
 })();
 
 setTimeout(async () => {
-  if (this.isAdd) {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
     const op = await this.onDropdownVisible("so_no_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("so_no_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          so_no_type: data.value,
-        });
-      }
-    }, 500);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
-}, 500);
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("so_no");
+  const { options } = params;
 
-setTimeout(async () => {
-  if (this.isAdd) {
-    const op = await this.onDropdownVisible("location_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
+  const optionsData = this.getOptionData("so_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("so_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        so_no_type: defaultData ? defaultData.value : -9999,
+      });
     }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("location_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          location_type: data.value,
-        });
-      }
-    }, 500);
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ so_no_type: defaultData.value });
+    }
   }
-}, 500);
+}, 200);
