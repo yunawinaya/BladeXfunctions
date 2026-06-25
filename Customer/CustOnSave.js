@@ -19,15 +19,15 @@ const validateForm = (data, requiredFields) => {
 const validateContactList = async (contactList, currentCustomerId) => {
   const list = contactList || [];
 
-  for (let i = 0; i < list.length; i++) {
-    const name = list[i].person_name;
-    if (!name || (typeof name === "string" && name.trim() === "")) {
-      return {
-        ok: false,
-        message: `Contact at row ${i + 1} is missing a person name`,
-      };
-    }
-  }
+  // for (let i = 0; i < list.length; i++) {
+  //   const name = list[i].person_name;
+  //   if (!name || (typeof name === "string" && name.trim() === "")) {
+  //     return {
+  //       ok: false,
+  //       message: `Contact at row ${i + 1} is missing a person name`,
+  //     };
+  //   }
+  // }
 
   const stripLeadingZero = (m) => {
     const s = (m || "").toString();
@@ -90,43 +90,10 @@ const validateContactList = async (contactList, currentCustomerId) => {
   return { ok: true };
 };
 
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Customers",
-      is_deleted: 0,
-      organization_id: organizationId,
-      is_active: 1,
-    })
-    .get();
-
-  const prefixData = await prefixEntry.data[0];
-
-  return prefixData;
-};
-
-const updatePrefix = async (organizationId, runningNumber) => {
-  await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Customers",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
-};
-
 const addEntry = async (organizationId, entry) => {
   try {
-    const prefixData = await getPrefixData(organizationId);
-
-    if (prefixData.length !== 0) {
-      await updatePrefix(organizationId, prefixData.running_number);
-
-      db.collection("Customer").add(entry);
-      this.$message.success("Add successfully");
-    }
+    db.collection("Customer").add(entry);
+    this.$message.success("Add successfully");
   } catch (error) {
     this.$message.error(error);
   }
@@ -174,13 +141,19 @@ const findFieldMessage = (obj) => {
     let entry = data;
     const requiredFields = [
       { name: "customer_status", label: "Customer Status" },
-      { name: "customer_id", label: "Customer Code" },
+      ...(data.customer_id_type === -9999
+        ? [{ name: "customer_id", label: "Customer Code" }]
+        : []),
       { name: "customer_com_name", label: "Company Name" },
       { name: "customer_currency_id", label: "Currency" },
       { name: "customer_payment_term_id", label: "Payment Terms" },
     ];
 
     await this.validate("customer_id");
+    entry.customer_id =
+      entry.customer_id_type === -9999 || this.isEdit
+        ? entry.customer_id
+        : "issued";
     const missingFields = await validateForm(data, requiredFields);
 
     if (missingFields.length === 0) {
