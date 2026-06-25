@@ -95,18 +95,32 @@
               "level": 1,
               "children": [
                 {
+                  "id": 1770171895190,
+                  "parentId": 1770171895191,
+                  "isTop": false,
+                  "prop": "node.code_node_mlTvKeIR.data.hasZero",
+                  "operator": "numberEqual",
+                  "valueType": "value",
+                  "value": 1,
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "hasZero",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
                   "id": 1770171895193,
                   "parentId": 1770171895191,
                   "isTop": false,
                   "prop": "workflowparams.continueZero",
-                  "operator": "equal",
+                  "operator": "notEqual",
                   "valueType": "value",
                   "value": "Yes",
                   "type": "leaf",
                   "level": 2,
                   "propLabel": "continueZero",
                   "valueLabel": "",
-                  "operatorLabel": "Equal"
+                  "operatorLabel": "Not Equal"
                 },
                 {
                   "id": 1770270289509,
@@ -159,7 +173,7 @@
                       "prop": "message",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:code_node_shTWK0Nm.data.message}}",
+                      "value": "{{node:code_node_mlTvKeIR.data.message}}",
                       "valueLabel": "",
                       "propLabel": "message"
                     }
