@@ -331,25 +331,63 @@
         "nodeName": "IF GR Gate",
         "name": "IF GR Gate",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
-              "id": 170000000012,
-              "parentId": 170000000013,
+              "id": 1782368857642,
+              "parentId": 1782368857643,
               "isTop": true,
-              "prop": "node.code_gr_gate.data.grConfirm",
-              "operator": "numberNotEqual",
-              "valueType": "value",
-              "value": 0,
-              "type": "leaf",
+              "prop": "",
+              "operator": "all",
+              "valueType": "",
+              "value": "",
+              "type": "branch",
               "level": 1,
-              "propLabel": "grConfirm",
-              "valueLabel": "",
-              "operatorLabel": "Not Equal"
+              "children": [
+                {
+                  "id": 170000000012,
+                  "parentId": 1782368857642,
+                  "isTop": false,
+                  "prop": "node.code_gr_gate.data.grConfirm",
+                  "operator": "numberNotEqual",
+                  "valueType": "value",
+                  "value": 0,
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "grConfirm",
+                  "valueLabel": "",
+                  "operatorLabel": "Not Equal"
+                },
+                {
+                  "id": 1782368857644,
+                  "parentId": 1782368857642,
+                  "isTop": false,
+                  "prop": "workflowparams.isPicking",
+                  "operator": "notEqual",
+                  "valueType": "value",
+                  "value": "Yes",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "isPicking",
+                  "valueLabel": "",
+                  "operatorLabel": "Not Equal"
+                },
+                {
+                  "id": 1782368857645,
+                  "parentId": 1782368857642,
+                  "isTop": false,
+                  "prop": "workflowparams.isPacking",
+                  "operator": "numberNotEqual",
+                  "valueType": "value",
+                  "value": 1,
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "isPacking",
+                  "valueLabel": "",
+                  "operatorLabel": "Not Equal"
+                }
+              ]
             }
           ]
         }
@@ -358,9 +396,7 @@
         {
           "id": "if_block_gr_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "return_gr_gate",
@@ -403,9 +439,7 @@
         {
           "id": "if_block_gr_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -12662,10 +12696,7 @@
         "nodeName": "IF Completed (Auto-GR)",
         "name": "IF Completed (Auto-GR)",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -12689,9 +12720,7 @@
         {
           "id": "if_trigger_completed_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "if_trigger_gr",
@@ -12702,10 +12731,7 @@
                 "nodeName": "IF Do Auto-GR",
                 "name": "IF Do Auto-GR",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -12729,9 +12755,7 @@
                 {
                   "id": "if_trigger_gr_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "code_gr_trigger_prep",
@@ -12913,10 +12937,7 @@
                         "nodeName": "IF Auto-GR Failed",
                         "name": "IF Auto-GR Failed",
                         "condition_type": "ConditionRule",
-                        "expression": {
-                          "type": "javascript",
-                          "code": ""
-                        },
+                        "expression": { "type": "javascript", "code": "" },
                         "filter": {
                           "list": [
                             {
@@ -12940,9 +12961,7 @@
                         {
                           "id": "if_gr_trigger_failed_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "return_gr_trigger_failed",
@@ -12997,9 +13016,7 @@
                         {
                           "id": "if_gr_trigger_failed_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -13009,9 +13026,7 @@
                 {
                   "id": "if_trigger_gr_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -13021,9 +13036,7 @@
         {
           "id": "if_trigger_completed_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
