@@ -9,7 +9,6 @@ const setPlant = async (organizationId, pageStatus) => {
       setTimeout(() => {
         this.setData({
           plant: currentDept,
-          return_by: this.getVarGlobal("nickname"),
         });
       }, 50);
     }
@@ -192,6 +191,7 @@ const checkAccIntegrationType = async (organizationId) => {
         this.display(["draft_status"]);
         await setPlant(organizationId, pageStatus);
         await checkAccIntegrationType(organizationId);
+        await this.setData({ return_by: this.getVarGlobal("nickname") });
         break;
 
       case "Edit":
