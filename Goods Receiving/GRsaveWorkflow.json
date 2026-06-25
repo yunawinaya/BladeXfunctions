@@ -7435,13 +7435,21 @@
                 "name": "grId",
                 "script": {
                   "type": "javascript",
-                  "code": "const page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\" && gr_status === \"Draft\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\nreturn {\n  id: allData.id\n}"
+                  "code": "const page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\" && gr_status === \"Draft\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\nreturn {\n  id: allData.id,\n  gr_no: allData.gr_no\n}"
                 },
                 "response_json": [
                   {
                     "key": "p8ukgbsl",
                     "name": "id",
                     "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "p8ukgrno",
+                    "name": "gr_no",
+                    "title": "gr_no",
                     "description": "",
                     "bsonType": "string",
                     "isExpand": false
@@ -9211,6 +9219,22 @@
               "value": "Goods Receiving saved successfully",
               "valueLabel": "",
               "propLabel": "message"
+            },
+            {
+              "prop": "id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_UQWzCg37.data.id}}",
+              "valueLabel": "",
+              "propLabel": "id"
+            },
+            {
+              "prop": "gr_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_UQWzCg37.data.gr_no}}",
+              "valueLabel": "",
+              "propLabel": "gr_no"
             }
           ]
         },
@@ -9282,6 +9306,14 @@
       "key": "hgxhvjfg",
       "name": "id",
       "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "hgxhgrno",
+      "name": "gr_no",
+      "title": "gr_no",
       "description": "",
       "bsonType": "string",
       "isExpand": false

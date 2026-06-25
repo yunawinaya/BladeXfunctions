@@ -14,6 +14,8 @@ const runGDWorkflow = async (data, continueZero) => {
         saveAs: "Created",
         pageStatus: data.page_status,
         continueZero: continueZero,
+        auto_gr_confirmed: data.auto_gr_confirmed || "",
+        auto_gr_skip: data.auto_gr_skip || "",
       },
       (res) => {
         console.log("Goods Delivery workflow response:", res);
@@ -66,6 +68,57 @@ const handleWorkflowResult = async (workflowResult, data) => {
       this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
       this.hideLoading();
     }
+    return;
+  }
+
+  // Handle 408 - Internal trading: confirm auto-create Goods Receipt
+  if (resultCode === "408" || resultCode === 408) {
+    this.hideLoading();
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "This delivery is linked to an internal Purchase Order. Auto-create the Goods Receipt in the buyer organization on completion?";
+
+    const proceed = await this.$confirm(
+      message,
+      "Internal Trading – Auto-create Goods Receipt",
+      {
+        confirmButtonText: "Yes, prepare GR",
+        cancelButtonText: "No, save without",
+        type: "info",
+        dangerouslyUseHTMLString: true,
+      },
+    )
+      .then(() => true)
+      .catch(() => false);
+
+    // Yes -> confirm auto-GR (enforces full delivery); No -> save without auto-GR
+    if (proceed) {
+      data.auto_gr_confirmed = true;
+    } else {
+      data.auto_gr_skip = true;
+    }
+
+    this.showLoading("Saving Goods Delivery as Created...");
+    const retryResult = await runGDWorkflow(data, "");
+    await handleWorkflowResult(retryResult, data);
+    return;
+  }
+
+  // Handle 409 - Internal trading: linked delivery not fully delivered (block)
+  if (resultCode === "409" || resultCode === 409) {
+    this.hideLoading();
+    this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Linked delivery must be fully delivered before auto-creating the Goods Receipt.";
+
+    await this.$alert(message, "", {
+      confirmButtonText: "OK",
+      type: "warning",
+      dangerouslyUseHTMLString: true,
+    });
     return;
   }
 
