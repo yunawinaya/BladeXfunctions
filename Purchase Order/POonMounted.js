@@ -86,11 +86,6 @@ const enabledUOMField = async () => {
         poItem: po,
         index: rowIndex,
       });
-      this.disabled([`table_po.${rowIndex}.quantity_uom`], false);
-    }
-
-    if (po.tax_percent || po.tax_percent >= 0) {
-      this.disabled([`table_po.${rowIndex}.tax_percent`], false);
     }
   });
 };
@@ -123,6 +118,8 @@ const disabledEditField = async (status) => {
         "po_remark",
         "po_remark2",
         "po_remark3",
+        "po_remark4",
+        "po_remark5",
         "po_tnc",
         "billing_address_line_1",
         "billing_address_line_2",
@@ -143,7 +140,7 @@ const disabledEditField = async (status) => {
         "exchange_rate",
         "myr_total_amount",
       ],
-      true
+      true,
     );
 
     this.hide([
@@ -186,6 +183,7 @@ const cloneResetQuantity = async (data) => {
   data["preq_no"] = "";
   data["preq_id"] = [];
   data["purchase_order_no"] = null;
+  data["linked_so_id"] = "";
 
   this.hide("preq_no");
 
@@ -199,11 +197,11 @@ const setPlant = async (organizationId, pageStatus, data) => {
     this.disabled("po_plant", false);
 
     if (pageStatus === "Add" || pageStatus === "Clone") {
-      data["po_plant"] = currentDept;
+      this.setData({ po_plant: currentDept });
     }
   } else {
     if (pageStatus === "Add" || pageStatus === "Clone") {
-      data["po_plant"] = currentDept;
+      this.setData({ po_plant: currentDept });
     }
     this.disabled("po_plant", true);
   }
@@ -234,14 +232,14 @@ const checkAccIntegrationType = async (organizationId, data) => {
     const pageStatus = this.isAdd
       ? "Add"
       : this.isEdit
-      ? "Edit"
-      : this.isView
-      ? "View"
-      : this.isCopy
-      ? "Clone"
-      : (() => {
-          this.$message.error("Invalid page status");
-        })();
+        ? "Edit"
+        : this.isView
+          ? "View"
+          : this.isCopy
+            ? "Clone"
+            : (() => {
+                this.$message.error("Invalid page status");
+              })();
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
@@ -255,13 +253,20 @@ const checkAccIntegrationType = async (organizationId, data) => {
       "myr_total_amount",
       "total_amount_myr",
     ]);
+    const tabGR = document.getElementById("tab-tab_gr");
 
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
+        const supplierID = this.getValue("po_supplier_id");
+        this.disabled("table_po", !supplierID);
         data["organization_id"] = organizationId;
         data["po_date"] = new Date().toISOString().split("T")[0];
 
+        // hide GR Tab
+        if (tabGR) {
+          tabGR.style.display = "none";
+        }
         await setPlant(organizationId, pageStatus, data);
         await checkAccIntegrationType(organizationId, data);
         await enabledUOMField();
@@ -286,11 +291,20 @@ const checkAccIntegrationType = async (organizationId, data) => {
           status !== "Draft"
             ? ["purchase_order_no", "purchase_order_no_type"]
             : [],
-          true
+          true,
         );
+
+        // hide GR Tab
+        if (tabGR) {
+          tabGR.style.display = "none";
+        }
         break;
 
       case "Clone":
+        // hide GR Tab
+        if (tabGR) {
+          tabGR.style.display = "none";
+        }
         await displayFields();
         await checkAccIntegrationType(organizationId, data);
         await setPlant(organizationId, pageStatus, data);
@@ -310,6 +324,11 @@ const checkAccIntegrationType = async (organizationId, data) => {
           "button_save_as_draft",
           "button_save_as_issue",
         ]);
+
+        // hide GR Tab
+        if (tabGR && status !== "Processing") {
+          tabGR.style.display = "none";
+        }
         await showStatusHTML(status);
         await displayFields();
         await displayCurrency();
@@ -320,25 +339,41 @@ const checkAccIntegrationType = async (organizationId, data) => {
     }
 
     this.setData(data);
+    this.refreshFieldOptionData("po_plant");
   } catch (error) {
     this.$message.error(error);
   }
 })();
 
 setTimeout(async () => {
-  if (this.isAdd) {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
     const op = await this.onDropdownVisible("purchase_order_no_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("purchase_order_no_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          purchase_order_no_type: data.value,
-        });
-      }
-    }, 500);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
-}, 500);
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("purchase_order_no");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("purchase_order_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("purchase_order_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        purchase_order_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ purchase_order_no_type: defaultData.value });
+    }
+  }
+}, 200);
