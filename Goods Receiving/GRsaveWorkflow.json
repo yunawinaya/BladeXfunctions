@@ -1110,10 +1110,7 @@
         "nodeName": "IF Edit (Reservation Release)",
         "name": "IF Edit (Reservation Release)",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -1137,9 +1134,7 @@
         {
           "id": "if_origReserved_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "search_origGRMain",
@@ -1181,9 +1176,7 @@
         {
           "id": "if_origReserved_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -2109,6 +2102,22 @@
                               "propLabel": "Remark 3"
                             },
                             {
+                              "prop": "gr_remark4",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark4}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 4"
+                            },
+                            {
+                              "prop": "gr_remark5",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark5}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 5"
+                            },
+                            {
                               "prop": "billing_address_name",
                               "operator": "",
                               "valueType": "field",
@@ -2600,6 +2609,22 @@
                               "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark3}}",
                               "valueLabel": "",
                               "propLabel": "Remark 3"
+                            },
+                            {
+                              "prop": "gr_remark4",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark4}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 4"
+                            },
+                            {
+                              "prop": "gr_remark5",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark5}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 5"
                             },
                             {
                               "prop": "billing_address_name",
@@ -8366,6 +8391,22 @@
                               "propLabel": "Remark 3"
                             },
                             {
+                              "prop": "gr_remark4",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark4}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 4"
+                            },
+                            {
+                              "prop": "gr_remark5",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark5}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 5"
+                            },
+                            {
                               "prop": "billing_address_name",
                               "operator": "",
                               "valueType": "field",
@@ -8839,6 +8880,22 @@
                               "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark3}}",
                               "valueLabel": "",
                               "propLabel": "Remark 3"
+                            },
+                            {
+                              "prop": "gr_remark4",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark4}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 4"
+                            },
+                            {
+                              "prop": "gr_remark5",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.gr_remark5}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark 5"
                             },
                             {
                               "prop": "billing_address_name",
