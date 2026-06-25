@@ -14,7 +14,7 @@ const mapLineItem = async (item, record) => {
         item.quantity -
         (item.received_qty || 0) -
         (item.created_received_qty || 0)
-      ).toFixed(3)
+      ).toFixed(3),
     ),
     item_uom: item.quantity_uom || null,
     line_po_no: record.purchase_order_no,
@@ -55,10 +55,11 @@ const fetchDBData = async (selectedRecords) => {
 const mapHeaderData = async (
   record,
   poNo,
+  grPrefixId,
   grPrefix,
   poID,
   lineItemPromises,
-  plantID
+  plantID,
 ) => {
   return {
     gr_status: "Draft",
@@ -66,6 +67,7 @@ const mapHeaderData = async (
     purchase_order_number: poNo,
     po_id: poID,
     gr_no: grPrefix,
+    gr_no_type: grPrefixId,
     gr_date: new Date().toISOString().split("T")[0],
     organization_id: record.organization_id,
     supplier_name: record.po_supplier_id,
@@ -73,6 +75,11 @@ const mapHeaderData = async (
     gr_received_by: this.getVarGlobal("nickname"),
     table_gr: lineItemPromises,
     from_convert: "Yes",
+    gr_remark1: record.po_remark,
+    gr_remark2: record.po_remark2,
+    gr_remark3: record.po_remark3,
+    gr_remark4: record.po_remark4,
+    gr_remark5: record.po_remark5,
   };
 };
 
@@ -87,12 +94,21 @@ const handleMultipleGR = async (selectedRecords, plantID) => {
     let lineItemPromises = [];
     const lineItem = record.table_po || [];
 
+    const grPrefix = await db
+      .collection("su_code_serial_no_rule")
+      .where({
+        business_type: "Goods Receiving",
+        department_id: record.organization_id,
+        is_default: 1,
+      })
+      .get();
+
     for (const item of lineItem) {
       // Filter out line items that are fully received
       // Match GRaddBatchLineItem.js logic: only include lines where initial_received_qty < ordered_qty
       if ((item.received_qty || 0) >= (item.quantity || 0)) {
         console.log(
-          `Skipping fully received line item: ${item.item_name} (${item.received_qty}/${item.quantity})`
+          `Skipping fully received line item: ${item.item_name} (${item.received_qty}/${item.quantity})`,
         );
         continue; // Skip this line item
       }
@@ -104,19 +120,19 @@ const handleMultipleGR = async (selectedRecords, plantID) => {
     // Skip PO if no line items to receive
     if (lineItemPromises.length === 0) {
       console.log(
-        `Skipping PO ${record.purchase_order_no} - all line items fully received`
+        `Skipping PO ${record.purchase_order_no} - all line items fully received`,
       );
       continue;
     }
 
-    const grPrefix = await generateGRPrefix(record.organization_id);
     const grData = await mapHeaderData(
       record,
       record.purchase_order_no,
-      grPrefix,
+      grPrefix.data[0].id,
+      "draft",
       [record.id],
       lineItemPromises,
-      plantID
+      plantID,
     );
 
     console.log("Mapped GR Data:", grData);
@@ -133,13 +149,15 @@ const handleMultipleGR = async (selectedRecords, plantID) => {
       {
         confirmButtonText: "OK",
         type: "warning",
-      }
+      },
     );
     return;
   }
 
   const resGR = await Promise.all(
-    grDataPromises.map((grData) => db.collection("goods_receiving").add(grData))
+    grDataPromises.map((grData) =>
+      db.collection("goods_receiving").add(grData),
+    ),
   );
 
   const grData = resGR.map((response) => response.data[0]);
@@ -156,7 +174,7 @@ const handleMultipleGR = async (selectedRecords, plantID) => {
       confirmButtonText: "OK",
       dangerouslyUseHTMLString: true,
       type: "success",
-    }
+    },
   );
 };
 
@@ -167,7 +185,7 @@ const handleSingleGR = async (selectedRecords, plantID) => {
     console.log("Fetched Data:", data);
 
     const uniqueSuppliers = new Set(
-      data.map((record) => record.po_supplier_id)
+      data.map((record) => record.po_supplier_id),
     );
 
     const allSameSupplier = uniqueSuppliers.size === 1;
@@ -181,7 +199,7 @@ const handleSingleGR = async (selectedRecords, plantID) => {
           cancelButtonText: "Cancel",
           dangerouslyUseHTMLString: true,
           type: "info",
-        }
+        },
       ).catch(() => {
         console.log("User clicked Cancel or closed the dialog");
         throw new Error();
@@ -200,7 +218,7 @@ const handleSingleGR = async (selectedRecords, plantID) => {
         // Match GRaddBatchLineItem.js logic: only include lines where initial_received_qty < ordered_qty
         if ((item.received_qty || 0) >= (item.quantity || 0)) {
           console.log(
-            `Skipping fully received line item: ${item.item_name} (${item.received_qty}/${item.quantity})`
+            `Skipping fully received line item: ${item.item_name} (${item.received_qty}/${item.quantity})`,
           );
           continue; // Skip this line item
         }
@@ -218,7 +236,7 @@ const handleSingleGR = async (selectedRecords, plantID) => {
         {
           confirmButtonText: "OK",
           type: "warning",
-        }
+        },
       );
       return;
     }
@@ -231,9 +249,10 @@ const handleSingleGR = async (selectedRecords, plantID) => {
       record,
       poNo,
       grPrefix,
+      "",
       poID,
       lineItemPromises,
-      plantID
+      plantID,
     );
 
     console.log("Mapped GR Data:", mappedData);
@@ -252,35 +271,6 @@ const handleSingleGR = async (selectedRecords, plantID) => {
   } catch (error) {
     console.error("Error in handleSingleGR:", error);
   }
-};
-
-const generateGRPrefix = async (organizationID) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Goods Receiving",
-      is_deleted: 0,
-      organization_id: organizationID,
-    })
-    .get();
-
-  if (!prefixEntry.data || prefixEntry.data.length === 0) {
-    throw new Error("No prefix configuration found");
-  }
-
-  const currDraftNum = parseInt(prefixEntry.data[0].draft_number) + 1;
-  const grPrefix = `DRAFT-${prefixEntry.data[0].prefix_value}-` + currDraftNum;
-
-  await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Goods Receiving",
-      is_deleted: 0,
-      organization_id: organizationID,
-    })
-    .update({ draft_number: currDraftNum });
-
-  return grPrefix;
 };
 
 (async () => {
@@ -318,7 +308,7 @@ const generateGRPrefix = async (organizationID) => {
               done();
             }
           },
-        }
+        },
       );
     } else {
       this.showLoading("Converting to Goods Receiving...");

@@ -206,6 +206,9 @@ const fetchPredefinedData = async (plant) => {
       inv_category: "",
       item_costing_method: itemData?.material_costing_method || null,
       uom_conversion: 0,
+      is_split: "No",
+      parent_or_child: "Parent",
+      parent_index: 0,
     };
 
     const isAltUOM = itemData?.table_uom_conversion?.find(
