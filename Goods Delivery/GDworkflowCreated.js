@@ -30,7 +30,11 @@ const runGDWorkflow = async (data, continueZero) => {
 const handleWorkflowResult = async (workflowResult, data) => {
   if (!workflowResult || !workflowResult.data) {
     this.hideLoading();
-    this.models["_data"] = { ...this.models["_data"], is_error: 1, is_processing: 0 };
+    this.models["_data"] = {
+      ...this.models["_data"],
+      is_error: 1,
+      is_processing: 0,
+    };
     this.$message.error("No response from workflow. Please contact support.");
     return;
   }
@@ -72,7 +76,11 @@ const handleWorkflowResult = async (workflowResult, data) => {
     workflowResult.data.success === false
   ) {
     this.hideLoading();
-    this.models["_data"] = { ...this.models["_data"], is_error: 1, is_processing: 0 };
+    this.models["_data"] = {
+      ...this.models["_data"],
+      is_error: 1,
+      is_processing: 0,
+    };
     const errorMessage =
       workflowResult.data.msg ||
       workflowResult.data.message ||
@@ -98,7 +106,11 @@ const handleWorkflowResult = async (workflowResult, data) => {
     closeDialog();
   } else {
     this.hideLoading();
-    this.models["_data"] = { ...this.models["_data"], is_error: 1, is_processing: 0 };
+    this.models["_data"] = {
+      ...this.models["_data"],
+      is_error: 1,
+      is_processing: 0,
+    };
     this.$message.error("Unknown workflow status. Please contact support.");
   }
 };
@@ -128,9 +140,14 @@ const handleWorkflowResult = async (workflowResult, data) => {
     await handleWorkflowResult(workflowResult, data);
   } catch (error) {
     this.hideLoading();
-    this.models["_data"] = { ...this.models["_data"], is_error: 1, is_processing: 0 };
+    this.models["_data"] = {
+      ...this.models["_data"],
+      is_error: 1,
+      is_processing: 0,
+    };
     console.error("Error:", error);
-    const errorMessage = error.message || "Failed to save Goods Delivery. Please contact support.";
+    const errorMessage =
+      error.message || "Failed to save Goods Delivery. Please contact support.";
     this.$message.error(errorMessage);
   }
 })();
