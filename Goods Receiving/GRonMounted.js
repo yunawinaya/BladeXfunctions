@@ -502,7 +502,6 @@ const checkAccIntegrationType = async (organizationId) => {
 })();
 
 setTimeout(async () => {
-  if (!this.isAdd) return;
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
@@ -513,10 +512,24 @@ setTimeout(async () => {
   function getDefaultItem(arr) {
     return arr?.find((item) => item?.item?.is_default === 1);
   }
+  var params = this.getComponent("gr_no");
+  const { options } = params;
 
   const optionsData = this.getOptionData("gr_no_type") || [];
-  const data = getDefaultItem(optionsData);
-  if (data) {
-    this.setData({ gr_no_type: data.value });
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("gr_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        gr_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ gr_no_type: defaultData.value });
+    }
   }
-}, 500);
+}, 200);

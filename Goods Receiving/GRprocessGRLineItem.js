@@ -23,8 +23,7 @@ const processData = async (tableGR, invCategoryData, putawaySetupData) => {
     );
 
     // set inventory category option and default value
-    const putawayCategory =
-      putawaySetupData?.category || "In Transit";
+    const putawayCategory = putawaySetupData?.category || "In Transit";
 
     if (gr.inspection_required === "No") {
       if (!putawaySetupData || putawaySetupData.putaway_required === 0) {
