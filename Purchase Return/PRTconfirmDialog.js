@@ -7,7 +7,7 @@
   let isValid = true;
 
   // Get UOM information (material_uom is not a PRT dialog field; defaults to PCS)
-  const materialUOMid = data.confirm_inventory.material_uom;
+  const materialUOMid = data.table_prt[rowIndex].return_uom_id;
   const gdUOM = await db
     .collection("unit_of_measurement")
     .where({ id: materialUOMid })
