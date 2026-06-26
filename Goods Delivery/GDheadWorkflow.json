@@ -27,419 +27,616 @@
       "blocks": []
     },
     {
-      "id": "code_gr_soids",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "GR Gate - Collect SO Ids",
-        "isValidator": true,
-        "nodeName": "GR Gate - Collect SO Ids",
-        "name": "GR Gate - Collect SO Ids",
-        "script": {
-          "type": "javascript",
-          "code": "const allData = {{workflowparams:allData}};\nconst tableGd = (allData && allData.table_gd) || [];\nconst ids = [];\nfor (const row of tableGd) {\n  if (!row || !row.material_id) continue;\n  const so = row.line_so_id || (allData ? allData.so_id : '') || '';\n  if (so) ids.push(String(so));\n}\nlet soIds = Array.from(new Set(ids));\nif (soIds.length === 0) soIds = [\"0\"];\nreturn { soIds };\n"
-        },
-        "response_json": [
-          {
-            "key": "grg_soids",
-            "name": "soIds",
-            "title": "soIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_gr_linkage",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Document Linkage:Table:2069270865093935105",
-          "rules": {
-            "collectionId": "2069270865093935105",
-            "list": [
-              {
-                "id": 170000000002,
-                "parentId": 170000000003,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 170000000004,
-                    "parentId": 170000000002,
-                    "isTop": false,
-                    "prop": "target_doc_type",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Sales Order",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "target_doc_type",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 170000000005,
-                    "parentId": 170000000002,
-                    "isTop": false,
-                    "prop": "target_doc_id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_gr_soids.data.soIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "target_doc_id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  },
-                  {
-                    "id": 170000000006,
-                    "parentId": 170000000002,
-                    "isTop": false,
-                    "prop": "link_status",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Linked",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "link_status",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 200,
-        "title": "GR Gate - Find SO Linkage",
-        "isValidator": true,
-        "nodeName": "GR Gate - Find SO Linkage",
-        "name": "GR Gate - Find SO Linkage"
-      },
-      "blocks": []
-    },
-    {
-      "id": "code_gr_link",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "GR Gate - Resolve Linkage",
-        "isValidator": true,
-        "nodeName": "GR Gate - Resolve Linkage",
-        "name": "GR Gate - Resolve Linkage",
-        "script": {
-          "type": "javascript",
-          "code": "const rows = {{node:search_gr_linkage.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\nconst ids = [];\nconst poIdList = [];\nconst poNoList = [];\nlet buyerOrg = '';\nlet sellerOrg = '';\nfor (const r of arr) {\n  if (!r) continue;\n  if (r.target_doc_id) ids.push(String(r.target_doc_id));\n  if (r.source_doc_id) poIdList.push(String(r.source_doc_id));\n  if (r.source_doc_no) poNoList.push(r.source_doc_no);\n  if (!buyerOrg && r.buyer_org_id) buyerOrg = r.buyer_org_id;\n  if (!sellerOrg && r.seller_org_id) sellerOrg = r.seller_org_id;\n}\nconst linkedSoIds = Array.from(new Set(ids));\nconst poIds = Array.from(new Set(poIdList));\nconst poNos = Array.from(new Set(poNoList));\nreturn {\n  linkedSoIds: linkedSoIds,\n  poIds: poIds,\n  poNos: poNos,\n  buyerOrg: buyerOrg || '0',\n  sellerOrg: sellerOrg || '0',\n  hasLink: linkedSoIds.length > 0 ? 1 : 0\n};\n"
-        },
-        "response_json": [
-          {
-            "key": "grg_linkedsoids",
-            "name": "linkedSoIds",
-            "title": "linkedSoIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "grg_poids",
-            "name": "poIds",
-            "title": "poIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "grg_ponos",
-            "name": "poNos",
-            "title": "poNos",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "grg_buyerorg",
-            "name": "buyerOrg",
-            "title": "buyerOrg",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
-          },
-          {
-            "key": "grg_sellerorg",
-            "name": "sellerOrg",
-            "title": "sellerOrg",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
-          },
-          {
-            "key": "grg_haslink",
-            "name": "hasLink",
-            "title": "hasLink",
-            "description": "",
-            "bsonType": "int",
-            "isExpand": false
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_gr_its",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Internal Trading Setup:Table:2069278647482400769",
-          "rules": {
-            "collectionId": "2069278647482400769",
-            "list": [
-              {
-                "id": 170000000007,
-                "parentId": 170000000008,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 170000000009,
-                    "parentId": 170000000007,
-                    "isTop": false,
-                    "prop": "buyer_org_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{node:code_gr_link.data.buyerOrg}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "buyer_org_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 170000000010,
-                    "parentId": 170000000007,
-                    "isTop": false,
-                    "prop": "seller_org_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{node:code_gr_link.data.sellerOrg}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "seller_org_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 170000000011,
-                    "parentId": 170000000007,
-                    "isTop": false,
-                    "prop": "is_active",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 1,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_active",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "GR Gate - Internal Trading Setup",
-        "isValidator": true,
-        "nodeName": "GR Gate - Internal Trading Setup",
-        "name": "GR Gate - Internal Trading Setup"
-      },
-      "blocks": []
-    },
-    {
-      "id": "code_gr_gate",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "GR Gate - Decision",
-        "isValidator": true,
-        "nodeName": "GR Gate - Decision",
-        "name": "GR Gate - Decision",
-        "script": {
-          "type": "javascript",
-          "code": "const saveAs = {{workflowparams:saveAs}} || '';\nconst autoConfirmed = {{workflowparams:auto_gr_confirmed}} || false;\nconst autoSkip = {{workflowparams:auto_gr_skip}} || false;\nconst allData = {{workflowparams:allData}};\nconst linkedSoIds = {{node:code_gr_link.data.linkedSoIds}} || [];\nconst itsRows = {{node:search_gr_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\n\nconst linkedSet = {};\nfor (const s of linkedSoIds) linkedSet[String(s)] = true;\nconst autoCreateGr = itsArr.some(function (r) { return r && Number(r.auto_create_gr) === 1; });\nconst eligible = (saveAs === 'Completed') && linkedSoIds.length > 0 && autoCreateGr;\n\nlet grConfirm = 0;\nlet msg = '';\nlet doAutoGr = 0;\n\nif (!eligible || autoSkip) {\n  grConfirm = 0;\n} else if (!autoConfirmed) {\n  grConfirm = 408;\n  msg = 'This delivery is linked to an internal Purchase Order.<br><br>Auto-create the Goods Receipt in the buyer organization when this delivery is completed?';\n} else {\n  const tableGd = (allData && allData.table_gd) || [];\n  const failed = [];\n  for (let i = 0; i < tableGd.length; i++) {\n    const row = tableGd[i];\n    if (!row || !row.material_id) continue;\n    const so = String(row.line_so_id || (allData ? allData.so_id : '') || '');\n    if (!linkedSet[so]) continue;\n    const qty = Number(row.gd_qty) || 0;\n    const ord = Number(row.gd_order_quantity) || 0;\n    if (qty < ord) failed.push('#' + (i + 1));\n  }\n  if (failed.length > 0) {\n    grConfirm = 409;\n    msg = 'Line' + (failed.length > 1 ? 's' : '') + ' ' + failed.join(', ') + ' ' + (failed.length > 1 ? 'are' : 'is') + ' not fully delivered.<br><br>A linked delivery must deliver the full ordered quantity before the Goods Receipt can be auto-created.';\n  } else {\n    grConfirm = 0;\n    doAutoGr = 1;\n  }\n}\n\nreturn { grConfirm: grConfirm, msg: msg, doAutoGr: doAutoGr };\n"
-        },
-        "response_json": [
-          {
-            "key": "grg_grconfirm",
-            "name": "grConfirm",
-            "title": "grConfirm",
-            "description": "",
-            "bsonType": "int",
-            "isExpand": false
-          },
-          {
-            "key": "grg_msg",
-            "name": "msg",
-            "title": "msg",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
-          },
-          {
-            "key": "grg_doautogr",
-            "name": "doAutoGr",
-            "title": "doAutoGr",
-            "description": "",
-            "bsonType": "int",
-            "isExpand": false
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "if_gr_gate",
+      "id": "if_gr_gate_completed",
       "type": "if",
       "data": {
-        "title": "IF GR Gate",
+        "title": "IF Completed (GR Gate)",
         "isValidator": true,
-        "nodeName": "IF GR Gate",
-        "name": "IF GR Gate",
+        "nodeName": "IF Completed (GR Gate)",
+        "name": "IF Completed (GR Gate)",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
-              "id": 1782368857642,
-              "parentId": 1782368857643,
+              "id": 210500000002,
+              "parentId": 210500000003,
               "isTop": true,
-              "prop": "",
-              "operator": "all",
-              "valueType": "",
-              "value": "",
-              "type": "branch",
+              "prop": "workflowparams.saveAs",
+              "operator": "equal",
+              "valueType": "value",
+              "value": "Completed",
+              "type": "leaf",
               "level": 1,
-              "children": [
-                {
-                  "id": 170000000012,
-                  "parentId": 1782368857642,
-                  "isTop": false,
-                  "prop": "node.code_gr_gate.data.grConfirm",
-                  "operator": "numberNotEqual",
-                  "valueType": "value",
-                  "value": 0,
-                  "type": "leaf",
-                  "level": 2,
-                  "propLabel": "grConfirm",
-                  "valueLabel": "",
-                  "operatorLabel": "Not Equal"
-                },
-                {
-                  "id": 1782368857644,
-                  "parentId": 1782368857642,
-                  "isTop": false,
-                  "prop": "workflowparams.isPicking",
-                  "operator": "notEqual",
-                  "valueType": "value",
-                  "value": "Yes",
-                  "type": "leaf",
-                  "level": 2,
-                  "propLabel": "isPicking",
-                  "valueLabel": "",
-                  "operatorLabel": "Not Equal"
-                },
-                {
-                  "id": 1782368857645,
-                  "parentId": 1782368857642,
-                  "isTop": false,
-                  "prop": "workflowparams.isPacking",
-                  "operator": "numberNotEqual",
-                  "valueType": "value",
-                  "value": 1,
-                  "type": "leaf",
-                  "level": 2,
-                  "propLabel": "isPacking",
-                  "valueLabel": "",
-                  "operatorLabel": "Not Equal"
-                }
-              ]
+              "propLabel": "saveAs",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
             }
           ]
         }
       },
       "blocks": [
         {
-          "id": "if_block_gr_true",
+          "id": "if_gr_gate_completed_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
-              "id": "return_gr_gate",
-              "type": "return-node",
+              "id": "code_gr_soids",
+              "type": "code-node",
               "data": {
-                "return_data": {},
-                "status_code": 200,
-                "title": "Return GR Gate",
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "GR Gate - Collect SO Ids",
                 "isValidator": true,
-                "nodeName": "Return GR Gate",
-                "name": "Return GR Gate",
-                "response_value": {
+                "nodeName": "GR Gate - Collect SO Ids",
+                "name": "GR Gate - Collect SO Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "const allData = {{workflowparams:allData}};\nconst tableGd = (allData && allData.table_gd) || [];\nconst ids = [];\nfor (const row of tableGd) {\n  if (!row || !row.material_id) continue;\n  const so = row.line_so_id || (allData ? allData.so_id : '') || '';\n  if (so) ids.push(String(so));\n}\nlet soIds = Array.from(new Set(ids));\nif (soIds.length === 0) soIds = [\"0\"];\nreturn { soIds };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "grg_soids",
+                    "name": "soIds",
+                    "title": "soIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_gr_linkage",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Document Linkage:Table:2069270865093935105",
+                  "rules": {
+                    "collectionId": "2069270865093935105",
+                    "list": [
+                      {
+                        "id": 170000000002,
+                        "parentId": 170000000003,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 170000000004,
+                            "parentId": 170000000002,
+                            "isTop": false,
+                            "prop": "target_doc_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Sales Order",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "target_doc_type",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 170000000005,
+                            "parentId": 170000000002,
+                            "isTop": false,
+                            "prop": "target_doc_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_gr_soids.data.soIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "target_doc_id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 170000000006,
+                            "parentId": 170000000002,
+                            "isTop": false,
+                            "prop": "link_status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Linked",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "link_status",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "GR Gate - Find SO Linkage",
+                "isValidator": true,
+                "nodeName": "GR Gate - Find SO Linkage",
+                "name": "GR Gate - Find SO Linkage"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_gr_link",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "GR Gate - Resolve Linkage",
+                "isValidator": true,
+                "nodeName": "GR Gate - Resolve Linkage",
+                "name": "GR Gate - Resolve Linkage",
+                "script": {
+                  "type": "javascript",
+                  "code": "const rows = {{node:search_gr_linkage.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\nconst ids = [];\nconst poIdList = [];\nconst poNoList = [];\nlet buyerOrg = '';\nlet sellerOrg = '';\nfor (const r of arr) {\n  if (!r) continue;\n  if (r.target_doc_id) ids.push(String(r.target_doc_id));\n  if (r.source_doc_id) poIdList.push(String(r.source_doc_id));\n  if (r.source_doc_no) poNoList.push(r.source_doc_no);\n  if (!buyerOrg && r.buyer_org_id) buyerOrg = r.buyer_org_id;\n  if (!sellerOrg && r.seller_org_id) sellerOrg = r.seller_org_id;\n}\nconst linkedSoIds = Array.from(new Set(ids));\nconst poIds = Array.from(new Set(poIdList));\nconst poNos = Array.from(new Set(poNoList));\nreturn {\n  linkedSoIds: linkedSoIds,\n  poIds: poIds,\n  poNos: poNos,\n  buyerOrg: buyerOrg || '0',\n  sellerOrg: sellerOrg || '0',\n  hasLink: linkedSoIds.length > 0 ? 1 : 0\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "grg_linkedsoids",
+                    "name": "linkedSoIds",
+                    "title": "linkedSoIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "grg_poids",
+                    "name": "poIds",
+                    "title": "poIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "grg_ponos",
+                    "name": "poNos",
+                    "title": "poNos",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "grg_buyerorg",
+                    "name": "buyerOrg",
+                    "title": "buyerOrg",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "grg_sellerorg",
+                    "name": "sellerOrg",
+                    "title": "sellerOrg",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "grg_haslink",
+                    "name": "hasLink",
+                    "title": "hasLink",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_gr_its",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Internal Trading Setup:Table:2069278647482400769",
+                  "rules": {
+                    "collectionId": "2069278647482400769",
+                    "list": [
+                      {
+                        "id": 170000000007,
+                        "parentId": 170000000008,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 170000000009,
+                            "parentId": 170000000007,
+                            "isTop": false,
+                            "prop": "buyer_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_gr_link.data.buyerOrg}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "buyer_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 170000000010,
+                            "parentId": 170000000007,
+                            "isTop": false,
+                            "prop": "seller_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_gr_link.data.sellerOrg}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "seller_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 170000000011,
+                            "parentId": 170000000007,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_active",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "GR Gate - Internal Trading Setup",
+                "isValidator": true,
+                "nodeName": "GR Gate - Internal Trading Setup",
+                "name": "GR Gate - Internal Trading Setup"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_gr_cover_ids",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "GR Gate - SO Fetch Filter",
+                "isValidator": true,
+                "nodeName": "GR Gate - SO Fetch Filter",
+                "name": "GR Gate - SO Fetch Filter",
+                "script": {
+                  "type": "javascript",
+                  "code": "const autoConfirmed = {{workflowparams:auto_gr_confirmed}} || false;\nconst linkedSoIds = {{node:code_gr_link.data.linkedSoIds}} || [];\nconst itsRows = {{node:search_gr_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\nconst enabled = itsArr.some(function (r) { return r && Number(r.auto_create_gr) === 1; });\n// Fetch the SO (coverage check) only after the user confirms auto-GR; the if-node\n// below skips the SO search entirely unless doFetchSo === 1.\nconst doFetchSo = (autoConfirmed && enabled && linkedSoIds.length > 0) ? 1 : 0;\nconst soIds = doFetchSo === 1 ? linkedSoIds.map(String) : [\"0\"];\nreturn { doFetchSo: doFetchSo, soIds: soIds };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "grg_dofetchso",
+                    "name": "doFetchSo",
+                    "title": "doFetchSo",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "grg_coversoids",
+                    "name": "soIds",
+                    "title": "soIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_gr_fetch_so",
+              "type": "if",
+              "data": {
+                "title": "IF Fetch SO (auto-GR confirmed)",
+                "isValidator": true,
+                "nodeName": "IF Fetch SO (auto-GR confirmed)",
+                "name": "IF Fetch SO (auto-GR confirmed)",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
                   "list": [
                     {
-                      "prop": "code",
-                      "propLabel": "code",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "field",
-                      "valueTypeLabel": "",
-                      "value": "{{node:code_gr_gate.data.grConfirm}}",
-                      "valueLabel": ""
-                    },
+                      "id": 210000000002,
+                      "parentId": 210000000003,
+                      "isTop": true,
+                      "prop": "node.code_gr_cover_ids.data.doFetchSo",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "doFetchSo",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_gr_fetch_so_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
                     {
-                      "prop": "message",
-                      "propLabel": "message",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_gr_gate.data.msg}}",
-                      "valueLabel": ""
+                      "id": "search_gr_so",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Sales Order:Table:1902773735979597826",
+                          "rules": {
+                            "collectionId": "1902773735979597826",
+                            "list": [
+                              {
+                                "id": 200000000002,
+                                "parentId": 200000000003,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 200000000004,
+                                    "parentId": 200000000002,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_gr_cover_ids.data.soIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 200,
+                        "title": "GR Gate - Linked SO Lines",
+                        "isValidator": true,
+                        "nodeName": "GR Gate - Linked SO Lines",
+                        "name": "GR Gate - Linked SO Lines"
+                      },
+                      "blocks": []
                     }
                   ]
                 },
-                "return_raw_data": 0
+                {
+                  "id": "if_gr_fetch_so_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "code_gr_gate",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "GR Gate - Decision",
+                "isValidator": true,
+                "nodeName": "GR Gate - Decision",
+                "name": "GR Gate - Decision",
+                "script": {
+                  "type": "javascript",
+                  "code": "const saveAs = {{workflowparams:saveAs}} || '';\nconst autoConfirmed = {{workflowparams:auto_gr_confirmed}} || false;\nconst autoSkip = {{workflowparams:auto_gr_skip}} || false;\nconst allData = {{workflowparams:allData}};\nconst linkedSoIds = {{node:code_gr_link.data.linkedSoIds}} || [];\nconst itsRows = {{node:search_gr_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\nconst soRows = {{node:search_gr_so.data.data}};\nconst soArr = Array.isArray(soRows) ? soRows : (soRows ? [soRows] : []);\n\nconst linkedSet = {};\nfor (const s of linkedSoIds) linkedSet[String(s)] = true;\nconst autoCreateGr = itsArr.some(function (r) { return r && Number(r.auto_create_gr) === 1; });\n\n// Per-line fullness comes from the GD (no fetch). Coverage (every SO line present)\n// needs soArr, which is only populated after the user confirms auto-GR.\nconst tableGd = (allData && allData.table_gd) || [];\nconst gdLineSet = {};\nlet allLinesFull = true;\nfor (const row of tableGd) {\n  if (!row || !row.material_id) continue;\n  const so = String(row.line_so_id || (allData ? allData.so_id : '') || '');\n  if (!linkedSet[so]) continue;\n  if (row.so_line_item_id) gdLineSet[so + '|' + String(row.so_line_item_id)] = true;\n  if ((Number(row.gd_qty) || 0) < (Number(row.gd_order_quantity) || 0)) allLinesFull = false;\n}\n\nlet coversAll = true;\nfor (const so of soArr) {\n  if (!so || !so.id) continue;\n  const soId = String(so.id);\n  if (!linkedSet[soId]) continue;\n  const soLines = so.table_so || [];\n  for (const sl of soLines) {\n    if (!sl || !sl.id || !sl.item_name) continue;\n    if (!gdLineSet[soId + '|' + String(sl.id)]) { coversAll = false; break; }\n  }\n  if (!coversAll) break;\n}\n\nconst internalLinked = (saveAs === 'Completed') && linkedSoIds.length > 0 && autoCreateGr;\n\nlet grConfirm = 0;\nlet msg = '';\nlet doAutoGr = 0;\n\nif (!internalLinked || autoSkip) {\n  grConfirm = 0;\n} else if (!allLinesFull) {\n  // Partial quantity — detected without fetching the SO; block.\n  grConfirm = 409;\n  msg = 'This delivery is linked to an internal Purchase Order, but it does not fully complete the Sales Order in a single delivery.<br><br>A linked delivery must deliver every line of the order in full before the Goods Receipt can be auto-created.';\n} else if (!autoConfirmed) {\n  grConfirm = 408;\n  msg = 'This delivery is linked to an internal Purchase Order.<br><br>Auto-create the Goods Receipt in the buyer organization when this delivery is completed?';\n} else if (!coversAll) {\n  // Confirmed: SO fetched and a line of the order is missing from this delivery; block.\n  grConfirm = 409;\n  msg = 'This delivery is linked to an internal Purchase Order, but it does not include every line of the Sales Order.<br><br>A linked delivery must deliver every line of the order in full before the Goods Receipt can be auto-created.';\n} else {\n  doAutoGr = 1;\n}\n\nreturn { grConfirm: grConfirm, msg: msg, doAutoGr: doAutoGr };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "grg_grconfirm",
+                    "name": "grConfirm",
+                    "title": "grConfirm",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "grg_msg",
+                    "name": "msg",
+                    "title": "msg",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "grg_doautogr",
+                    "name": "doAutoGr",
+                    "title": "doAutoGr",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  }
+                ]
               },
               "blocks": []
+            },
+            {
+              "id": "if_gr_gate",
+              "type": "if",
+              "data": {
+                "title": "IF GR Gate",
+                "isValidator": true,
+                "nodeName": "IF GR Gate",
+                "name": "IF GR Gate",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1782368857642,
+                      "parentId": 1782368857643,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "all",
+                      "valueType": "",
+                      "value": "",
+                      "type": "branch",
+                      "level": 1,
+                      "children": [
+                        {
+                          "id": 170000000012,
+                          "parentId": 1782368857642,
+                          "isTop": false,
+                          "prop": "node.code_gr_gate.data.grConfirm",
+                          "operator": "numberNotEqual",
+                          "valueType": "value",
+                          "value": 0,
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "grConfirm",
+                          "valueLabel": "",
+                          "operatorLabel": "Not Equal"
+                        },
+                        {
+                          "id": 1782368857644,
+                          "parentId": 1782368857642,
+                          "isTop": false,
+                          "prop": "workflowparams.isPicking",
+                          "operator": "notEqual",
+                          "valueType": "value",
+                          "value": "Yes",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "isPicking",
+                          "valueLabel": "",
+                          "operatorLabel": "Not Equal"
+                        },
+                        {
+                          "id": 1782368857645,
+                          "parentId": 1782368857642,
+                          "isTop": false,
+                          "prop": "workflowparams.isPacking",
+                          "operator": "numberNotEqual",
+                          "valueType": "value",
+                          "value": 1,
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "isPacking",
+                          "valueLabel": "",
+                          "operatorLabel": "Not Equal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_gr_true",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "return_gr_gate",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return GR Gate",
+                        "isValidator": true,
+                        "nodeName": "Return GR Gate",
+                        "name": "Return GR Gate",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_gr_gate.data.grConfirm}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "propLabel": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_gr_gate.data.msg}}",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_gr_false",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
             }
           ]
         },
         {
-          "id": "if_block_gr_false",
+          "id": "if_gr_gate_completed_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
