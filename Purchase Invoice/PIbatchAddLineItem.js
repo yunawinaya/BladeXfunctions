@@ -1,9 +1,9 @@
-const checkExistingPOinPI = async (grArray) => {
+const checkExistingPOinPI = async (grArray, referenceType) => {
   const grNumbersWithPI = new Set(); // Use Set to avoid duplicates
 
-  await Promise.all(
-    grArray.flatMap((gr) =>
-      gr.purchase_order_id.map((poId) =>
+  if (referenceType === "Item - GR") {
+    await Promise.all(
+      grArray.flatMap((gr) =>
         db
           .collection("purchase_invoice")
           .filter([
@@ -11,7 +11,7 @@ const checkExistingPOinPI = async (grArray) => {
               type: "branch",
               operator: "all",
               children: [
-                { prop: "po_id", operator: "in", value: poId.id },
+                { prop: "po_id", operator: "in", value: gr.purchase_order_id },
                 { prop: "gr_no_display", operator: "isNull", value: null },
               ],
             },
@@ -24,8 +24,34 @@ const checkExistingPOinPI = async (grArray) => {
             }
           }),
       ),
-    ),
-  );
+    );
+  } else {
+    await Promise.all(
+      grArray.flatMap((gr) =>
+        gr.purchase_order_id.map((poId) =>
+          db
+            .collection("purchase_invoice")
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [
+                  { prop: "po_id", operator: "in", value: poId.id },
+                  { prop: "gr_no_display", operator: "isNull", value: null },
+                ],
+              },
+            ])
+            .get()
+            .then((response) => {
+              if (response.data[0]) {
+                // Only add GR number if PI exists
+                grNumbersWithPI.add(gr.goods_receiving_number);
+              }
+            }),
+        ),
+      ),
+    );
+  }
 
   console.log("GR numbers with existing PIs:", Array.from(grNumbersWithPI));
   return Array.from(grNumbersWithPI);
@@ -150,7 +176,10 @@ const processData = async (tablePI, referenceType) => {
   }
 
   if (referenceType === "Document - GR" || referenceType === "Item - GR") {
-    const existingGRNumbers = await checkExistingPOinPI(currentItemArray);
+    const existingGRNumbers = await checkExistingPOinPI(
+      currentItemArray,
+      referenceType,
+    );
 
     if (existingGRNumbers && existingGRNumbers.length > 0) {
       this.parentGenerateForm.$alert(
@@ -200,6 +229,7 @@ const processData = async (tablePI, referenceType) => {
             line_po_id: po.purchase_order_id,
             line_gr_id: "",
             item_category_id: poItem.item_category_id,
+            tariff_id: poItem.tariff_id,
           };
 
           tablePI.push(newTablePIRecord);
@@ -246,6 +276,7 @@ const processData = async (tablePI, referenceType) => {
             line_po_id: grItem.line_po_id,
             line_gr_id: gr.goods_receiving_id,
             item_category_id: grItem.item_category_id,
+            tariff_id: grItem.tariff_id,
           };
 
           tablePI.push(newTablePIRecord);
@@ -279,6 +310,7 @@ const processData = async (tablePI, referenceType) => {
           line_po_id: poItem.purchase_order.id,
           line_gr_id: "",
           item_category_id: poItem.item.item_category,
+          tariff_id: poItem.tariff_id,
         };
 
         tablePI.push(newTablePIRecord);
@@ -314,6 +346,7 @@ const processData = async (tablePI, referenceType) => {
           line_po_id: grItem.line_po_id,
           line_gr_id: grItem.goods_receiving_id,
           item_category_id: grItem.item_category_id,
+          tariff_id: grItem.tariff_id,
         };
 
         tablePI.push(newTablePIRecord);

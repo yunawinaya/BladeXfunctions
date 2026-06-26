@@ -87,6 +87,8 @@ const disabledEditField = async (status) => {
         "remarks",
         "remarks2",
         "remarks3",
+        "remarks4",
+        "remarks5",
         "pi_ref_doc",
         "billing_address_line_1",
         "billing_address_line_2",
@@ -107,7 +109,7 @@ const disabledEditField = async (status) => {
         "exchange_rate",
         "pi_description",
       ],
-      true
+      true,
     );
     this.hide([
       "link_billing_address",
@@ -134,9 +136,11 @@ const disabledEditField = async (status) => {
         "remarks",
         "remarks2",
         "remarks3",
+        "remarks4",
+        "remarks5",
         "pi_ref_doc",
       ],
-      false
+      false,
     );
     this.hide(["button_posted"]);
   }
@@ -214,14 +218,14 @@ const displayGRNumber = async () => {
     const pageStatus = this.isAdd
       ? "Add"
       : this.isEdit
-      ? "Edit"
-      : this.isView
-      ? "View"
-      : this.isCopy
-      ? "Clone"
-      : (() => {
-          this.$message.error("Invalid page status");
-        })();
+        ? "Edit"
+        : this.isView
+          ? "View"
+          : this.isCopy
+            ? "Clone"
+            : (() => {
+                this.$message.error("Invalid page status");
+              })();
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
@@ -247,6 +251,8 @@ const displayGRNumber = async () => {
         break;
 
       case "Edit":
+        this.setData({ previous_status: status });
+
         await disabledEditField(status);
         await checkAccIntegrationType(organizationId);
         await showStatusHTML(status);
@@ -270,3 +276,36 @@ const displayGRNumber = async () => {
     this.$message.error(error);
   }
 })();
+
+setTimeout(async () => {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("purchase_invoice_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("purchase_invoice_no");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("purchase_invoice_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("purchase_invoice_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        purchase_invoice_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ purchase_invoice_no_type: defaultData.value });
+    }
+  }
+}, 200);
