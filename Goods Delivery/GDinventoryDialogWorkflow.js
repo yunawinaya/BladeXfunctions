@@ -798,7 +798,10 @@
           // shouldn't deduct against the loose Unrestricted display.
           const reservedKey = `${item.handling_unit_id}|${item.batch_id || ""}`;
           const reservedQty = huReservedMap.get(reservedKey) || 0;
-          const qty = Math.max(0, (parseFloat(item.quantity) || 0) - reservedQty);
+          const qty = Math.max(
+            0,
+            (parseFloat(item.quantity) || 0) - reservedQty,
+          );
           if (qty <= 0) continue;
 
           huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
