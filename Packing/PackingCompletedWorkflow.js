@@ -17,6 +17,7 @@ const showErrors = (errors) => {
 (async () => {
   try {
     const data = this.getValues();
+    console.log("data", data);
     const EPS = 0.001;
 
     // ---- M:N gate: every GD line must be fully picked across all sibling Pickings ----
@@ -37,10 +38,15 @@ const showErrors = (errors) => {
             if (line.picking_status === "Cancelled") continue;
             const gdQty = parseFloat(line.gd_qty) || 0;
             if (gdQty <= 0) continue;
-            const pickedQty = parseFloat(line.picked_qty) || 0;
-            if (pickedQty + EPS < gdQty) {
+            // picking_status is the source of truth in BOTH flows: for normal
+            // picking it's set to "Completed" when the line is fully picked, and
+            // under allow_full_picking it only becomes "Completed" once cumulative
+            // picked_qty >= gd_qty across all sibling Pickings. The picked_qty
+            // scalar is ONLY written back when allow_full_picking is ON, so gating
+            // on it falsely blocks normal-flow packings (picked_qty stays 0).
+            if (line.picking_status !== "Completed") {
               gdLineErrors.push(
-                `GD line ${line.material_name || line.material_id}: ${pickedQty}/${gdQty} picked. Pickings still pending.`,
+                `GD line ${line.material_name || line.material_id}: not fully picked (status: ${line.picking_status || "Open"}). Pickings still pending.`,
               );
             }
           }
