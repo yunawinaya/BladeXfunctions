@@ -35,7 +35,9 @@ const handleWorkflowResult = async (workflowResult, gdItem, gdData) => {
 
   // Handle 401 - Zero quantity confirmation - auto-proceed
   if (resultCode === "401" || resultCode === 401) {
-    console.log(`GD ${gdItem.delivery_no}: Zero quantity warning, auto-proceeding`);
+    console.log(
+      `GD ${gdItem.delivery_no}: Zero quantity warning, auto-proceeding`,
+    );
     const retryResult = await runGDWorkflow(gdData, "required", "", "Yes");
     return handleWorkflowResult(retryResult, gdItem, gdData);
   }
@@ -56,7 +58,9 @@ const handleWorkflowResult = async (workflowResult, gdItem, gdData) => {
 
   // Handle 403 - Credit limit override - auto-proceed
   if (resultCode === "403" || resultCode === 403) {
-    console.log(`GD ${gdItem.delivery_no}: Credit limit override, auto-proceeding`);
+    console.log(
+      `GD ${gdItem.delivery_no}: Credit limit override, auto-proceeding`,
+    );
     const retryResult = await runGDWorkflow(gdData, "not required", "", "");
     return handleWorkflowResult(retryResult, gdItem, gdData);
   }
@@ -72,7 +76,9 @@ const handleWorkflowResult = async (workflowResult, gdItem, gdData) => {
 
   // Handle 406 - Force complete picking - auto-proceed
   if (resultCode === "406" || resultCode === 406) {
-    console.log(`GD ${gdItem.delivery_no}: Force complete picking, auto-proceeding`);
+    console.log(
+      `GD ${gdItem.delivery_no}: Force complete picking, auto-proceeding`,
+    );
     const retryResult = await runGDWorkflow(gdData, "", "Yes", "");
     return handleWorkflowResult(retryResult, gdItem, gdData);
   }
@@ -127,7 +133,8 @@ const handleWorkflowResult = async (workflowResult, gdItem, gdData) => {
     this.showLoading();
     const allListID = "custom_ezwb0qqp";
 
-    const selectedRecords = this.getComponent(allListID)?.$refs.crud.tableSelect;
+    const selectedRecords =
+      this.getComponent(allListID)?.$refs.crud.tableSelect;
 
     console.log("selectedRecords", selectedRecords);
 
@@ -188,7 +195,11 @@ const handleWorkflowResult = async (workflowResult, gdItem, gdData) => {
       try {
         const gdData = data.data[0];
         const workflowResult = await runGDWorkflow(gdData, "required", "", "");
-        const result = await handleWorkflowResult(workflowResult, gdItem, gdData);
+        const result = await handleWorkflowResult(
+          workflowResult,
+          gdItem,
+          gdData,
+        );
         results.push(result);
       } catch (error) {
         results.push({
