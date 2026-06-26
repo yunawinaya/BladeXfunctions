@@ -73,6 +73,11 @@ for (const hu of allHUData) {
   );
   if (!hasCurrentMaterial) continue;
 
+  // Skip packed HUs (committed to a Packing doc). Their qty lives in
+  // reserved_qty, not unrestricted, so they must not be injected as
+  // allocatable stock. Mirrors the dialog fetchHandlingUnits skip.
+  if (hu.packing_id) continue;
+
   const itemsToInclude = splitPolicy === "ALLOW_SPLIT"
     ? allActiveItems.filter((item) => item.material_id === currentRow.materialId)
     : allActiveItems;

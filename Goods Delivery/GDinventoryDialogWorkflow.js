@@ -519,6 +519,12 @@
           );
           if (!hasCurrentMaterial) continue;
 
+          // Packed HU (packing_id set on the HU header) is committed to a Packing
+          // doc — exclude it from selectable rows. Its qty already lives in
+          // item_balance.reserved_qty, so it's not in the loose (unrestricted)
+          // pool and needs no separate deduction.
+          if (hu.packing_id) continue;
+
           const itemsToShow =
             splitPolicy === "ALLOW_SPLIT"
               ? allActiveItems.filter((item) => item.material_id === materialId)
@@ -743,8 +749,13 @@
           .get();
 
         const huLocationMap = new Map();
+        const packedHuIds = new Set();
         for (const hu of huRes.data || []) {
           huLocationMap.set(hu.id, hu.location_id);
+          // Packed HUs are committed to a Packing doc; their qty lives in
+          // reserved_qty (not unrestricted_qty), so it must not be deducted
+          // from the loose Unrestricted display below.
+          if (hu.packing_id) packedHuIds.add(hu.id);
         }
 
         // Build cross-GD HU reservation map (mirrors fetchHandlingUnits' filter):
@@ -786,6 +797,9 @@
         for (const item of subRows) {
           // Skip sub-rows whose parent HU isn't in this plant/org (or deleted)
           if (!huLocationMap.has(item.handling_unit_id)) continue;
+
+          // Skip packed HUs — their qty is in reserved_qty, not unrestricted_qty
+          if (packedHuIds.has(item.handling_unit_id)) continue;
 
           const locationId =
             item.location_id || huLocationMap.get(item.handling_unit_id);
