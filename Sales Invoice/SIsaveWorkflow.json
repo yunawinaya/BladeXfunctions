@@ -1229,6 +1229,14 @@
                       "propLabel": "SI Status"
                     },
                     {
+                      "prop": "agent_user_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.agent_user_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Agent User"
+                    },
+                    {
                       "prop": "si_ref_doc",
                       "operator": "",
                       "valueType": "field",
@@ -1898,6 +1906,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "agent_user_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.agent_user_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Agent User"
                     },
                     {
                       "prop": "si_ref_doc",
@@ -3352,6 +3368,40 @@
                               "blocks": []
                             },
                             {
+                              "id": "get_node_PsZEEuNO",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Account Master:Table:2053882049103073281",
+                                  "rules": {
+                                    "collectionId": "2053882049103073281",
+                                    "list": [
+                                      {
+                                        "id": 1781832942805,
+                                        "parentId": 1781832942804,
+                                        "isTop": true,
+                                        "prop": "description",
+                                        "operator": "equal",
+                                        "valueType": "value",
+                                        "value": "CASH SALES",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "Description",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get Payment Method",
+                                "isValidator": true,
+                                "nodeName": "Get Payment Method",
+                                "name": "Get Payment Method"
+                              },
+                              "blocks": []
+                            },
+                            {
                               "id": "code_node_QfhrfMFO",
                               "type": "code-node",
                               "data": {
@@ -3364,7 +3414,7 @@
                                 "name": "Map CP Data",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const siData = {{workflowparams:data.page_status}} == 'Add' ? {{node:add_node_adYeQB4a.data}}[0] : {{node:code_node_JoF0YVzG.data.entry}};\n\nconst docFormat = {{node:get_node_auG34VOC.data.data}};\nconst customerData = {{node:get_node_Jcmd2YdP.data.data}};\n\nconst cpData = {\n  cp_no: 'issued',\n  area_id: siData.si_area_id,\n  irbm_id: customerData.customer_irbm_id,\n  agent_id: siData.sales_person_id,\n  plant_id: siData.plant_id,\n  table_cp: [\n    {\n      invoice_total: siData.invoice_total,\n      paid_amount: siData.invoice_total,\n      invoice_id: siData.id,\n      line_status: 'Completed',\n      outstanding_amount: 0\n    }\n  ],\n  cp_status: 'Completed',\n  cp_no_type: docFormat.id,\n  customer_id: siData.customer_id,\n  payment_date: new Date().toISOString().split('T')[0],\n  page_status: \"Add\",\n  exchange_rate: siData.exchange_rate,\n  organization_id: siData.organization_id,\n  unallocated_myr: 'MYR',\n  payment_currency: customerData.customer_currency_id,\n  customer_currency: customerData.customer_currency_id,\n  exchange_rate_myr: \"MYR\",\n  total_payment_myr: \"MYR\",\n  unallocated_amount: 0,\n  cust_payment_method: 'Cash',\n  payment_description: 'Customer Payment',\n  acc_integration_type: siData.acc_integration_type,\n  total_payment_amount: siData.invoice_total,\n  unallocated_currency: siData.currency_code,\n  exchange_rate_currency: siData.currency_code,\n  myr_unallocated_amount: 0,\n  total_payment_currency: siData.currency_code,\n  myr_total_payment_amount: siData.myr_total_amount\n}\n\nreturn { cpData }"
+                                  "code": "const siData = {{workflowparams:data.page_status}} == 'Add' ? {{node:add_node_adYeQB4a.data}}[0] : {{node:code_node_JoF0YVzG.data.entry}};\n\nconst docFormat = {{node:get_node_auG34VOC.data.data}};\nconst customerData = {{node:get_node_Jcmd2YdP.data.data}};\nconst accountMasterData = {{node:get_node_PsZEEuNO.data.data}};\n\nconst cpData = {\n  cp_no: 'issued',\n  area_id: siData.si_area_id,\n  irbm_id: customerData.customer_irbm_id,\n  agent_id: siData.sales_person_id,\n  plant_id: siData.plant_id,\n  table_cp: [\n    {\n      invoice_total: siData.invoice_total,\n      paid_amount: siData.invoice_total,\n      invoice_id: siData.id,\n      line_status: 'Completed',\n      outstanding_amount: 0\n    }\n  ],\n  cp_status: 'Completed',\n  cp_no_type: docFormat.id,\n  customer_id: siData.customer_id,\n  payment_date: new Date().toISOString().split('T')[0],\n  page_status: \"Add\",\n  exchange_rate: siData.exchange_rate,\n  organization_id: siData.organization_id,\n  unallocated_myr: 'MYR',\n  payment_currency: customerData.customer_currency_id,\n  customer_currency: customerData.customer_currency_id,\n  exchange_rate_myr: \"MYR\",\n  total_payment_myr: \"MYR\",\n  unallocated_amount: 0,\n  cust_payment_method: accountMasterData.id,\n  payment_description: 'Customer Payment',\n  acc_integration_type: siData.acc_integration_type,\n  total_payment_amount: siData.invoice_total,\n  unallocated_currency: siData.currency_code,\n  exchange_rate_currency: siData.currency_code,\n  myr_unallocated_amount: 0,\n  total_payment_currency: siData.currency_code,\n  myr_total_payment_amount: siData.myr_total_amount\n}\n\nreturn { cpData }"
                                 },
                                 "response_json": [
                                   {
