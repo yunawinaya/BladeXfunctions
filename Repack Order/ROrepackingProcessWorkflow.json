@@ -376,6 +376,14 @@
                       "value": "{{node:code_node_CPgy5sGX.data.targetHu.hu_status}}",
                       "valueLabel": "",
                       "propLabel": "hu_status"
+                    },
+                    {
+                      "prop": "packing_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:packing_id}}",
+                      "valueLabel": "",
+                      "propLabel": "packing_id"
                     }
                   ]
                 }
@@ -1723,6 +1731,14 @@
       "bsonType": "int",
       "isExpand": false,
       "children": []
+    },
+    {
+      "key": "0jwndvm3",
+      "name": "packing_id",
+      "title": "packing_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "response_json": [

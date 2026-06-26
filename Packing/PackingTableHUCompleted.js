@@ -145,6 +145,7 @@ const rowIndex =
       remark: row.remark || "",
       transaction_type: "Packing",
       isPacking: 1,
+      packing_id: packingId,
     };
 
     let workflowResult;
@@ -156,7 +157,7 @@ const rowIndex =
       },
       (err) => {
         workflowResult = err;
-      }
+      },
     );
 
     if (
@@ -169,7 +170,7 @@ const rowIndex =
         (workflowResult &&
           workflowResult.data &&
           workflowResult.data.message) ||
-          "Failed to complete HU"
+          "Failed to complete HU",
       );
       return;
     }
@@ -244,8 +245,6 @@ const rowIndex =
   } catch (error) {
     console.error("TableHUCompleted error:", error);
     this.hideLoading();
-    this.$message.error(
-      "Failed to complete HU: " + (error.message || error)
-    );
+    this.$message.error("Failed to complete HU: " + (error.message || error));
   }
 })();
