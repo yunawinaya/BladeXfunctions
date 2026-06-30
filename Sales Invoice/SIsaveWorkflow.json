@@ -3,7 +3,10 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
@@ -39,7 +42,9 @@
         {
           "id": "ifBlock_CsTVgya0",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_2Pxz18TD",
@@ -196,7 +201,9 @@
                 {
                   "id": "ifBlock_4SLGdjnj",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_node_xosv0w1w",
@@ -205,7 +212,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -224,7 +235,9 @@
                 {
                   "id": "ifBlock_NXZMrgJD",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -234,7 +247,9 @@
         {
           "id": "ifBlock_5iiRAyH4",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "code_node_QdIIcL7J",
@@ -391,7 +406,9 @@
                 {
                   "id": "ifBlock_eEyK5BIo",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_node_7w09ASUe",
@@ -400,7 +417,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -419,7 +440,9 @@
                 {
                   "id": "ifBlock_0et6se7W",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_QaPUxa3s",
@@ -493,7 +516,9 @@
                         {
                           "id": "ifBlock_YG8WVwdm",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "if_RYZU6f21",
@@ -528,7 +553,9 @@
                                 {
                                   "id": "ifBlock_oyJH4tQQ",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "workflow_node_G4KBFPGT",
@@ -628,7 +655,9 @@
                                         {
                                           "id": "ifBlock_1yWfSJkO",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "if_7IMJkojx",
@@ -648,7 +677,9 @@
                                                 {
                                                   "id": "if_block_y3d7WeIv",
                                                   "type": "ifBlock",
-                                                  "data": { "title": "true" },
+                                                  "data": {
+                                                    "title": "true"
+                                                  },
                                                   "blocks": [
                                                     {
                                                       "id": "code_node_bJcEEvRF",
@@ -768,7 +799,9 @@
                                                 {
                                                   "id": "if_block_N33bfGOt",
                                                   "type": "ifBlock",
-                                                  "data": { "title": "false" },
+                                                  "data": {
+                                                    "title": "false"
+                                                  },
                                                   "blocks": [
                                                     {
                                                       "id": "code_node_Z0Tcxb1v",
@@ -808,7 +841,9 @@
                                         {
                                           "id": "ifBlock_fmqrDPMP",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -818,7 +853,9 @@
                                 {
                                   "id": "ifBlock_XjbbzHHY",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -828,7 +865,9 @@
                         {
                           "id": "ifBlock_xGaqxG2c",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "end_node_Xl2tnvr8",
@@ -838,7 +877,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -862,6 +903,520 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "if_si_pi_gate_completed",
+      "type": "if",
+      "data": {
+        "title": "IF Completed (PI gate)",
+        "isValidator": true,
+        "nodeName": "IF Completed (PI gate)",
+        "name": "IF Completed (PI gate)",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 195000000018,
+              "parentId": 195000000019,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:data.si_status}}' == 'Completed'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_si_pi_gate_completed_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "code_si_srcids",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Collect PI Source Ids",
+                "isValidator": true,
+                "nodeName": "Collect PI Source Ids",
+                "name": "Collect PI Source Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "\nconst data = {{workflowparams:data}};\nconst tableSi = (data && data.table_si) ? data.table_si : [];\nconst soSet = {}; const gdSet = {};\nfor (const r of tableSi) {\n  if (!r) continue;\n  if ((r.invoice_qty || 0) <= 0) continue;\n  if (r.line_so_id) soSet[String(r.line_so_id)] = true;\n  if (r.line_gd_id) gdSet[String(r.line_gd_id)] = true;\n}\nconst soIds = Object.keys(soSet);\nconst gdReal = Object.keys(gdSet);\nreturn {\n  soIds: soIds.length ? soIds : [\"0\"],\n  gdIdsSearch: gdReal.length ? gdReal : [\"0\"],\n  gdIdsReal: gdReal\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "sip_soids",
+                    "name": "soIds",
+                    "title": "soIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sip_gdsearch",
+                    "name": "gdIdsSearch",
+                    "title": "gdIdsSearch",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sip_gdreal",
+                    "name": "gdIdsReal",
+                    "title": "gdIdsReal",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_si_sopo",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Document Linkage:Table:2069270865093935105",
+                  "rules": {
+                    "collectionId": "2069270865093935105",
+                    "list": [
+                      {
+                        "id": 195000000001,
+                        "parentId": 195000000002,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 195000000003,
+                            "parentId": 195000000001,
+                            "isTop": false,
+                            "prop": "target_doc_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Sales Order",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "target_doc_type",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 195000000004,
+                            "parentId": 195000000001,
+                            "isTop": false,
+                            "prop": "target_doc_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_si_srcids.data.soIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "target_doc_id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 195000000005,
+                            "parentId": 195000000001,
+                            "isTop": false,
+                            "prop": "link_status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Linked",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "link_status",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get SO-PO Linkage",
+                "isValidator": true,
+                "nodeName": "Get SO-PO Linkage",
+                "name": "Get SO-PO Linkage"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_si_link",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Extract Linkage",
+                "isValidator": true,
+                "nodeName": "Extract Linkage",
+                "name": "Extract Linkage",
+                "script": {
+                  "type": "javascript",
+                  "code": "\nconst rows = {{node:search_si_sopo.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\nconst poSet = {}; const poNoSet = {}; let buyerOrg = ''; let sellerOrg = '';\nfor (const r of arr) {\n  if (!r) continue;\n  if (r.source_doc_id) poSet[String(r.source_doc_id)] = true;\n  if (r.source_doc_no) poNoSet[String(r.source_doc_no)] = true;\n  if (!buyerOrg && r.buyer_org_id) buyerOrg = String(r.buyer_org_id);\n  if (!sellerOrg && r.seller_org_id) sellerOrg = String(r.seller_org_id);\n}\nreturn {\n  poIds: Object.keys(poSet),\n  poNos: Object.keys(poNoSet).join(', '),\n  buyerOrg: buyerOrg || '0',\n  sellerOrg: sellerOrg || '0'\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "sip_poids",
+                    "name": "poIds",
+                    "title": "poIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sip_ponos",
+                    "name": "poNos",
+                    "title": "poNos",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sip_buyerorg",
+                    "name": "buyerOrg",
+                    "title": "buyerOrg",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sip_sellerorg",
+                    "name": "sellerOrg",
+                    "title": "sellerOrg",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_si_its",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Internal Trading Setup:Table:2069278647482400769",
+                  "rules": {
+                    "collectionId": "2069278647482400769",
+                    "list": [
+                      {
+                        "id": 195000000006,
+                        "parentId": 195000000007,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 195000000008,
+                            "parentId": 195000000006,
+                            "isTop": false,
+                            "prop": "buyer_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_si_link.data.buyerOrg}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "buyer_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 195000000009,
+                            "parentId": 195000000006,
+                            "isTop": false,
+                            "prop": "seller_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_si_link.data.sellerOrg}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "seller_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 195000000010,
+                            "parentId": 195000000006,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_active",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 10,
+                "title": "Get Internal Trading Setup",
+                "isValidator": true,
+                "nodeName": "Get Internal Trading Setup",
+                "name": "Get Internal Trading Setup"
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_si_gdgr",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Document Linkage:Table:2069270865093935105",
+                  "rules": {
+                    "collectionId": "2069270865093935105",
+                    "list": [
+                      {
+                        "id": 195000000011,
+                        "parentId": 195000000012,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 195000000013,
+                            "parentId": 195000000011,
+                            "isTop": false,
+                            "prop": "source_doc_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Goods Delivery",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "source_doc_type",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 195000000014,
+                            "parentId": 195000000011,
+                            "isTop": false,
+                            "prop": "source_doc_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_si_srcids.data.gdIdsSearch}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "source_doc_id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 195000000015,
+                            "parentId": 195000000011,
+                            "isTop": false,
+                            "prop": "link_status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Linked",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "link_status",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get GD-GR Linkage",
+                "isValidator": true,
+                "nodeName": "Get GD-GR Linkage",
+                "name": "Get GD-GR Linkage"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_si_gate",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "PI Gate Decision",
+                "isValidator": true,
+                "nodeName": "PI Gate Decision",
+                "name": "PI Gate Decision",
+                "script": {
+                  "type": "javascript",
+                  "code": "\nconst data = {{workflowparams:data}};\nconst saveAs = (data && data.si_status) ? data.si_status : '';\nconst autoConfirmed = (data && data.auto_pi_confirmed) ? data.auto_pi_confirmed : false;\nconst autoSkip = (data && data.auto_pi_skip) ? data.auto_pi_skip : false;\nconst poIds = {{node:code_si_link.data.poIds}} || [];\nconst buyerOrg = {{node:code_si_link.data.buyerOrg}} || '0';\nconst sellerOrg = {{node:code_si_link.data.sellerOrg}} || '0';\nconst itsRows = {{node:search_si_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\nconst autoCreatePi = itsArr.some(function (r) { return r && Number(r.auto_create_pi) === 1; });\nconst gdIds = {{node:code_si_srcids.data.gdIdsReal}} || [];\nconst gdgrRows = {{node:search_si_gdgr.data.data}};\nconst gdgrArr = Array.isArray(gdgrRows) ? gdgrRows : (gdgrRows ? [gdgrRows] : []);\nconst linkedGd = {};\nfor (const r of gdgrArr) { if (r && r.source_doc_id) linkedGd[String(r.source_doc_id)] = true; }\nlet gdCovered = true;\nfor (const g of gdIds) { if (!linkedGd[String(g)]) { gdCovered = false; break; } }\n\nconst internalLinked = (saveAs === 'Completed') && poIds.length > 0 && autoCreatePi;\n\nlet piConfirm = 0; let msg = ''; let doAutoPi = 0;\nif (!internalLinked || autoSkip || !gdCovered) {\n  piConfirm = 0;\n} else if (!autoConfirmed) {\n  piConfirm = 411;\n  msg = 'This invoice is linked to an internal Purchase Order.<br><br>Auto-create the Purchase Invoice in the buyer organization when this invoice is completed?';\n} else {\n  doAutoPi = 1;\n}\nreturn { piConfirm: piConfirm, msg: msg, doAutoPi: doAutoPi, buyerOrg: buyerOrg, sellerOrg: sellerOrg };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "sip_piconfirm",
+                    "name": "piConfirm",
+                    "title": "piConfirm",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sip_msg",
+                    "name": "msg",
+                    "title": "msg",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sip_doautopi",
+                    "name": "doAutoPi",
+                    "title": "doAutoPi",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sip_gbuyer",
+                    "name": "buyerOrg",
+                    "title": "buyerOrg",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sip_gseller",
+                    "name": "sellerOrg",
+                    "title": "sellerOrg",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_si_gate",
+              "type": "if",
+              "data": {
+                "title": "IF PI Confirm",
+                "isValidator": true,
+                "nodeName": "IF PI Confirm",
+                "name": "IF PI Confirm",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 195000000016,
+                      "parentId": 195000000017,
+                      "isTop": true,
+                      "prop": "node.code_si_gate.data.piConfirm",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 411,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "node.code_si_gate.data.piConfirm",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_si_gate_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_si_411",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 411,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_si_gate.data.msg}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_si_gate_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_si_pi_gate_completed_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
         }
       ]
     },
@@ -982,7 +1537,9 @@
         {
           "id": "if_block_KpM9gwzu",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_hHnkhdFI",
@@ -1099,7 +1656,9 @@
                 {
                   "id": "if_block_pcrquDOi",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_xRSPTIpa",
@@ -1136,7 +1695,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -1154,7 +1717,9 @@
                 {
                   "id": "if_block__kMSW4Ee",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1164,7 +1729,9 @@
         {
           "id": "if_block_5P6g6Mcd",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1187,7 +1754,9 @@
         {
           "id": "if_block_ttA082eX",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "add_node_adYeQB4a",
@@ -1862,7 +2431,9 @@
         {
           "id": "if_block_jzbjgHNc",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "update_node_I7KGszOE",
@@ -2629,7 +3200,9 @@
         {
           "id": "if_block_wJFTcZvJ",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_4CvJopJk",
@@ -2858,7 +3431,9 @@
               "id": "delete_node_vpLUnjoe",
               "type": "delete-node",
               "data": {
-                "table_id": { "source": "" },
+                "table_id": {
+                  "source": ""
+                },
                 "condition": {},
                 "title": "Delete Draft SI",
                 "isValidator": true,
@@ -2873,8 +3448,12 @@
               "type": "condition-all-node",
               "data": {
                 "title": "Parallel Branch",
-                "filter": { "list": [] },
-                "expression": { "code": "" },
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
                 "displayContent": "sdk.form.setCondition"
               },
               "blocks": [
@@ -2898,7 +3477,10 @@
                         }
                       ]
                     },
-                    "expression": { "code": "true", "type": "javascript" },
+                    "expression": {
+                      "code": "true",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Branch 1",
@@ -2992,7 +3574,10 @@
                         }
                       ]
                     },
-                    "expression": { "code": "true", "type": "javascript" },
+                    "expression": {
+                      "code": "true",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Branch 2",
@@ -3120,7 +3705,9 @@
                 {
                   "id": "if_block_xaGRZfRf",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_gYlCQuTa",
@@ -3213,7 +3800,9 @@
                 {
                   "id": "if_block_Z8QjUUDp",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3236,7 +3825,9 @@
                 {
                   "id": "if_block_hxRcM4Wb",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "if_ehyBAz2c",
@@ -3256,7 +3847,9 @@
                         {
                           "id": "if_block_Ja1XU0Yr",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "get_node_auG34VOC",
@@ -3500,7 +4093,9 @@
                         {
                           "id": "if_block_zWX-usdX",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -3510,7 +4105,253 @@
                 {
                   "id": "if_block_RvHp3Wua",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_si_trigger_pi",
+              "type": "if",
+              "data": {
+                "title": "IF Auto PI",
+                "isValidator": true,
+                "nodeName": "IF Auto PI",
+                "name": "IF Auto PI",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 195000000024,
+                      "parentId": 195000000025,
+                      "isTop": true,
+                      "prop": "node.code_si_gate.data.doAutoPi",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "node.code_si_gate.data.doAutoPi",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_si_trigger_pi_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "wf_auto_pi",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Auto-create PI",
+                        "isValidator": true,
+                        "nodeName": "Auto-create PI",
+                        "name": "Auto-create PI",
+                        "workflow": {
+                          "source": "SI_TO_PI:Workflow:2071778395376971778",
+                          "rules": {
+                            "collectionId": "2071778395376971778",
+                            "list": [
+                              {
+                                "id": 195000000020,
+                                "parentId": 195000000021,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "si_id",
+                              "propLabel": "si_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_ytRbog2e.data.siData.id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "si_no",
+                              "propLabel": "si_no",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_ytRbog2e.data.siData.sales_invoice_no}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "buyer_org",
+                              "propLabel": "buyer_org",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_si_gate.data.buyerOrg}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "seller_org",
+                              "propLabel": "seller_org",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_si_gate.data.sellerOrg}}",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_si_trigger_result",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "PI Trigger Result",
+                        "isValidator": true,
+                        "nodeName": "PI Trigger Result",
+                        "name": "PI Trigger Result",
+                        "script": {
+                          "type": "javascript",
+                          "code": "\nconst r = {{node:wf_auto_pi.data}};\nconst d = (r && r.data && typeof r.data === 'object') ? r.data : r;\nconst code = d ? d.code : '';\nconst failed = (String(code) === '200') ? 0 : 1;\nconst msg = (d && (d.message || d.msg)) ? (d.message || d.msg) : 'The invoice was completed, but the linked Purchase Invoice could not be created automatically. Please create it manually.';\nreturn { piTriggerFailed: failed, piMessage: msg };\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "sip_trigfail",
+                            "name": "piTriggerFailed",
+                            "title": "piTriggerFailed",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "sip_trigmsg",
+                            "name": "piMessage",
+                            "title": "piMessage",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_si_trigger_failed",
+                      "type": "if",
+                      "data": {
+                        "title": "IF PI Trigger Failed",
+                        "isValidator": true,
+                        "nodeName": "IF PI Trigger Failed",
+                        "name": "IF PI Trigger Failed",
+                        "condition_type": "ConditionRule",
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 195000000022,
+                              "parentId": 195000000023,
+                              "isTop": true,
+                              "prop": "node.code_si_trigger_result.data.piTriggerFailed",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "node.code_si_trigger_result.data.piTriggerFailed",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_si_trigger_failed_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "end_si_413",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "Default",
+                                "code": 413,
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": "{{node:code_si_trigger_result.data.piMessage}}"
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_si_trigger_failed_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_si_trigger_pi_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3520,7 +4361,9 @@
         {
           "id": "if_block_XppvMt2n",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -3534,7 +4377,10 @@
         "nodeName": "End Node",
         "name": "End Node",
         "back_data_type": "OutputParams",
-        "msg": { "type": "javascript", "code": "" },
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
         "response_value": {
           "list": [
             {
