@@ -259,6 +259,12 @@ const disabledSelectStock = async (data) => {
   for (let index = 0; index < tableGD.length; index++) {
     const item = tableGD[index];
 
+    // GD-from-PP rows: gd_qty is the editable picking quantity and gd_delivery_qty
+    // is locked. That state is enforced by disabledGDPPRows for every PP row
+    // (header-agnostic), NOT by stock-balance availability. Skip them here so they
+    // don't fall back to the form default and to avoid redundant balance lookups.
+    if (item.line_pp_id || item.pp_line_item_id) continue;
+
     if (item.material_id && item.material_id !== "") {
       try {
         const resItem = await db
@@ -316,6 +322,27 @@ const disabledSelectStock = async (data) => {
       }
     }
   }
+};
+
+// GD-from-PP (GDPP) rows: force the picking layout — gd_qty editable, gd_delivery_qty
+// locked — for every row carrying the picking-plan linkage. Mirrors the Add/line-add
+// behavior (GDaddBatchLineItem) so Edit of a Created GDPP doesn't keep the form default
+// (gd_delivery_qty enabled / gd_qty disabled), which the balance-based disabledSelectStock
+// never corrects for multi-balance PP items.
+const disabledGDPPRows = (data) => {
+  const tableGD = data.table_gd || [];
+  const toDisable = [];
+  const toEnable = [];
+
+  tableGD.forEach((item, index) => {
+    if (item.line_pp_id || item.pp_line_item_id) {
+      toDisable.push(`table_gd.${index}.gd_delivery_qty`);
+      toEnable.push(`table_gd.${index}.gd_qty`);
+    }
+  });
+
+  if (toDisable.length > 0) this.disabled(toDisable, true);
+  if (toEnable.length > 0) this.disabled(toEnable, false);
 };
 
 const setPickingSetup = async (data) => {
@@ -499,6 +526,7 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
         }
         if (status !== "Completed") {
           await disabledSelectStock(data);
+          disabledGDPPRows(data);
           await setPickingSetup(data);
         }
         await checkAccIntegrationType(organizationId);
