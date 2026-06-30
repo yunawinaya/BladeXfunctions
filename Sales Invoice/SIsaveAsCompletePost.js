@@ -6,6 +6,26 @@ const closeDialog = () => {
   }
 };
 
+const postSI = async (siId, accType) => {
+  await this.runWorkflow(
+    "2029464545187823617",
+    {
+      si_ids: [siId],
+      acc_integration_type: accType,
+    },
+    async (res) => {
+      console.log("res", res.data);
+      this.$message.success("Sales Invoice posted successfully");
+      this.hideLoading();
+    },
+    async (err) => {
+      console.error(err);
+      this.$message.error("Posting Sales Invoice failed");
+      this.hideLoading();
+    },
+  );
+};
+
 const submitForm = async (data) => {
   await this.runWorkflow(
     "2029040374929154050",
@@ -13,25 +33,62 @@ const submitForm = async (data) => {
       data: data,
     },
     async (res) => {
+      // Internal-trading signals come back on the SUCCESS channel (code 200) so
+      // they do NOT trigger the platform's error toast.
+      const out = (res && res.data) || {};
+
+      if (Number(out.pi_confirm) === 411) {
+        // Linked to an internal PO — confirm auto-creating the Purchase Invoice.
+        this.hideLoading();
+        const cleanMessage =
+          out.msg ||
+          "This invoice is linked to an internal Purchase Order. Auto-create the Purchase Invoice in the buyer organization?";
+
+        const proceed = await this.$confirm(
+          `${cleanMessage}`,
+          "Internal Trading – Auto-create Purchase Invoice",
+          {
+            confirmButtonText: "Yes, create PI",
+            cancelButtonText: "No, save without",
+            type: "info",
+            dangerouslyUseHTMLString: true,
+          },
+        )
+          .then(() => true)
+          .catch(() => false);
+
+        if (proceed) {
+          data.auto_pi_confirmed = true;
+        } else {
+          data.auto_pi_skip = true;
+        }
+
+        this.showLoading("Saving Sales Invoice...");
+        await submitForm(data);
+        return;
+      }
+
+      if (Number(out.pi_trigger_failed) === 1) {
+        // SI completed, but the linked auto-PI creation failed (non-blocking).
+        // The SI is saved, so still post it, then warn about the PI.
+        if (out.id) {
+          await postSI(out.id, data.acc_integration_type);
+        }
+        const cleanMessage =
+          out.pi_message ||
+          "The invoice was completed, but the linked Purchase Invoice could not be created automatically. Please create it manually.";
+
+        await this.$alert(`${cleanMessage}`, "Purchase Invoice not created", {
+          confirmButtonText: "OK",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        });
+        closeDialog();
+        return;
+      }
+
       this.$message.success(`${this.isEdit ? "Update" : "Add"} successfully`);
-      console.log("res", res.data);
-      await this.runWorkflow(
-        "2029464545187823617",
-        {
-          si_ids: [res.data.id],
-          acc_integration_type: data.acc_integration_type,
-        },
-        async (res) => {
-          console.log("res", res.data);
-          this.$message.success("Sales Invoice posted successfully");
-          this.hideLoading();
-        },
-        async (err) => {
-          console.error(err);
-          this.$message.error("Posting Sales Invoice failed");
-          this.hideLoading();
-        },
-      );
+      await postSI(res.data.id, data.acc_integration_type);
       closeDialog();
     },
     async (error) => {
@@ -64,52 +121,6 @@ const submitForm = async (data) => {
         data.need_cl = "not required";
 
         await submitForm(data);
-      } else if (error.data?.code === 411) {
-        // 411 - Internal trading: confirm auto-create Purchase Invoice
-        const cleanMessage =
-          error.data?.msg ||
-          "This invoice is linked to an internal Purchase Order. Auto-create the Purchase Invoice in the buyer organization?";
-
-        const proceed = await this.$confirm(
-          `${cleanMessage}`,
-          "Internal Trading – Auto-create Purchase Invoice",
-          {
-            confirmButtonText: "Yes, create PI",
-            cancelButtonText: "No, save without",
-            type: "info",
-            dangerouslyUseHTMLString: true,
-          },
-        )
-          .then(() => true)
-          .catch(() => false);
-
-        // Yes -> create PI in buyer org; No -> complete SI without auto-PI.
-        if (proceed) {
-          data.auto_pi_confirmed = true;
-        } else {
-          data.auto_pi_skip = true;
-        }
-
-        this.showLoading("Saving Sales Invoice...");
-        await submitForm(data);
-      } else if (error.data?.code === 413) {
-        // 413 - SI completed, but linked auto-PI creation failed (non-blocking).
-        // The save returned via the error path, so the post step above did NOT run.
-        const cleanMessage =
-          error.data?.msg ||
-          "The invoice was completed, but the linked Purchase Invoice could not be created automatically.";
-
-        await this.$alert(
-          `${cleanMessage}<br><br>The invoice was completed but <strong>not posted</strong>. Please post it manually.`,
-          "Purchase Invoice not created",
-          {
-            confirmButtonText: "OK",
-            type: "warning",
-            dangerouslyUseHTMLString: true,
-          },
-        );
-        // SI itself completed successfully — close the dialog.
-        closeDialog();
       }
     },
   );

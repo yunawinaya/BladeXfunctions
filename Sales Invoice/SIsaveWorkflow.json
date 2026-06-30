@@ -1375,23 +1375,38 @@
                       "id": "end_si_411",
                       "type": "end-node",
                       "data": {
-                        "title": "结束节点",
-                        "outputs": {
-                          "type": "object",
-                          "properties": {
-                            "result": {
-                              "type": "string"
-                            }
-                          }
-                        },
                         "isValidator": true,
+                        "title": "结束节点",
                         "nodeName": "结束节点",
                         "name": "结束节点",
-                        "back_data_type": "Default",
-                        "code": 411,
+                        "back_data_type": "OutputParams",
                         "msg": {
                           "type": "javascript",
-                          "code": "{{node:code_si_gate.data.msg}}"
+                          "code": ""
+                        },
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "pi_confirm",
+                              "propLabel": "pi_confirm",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "valueLabel": "",
+                              "value": "411"
+                            },
+                            {
+                              "prop": "msg",
+                              "propLabel": "msg",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "valueLabel": "",
+                              "value": "{{node:code_si_gate.data.msg}}"
+                            }
+                          ]
                         }
                       },
                       "blocks": []
@@ -3439,7 +3454,9 @@
                 "isValidator": true,
                 "nodeName": "Delete Draft SI",
                 "name": "Delete Draft SI",
-                "node_ids": ["search_node_I3e7ZpkH"]
+                "node_ids": [
+                  "search_node_I3e7ZpkH"
+                ]
               },
               "blocks": []
             },
@@ -4311,23 +4328,58 @@
                               "id": "end_si_413",
                               "type": "end-node",
                               "data": {
-                                "title": "结束节点",
-                                "outputs": {
-                                  "type": "object",
-                                  "properties": {
-                                    "result": {
-                                      "type": "string"
-                                    }
-                                  }
-                                },
                                 "isValidator": true,
+                                "title": "结束节点",
                                 "nodeName": "结束节点",
                                 "name": "结束节点",
-                                "back_data_type": "Default",
-                                "code": 413,
+                                "back_data_type": "OutputParams",
                                 "msg": {
                                   "type": "javascript",
-                                  "code": "{{node:code_si_trigger_result.data.piMessage}}"
+                                  "code": ""
+                                },
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "pi_trigger_failed",
+                                      "propLabel": "pi_trigger_failed",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "valueLabel": "",
+                                      "value": "1"
+                                    },
+                                    {
+                                      "prop": "pi_message",
+                                      "propLabel": "pi_message",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "valueLabel": "",
+                                      "value": "{{node:code_si_trigger_result.data.piMessage}}"
+                                    },
+                                    {
+                                      "prop": "id",
+                                      "propLabel": "id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "valueLabel": "",
+                                      "value": "{{node:code_node_ytRbog2e.data.siData.id}}"
+                                    },
+                                    {
+                                      "prop": "si_no",
+                                      "propLabel": "si_no",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "valueLabel": "",
+                                      "value": "{{node:code_node_ytRbog2e.data.siData.sales_invoice_no}}"
+                                    }
+                                  ]
                                 }
                               },
                               "blocks": []
@@ -4432,6 +4484,38 @@
     {
       "key": "1zzbrzbq",
       "name": "si_no",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sip_r_piconfirm",
+      "name": "pi_confirm",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sip_r_msg",
+      "name": "msg",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sip_r_pitrigfail",
+      "name": "pi_trigger_failed",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sip_r_pimessage",
+      "name": "pi_message",
       "title": "",
       "description": "",
       "bsonType": "string",
