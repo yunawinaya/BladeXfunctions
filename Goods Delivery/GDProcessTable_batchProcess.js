@@ -134,6 +134,12 @@ const cleanupOrphanedAllocations = () => {
   // Find orphaned records (allocated but not in current temp data)
   const orphanedRecords = allAllocatedData.filter(
     (allocated) =>
+      // Orphan cleanup must only touch reservations THIS GD owns.
+      // For PP-linked GDs, allAllocatedData holds shared Picking Plan
+      // reservations (target_gd_id = picking_plan_id) for sibling GD lines;
+      // never cancel those here. Non-PP records already have target_gd_id ==
+      // docId, so this guard is a no-op for them.
+      String(allocated.target_gd_id) === String(docId) &&
       !currentTempDataKeys.some(
         (current) =>
           String(allocated.doc_line_id) === String(current.doc_line_id) &&
