@@ -3374,7 +3374,7 @@
                 "name": "Reconcile On Order",
                 "script": {
                   "type": "javascript",
-                  "code": "const poFull      = {{node:get_po_full.data.data}};\nconst latestLines = (poFull && poFull.table_po) || [];\nconst existing    = {{node:search_onorder.data.data}} || [];\nconst items       = {{node:search_items.data.data}} || [];\nconst pageStatus  = {{workflowparams:allData.page_status}};\n\nconst round3 = (n) => Math.round((parseFloat(n) || 0) * 1000) / 1000;\n\nconst baseQtyFor = (line) => {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  const altQty = parseFloat(line.quantity) || 0;\n  let baseQty = altQty;\n  if (itemData && Array.isArray(itemData.table_uom_conversion) && itemData.table_uom_conversion.length > 0) {\n    const conv = itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(line.quantity_uom));\n    if (conv) baseQty = round3(altQty * parseFloat(conv.base_qty));\n  }\n  return baseQty;\n};\n\nconst desired = [];\nfor (const [index, line] of latestLines.entries()) {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  if (!itemData) continue;\n  desired.push({\n    po_line_id: line.id,\n    purchase_order_number: poFull.purchase_order_no,\n    material_id: line.item_id,\n    purchase_order_line: index + 1,\n    scheduled_qty: baseQtyFor(line),\n    plant_id: poFull.po_plant,\n    organization_id: poFull.organization_id,\n    po_id: poFull.id,\n    parent_id: line.preq_id || null,\n    parent_line_id: line.preq_line_id || null\n  });\n}\n\nconst toAdd = [], toUpdate = [], toDelete = [];\nconst usedExistingIds = new Set();\n\nconst findExisting = (d) => {\n  let m = existing.find(e => e.po_line_id != null && String(e.po_line_id) === String(d.po_line_id) && !usedExistingIds.has(e.id));\n  if (m) return m;\n  return existing.find(e => !usedExistingIds.has(e.id) && String(e.material_id) === String(d.material_id) && Number(e.purchase_order_line) === Number(d.purchase_order_line));\n};\n\nconst isNew = (pageStatus === 'Add' || pageStatus === 'Clone');\n\nfor (const d of desired) {\n  const match = isNew ? null : findExisting(d);\n  if (!match) {\n    toAdd.push({\n      purchase_order_number: d.purchase_order_number,\n      material_id: d.material_id,\n      purchase_order_line: d.purchase_order_line,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: d.scheduled_qty,\n      received_qty: 0,\n      plant_id: d.plant_id,\n      organization_id: d.organization_id,\n      po_id: d.po_id,\n      po_line_id: d.po_line_id,\n      parent_id: d.parent_id,\n      parent_line_id: d.parent_line_id\n    });\n  } else {\n    usedExistingIds.add(match.id);\n    const received = Math.max(0, round3(match.received_qty || 0));\n    const newOpen = Math.max(0, round3(d.scheduled_qty - received));\n    toUpdate.push({\n      id: match.id,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: newOpen,\n      purchase_order_line: d.purchase_order_line,\n      po_line_id: d.po_line_id\n    });\n  }\n}\n\nif (!isNew) {\n  for (const e of existing) {\n    if (!usedExistingIds.has(e.id)) toDelete.push({ id: e.id });\n  }\n}\n\nreturn { toAdd, toUpdate, toDelete };"
+                  "code": "const poFull      = {{node:get_po_full.data.data}};\nconst latestLines = (poFull && poFull.table_po) || [];\nconst existing    = {{node:search_onorder.data.data}} || [];\nconst items       = {{node:search_items.data.data}} || [];\nconst pageStatus  = {{workflowparams:allData.page_status}};\n\nconst round3 = (n) => Math.round((parseFloat(n) || 0) * 1000) / 1000;\n\nconst baseQtyFor = (line) => {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  const altQty = parseFloat(line.quantity) || 0;\n  let baseQty = altQty;\n  if (itemData && Array.isArray(itemData.table_uom_conversion) && itemData.table_uom_conversion.length > 0) {\n    const conv = itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(line.quantity_uom));\n    if (conv) baseQty = round3(altQty * parseFloat(conv.base_qty));\n  }\n  return baseQty;\n};\n\nconst desired = [];\nfor (const [index, line] of latestLines.entries()) {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  if (!itemData) continue;\n  desired.push({\n    po_line_id: line.id,\n    purchase_order_number: poFull.purchase_order_no,\n    material_id: line.item_id,\n    purchase_order_line: index + 1,\n    scheduled_qty: baseQtyFor(line),\n    plant_id: poFull.po_plant,\n    organization_id: poFull.organization_id,\n    po_id: poFull.id,\n    parent_id: line.preq_id || null,\n    parent_line_id: line.preq_line_id || null\n  });\n}\n\nconst toAdd = [], toUpdate = [], toDelete = [];\nconst usedExistingIds = new Set();\n\nconst findExisting = (d) => {\n  let m = existing.find(e => e.po_line_id != null && String(e.po_line_id) === String(d.po_line_id) && !usedExistingIds.has(e.id));\n  if (m) return m;\n  return existing.find(e => !usedExistingIds.has(e.id) && String(e.material_id) === String(d.material_id) && Number(e.purchase_order_line) === Number(d.purchase_order_line));\n};\n\nconst isNew = (pageStatus === 'Add' || pageStatus === 'Clone');\n\nfor (const d of desired) {\n  const match = isNew ? null : findExisting(d);\n  if (!match) {\n    toAdd.push({\n      purchase_order_number: d.purchase_order_number,\n      material_id: d.material_id,\n      purchase_order_line: d.purchase_order_line,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: d.scheduled_qty,\n      received_qty: 0,\n      plant_id: d.plant_id,\n      organization_id: d.organization_id,\n      po_id: d.po_id,\n      po_line_id: d.po_line_id,\n      parent_id: d.parent_id,\n      parent_line_id: d.parent_line_id\n    });\n  } else {\n    usedExistingIds.add(match.id);\n    const received = Math.max(0, round3(match.received_qty || 0));\n    const newOpen = Math.max(0, round3(d.scheduled_qty - received));\n    toUpdate.push({\n      id: match.id,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: newOpen,\n      purchase_order_line: d.purchase_order_line,\n      po_line_id: d.po_line_id\n    });\n  }\n}\n\nif (!isNew) {\n  for (const e of existing) {\n    if (!usedExistingIds.has(e.id)) toDelete.push({ id: e.id });\n  }\n}\n\nconst preqIds = (poFull && poFull.preq_id) || [];\nconst hasPreq = Array.isArray(preqIds) && preqIds.length > 0;\n\nreturn { toAdd, toUpdate, toDelete, hasAdds: toAdd.length > 0, hasUpdates: toUpdate.length > 0, hasDeletes: toDelete.length > 0, hasPreq: hasPreq };"
                 },
                 "response_json": [
                   {
@@ -3398,6 +3398,42 @@
                   {
                     "key": "k0019",
                     "name": "toDelete",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k0019a",
+                    "name": "hasAdds",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k0019b",
+                    "name": "hasUpdates",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k0019c",
+                    "name": "hasDeletes",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "k0019d",
+                    "name": "hasPreq",
                     "title": "",
                     "description": "",
                     "bsonType": "any",
@@ -3434,7 +3470,7 @@
                 },
                 "expression": {
                   "type": "javascript",
-                  "code": "{{node:code_onorder_diff.data.toAdd}}.length > 0"
+                  "code": "{{node:code_onorder_diff.data.hasAdds}} == true"
                 }
               },
               "blocks": [
@@ -3611,7 +3647,7 @@
                 },
                 "expression": {
                   "type": "javascript",
-                  "code": "{{node:code_onorder_diff.data.toUpdate}}.length > 0"
+                  "code": "{{node:code_onorder_diff.data.hasUpdates}} == true"
                 }
               },
               "blocks": [
@@ -3736,7 +3772,7 @@
                 },
                 "expression": {
                   "type": "javascript",
-                  "code": "{{node:code_onorder_diff.data.toDelete}}.length > 0"
+                  "code": "{{node:code_onorder_diff.data.hasDeletes}} == true"
                 }
               },
               "blocks": [
@@ -3843,7 +3879,7 @@
                 },
                 "expression": {
                   "type": "javascript",
-                  "code": "{{node:get_po_full.data.data.preq_id}} && {{node:get_po_full.data.data.preq_id}}.length > 0"
+                  "code": "{{node:code_onorder_diff.data.hasPreq}} == true"
                 }
               },
               "blocks": [
@@ -3913,7 +3949,7 @@
                         "name": "Map PREQ Data",
                         "script": {
                           "type": "javascript",
-                          "code": "const poID = {{node:get_po_full.data.data.id}};\nconst poLineItem = {{node:get_po_full.data.data.table_po}} || [];\nconst preqData = {{node:search_preq.data.data}};\nconst onOrderData = {{node:search_onorder.data.data}} || [];\nlet latestPREQData = [];\n\nif(preqData && preqData.length > 0) {\n  for(const preq of preqData) {\n    let processedItems = preq.table_pr.map(item => {\n      const poItem = poLineItem.find(po => String(po.preq_line_id) === String(item.id));\n      const newItem = { ...item };\n      let orderQty = 0;\n\n      if(poItem) {\n        const onOrderItem = onOrderData.length > 0 ? onOrderData.find(onOrder => String(onOrder.parent_line_id) === String(item.id)) : null;\n        if(onOrderItem) {\n          orderQty = parseFloat(item.order_qty || 0) - parseFloat(onOrderItem.scheduled_qty || 0) + parseFloat(poItem.quantity || 0);\n        } else {\n          orderQty = parseFloat(item.order_qty || 0) + parseFloat(poItem.quantity || 0);\n        }\n        newItem.order_qty = parseFloat(orderQty).toFixed(3);\n        newItem.po_id = [...(item.po_id || []), poID];\n        newItem.po_line_id = [...(item.po_line_id || []), poItem.id];\n      }\n\n      return newItem;\n    });\n\n    let preqStatus = preq.preq_status;\n    if(preq.preq_type === 'Contract' && preq.preq_status !== 'Force Completed') {\n      const isCompleted = processedItems.every(item =>\n        parseFloat(item.pr_line_qty) === parseFloat(item.order_qty || 0)\n      );\n      preqStatus = isCompleted ? 'Completed' : 'Processing';\n    } else if(preq.preq_status !== 'Force Completed') {\n      preqStatus = 'Completed';\n    }\n\n    processedItems = processedItems.map((it) => {\n      return { ...it, line_status: preqStatus };\n    });\n\n    latestPREQData.push({\n      id: preq.id,\n      preq_status: preqStatus,\n      table_pr: processedItems,\n    });\n  }\n}\n\nreturn { latestPREQData };"
+                          "code": "const poID = {{node:get_po_full.data.data.id}};\nconst poLineItem = {{node:get_po_full.data.data.table_po}} || [];\nconst preqData = {{node:search_preq.data.data}};\nconst toArr = (x) => Array.isArray(x) ? x : (x ? [x] : []);\nlet latestPREQData = [];\n\nif(preqData && preqData.length > 0) {\n  for(const preq of preqData) {\n    let processedItems = preq.table_pr.map(item => {\n      const matchingPoLines = poLineItem.filter(po => String(po.preq_line_id) === String(item.id));\n      const newItem = { ...item };\n\n      if(matchingPoLines.length > 0) {\n        // PO line qty shares the PREQ line UOM (PRconvertPO sets quantity = pr_line_qty),\n        // so order_qty accumulates in line units (NOT the base scheduled_qty stored on on_order).\n        // This PO's contribution = sum of its lines that point at this PREQ line.\n        const thisPoQty = matchingPoLines.reduce((sum, po) => sum + (parseFloat(po.quantity) || 0), 0);\n        const prevPoIds = toArr(item.po_id).map(String);\n        const alreadyLinked = prevPoIds.includes(String(poID));\n        // EDIT (this PO already linked): replace its prior contribution. ADD (new link): append to the running total.\n        // Assumes the supported 1 PREQ -> 1 PO flow; on edit this keeps the latest PO quantity authoritative.\n        const baseQty = alreadyLinked ? 0 : parseFloat(item.order_qty || 0);\n        newItem.order_qty = parseFloat(baseQty + thisPoQty).toFixed(3);\n        newItem.po_id = [...new Set([...prevPoIds, String(poID)])];\n        newItem.po_line_id = [...new Set([...toArr(item.po_line_id).map(String), ...matchingPoLines.map(po => String(po.id))])];\n      }\n\n      return newItem;\n    });\n\n    let preqStatus = preq.preq_status;\n    if(preq.preq_type === 'Contract' && preq.preq_status !== 'Force Completed') {\n      const isCompleted = processedItems.every(item =>\n        parseFloat(item.pr_line_qty) === parseFloat(item.order_qty || 0)\n      );\n      preqStatus = isCompleted ? 'Completed' : 'Processing';\n    } else if(preq.preq_status !== 'Force Completed') {\n      preqStatus = 'Completed';\n    }\n\n    processedItems = processedItems.map((it) => {\n      return { ...it, line_status: preqStatus };\n    });\n\n    latestPREQData.push({\n      id: preq.id,\n      preq_status: preqStatus,\n      table_pr: processedItems,\n    });\n  }\n}\n\nreturn { latestPREQData };"
                         },
                         "response_json": [
                           {
