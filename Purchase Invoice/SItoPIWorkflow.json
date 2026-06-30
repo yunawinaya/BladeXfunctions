@@ -779,7 +779,7 @@
         "name": "Build PI Lines",
         "script": {
           "type": "javascript",
-          "code": "\nconst siRows = {{node:search_si.data.data}};\nconst si = Array.isArray(siRows) ? siRows[0] : siRows;\nconst tableSi = (si && si.table_si) ? si.table_si : [];\nconst poRows = {{node:search_po.data.data}};\nconst pos = Array.isArray(poRows) ? poRows : (poRows ? [poRows] : []);\nconst grRows = {{node:search_gr.data.data}};\nconst grs = Array.isArray(grRows) ? grRows : (grRows ? [grRows] : []);\nconst soPoMap = {{node:code_doc_maps.data.soPoMap}} || {};\nconst gdGrMap = {{node:code_doc_maps.data.gdGrMap}} || {};\nconst itsRows = {{node:search_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\nconst aliasRows = {{node:search_alias.data.data}};\nconst aliasArr = Array.isArray(aliasRows) ? aliasRows : (aliasRows ? [aliasRows] : []);\nconst buyerOrg = {{workflowparams:buyer_org}} || '';\n\nconst roundPrice = (v) => parseFloat(parseFloat(v || 0).toFixed(4));\nconst round3 = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\n\n// Item Alias: buyer item/uom -> seller item (+ conversion_rate). Cross-org, the SI\n// carries the SELLER item id while PO/GR lines carry the BUYER item id; bridge here.\nconst aliasByItemUom = {}; const aliasByItem = {};\nfor (const a of aliasArr) {\n  if (!a || !a.seller_item_id) continue;\n  aliasByItemUom[String(a.buyer_item_id) + '|' + String(a.buyer_uom_id)] = a;\n  if (aliasByItem[String(a.buyer_item_id)] === undefined) aliasByItem[String(a.buyer_item_id)] = a;\n}\nconst aliasFor = (buyerItem, buyerUom) => {\n  const k = String(buyerItem) + '|' + String(buyerUom);\n  if (aliasByItemUom[k]) return aliasByItemUom[k];\n  if (aliasByItem[String(buyerItem)]) return aliasByItem[String(buyerItem)];\n  return null;\n};\nconst toSeller = (buyerItem, buyerUom) => {\n  const a = aliasFor(buyerItem, buyerUom);\n  return a ? String(a.seller_item_id) : String(buyerItem); // fallback: same id (non cross-org)\n};\n\n// index lookups\nconst poById = {}; for (const po of pos) { if (po && po.id) poById[String(po.id)] = po; }\nconst grById = {}; for (const gr of grs) { if (gr && gr.id) grById[String(gr.id)] = gr; }\nconst poLineById = {};\nfor (const po of pos) {\n  const lines = (po && po.table_po) ? po.table_po : [];\n  for (const ln of lines) { if (ln && ln.id) poLineById[String(po.id) + '|' + String(ln.id)] = { po: po, ln: ln }; }\n}\n\n// position counters for seller-item match (handles repeated items)\nconst poUsed = {}; const grUsed = {};\nconst pickBySellerItem = (lines, key, sellerItemId, usedMap, uomField) => {\n  let n = 0;\n  for (const ln of lines) {\n    if (!ln) continue;\n    if (ln.parent_or_child === 'Child') continue;\n    if (String(toSeller(ln.item_id, ln[uomField])) !== String(sellerItemId)) continue;\n    const k = key + '|' + String(sellerItemId);\n    if (n === (usedMap[k] || 0)) { usedMap[k] = (usedMap[k] || 0) + 1; return ln; }\n    n++;\n  }\n  for (const ln of lines) {\n    if (ln && ln.parent_or_child !== 'Child' && String(toSeller(ln.item_id, ln[uomField])) === String(sellerItemId)) return ln;\n  }\n  return null;\n};\n\nconst tablePi = [];\nlet totalGross = 0, totalDiscount = 0, totalTax = 0, totalAmount = 0;\nconst poIdSet = {}; const grIdSet = {};\nconst poNoSet = {}; const grNoSet = {};\nlet supplierId = ''; let currencyCode = ''; let paymentTermId = ''; let anyGr = false;\n\nfor (const sline of tableSi) {\n  if (!sline) continue;\n  const sellerQty = Number(sline.invoice_qty) || 0;   // qty in SELLER uom\n  if (sellerQty <= 0) continue;\n  const sellerItemId = sline.material_id;             // SELLER item id\n\n  let poLine = null, po = null, grLine = null, gr = null;\n  let lineGrId = '', grLineId = '', grNo = '';\n\n  if (sline.line_gd_id && String(sline.line_gd_id) !== '') {\n    // GD-sourced -> GR (buyer org)\n    const m = gdGrMap[String(sline.line_gd_id)];\n    if (!m) continue; // eligibility guaranteed; skip defensively\n    gr = grById[String(m.grId)];\n    if (!gr) continue;\n    grLine = pickBySellerItem((gr.table_gr || []), String(gr.id), sellerItemId, grUsed, 'item_uom');\n    if (!grLine) continue;\n    lineGrId = gr.id; grLineId = grLine.id; grNo = gr.goods_receiving_number || m.grNo || '';\n    anyGr = true;\n    const pk = String(grLine.line_po_id) + '|' + String(grLine.po_line_item_id);\n    const found = poLineById[pk];\n    if (found) { po = found.po; poLine = found.ln; }\n    else { po = poById[String(grLine.line_po_id)] || null; }\n  } else {\n    // SO-sourced -> PO (buyer org)\n    const m = soPoMap[String(sline.line_so_id)];\n    if (!m) continue;\n    po = poById[String(m.poId)];\n    if (!po) continue;\n    poLine = pickBySellerItem((po.table_po || []), String(po.id), sellerItemId, poUsed, 'quantity_uom');\n    if (!poLine) continue;\n  }\n  if (!po) continue;\n\n  if (!supplierId && po.po_supplier_id) supplierId = po.po_supplier_id;\n  if (!currencyCode && po.po_currency) currencyCode = po.po_currency;\n  if (!paymentTermId && po.po_payment_term) paymentTermId = po.po_payment_term;\n\n  // BUYER item/uom for the PI line, taken from the buyer PO/GR line\n  const buyerLine = poLine || grLine || {};\n  const buyerItemId = grLine ? grLine.item_id : (poLine ? poLine.item_id : sellerItemId);\n  const buyerUom = grLine ? grLine.item_uom : (poLine ? poLine.quantity_uom : null);\n  // Convert SELLER qty -> BUYER qty via alias conversion_rate (seller = buyer * rate)\n  const aEntry = aliasFor(buyerItemId, buyerUom);\n  const rate = aEntry ? (parseFloat(aEntry.conversion_rate) || 1) : 1;\n  const invQty = rate ? round3(sellerQty / rate) : sellerQty;\n\n  // price/tax/discount from the buyer PO line (decision 4); price from GR line if GR-sourced\n  const taxSrc = poLine || grLine || {};\n  const unitPrice = grLine ? (grLine.unit_price) : (poLine ? poLine.unit_price : 0);\n  const orderDiscount = taxSrc.discount || 0;\n  let discountUom = taxSrc.discount_uom || '';\n  const taxPercent = Number(taxSrc.tax_percent) || 0;\n  const taxPreference = taxSrc.tax_preference || '';\n  const taxInclusive = taxSrc.tax_inclusive;\n\n  // amounts (replicate the PI form PIcalculation func) on BUYER qty\n  const gross = roundPrice(invQty * (Number(unitPrice) || 0));\n  let discount = parseFloat(orderDiscount) || 0;\n  let discountAmount = 0;\n  if (discount > 0 && !discountUom) discountUom = 'Amount';\n  if (discountUom && discount !== 0) {\n    if (discountUom === 'Amount') discountAmount = roundPrice(discount);\n    else if (discountUom === '%') discountAmount = roundPrice((gross * discount) / 100);\n    if (discountAmount > gross) { discount = 0; discountAmount = 0; }\n  }\n  const afterDisc = roundPrice(gross - discountAmount);\n  let taxAmount = 0; let finalAmount = afterDisc;\n  if (taxPercent) {\n    const d = taxPercent / 100;\n    if (taxInclusive === 1) { taxAmount = roundPrice(afterDisc - afterDisc / (1 + d)); finalAmount = afterDisc; }\n    else { taxAmount = roundPrice(afterDisc * d); finalAmount = roundPrice(afterDisc + taxAmount); }\n  }\n\n  totalGross = roundPrice(totalGross + gross);\n  totalDiscount = roundPrice(totalDiscount + discountAmount);\n  totalTax = roundPrice(totalTax + taxAmount);\n  totalAmount = roundPrice(totalAmount + finalAmount);\n\n  const linePoId = grLine ? grLine.line_po_id : po.id;\n  const poLineId = grLine ? grLine.po_line_item_id : (poLine ? poLine.id : '');\n  const poNo = grLine ? (grLine.line_po_no || po.purchase_order_no) : po.purchase_order_no;\n  const recvQty = grLine ? grLine.received_qty : (poLine ? poLine.received_qty : 0);\n  const orderedQty = grLine ? grLine.ordered_qty : (poLine ? poLine.quantity : 0);\n  const availInv = grLine\n    ? round3((Number(grLine.received_qty) || 0) - (Number(grLine.invoice_qty) || 0))\n    : (poLine ? round3((Number(poLine.quantity) || 0) - (Number(poLine.invoice_qty) || 0)) : 0);\n\n  if (linePoId) poIdSet[String(linePoId)] = true;\n  if (poNo) poNoSet[String(poNo)] = true;\n  if (lineGrId) { grIdSet[String(lineGrId)] = true; if (grNo) grNoSet[String(grNo)] = true; }\n\n  tablePi.push({\n    material_id: buyerItemId || '',\n    material_name: (taxSrc.item_name) || sline.material_name || '',\n    item_desc: taxSrc.item_desc || sline.item_desc || '',\n    more_desc: taxSrc.more_desc || sline.more_desc || '',\n    purchase_order_no: poNo || '',\n    goods_receiving_no: grNo || '',\n    order_qty: orderedQty,\n    received_qty: recvQty,\n    invoice_qty: invQty,\n    quantity_uom: buyerUom,\n    order_unit_price: unitPrice,\n    order_gross: gross,\n    order_discount: discount,\n    discount_uom: discountUom,\n    discount_amount: discountAmount,\n    tax_preference: taxPreference,\n    tax_percent: taxPercent,\n    tax_rate_percent: taxPercent,\n    tax_amount: taxAmount,\n    tax_inclusive: taxInclusive,\n    invoice_amount: finalAmount,\n    pi_amount: finalAmount,\n    available_inv_qty: availInv,\n    po_line_id: poLineId,\n    gr_line_id: grLineId,\n    line_po_id: linePoId,\n    line_gr_id: lineGrId,\n    item_category_id: taxSrc.item_category_id || null,\n    tariff_id: taxSrc.tariff_id || null,\n    line_remark_1: taxSrc.line_remark_1 || '',\n    line_remark_2: taxSrc.line_remark_2 || '',\n  });\n}\n\n// ITS row pick for buyer plant (supplier-matched, else enabled, else first)\nlet itsMatch = itsArr.find(function (r) { return r && String(r.buyer_supplier_id) === String(supplierId); });\nif (!itsMatch) itsMatch = itsArr.find(function (r) { return r && Number(r.auto_create_pi) === 1; }) || itsArr[0] || null;\nconst buyerPlant = (itsMatch && itsMatch.buyer_plant_id) ? itsMatch.buyer_plant_id : '';\n\nlet poIds = Object.keys(poIdSet); if (poIds.length === 0) poIds = [];\nlet grIds = Object.keys(grIdSet); if (grIds.length === 0) grIds = [];\nconst supplierIds = supplierId ? [String(supplierId)] : [\"0\"];\n\nreturn {\n  tablePi: tablePi,\n  invoiceSubtotal: totalGross,\n  invoiceTotalDiscount: totalDiscount,\n  invoiceTaxesAmount: totalTax,\n  invoiceTotal: totalAmount,\n  supplierId: supplierId || '',\n  supplierIds: supplierIds,\n  currencyCode: currencyCode || '',\n  paymentTermId: paymentTermId || '',\n  buyerPlant: buyerPlant,\n  organizationId: buyerOrg,\n  poIds: poIds,\n  grIds: grIds,\n  poNos: Object.keys(poNoSet).join(', '),\n  grNos: Object.keys(grNoSet).join(', '),\n  referenceType: anyGr ? 'Document - GR' : 'Document - PO',\n  lineCount: tablePi.length,\n  siNo: (si && si.sales_invoice_no) ? si.sales_invoice_no : ''\n};\n"
+          "code": "\nconst siRows = {{node:search_si.data.data}};\nconst si = Array.isArray(siRows) ? siRows[0] : siRows;\nconst tableSi = (si && si.table_si) ? si.table_si : [];\nconst poRows = {{node:search_po.data.data}};\nconst pos = Array.isArray(poRows) ? poRows : (poRows ? [poRows] : []);\nconst grRows = {{node:search_gr.data.data}};\nconst grs = Array.isArray(grRows) ? grRows : (grRows ? [grRows] : []);\nconst soPoMap = {{node:code_doc_maps.data.soPoMap}} || {};\nconst gdGrMap = {{node:code_doc_maps.data.gdGrMap}} || {};\nconst itsRows = {{node:search_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\nconst aliasRows = {{node:search_alias.data.data}};\nconst aliasArr = Array.isArray(aliasRows) ? aliasRows : (aliasRows ? [aliasRows] : []);\nconst buyerOrg = {{workflowparams:buyer_org}} || '';\n\nconst roundPrice = (v) => parseFloat(parseFloat(v || 0).toFixed(4));\nconst round3 = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\n\n// Item Alias: buyer item/uom -> seller item (+ conversion_rate). Cross-org, the SI\n// carries the SELLER item id while PO/GR lines carry the BUYER item id; bridge here.\nconst aliasByItemUom = {}; const aliasByItem = {};\nfor (const a of aliasArr) {\n  if (!a || !a.seller_item_id) continue;\n  aliasByItemUom[String(a.buyer_item_id) + '|' + String(a.buyer_uom_id)] = a;\n  if (aliasByItem[String(a.buyer_item_id)] === undefined) aliasByItem[String(a.buyer_item_id)] = a;\n}\nconst aliasFor = (buyerItem, buyerUom) => {\n  const k = String(buyerItem) + '|' + String(buyerUom);\n  if (aliasByItemUom[k]) return aliasByItemUom[k];\n  if (aliasByItem[String(buyerItem)]) return aliasByItem[String(buyerItem)];\n  return null;\n};\nconst toSeller = (buyerItem, buyerUom) => {\n  const a = aliasFor(buyerItem, buyerUom);\n  return a ? String(a.seller_item_id) : String(buyerItem); // fallback: same id (non cross-org)\n};\n\n// index lookups\nconst poById = {}; for (const po of pos) { if (po && po.id) poById[String(po.id)] = po; }\nconst grById = {}; for (const gr of grs) { if (gr && gr.id) grById[String(gr.id)] = gr; }\nconst poLineById = {};\nfor (const po of pos) {\n  const lines = (po && po.table_po) ? po.table_po : [];\n  for (const ln of lines) { if (ln && ln.id) poLineById[String(po.id) + '|' + String(ln.id)] = { po: po, ln: ln }; }\n}\n\n// position counters for seller-item match (handles repeated items). NO fallback\n// match — an exhausted slot returns null so the extra SI line is dropped (it has\n// no corresponding buyer line), instead of double-binding to the same PO/GR line.\nconst poUsed = {}; const grUsed = {};\n// SO-source: match within the resolved PO by seller item + position.\nconst pickPoLine = (lines, key, sellerItemId, usedMap) => {\n  let n = 0;\n  const slot = key + '|' + String(sellerItemId);\n  for (const ln of lines) {\n    if (!ln || ln.parent_or_child === 'Child') continue;\n    if (String(toSeller(ln.item_id, ln.quantity_uom)) !== String(sellerItemId)) continue;\n    if (n === (usedMap[slot] || 0)) { usedMap[slot] = (usedMap[slot] || 0) + 1; return ln; }\n    n++;\n  }\n  return null;\n};\n// GD-source: match a GR line by seller item AND the line's own PO (from the SI\n// line's SO -> soPoMap). This binds each line to the GR line of ITS purchase\n// order, so same-item lines across different SOs/POs never cross-match.\nconst pickGrLine = (lines, key, sellerItemId, expectedPoId, usedMap) => {\n  let n = 0;\n  const slot = key + '|' + String(expectedPoId) + '|' + String(sellerItemId);\n  for (const ln of lines) {\n    if (!ln || ln.parent_or_child === 'Child') continue;\n    if (String(ln.line_po_id) !== String(expectedPoId)) continue;\n    if (String(toSeller(ln.item_id, ln.item_uom)) !== String(sellerItemId)) continue;\n    if (n === (usedMap[slot] || 0)) { usedMap[slot] = (usedMap[slot] || 0) + 1; return ln; }\n    n++;\n  }\n  return null;\n};\n\nconst tablePi = [];\nlet totalGross = 0, totalDiscount = 0, totalTax = 0, totalAmount = 0;\nconst poIdSet = {}; const grIdSet = {};\nconst poNoSet = {}; const grNoSet = {};\nlet supplierId = ''; let currencyCode = ''; let paymentTermId = ''; let anyGr = false;\n\nfor (const sline of tableSi) {\n  if (!sline) continue;\n  const sellerQty = Number(sline.invoice_qty) || 0;   // qty in SELLER uom\n  if (sellerQty <= 0) continue;\n  const sellerItemId = sline.material_id;             // SELLER item id\n\n  let poLine = null, po = null, grLine = null, gr = null;\n  let lineGrId = '', grLineId = '', grNo = '';\n\n  // Each SI line carries its SO; resolve that SO's PO. A line whose SO is NOT\n  // internally linked (no PO) is dropped (per the partial/per-line rule).\n  const soMap = soPoMap[String(sline.line_so_id)];\n  const expectedPoId = soMap ? String(soMap.poId) : '';\n  if (!expectedPoId) continue;\n\n  if (sline.line_gd_id && String(sline.line_gd_id) !== '') {\n    // GD-sourced -> GR (buyer org), bound to this line's own PO\n    const m = gdGrMap[String(sline.line_gd_id)];\n    if (!m) continue; // GD has no linked GR -> drop this line\n    gr = grById[String(m.grId)];\n    if (!gr) continue;\n    grLine = pickGrLine((gr.table_gr || []), String(gr.id), sellerItemId, expectedPoId, grUsed);\n    if (!grLine) continue; // no GR line for this item+PO -> drop\n    lineGrId = gr.id; grLineId = grLine.id; grNo = gr.goods_receiving_number || m.grNo || '';\n    anyGr = true;\n    const pk = String(grLine.line_po_id) + '|' + String(grLine.po_line_item_id);\n    const found = poLineById[pk];\n    if (found) { po = found.po; poLine = found.ln; }\n    else { po = poById[String(grLine.line_po_id)] || null; }\n  } else {\n    // SO-sourced -> PO (buyer org)\n    po = poById[expectedPoId];\n    if (!po) continue;\n    poLine = pickPoLine((po.table_po || []), String(po.id), sellerItemId, poUsed);\n    if (!poLine) continue;\n  }\n  if (!po) continue;\n\n  if (!supplierId && po.po_supplier_id) supplierId = po.po_supplier_id;\n  if (!currencyCode && po.po_currency) currencyCode = po.po_currency;\n  if (!paymentTermId && po.po_payment_term) paymentTermId = po.po_payment_term;\n\n  // BUYER item/uom for the PI line, taken from the buyer PO/GR line\n  const buyerLine = poLine || grLine || {};\n  const buyerItemId = grLine ? grLine.item_id : (poLine ? poLine.item_id : sellerItemId);\n  const buyerUom = grLine ? grLine.item_uom : (poLine ? poLine.quantity_uom : null);\n  // Convert SELLER qty -> BUYER qty via alias conversion_rate (seller = buyer * rate)\n  const aEntry = aliasFor(buyerItemId, buyerUom);\n  const rate = aEntry ? (parseFloat(aEntry.conversion_rate) || 1) : 1;\n  const invQty = rate ? round3(sellerQty / rate) : sellerQty;\n\n  // price/tax/discount from the buyer PO line (decision 4); price from GR line if GR-sourced\n  const taxSrc = poLine || grLine || {};\n  const unitPrice = grLine ? (grLine.unit_price) : (poLine ? poLine.unit_price : 0);\n  const orderDiscount = taxSrc.discount || 0;\n  let discountUom = taxSrc.discount_uom || '';\n  const taxPercent = Number(taxSrc.tax_percent) || 0;\n  const taxPreference = taxSrc.tax_preference || '';\n  const taxInclusive = taxSrc.tax_inclusive;\n\n  // amounts (replicate the PI form PIcalculation func) on BUYER qty\n  const gross = roundPrice(invQty * (Number(unitPrice) || 0));\n  let discount = parseFloat(orderDiscount) || 0;\n  let discountAmount = 0;\n  if (discount > 0 && !discountUom) discountUom = 'Amount';\n  if (discountUom && discount !== 0) {\n    if (discountUom === 'Amount') discountAmount = roundPrice(discount);\n    else if (discountUom === '%') discountAmount = roundPrice((gross * discount) / 100);\n    if (discountAmount > gross) { discount = 0; discountAmount = 0; }\n  }\n  const afterDisc = roundPrice(gross - discountAmount);\n  let taxAmount = 0; let finalAmount = afterDisc;\n  if (taxPercent) {\n    const d = taxPercent / 100;\n    if (taxInclusive === 1) { taxAmount = roundPrice(afterDisc - afterDisc / (1 + d)); finalAmount = afterDisc; }\n    else { taxAmount = roundPrice(afterDisc * d); finalAmount = roundPrice(afterDisc + taxAmount); }\n  }\n\n  totalGross = roundPrice(totalGross + gross);\n  totalDiscount = roundPrice(totalDiscount + discountAmount);\n  totalTax = roundPrice(totalTax + taxAmount);\n  totalAmount = roundPrice(totalAmount + finalAmount);\n\n  const linePoId = grLine ? grLine.line_po_id : po.id;\n  const poLineId = grLine ? grLine.po_line_item_id : (poLine ? poLine.id : '');\n  const poNo = grLine ? (grLine.line_po_no || po.purchase_order_no) : po.purchase_order_no;\n  const recvQty = grLine ? grLine.received_qty : (poLine ? poLine.received_qty : 0);\n  const orderedQty = grLine ? grLine.ordered_qty : (poLine ? poLine.quantity : 0);\n  const availInv = grLine\n    ? round3((Number(grLine.received_qty) || 0) - (Number(grLine.invoice_qty) || 0))\n    : (poLine ? round3((Number(poLine.quantity) || 0) - (Number(poLine.invoice_qty) || 0)) : 0);\n\n  if (linePoId) poIdSet[String(linePoId)] = true;\n  if (poNo) poNoSet[String(poNo)] = true;\n  if (lineGrId) { grIdSet[String(lineGrId)] = true; if (grNo) grNoSet[String(grNo)] = true; }\n\n  tablePi.push({\n    material_id: buyerItemId || '',\n    material_name: (taxSrc.item_name) || sline.material_name || '',\n    item_desc: taxSrc.item_desc || sline.item_desc || '',\n    more_desc: taxSrc.more_desc || sline.more_desc || '',\n    purchase_order_no: poNo || '',\n    goods_receiving_no: grNo || '',\n    order_qty: orderedQty,\n    received_qty: recvQty,\n    invoice_qty: invQty,\n    quantity_uom: buyerUom,\n    order_unit_price: unitPrice,\n    order_gross: gross,\n    order_discount: discount,\n    discount_uom: discountUom,\n    discount_amount: discountAmount,\n    tax_preference: taxPreference,\n    tax_percent: taxPercent,\n    tax_rate_percent: taxPercent,\n    tax_amount: taxAmount,\n    tax_inclusive: taxInclusive,\n    invoice_amount: finalAmount,\n    pi_amount: finalAmount,\n    available_inv_qty: availInv,\n    po_line_id: poLineId,\n    gr_line_id: grLineId,\n    line_po_id: linePoId,\n    line_gr_id: lineGrId,\n    item_category_id: taxSrc.item_category_id || null,\n    tariff_id: taxSrc.tariff_id || null,\n    line_remark_1: taxSrc.line_remark_1 || '',\n    line_remark_2: taxSrc.line_remark_2 || '',\n  });\n}\n\n// ITS row pick for buyer plant (supplier-matched, else enabled, else first)\nlet itsMatch = itsArr.find(function (r) { return r && String(r.buyer_supplier_id) === String(supplierId); });\nif (!itsMatch) itsMatch = itsArr.find(function (r) { return r && Number(r.auto_create_pi) === 1; }) || itsArr[0] || null;\nconst buyerPlant = (itsMatch && itsMatch.buyer_plant_id) ? itsMatch.buyer_plant_id : '';\n\nlet poIds = Object.keys(poIdSet); if (poIds.length === 0) poIds = [];\nlet grIds = Object.keys(grIdSet); if (grIds.length === 0) grIds = [];\nconst supplierIds = supplierId ? [String(supplierId)] : [\"0\"];\n\nreturn {\n  tablePi: tablePi,\n  invoiceSubtotal: totalGross,\n  invoiceTotalDiscount: totalDiscount,\n  invoiceTaxesAmount: totalTax,\n  invoiceTotal: totalAmount,\n  supplierId: supplierId || '',\n  supplierIds: supplierIds,\n  currencyCode: currencyCode || '',\n  paymentTermId: paymentTermId || '',\n  buyerPlant: buyerPlant,\n  organizationId: buyerOrg,\n  poIds: poIds,\n  grIds: grIds,\n  poNos: Object.keys(poNoSet).join(', '),\n  grNos: Object.keys(grNoSet).join(', '),\n  referenceType: anyGr ? 'Document - GR' : 'Document - PO',\n  lineCount: tablePi.length,\n  siNo: (si && si.sales_invoice_no) ? si.sales_invoice_no : ''\n};\n"
         },
         "response_json": [
           {
@@ -939,6 +939,106 @@
       "blocks": []
     },
     {
+      "id": "if_no_lines",
+      "type": "if",
+      "data": {
+        "title": "IF No PI Lines",
+        "isValidator": true,
+        "nodeName": "IF No PI Lines",
+        "name": "IF No PI Lines",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 190000000038,
+              "parentId": 190000000039,
+              "isTop": true,
+              "prop": "node.code_build_lines.data.lineCount",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 0,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "node.code_build_lines.data.lineCount",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_no_lines_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "end_no_lines",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return No Lines",
+                "isValidator": true,
+                "nodeName": "Return No Lines",
+                "name": "Return No Lines",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "200",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "No internally-linked lines to invoice; Purchase Invoice not created.",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "skipped",
+                      "propLabel": "skipped",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "1",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_no_lines_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "search_acc",
       "type": "search-node",
       "data": {
@@ -948,8 +1048,8 @@
             "collectionId": "1930794597760651266",
             "list": [
               {
-                "id": 190000000038,
-                "parentId": 190000000039,
+                "id": 190000000040,
+                "parentId": 190000000041,
                 "isTop": true,
                 "type": "branch",
                 "operator": "all",
@@ -959,8 +1059,8 @@
                 "level": 1,
                 "children": [
                   {
-                    "id": 190000000040,
-                    "parentId": 190000000038,
+                    "id": 190000000042,
+                    "parentId": 190000000040,
                     "isTop": false,
                     "prop": "organization_id",
                     "operator": "equal",
@@ -996,8 +1096,8 @@
             "collectionId": "1994006139209117697",
             "list": [
               {
-                "id": 190000000041,
-                "parentId": 190000000042,
+                "id": 190000000043,
+                "parentId": 190000000044,
                 "isTop": true,
                 "type": "branch",
                 "operator": "all",
@@ -1007,8 +1107,8 @@
                 "level": 1,
                 "children": [
                   {
-                    "id": 190000000043,
-                    "parentId": 190000000041,
+                    "id": 190000000045,
+                    "parentId": 190000000043,
                     "isTop": false,
                     "prop": "business_type",
                     "operator": "equal",
@@ -1021,8 +1121,8 @@
                     "operatorLabel": "equal"
                   },
                   {
-                    "id": 190000000044,
-                    "parentId": 190000000041,
+                    "id": 190000000046,
+                    "parentId": 190000000043,
                     "isTop": false,
                     "prop": "department_id",
                     "operator": "equal",
@@ -1035,8 +1135,8 @@
                     "operatorLabel": "equal"
                   },
                   {
-                    "id": 190000000045,
-                    "parentId": 190000000041,
+                    "id": 190000000047,
+                    "parentId": 190000000043,
                     "isTop": false,
                     "prop": "is_default",
                     "operator": "numberEqual",
@@ -1072,8 +1172,8 @@
             "collectionId": "1901541078662762497",
             "list": [
               {
-                "id": 190000000046,
-                "parentId": 190000000047,
+                "id": 190000000048,
+                "parentId": 190000000049,
                 "isTop": true,
                 "type": "branch",
                 "operator": "all",
@@ -1083,8 +1183,8 @@
                 "level": 1,
                 "children": [
                   {
-                    "id": 190000000048,
-                    "parentId": 190000000046,
+                    "id": 190000000050,
+                    "parentId": 190000000048,
                     "isTop": false,
                     "prop": "id",
                     "operator": "in",
@@ -1167,8 +1267,8 @@
             "collectionId": "1902047936116805633",
             "list": [
               {
-                "id": 190000000049,
-                "parentId": 190000000050,
+                "id": 190000000051,
+                "parentId": 190000000052,
                 "isTop": true,
                 "type": "branch",
                 "operator": "all",
@@ -1178,8 +1278,8 @@
                 "level": 1,
                 "children": [
                   {
-                    "id": 190000000051,
-                    "parentId": 190000000049,
+                    "id": 190000000053,
+                    "parentId": 190000000051,
                     "isTop": false,
                     "prop": "id",
                     "operator": "in",
@@ -1215,8 +1315,8 @@
             "collectionId": "1901980197721329665",
             "list": [
               {
-                "id": 190000000052,
-                "parentId": 190000000053,
+                "id": 190000000054,
+                "parentId": 190000000055,
                 "isTop": true,
                 "type": "branch",
                 "operator": "all",
@@ -1226,8 +1326,8 @@
                 "level": 1,
                 "children": [
                   {
-                    "id": 190000000054,
-                    "parentId": 190000000052,
+                    "id": 190000000056,
+                    "parentId": 190000000054,
                     "isTop": false,
                     "prop": "purpose_name",
                     "operator": "equal",
@@ -1263,8 +1363,8 @@
             "collectionId": "1902728191097815041",
             "list": [
               {
-                "id": 190000000055,
-                "parentId": 190000000056,
+                "id": 190000000057,
+                "parentId": 190000000058,
                 "isTop": true,
                 "type": "branch",
                 "operator": "all",
@@ -1274,8 +1374,8 @@
                 "level": 1,
                 "children": [
                   {
-                    "id": 190000000057,
-                    "parentId": 190000000055,
+                    "id": 190000000059,
+                    "parentId": 190000000057,
                     "isTop": false,
                     "prop": "id",
                     "operator": "in",
@@ -1311,8 +1411,8 @@
             "collectionId": "1902728532698710017",
             "list": [
               {
-                "id": 190000000058,
-                "parentId": 190000000059,
+                "id": 190000000060,
+                "parentId": 190000000061,
                 "isTop": true,
                 "type": "branch",
                 "operator": "all",
@@ -1322,8 +1422,8 @@
                 "level": 1,
                 "children": [
                   {
-                    "id": 190000000060,
-                    "parentId": 190000000058,
+                    "id": 190000000062,
+                    "parentId": 190000000060,
                     "isTop": false,
                     "prop": "id",
                     "operator": "in",
@@ -1403,8 +1503,8 @@
             "collectionId": "2066342495378059266",
             "list": [
               {
-                "id": 190000000061,
-                "parentId": 190000000062,
+                "id": 190000000063,
+                "parentId": 190000000064,
                 "isTop": true,
                 "prop": "",
                 "operator": "",
@@ -1511,8 +1611,8 @@
         "filter": {
           "list": [
             {
-              "id": 190000000063,
-              "parentId": 190000000064,
+              "id": 190000000065,
+              "parentId": 190000000066,
               "isTop": true,
               "prop": "node.code_pi_code.data.piOk",
               "operator": "numberEqual",
@@ -1727,8 +1827,8 @@
         "filter": {
           "list": [
             {
-              "id": 190000000065,
-              "parentId": 190000000066,
+              "id": 190000000067,
+              "parentId": 190000000068,
               "isTop": true,
               "prop": "node.code_pi_code.data.piOk",
               "operator": "numberEqual",
