@@ -343,7 +343,7 @@ const setPlant = (organizationId, pageStatus) => {
   const isSameDept = currentDept === organizationId;
 
   this.disabled("issuing_operation_faci", !isSameDept);
-
+  this.disabled("stock_movement", isSameDept);
   if (pageStatus === "Add" && !isSameDept) {
     this.setData({ issuing_operation_faci: currentDept });
   }
@@ -417,6 +417,7 @@ setTimeout(async () => {
     switch (pageStatus) {
       case "Add":
         const nickName = this.getVarGlobal("nickname");
+        let plantID = "";
         this.setData({
           organization_id: organizationId,
           issued_by: nickName,
@@ -430,14 +431,30 @@ setTimeout(async () => {
         this.display(["draft_status", "button_save_as_draft"]);
         this.hide(CONFIG.fields.hide);
 
-        const plantID = setPlant(organizationId, pageStatus);
+        const convertFrom = this.getParamsVariables("convert_from");
+
+        if (convertFrom === "MSI") {
+          const data = this.getValues();
+          plantID = data.issuing_operation_faci;
+          this.refreshFieldOptionData("msi_id");
+          this.disabled(["msr_type", "reference_from", "msi_id"], true);
+          await setStorageLocation(plantID);
+          await displaySelectHU(plantID);
+          await this.triggerEvent("onChange_msiID", { value: data.msi_id });
+        } else {
+          this.setData({ msr_type: "Standard" });
+          plantID = setPlant(organizationId, pageStatus);
+          await setStorageLocation(plantID);
+          await displaySelectHU(plantID);
+        }
+
         configureFields();
         configureButtons(pageStatus, null);
         hideSerialNumberRecordTab();
+
         await initMovementReason();
         await checkAccIntegrationType(organizationId);
-        await setStorageLocation(plantID);
-        await displaySelectHU(plantID);
+
         break;
 
       case "Edit":
@@ -497,7 +514,6 @@ setTimeout(async () => {
 }, 500);
 
 setTimeout(async () => {
-  if (!this.isAdd) return;
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
@@ -508,10 +524,24 @@ setTimeout(async () => {
   function getDefaultItem(arr) {
     return arr?.find((item) => item?.item?.is_default === 1);
   }
+  var params = this.getComponent("stock_movement_no");
+  const { options } = params;
 
   const optionsData = this.getOptionData("stock_movement_no_type") || [];
-  const data = getDefaultItem(optionsData);
-  if (data) {
-    this.setData({ stock_movement_no_type: data.value });
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("stock_movement_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        stock_movement_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ stock_movement_no_type: defaultData.value });
+    }
   }
-}, 500);
+}, 200);
