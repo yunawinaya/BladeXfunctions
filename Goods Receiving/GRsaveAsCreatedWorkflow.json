@@ -3,10 +3,7 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": {
-        "isValidator": true,
-        "title": "Start Node"
-      },
+      "data": { "isValidator": true, "title": "Start Node" },
       "blocks": []
     },
     {
@@ -56,10 +53,7 @@
         "nodeName": "IF Zero Qty",
         "name": "IF Zero Qty",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -110,9 +104,7 @@
         {
           "id": "if_zero_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "ret_zero",
@@ -155,9 +147,7 @@
         {
           "id": "if_zero_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -238,10 +228,7 @@
         "nodeName": "IF invalidMessage",
         "name": "IF invalidMessage",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -264,9 +251,7 @@
         {
           "id": "if_invalid_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "ret_invalid",
@@ -309,9 +294,7 @@
         {
           "id": "if_invalid_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -363,10 +346,7 @@
         "nodeName": "IF Validation Failed",
         "name": "IF Validation Failed",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -390,9 +370,7 @@
         {
           "id": "if_validate_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "ret_validate",
@@ -435,9 +413,7 @@
         {
           "id": "if_validate_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -451,10 +427,7 @@
         "nodeName": "IF Edit (Original GR)",
         "name": "IF Edit (Original GR)",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -478,9 +451,7 @@
         {
           "id": "if_orig_edit_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "search_origGR",
@@ -522,9 +493,7 @@
         {
           "id": "if_orig_edit_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -704,10 +673,7 @@
         "nodeName": "IF Qty Error",
         "name": "IF Qty Error",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -731,9 +697,7 @@
         {
           "id": "if_qtyError_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "ret_qty",
@@ -776,9 +740,7 @@
         {
           "id": "if_qtyError_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -792,10 +754,7 @@
         "nodeName": "IF Over Commitment",
         "name": "IF Over Commitment",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -846,9 +805,7 @@
         {
           "id": "if_overcommit_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "ret_overcommit",
@@ -891,9 +848,7 @@
         {
           "id": "if_overcommit_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -907,10 +862,7 @@
         "nodeName": "IF Edit Mode",
         "name": "IF Edit Mode",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -934,9 +886,7 @@
         {
           "id": "if_edit_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "update_gr",
@@ -1214,6 +1164,22 @@
                       "propLabel": "Remark 3"
                     },
                     {
+                      "prop": "gr_remark4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:cn_fill.data.allData.gr_remark4}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 4"
+                    },
+                    {
+                      "prop": "gr_remark5",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:cn_fill.data.allData.gr_remark5}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 5"
+                    },
+                    {
                       "prop": "billing_address_name",
                       "operator": "",
                       "valueType": "field",
@@ -1399,9 +1365,7 @@
         {
           "id": "if_edit_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "add_gr",
@@ -1675,6 +1639,22 @@
                       "propLabel": "Remark 3"
                     },
                     {
+                      "prop": "gr_remark4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:cn_fill.data.allData.gr_remark4}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 4"
+                    },
+                    {
+                      "prop": "gr_remark5",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:cn_fill.data.allData.gr_remark5}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 5"
+                    },
+                    {
                       "prop": "billing_address_name",
                       "operator": "",
                       "valueType": "field",
@@ -1933,10 +1913,7 @@
         "nodeName": "IF PO hasUpdate",
         "name": "IF PO hasUpdate",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -1960,9 +1937,7 @@
         {
           "id": "if_poUpdates_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "update_po",
@@ -2033,9 +2008,7 @@
         {
           "id": "if_poUpdates_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -2079,10 +2052,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
