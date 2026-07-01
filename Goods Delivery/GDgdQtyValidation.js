@@ -81,11 +81,21 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
     // Convert quantities to base UOM for validation
     const quantityBase = convertToBaseUOM(quantity, currentUOM, itemData);
-    const currentItemQtyTotalBase = convertToBaseUOM(
-      currentItemQtyTotal,
-      currentUOM,
-      itemData,
-    );
+    // Sum each row's qty in BASE UOM. Rows for the same material can use
+    // different order UOMs (e.g. one line in base PCS, another in alt UNIT),
+    // so convert per-row with that row's own gd_order_uom_id instead of summing
+    // raw then applying the current row's factor — otherwise a base-UOM row
+    // gets inflated by the alt factor (e.g. 10 PCS + 5 UNIT read as 155 not 65).
+    let currentItemQtyTotalBase = 0;
+    for (let i = 0; i < data.table_gd.length; i++) {
+      if (materialId === data.table_gd[i].material_id) {
+        currentItemQtyTotalBase += convertToBaseUOM(
+          parseFloat(data.table_gd[i].gd_qty || 0),
+          data.table_gd[i].gd_order_uom_id,
+          itemData,
+        );
+      }
+    }
     const orderQtyBase = convertToBaseUOM(order_quantity, currentUOM, itemData);
     const initialDeliveredQtyBase = convertToBaseUOM(
       gd_initial_delivered_qty,
