@@ -2,6 +2,13 @@ const roundQty = (value) => {
   return Math.round(value * 1000) / 1000;
 };
 
+// over_receive_tolerance now lives per-UOM inside table_uom_conversion, keyed by
+// alt_uom_id. Look it up by the GR line's ordered UOM (base UOM is guaranteed to
+// be row 0, so this resolves for both base and alternate UOMs).
+const getOverReceiveTolerance = (item, uomId) =>
+  ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) || {})
+    .over_receive_tolerance || 0;
+
 const { table_gr } = this.getValues();
 const fieldParts = rule.field.split(".");
 const index = fieldParts[1];
@@ -64,7 +71,9 @@ const parsedValue = parseFloat(value);
       .get();
     console.log("data", data);
     const overReceiveTolerance =
-      data && data.length > 0 ? data[0].over_receive_tolerance || 0 : 0;
+      data && data.length > 0
+        ? getOverReceiveTolerance(data[0], table_gr[index].ordered_qty_uom)
+        : 0;
 
     if (uomConversion > 0) {
       // UOM conversion path - validate at base level

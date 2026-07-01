@@ -3,6 +3,13 @@ const roundQty = (value) => {
   return Math.round(value * 1000) / 1000;
 };
 
+// over_receive_tolerance now lives per-UOM inside table_uom_conversion, keyed by
+// alt_uom_id. Look it up by the GR line's ordered UOM (base UOM is guaranteed to
+// be row 0, so this resolves for both base and alternate UOMs).
+const getOverReceiveTolerance = (item, uomId) =>
+  ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) || {})
+    .over_receive_tolerance || 0;
+
 (async () => {
   try {
     // Get input values
@@ -128,7 +135,10 @@ const roundQty = (value) => {
             .where({ id: itemId })
             .get();
           if (itemData && itemData.length > 0) {
-            overReceiveTolerance = itemData[0].over_receive_tolerance || 0;
+            overReceiveTolerance = getOverReceiveTolerance(
+          itemData[0],
+          this.getValue(`table_gr.${rowIndex}.ordered_qty_uom`),
+        );
           }
         }
 
@@ -193,7 +203,10 @@ const roundQty = (value) => {
         .where({ id: itemId })
         .get();
       if (itemData && itemData.length > 0) {
-        overReceiveTolerance = itemData[0].over_receive_tolerance || 0;
+        overReceiveTolerance = getOverReceiveTolerance(
+          itemData[0],
+          this.getValue(`table_gr.${rowIndex}.ordered_qty_uom`),
+        );
       }
     }
 

@@ -165,7 +165,12 @@ const setGrItemData = async (
         .where({ id: itemId })
         .get();
       if (itemData && itemData.length > 0) {
-        overReceiveTolerance = itemData[0].over_receive_tolerance || 0;
+        // over_receive_tolerance now lives per-UOM inside table_uom_conversion,
+        // keyed by alt_uom_id — match the GR line's ordered UOM.
+        overReceiveTolerance =
+          ((itemData[0].table_uom_conversion || []).find(
+            (c) => c.alt_uom_id === tableGR[rowIndex].ordered_qty_uom,
+          ) || {}).over_receive_tolerance || 0;
       }
     }
 
