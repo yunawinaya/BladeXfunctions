@@ -12,7 +12,11 @@ const saveAs = {{workflowparams:saveAs}};
 const isGDPP = {{workflowparams:allData.is_select_picking}} || 0;
 const splitPolicy = {{node:get_node_iFPuvJX2.data.data.split_policy}} || "ALLOW_SPLIT";
 
-const orderLimit = (gdItem.gd_order_quantity * (100 + (itemData.over_delivery_tolerance || 0))) / 100;
+// over_delivery_tolerance now lives per-UOM inside table_uom_conversion, keyed by
+// alt_uom_id. Look it up by the GD line's order UOM (base UOM is guaranteed to be
+// row 0, so this resolves for both base and alternate UOMs).
+const overDeliveryTolerance = ((itemData.table_uom_conversion || []).find((c) => c.alt_uom_id === gdItem.gd_order_uom_id) || {}).over_delivery_tolerance || 0;
+const orderLimit = (gdItem.gd_order_quantity * (100 + overDeliveryTolerance)) / 100;
 const deliveredQty = soItem.delivered_qty || 0;
 const plannedQty = soItem.planned_qty || 0;
 

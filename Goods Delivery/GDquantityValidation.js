@@ -61,6 +61,13 @@
       if (resItem.data && resItem.data[0]) {
         const itemData = resItem.data[0];
 
+        // over_delivery_tolerance now lives per-UOM inside table_uom_conversion,
+        // keyed by alt_uom_id. Look it up by the GD line's order UOM (base UOM is
+        // guaranteed to be row 0, so this resolves for base and alternate UOMs).
+        const getOverDeliveryTolerance = (item, uomId) =>
+          ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) ||
+            {}).over_delivery_tolerance || 0;
+
         // Convert GD line quantities to dialog UOM for accurate comparison
         const convertQtyToDialogUOM = (qty) => {
           if (!qty || gdLineUOM === dialogUOM) return qty;
@@ -88,7 +95,9 @@
         const gd_delivered_qty = initialDeliveredQty + totalWithNewValue;
 
         const orderLimit =
-          (gd_order_quantity * (100 + itemData.over_delivery_tolerance)) / 100;
+          (gd_order_quantity *
+            (100 + getOverDeliveryTolerance(itemData, gdLineUOM))) /
+          100;
 
         // GDPP mode: Validate against to_quantity (picked qty from PP)
         if (isSelectPicking === 1) {

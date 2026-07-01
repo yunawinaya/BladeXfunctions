@@ -34,6 +34,13 @@
     }
   }
 
+  // over_delivery_tolerance now lives per-UOM inside table_uom_conversion, keyed
+  // by alt_uom_id. Look it up by the GD line's order UOM (base UOM is guaranteed
+  // to be row 0, so this resolves for both base and alternate UOMs).
+  const getOverDeliveryTolerance = (item, uomId) =>
+    ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) || {})
+      .over_delivery_tolerance || 0;
+
   // Helper function to convert quantity from alt UOM to base UOM
   const convertToBaseUOM = (quantity, altUOM) => {
     if (!itemData || !altUOM || altUOM === itemData.based_uom) {
@@ -103,7 +110,8 @@
   let orderLimit = 0;
   if (materialId) {
     orderLimit =
-      (gd_order_quantity * (100 + (itemData?.over_delivery_tolerance || 0))) /
+      (gd_order_quantity *
+        (100 + getOverDeliveryTolerance(itemData, goodDeliveryUOM))) /
       100;
   }
 
@@ -128,7 +136,7 @@
   // For NO_SPLIT: validate tolerance — no over-pick allowed beyond delivery tolerance
   // For FULL_HU_PICK: skip — whole-HU excess is inherent, tracked in temp_excess_data
   if (splitPolicy === "NO_SPLIT" && materialId) {
-    const tolerance = itemData?.over_delivery_tolerance || 0;
+    const tolerance = getOverDeliveryTolerance(itemData, goodDeliveryUOM);
     const maxAllowed = roundQty(gd_order_quantity * (1 + tolerance / 100));
     const remainingCapacity = roundQty(maxAllowed - initialDeliveredQty);
 
