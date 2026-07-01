@@ -668,7 +668,7 @@
                 "name": "Map Updated PO & GR (validate)",
                 "script": {
                   "type": "javascript",
-                  "code": "const poList = {{node:search_node_po.data.data}} || [];\nconst grList = {{node:search_node_gr.data.data}} || [];\nconst data = {{node:code_pi_fillback.data.entry}};\nlet allErrors = [];\n\nconst roundTo3 = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\n\nconst validateInvoiceQuantities = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey) => {\n  const filteredPI = tablePi.filter((item) => item[docIdKey] === docId);\n  const errors = [];\n  filteredPI.forEach((piItem) => {\n    const originalItem = items.find((item) => item.id === piItem[piLineIdKey]);\n    if (originalItem) {\n      const availableQty = roundTo3(originalItem[qtyKey]);\n      const currentInvoicedQty = roundTo3(originalItem.invoice_qty);\n      const newInvoiceQty = roundTo3(piItem.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + newInvoiceQty);\n      if (totalInvoicedQty > availableQty) {\n        errors.push({\n          itemName: originalItem.material_id || originalItem.material_name || `Item ${originalItem.id}`,\n        });\n      }\n    }\n  });\n  return errors;\n};\n\nconst poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\nfor (const poID of poIds) {\n  const poData = poList.find((po) => po.id === poID);\n  if (!poData) continue;\n  const poItems = poData.table_po || [];\n  allErrors = [...allErrors, ...validateInvoiceQuantities(poItems, data.table_pi, poData.id, \"line_po_id\", \"po_line_id\", \"quantity\")];\n}\n\nif (data.gr_id && data.gr_id.length > 0) {\n  const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n  for (const grID of grIds) {\n    const grData = grList.find((gr) => gr.id === grID);\n    if (!grData) continue;\n    const grItems = grData.table_gr || [];\n    allErrors = [...allErrors, ...validateInvoiceQuantities(grItems, data.table_pi, grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\")];\n  }\n}\n\nreturn {\n  status: allErrors.length > 0 ? 'Failed' : 'Success',\n  allErrors\n};"
+                  "code": "const poList = {{node:search_node_po.data.data}} || [];\nconst grList = {{node:search_node_gr.data.data}} || [];\nconst data = {{node:code_pi_fillback.data.entry}};\nlet allErrors = [];\n\nconst roundTo3 = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\n\nconst validateInvoiceQuantities = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey, excludeGRLines) => {\n  const filteredPI = tablePi.filter((item) => item[docIdKey] === docId && (!excludeGRLines || !item.line_gr_id || item.line_gr_id === \"\"));\n  const errors = [];\n  filteredPI.forEach((piItem) => {\n    const originalItem = items.find((item) => item.id === piItem[piLineIdKey]);\n    if (originalItem) {\n      const availableQty = roundTo3(originalItem[qtyKey]);\n      const currentInvoicedQty = roundTo3(originalItem.invoice_qty);\n      const newInvoiceQty = roundTo3(piItem.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + newInvoiceQty);\n      if (totalInvoicedQty > availableQty) {\n        errors.push({\n          itemName: originalItem.material_id || originalItem.material_name || `Item ${originalItem.id}`,\n        });\n      }\n    }\n  });\n  return errors;\n};\n\nconst poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\nfor (const poID of poIds) {\n  const poData = poList.find((po) => po.id === poID);\n  if (!poData) continue;\n  const poItems = poData.table_po || [];\n  allErrors = [...allErrors, ...validateInvoiceQuantities(poItems, data.table_pi, poData.id, \"line_po_id\", \"po_line_id\", \"quantity\", true)];\n}\n\nif (data.gr_id && data.gr_id.length > 0) {\n  const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n  for (const grID of grIds) {\n    const grData = grList.find((gr) => gr.id === grID);\n    if (!grData) continue;\n    const grItems = grData.table_gr || [];\n    allErrors = [...allErrors, ...validateInvoiceQuantities(grItems, data.table_pi, grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\")];\n  }\n}\n\nreturn {\n  status: allErrors.length > 0 ? 'Failed' : 'Success',\n  allErrors\n};"
                 },
                 "response_json": [
                   {
@@ -851,69 +851,526 @@
                 "props": {
                   "modelName": "",
                   "list": [
-                    { "prop": "pi_status", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_status}}", "operator": "", "valueLabel": "", "propLabel": "PI Status" },
-                    { "prop": "posted_status", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.posted_status}}", "operator": "", "valueLabel": "", "propLabel": "Posted Status" },
-                    { "prop": "pi_ref_doc", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_ref_doc}}", "operator": "", "valueLabel": "", "propLabel": "Reference Documents" },
-                    { "prop": "purchase_invoice_no", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no}}", "operator": "", "valueLabel": "", "propLabel": "Purchase Invoice Number" },
-                    { "prop": "purchase_invoice_no_type", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no_type}}", "operator": "", "valueLabel": "", "propLabel": "规则" },
-                    { "prop": "invoice_date", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_date}}", "operator": "", "valueLabel": "", "propLabel": "Invoice Date" },
-                    { "prop": "pi_description", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_description}}", "operator": "", "valueLabel": "", "propLabel": "Description" },
-                    { "prop": "remarks", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.remarks}}", "operator": "", "valueLabel": "", "propLabel": "Remarks" },
-                    { "prop": "remarks2", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.remarks2}}", "operator": "", "valueLabel": "", "propLabel": "Remarks 2" },
-                    { "prop": "remarks3", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.remarks3}}", "operator": "", "valueLabel": "", "propLabel": "Remarks 3" },
-                    { "prop": "plant_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.plant_id}}", "operator": "", "valueLabel": "", "propLabel": "Plant" },
-                    { "prop": "supplier_name", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.supplier_name}}", "operator": "", "valueLabel": "", "propLabel": "Supplier" },
-                    { "prop": "po_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.po_id}}", "operator": "", "valueLabel": "", "propLabel": "PO ID" },
-                    { "prop": "gr_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.gr_id}}", "operator": "", "valueLabel": "", "propLabel": "GR ID" },
-                    { "prop": "po_no_display", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.po_no_display}}", "operator": "", "valueLabel": "", "propLabel": "PO Number" },
-                    { "prop": "gr_no_display", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.gr_no_display}}", "operator": "", "valueLabel": "", "propLabel": "GR Number" },
-                    { "prop": "organization_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.organization_id}}", "operator": "", "valueLabel": "", "propLabel": "Organization" },
-                    { "prop": "acc_integration_type", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.acc_integration_type}}", "operator": "", "valueLabel": "", "propLabel": "Accounting Integration Type" },
-                    { "prop": "invoice_payment_term_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_payment_term_id}}", "operator": "", "valueLabel": "", "propLabel": "Payment Term" },
-                    { "prop": "currency_code", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.currency_code}}", "operator": "", "valueLabel": "", "propLabel": "Currency" },
-                    { "prop": "exchange_rate", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.exchange_rate}}", "operator": "", "valueLabel": "", "propLabel": "Exchange Rate" },
-                    { "prop": "exchange_rate_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.exchange_rate_currency}}", "operator": "", "valueLabel": "", "propLabel": "Exchange Rate Currency" },
-                    { "prop": "exchange_rate_myr", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.exchange_rate_myr}}", "operator": "", "valueLabel": "", "propLabel": "Exchange Rate MYR" },
-                    { "prop": "inv_tax_rate_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.inv_tax_rate_id}}", "operator": "", "valueLabel": "", "propLabel": "Tax Rate" },
-                    { "prop": "inv_taxes_rate_percent", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.inv_taxes_rate_percent}}", "operator": "", "valueLabel": "", "propLabel": "Tax Rate Percent" },
-                    { "prop": "pi_billing_address", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_billing_address}}", "operator": "", "valueLabel": "", "propLabel": "Billing Address" },
-                    { "prop": "pi_shipping_address", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_shipping_address}}", "operator": "", "valueLabel": "", "propLabel": "Shipping Address" },
-                    { "prop": "billing_address_name", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_name}}", "operator": "", "valueLabel": "", "propLabel": "Address Name" },
-                    { "prop": "billing_address_phone", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_phone}}", "operator": "", "valueLabel": "", "propLabel": "Contact Number" },
-                    { "prop": "billing_address_line_1", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_line_1}}", "operator": "", "valueLabel": "", "propLabel": "Address" },
-                    { "prop": "billing_address_line_2", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_line_2}}", "operator": "", "valueLabel": "", "propLabel": "billing_address_line_2" },
-                    { "prop": "billing_address_line_3", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_line_3}}", "operator": "", "valueLabel": "", "propLabel": "billing_address_line_3" },
-                    { "prop": "billing_address_line_4", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_line_4}}", "operator": "", "valueLabel": "", "propLabel": "billing_address_line_4" },
-                    { "prop": "billing_address_city", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_city}}", "operator": "", "valueLabel": "", "propLabel": "City" },
-                    { "prop": "billing_postal_code", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_postal_code}}", "operator": "", "valueLabel": "", "propLabel": "Postal Code" },
-                    { "prop": "billing_address_state", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_state}}", "operator": "", "valueLabel": "", "propLabel": "State" },
-                    { "prop": "billing_address_country", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_country}}", "operator": "", "valueLabel": "", "propLabel": "Country" },
-                    { "prop": "billing_attention", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_attention}}", "operator": "", "valueLabel": "", "propLabel": "Attention" },
-                    { "prop": "billing_address_fax", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_fax}}", "operator": "", "valueLabel": "", "propLabel": "Fax" },
-                    { "prop": "shipping_address_fax", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_fax}}", "operator": "", "valueLabel": "", "propLabel": "Fax" },
-                    { "prop": "shipping_address_name", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_name}}", "operator": "", "valueLabel": "", "propLabel": "Address Name" },
-                    { "prop": "shipping_address_phone", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_phone}}", "operator": "", "valueLabel": "", "propLabel": "Contact Number" },
-                    { "prop": "shipping_address_line_1", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_1}}", "operator": "", "valueLabel": "", "propLabel": "Address" },
-                    { "prop": "shipping_address_line_2", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_2}}", "operator": "", "valueLabel": "", "propLabel": "shipping_address_line_2" },
-                    { "prop": "shipping_address_line_3", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_3}}", "operator": "", "valueLabel": "", "propLabel": "shipping_address_line_3" },
-                    { "prop": "shipping_address_line_4", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_4}}", "operator": "", "valueLabel": "", "propLabel": "shipping_address_line_4" },
-                    { "prop": "shipping_address_city", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_city}}", "operator": "", "valueLabel": "", "propLabel": "City" },
-                    { "prop": "shipping_postal_code", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_postal_code}}", "operator": "", "valueLabel": "", "propLabel": "Postal Code" },
-                    { "prop": "shipping_address_state", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_state}}", "operator": "", "valueLabel": "", "propLabel": "State" },
-                    { "prop": "shipping_address_country", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_country}}", "operator": "", "valueLabel": "", "propLabel": "Country" },
-                    { "prop": "shipping_attention", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_attention}}", "operator": "", "valueLabel": "", "propLabel": "Attention" },
-                    { "prop": "invoice_subtotal", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_subtotal}}", "operator": "", "valueLabel": "", "propLabel": "Sub Total" },
-                    { "prop": "invoice_total_discount", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_total_discount}}", "operator": "", "valueLabel": "", "propLabel": "Total Discount" },
-                    { "prop": "invoice_taxes_amount", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_taxes_amount}}", "operator": "", "valueLabel": "", "propLabel": "Total Tax Amount" },
-                    { "prop": "invoice_total", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_total}}", "operator": "", "valueLabel": "", "propLabel": "Total" },
-                    { "prop": "total_gross_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_gross_currency}}", "operator": "", "valueLabel": "", "propLabel": "Total Gross" },
-                    { "prop": "total_discount_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_discount_currency}}", "operator": "", "valueLabel": "", "propLabel": "Total Discount" },
-                    { "prop": "total_tax_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_tax_currency}}", "operator": "", "valueLabel": "", "propLabel": "Total Tax Fee" },
-                    { "prop": "total_amount_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_amount_currency}}", "operator": "", "valueLabel": "", "propLabel": "Total Amount" },
-                    { "prop": "myr_total_amount", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.myr_total_amount}}", "operator": "", "valueLabel": "", "propLabel": "Total Amount MYR" },
-                    { "prop": "total_amount_myr", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_amount_myr}}", "operator": "", "valueLabel": "", "propLabel": "Total Amount MYR Label" },
-                    { "prop": "agent_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.agent_id}}", "operator": "", "valueLabel": "", "propLabel": "Agent" },
-                    { "prop": "table_pi", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.table_pi}}", "operator": "", "valueLabel": "", "propLabel": "PI Item" }
+                    {
+                      "prop": "pi_status",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "PI Status"
+                    },
+                    {
+                      "prop": "posted_status",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.posted_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Posted Status"
+                    },
+                    {
+                      "prop": "pi_ref_doc",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_ref_doc}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference Documents"
+                    },
+                    {
+                      "prop": "purchase_invoice_no",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Purchase Invoice Number"
+                    },
+                    {
+                      "prop": "purchase_invoice_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "规则"
+                    },
+                    {
+                      "prop": "invoice_date",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Date"
+                    },
+                    {
+                      "prop": "pi_description",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_description}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Description"
+                    },
+                    {
+                      "prop": "remarks",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks"
+                    },
+                    {
+                      "prop": "remarks2",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks 2"
+                    },
+                    {
+                      "prop": "remarks3",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks 3"
+                    },
+                    {
+                      "prop": "remarks4",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks 4"
+                    },
+                    {
+                      "prop": "remarks5",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks5}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks 5"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.plant_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "supplier_name",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.supplier_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Supplier"
+                    },
+                    {
+                      "prop": "po_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.po_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "PO ID"
+                    },
+                    {
+                      "prop": "gr_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.gr_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "GR ID"
+                    },
+                    {
+                      "prop": "po_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.po_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "PO Number"
+                    },
+                    {
+                      "prop": "gr_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.gr_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "GR Number"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.organization_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "acc_integration_type",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.acc_integration_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Accounting Integration Type"
+                    },
+                    {
+                      "prop": "invoice_payment_term_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_payment_term_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Payment Term"
+                    },
+                    {
+                      "prop": "currency_code",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.currency_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Currency"
+                    },
+                    {
+                      "prop": "exchange_rate",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate"
+                    },
+                    {
+                      "prop": "exchange_rate_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate Currency"
+                    },
+                    {
+                      "prop": "exchange_rate_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate MYR"
+                    },
+                    {
+                      "prop": "inv_tax_rate_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.inv_tax_rate_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tax Rate"
+                    },
+                    {
+                      "prop": "inv_taxes_rate_percent",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.inv_taxes_rate_percent}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tax Rate Percent"
+                    },
+                    {
+                      "prop": "pi_billing_address",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_billing_address}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address"
+                    },
+                    {
+                      "prop": "pi_shipping_address",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_shipping_address}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address"
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_2"
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_3"
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_4"
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_country}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Country"
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_attention}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_fax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_fax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_2"
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_3"
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_4"
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_country}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Country"
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_attention}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "invoice_subtotal",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_subtotal}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Sub Total"
+                    },
+                    {
+                      "prop": "invoice_total_discount",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_total_discount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount"
+                    },
+                    {
+                      "prop": "invoice_taxes_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_taxes_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Amount"
+                    },
+                    {
+                      "prop": "invoice_total",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_total}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total"
+                    },
+                    {
+                      "prop": "total_gross_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_gross_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Gross"
+                    },
+                    {
+                      "prop": "total_discount_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_discount_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount"
+                    },
+                    {
+                      "prop": "total_tax_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_tax_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Fee"
+                    },
+                    {
+                      "prop": "total_amount_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_amount_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount"
+                    },
+                    {
+                      "prop": "myr_total_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.myr_total_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount MYR"
+                    },
+                    {
+                      "prop": "total_amount_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_amount_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount MYR Label"
+                    },
+                    {
+                      "prop": "agent_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.agent_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Agent"
+                    },
+                    {
+                      "prop": "table_pi",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.table_pi}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "PI Item"
+                    }
                   ]
                 }
               },
@@ -961,70 +1418,534 @@
                 "props": {
                   "modelName": "",
                   "list": [
-                    { "prop": "id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
-                    { "prop": "pi_status", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_status}}", "operator": "", "valueLabel": "", "propLabel": "PI Status" },
-                    { "prop": "posted_status", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.posted_status}}", "operator": "", "valueLabel": "", "propLabel": "Posted Status" },
-                    { "prop": "pi_ref_doc", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_ref_doc}}", "operator": "", "valueLabel": "", "propLabel": "Reference Documents" },
-                    { "prop": "purchase_invoice_no", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no}}", "operator": "", "valueLabel": "", "propLabel": "Purchase Invoice Number" },
-                    { "prop": "purchase_invoice_no_type", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no_type}}", "operator": "", "valueLabel": "", "propLabel": "规则" },
-                    { "prop": "invoice_date", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_date}}", "operator": "", "valueLabel": "", "propLabel": "Invoice Date" },
-                    { "prop": "pi_description", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_description}}", "operator": "", "valueLabel": "", "propLabel": "Description" },
-                    { "prop": "remarks", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.remarks}}", "operator": "", "valueLabel": "", "propLabel": "Remarks" },
-                    { "prop": "remarks2", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.remarks2}}", "operator": "", "valueLabel": "", "propLabel": "Remarks 2" },
-                    { "prop": "remarks3", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.remarks3}}", "operator": "", "valueLabel": "", "propLabel": "Remarks 3" },
-                    { "prop": "plant_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.plant_id}}", "operator": "", "valueLabel": "", "propLabel": "Plant" },
-                    { "prop": "supplier_name", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.supplier_name}}", "operator": "", "valueLabel": "", "propLabel": "Supplier" },
-                    { "prop": "po_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.po_id}}", "operator": "", "valueLabel": "", "propLabel": "PO ID" },
-                    { "prop": "gr_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.gr_id}}", "operator": "", "valueLabel": "", "propLabel": "GR ID" },
-                    { "prop": "po_no_display", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.po_no_display}}", "operator": "", "valueLabel": "", "propLabel": "PO Number" },
-                    { "prop": "gr_no_display", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.gr_no_display}}", "operator": "", "valueLabel": "", "propLabel": "GR Number" },
-                    { "prop": "organization_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.organization_id}}", "operator": "", "valueLabel": "", "propLabel": "Organization" },
-                    { "prop": "acc_integration_type", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.acc_integration_type}}", "operator": "", "valueLabel": "", "propLabel": "Accounting Integration Type" },
-                    { "prop": "invoice_payment_term_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_payment_term_id}}", "operator": "", "valueLabel": "", "propLabel": "Payment Term" },
-                    { "prop": "currency_code", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.currency_code}}", "operator": "", "valueLabel": "", "propLabel": "Currency" },
-                    { "prop": "exchange_rate", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.exchange_rate}}", "operator": "", "valueLabel": "", "propLabel": "Exchange Rate" },
-                    { "prop": "exchange_rate_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.exchange_rate_currency}}", "operator": "", "valueLabel": "", "propLabel": "Exchange Rate Currency" },
-                    { "prop": "exchange_rate_myr", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.exchange_rate_myr}}", "operator": "", "valueLabel": "", "propLabel": "Exchange Rate MYR" },
-                    { "prop": "inv_tax_rate_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.inv_tax_rate_id}}", "operator": "", "valueLabel": "", "propLabel": "Tax Rate" },
-                    { "prop": "inv_taxes_rate_percent", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.inv_taxes_rate_percent}}", "operator": "", "valueLabel": "", "propLabel": "Tax Rate Percent" },
-                    { "prop": "pi_billing_address", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_billing_address}}", "operator": "", "valueLabel": "", "propLabel": "Billing Address" },
-                    { "prop": "pi_shipping_address", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.pi_shipping_address}}", "operator": "", "valueLabel": "", "propLabel": "Shipping Address" },
-                    { "prop": "billing_address_name", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_name}}", "operator": "", "valueLabel": "", "propLabel": "Address Name" },
-                    { "prop": "billing_address_phone", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_phone}}", "operator": "", "valueLabel": "", "propLabel": "Contact Number" },
-                    { "prop": "billing_address_line_1", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_line_1}}", "operator": "", "valueLabel": "", "propLabel": "Address" },
-                    { "prop": "billing_address_line_2", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_line_2}}", "operator": "", "valueLabel": "", "propLabel": "billing_address_line_2" },
-                    { "prop": "billing_address_line_3", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_line_3}}", "operator": "", "valueLabel": "", "propLabel": "billing_address_line_3" },
-                    { "prop": "billing_address_line_4", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_line_4}}", "operator": "", "valueLabel": "", "propLabel": "billing_address_line_4" },
-                    { "prop": "billing_address_city", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_city}}", "operator": "", "valueLabel": "", "propLabel": "City" },
-                    { "prop": "billing_postal_code", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_postal_code}}", "operator": "", "valueLabel": "", "propLabel": "Postal Code" },
-                    { "prop": "billing_address_state", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_state}}", "operator": "", "valueLabel": "", "propLabel": "State" },
-                    { "prop": "billing_address_country", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_country}}", "operator": "", "valueLabel": "", "propLabel": "Country" },
-                    { "prop": "billing_attention", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_attention}}", "operator": "", "valueLabel": "", "propLabel": "Attention" },
-                    { "prop": "billing_address_fax", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.billing_address_fax}}", "operator": "", "valueLabel": "", "propLabel": "Fax" },
-                    { "prop": "shipping_address_fax", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_fax}}", "operator": "", "valueLabel": "", "propLabel": "Fax" },
-                    { "prop": "shipping_address_name", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_name}}", "operator": "", "valueLabel": "", "propLabel": "Address Name" },
-                    { "prop": "shipping_address_phone", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_phone}}", "operator": "", "valueLabel": "", "propLabel": "Contact Number" },
-                    { "prop": "shipping_address_line_1", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_1}}", "operator": "", "valueLabel": "", "propLabel": "Address" },
-                    { "prop": "shipping_address_line_2", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_2}}", "operator": "", "valueLabel": "", "propLabel": "shipping_address_line_2" },
-                    { "prop": "shipping_address_line_3", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_3}}", "operator": "", "valueLabel": "", "propLabel": "shipping_address_line_3" },
-                    { "prop": "shipping_address_line_4", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_4}}", "operator": "", "valueLabel": "", "propLabel": "shipping_address_line_4" },
-                    { "prop": "shipping_address_city", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_city}}", "operator": "", "valueLabel": "", "propLabel": "City" },
-                    { "prop": "shipping_postal_code", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_postal_code}}", "operator": "", "valueLabel": "", "propLabel": "Postal Code" },
-                    { "prop": "shipping_address_state", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_state}}", "operator": "", "valueLabel": "", "propLabel": "State" },
-                    { "prop": "shipping_address_country", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_address_country}}", "operator": "", "valueLabel": "", "propLabel": "Country" },
-                    { "prop": "shipping_attention", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.shipping_attention}}", "operator": "", "valueLabel": "", "propLabel": "Attention" },
-                    { "prop": "invoice_subtotal", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_subtotal}}", "operator": "", "valueLabel": "", "propLabel": "Sub Total" },
-                    { "prop": "invoice_total_discount", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_total_discount}}", "operator": "", "valueLabel": "", "propLabel": "Total Discount" },
-                    { "prop": "invoice_taxes_amount", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_taxes_amount}}", "operator": "", "valueLabel": "", "propLabel": "Total Tax Amount" },
-                    { "prop": "invoice_total", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.invoice_total}}", "operator": "", "valueLabel": "", "propLabel": "Total" },
-                    { "prop": "total_gross_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_gross_currency}}", "operator": "", "valueLabel": "", "propLabel": "Total Gross" },
-                    { "prop": "total_discount_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_discount_currency}}", "operator": "", "valueLabel": "", "propLabel": "Total Discount" },
-                    { "prop": "total_tax_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_tax_currency}}", "operator": "", "valueLabel": "", "propLabel": "Total Tax Fee" },
-                    { "prop": "total_amount_currency", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_amount_currency}}", "operator": "", "valueLabel": "", "propLabel": "Total Amount" },
-                    { "prop": "myr_total_amount", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.myr_total_amount}}", "operator": "", "valueLabel": "", "propLabel": "Total Amount MYR" },
-                    { "prop": "total_amount_myr", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.total_amount_myr}}", "operator": "", "valueLabel": "", "propLabel": "Total Amount MYR Label" },
-                    { "prop": "agent_id", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.agent_id}}", "operator": "", "valueLabel": "", "propLabel": "Agent" },
-                    { "prop": "table_pi", "valueType": "field", "value": "{{node:code_pi_fillback.data.entry.table_pi}}", "operator": "", "valueLabel": "", "propLabel": "PI Item" }
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "pi_status",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "PI Status"
+                    },
+                    {
+                      "prop": "posted_status",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.posted_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Posted Status"
+                    },
+                    {
+                      "prop": "pi_ref_doc",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_ref_doc}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference Documents"
+                    },
+                    {
+                      "prop": "purchase_invoice_no",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Purchase Invoice Number"
+                    },
+                    {
+                      "prop": "purchase_invoice_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "规则"
+                    },
+                    {
+                      "prop": "invoice_date",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Date"
+                    },
+                    {
+                      "prop": "pi_description",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_description}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Description"
+                    },
+                    {
+                      "prop": "remarks",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks"
+                    },
+                    {
+                      "prop": "remarks2",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks 2"
+                    },
+                    {
+                      "prop": "remarks3",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks 3"
+                    },
+                    {
+                      "prop": "remarks4",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks 4"
+                    },
+                    {
+                      "prop": "remarks5",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.remarks5}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remarks 5"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.plant_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "supplier_name",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.supplier_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Supplier"
+                    },
+                    {
+                      "prop": "po_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.po_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "PO ID"
+                    },
+                    {
+                      "prop": "gr_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.gr_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "GR ID"
+                    },
+                    {
+                      "prop": "po_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.po_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "PO Number"
+                    },
+                    {
+                      "prop": "gr_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.gr_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "GR Number"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.organization_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "acc_integration_type",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.acc_integration_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Accounting Integration Type"
+                    },
+                    {
+                      "prop": "invoice_payment_term_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_payment_term_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Payment Term"
+                    },
+                    {
+                      "prop": "currency_code",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.currency_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Currency"
+                    },
+                    {
+                      "prop": "exchange_rate",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate"
+                    },
+                    {
+                      "prop": "exchange_rate_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate Currency"
+                    },
+                    {
+                      "prop": "exchange_rate_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate MYR"
+                    },
+                    {
+                      "prop": "inv_tax_rate_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.inv_tax_rate_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tax Rate"
+                    },
+                    {
+                      "prop": "inv_taxes_rate_percent",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.inv_taxes_rate_percent}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tax Rate Percent"
+                    },
+                    {
+                      "prop": "pi_billing_address",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_billing_address}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address"
+                    },
+                    {
+                      "prop": "pi_shipping_address",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.pi_shipping_address}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address"
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_2"
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_3"
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "billing_address_line_4"
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_country}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Country"
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_attention}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.billing_address_fax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_fax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fax"
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Name"
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number"
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address"
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_2"
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_3"
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "shipping_address_line_4"
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "City"
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Postal Code"
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "State"
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_country}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Country"
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.shipping_attention}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "invoice_subtotal",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_subtotal}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Sub Total"
+                    },
+                    {
+                      "prop": "invoice_total_discount",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_total_discount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount"
+                    },
+                    {
+                      "prop": "invoice_taxes_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_taxes_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Amount"
+                    },
+                    {
+                      "prop": "invoice_total",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.invoice_total}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total"
+                    },
+                    {
+                      "prop": "total_gross_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_gross_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Gross"
+                    },
+                    {
+                      "prop": "total_discount_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_discount_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount"
+                    },
+                    {
+                      "prop": "total_tax_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_tax_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Fee"
+                    },
+                    {
+                      "prop": "total_amount_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_amount_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount"
+                    },
+                    {
+                      "prop": "myr_total_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.myr_total_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount MYR"
+                    },
+                    {
+                      "prop": "total_amount_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.total_amount_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount MYR Label"
+                    },
+                    {
+                      "prop": "agent_id",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.agent_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Agent"
+                    },
+                    {
+                      "prop": "table_pi",
+                      "valueType": "field",
+                      "value": "{{node:code_pi_fillback.data.entry.table_pi}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "PI Item"
+                    }
                   ]
                 }
               },
@@ -1150,8 +2071,22 @@
                         "isExpand": true,
                         "isArrayItem": true,
                         "children": [
-                          { "key": "c8pivrbp", "name": "po_id", "title": "", "description": "", "bsonType": "string", "isExpand": false },
-                          { "key": "bvznt3s2", "name": "pi_status", "title": "", "description": "", "bsonType": "string", "isExpand": false },
+                          {
+                            "key": "c8pivrbp",
+                            "name": "po_id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "bvznt3s2",
+                            "name": "pi_status",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
                           {
                             "key": "9ennxcwz",
                             "name": "table_po",
@@ -1160,7 +2095,16 @@
                             "bsonType": "array",
                             "isExpand": true,
                             "children": [
-                              { "key": "se3ktm9l", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] }
+                              {
+                                "key": "se3ktm9l",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
                             ]
                           }
                         ]
@@ -1184,8 +2128,22 @@
                         "isExpand": true,
                         "isArrayItem": true,
                         "children": [
-                          { "key": "jutcfffd", "name": "gr_id", "title": "", "description": "", "bsonType": "string", "isExpand": false },
-                          { "key": "86a3z6gd", "name": "pi_status", "title": "", "description": "", "bsonType": "string", "isExpand": false },
+                          {
+                            "key": "jutcfffd",
+                            "name": "gr_id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "86a3z6gd",
+                            "name": "pi_status",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
                           {
                             "key": "4raaw4ua",
                             "name": "table_gr",
@@ -1194,7 +2152,16 @@
                             "bsonType": "array",
                             "isExpand": true,
                             "children": [
-                              { "key": "bt8m7aj6", "name": "items", "title": "", "description": "", "bsonType": "any", "isExpand": false, "isArrayItem": true, "children": [] }
+                              {
+                                "key": "bt8m7aj6",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
                             ]
                           }
                         ]
@@ -1278,9 +2245,30 @@
                         "props": {
                           "modelName": "",
                           "list": [
-                            { "prop": "id", "valueType": "field", "value": "{{node:code_pi_apply.data.updatedPO.po_id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
-                            { "prop": "pi_status", "operator": "", "valueType": "field", "value": "{{node:code_pi_apply.data.updatedPO.pi_status}}", "valueLabel": "", "propLabel": "PI Status" },
-                            { "prop": "table_po", "operator": "", "valueType": "field", "value": "{{node:code_pi_apply.data.updatedPO.table_po}}", "valueLabel": "", "propLabel": "Purchase Order Table" }
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{node:code_pi_apply.data.updatedPO.po_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "pi_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pi_apply.data.updatedPO.pi_status}}",
+                              "valueLabel": "",
+                              "propLabel": "PI Status"
+                            },
+                            {
+                              "prop": "table_po",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pi_apply.data.updatedPO.table_po}}",
+                              "valueLabel": "",
+                              "propLabel": "Purchase Order Table"
+                            }
                           ]
                         }
                       },
@@ -1351,9 +2339,30 @@
                         "props": {
                           "modelName": "",
                           "list": [
-                            { "prop": "id", "valueType": "field", "value": "{{node:code_pi_apply.data.updatedGR.gr_id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
-                            { "prop": "pi_status", "operator": "", "valueType": "field", "value": "{{node:code_pi_apply.data.updatedGR.pi_status}}", "valueLabel": "", "propLabel": "PI Status" },
-                            { "prop": "table_gr", "operator": "", "valueType": "field", "value": "{{node:code_pi_apply.data.updatedGR.table_gr}}", "valueLabel": "", "propLabel": "table_gr" }
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{node:code_pi_apply.data.updatedGR.gr_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "pi_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pi_apply.data.updatedGR.pi_status}}",
+                              "valueLabel": "",
+                              "propLabel": "PI Status"
+                            },
+                            {
+                              "prop": "table_gr",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pi_apply.data.updatedGR.table_gr}}",
+                              "valueLabel": "",
+                              "propLabel": "table_gr"
+                            }
                           ]
                         }
                       },
