@@ -58,14 +58,6 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
     const itemData = itemRes.data[0];
 
-    // over_delivery_tolerance now lives per-UOM inside table_uom_conversion, keyed
-    // by alt_uom_id. Look it up by the GD line's order UOM (base UOM is guaranteed
-    // to be row 0, so this resolves for both base and alternate UOMs). Tolerance is
-    // a percentage, so it applies to base quantities without conversion.
-    const getOverDeliveryTolerance = (item, uomId) =>
-      ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) ||
-        {}).over_delivery_tolerance || 0;
-
     // Function to convert quantity to base UOM
     const convertToBaseUOM = (qty, fromUOM, itemData) => {
       if (!qty || !fromUOM || !itemData) return qty;
@@ -110,19 +102,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
       currentItemQtyTotalBase,
     });
 
-    // Description-only row (non-stock + not shown in delivery): mirror no-material_id branch
-    if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
-      if (quantity > gdUndeliveredQty) {
-        window.validationState[index] = false;
-        callback("Quantity exceed delivered limit.");
-      } else {
-        window.validationState[index] = true;
-        callback();
-      }
-      return;
-    }
-
-    // Skip inventory validation when stock_control=0 but show_delivery=1
+    // Skip validation if stock control is disabled
     if (itemData.stock_control === 0) {
       console.log(
         `Stock control disabled for item ${materialId}, skipping inventory validation`,
@@ -131,7 +111,13 @@ for (let i = 0; i < data.table_gd.length; i++) {
       // Still check order limits (use base quantities)
       const orderLimitBase =
         orderQtyBase *
-          (1 + getOverDeliveryTolerance(itemData, currentUOM) / 100) -
+          (1 +
+            ((
+              (itemData.table_uom_conversion || []).find(
+                (c) => c.alt_uom_id === currentUOM,
+              ) || {}
+            ).over_delivery_tolerance || 0) /
+              100) -
         initialDeliveredQtyBase;
 
       if (quantityBase > orderLimitBase) {
@@ -155,7 +141,13 @@ for (let i = 0; i < data.table_gd.length; i++) {
     // Calculate order limit with tolerance (use base quantities)
     const orderLimitBase =
       orderQtyBase *
-        (1 + getOverDeliveryTolerance(itemData, currentUOM) / 100) -
+        (1 +
+          ((
+            (itemData.table_uom_conversion || []).find(
+              (c) => c.alt_uom_id === currentUOM,
+            ) || {}
+          ).over_delivery_tolerance || 0) /
+            100) -
       initialDeliveredQtyBase;
 
     // Check order limit first (business rule validation)
@@ -289,12 +281,18 @@ for (let i = 0; i < data.table_gd.length; i++) {
           .get();
 
         if (pendingReservedRes?.data?.length > 0) {
-          pendingReservedQty = pendingReservedRes.data.reduce((total, reserved) => {
-            return total + parseFloat(reserved.open_qty || 0);
-          }, 0);
+          pendingReservedQty = pendingReservedRes.data.reduce(
+            (total, reserved) => {
+              return total + parseFloat(reserved.open_qty || 0);
+            },
+            0,
+          );
         }
 
-        console.log(`Pending reserved qty for SO line ${soLineItemId}:`, pendingReservedQty);
+        console.log(
+          `Pending reserved qty for SO line ${soLineItemId}:`,
+          pendingReservedQty,
+        );
       }
 
       if (isSerializedItem) {
