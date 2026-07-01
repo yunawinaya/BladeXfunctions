@@ -57,6 +57,14 @@ for (let i = 0; i < data.table_to.length; i++) {
 
     const itemData = itemRes.data[0];
 
+    // over_delivery_tolerance now lives per-UOM inside table_uom_conversion, keyed
+    // by alt_uom_id. Look it up by the PP line's order UOM (base UOM is guaranteed
+    // to be row 0, so this resolves for both base and alternate UOMs). Tolerance is
+    // a percentage, so it applies to base quantities without conversion.
+    const getOverDeliveryTolerance = (item, uomId) =>
+      ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) ||
+        {}).over_delivery_tolerance || 0;
+
     // Function to convert quantity to base UOM
     const convertToBaseUOM = (qty, fromUOM, itemData) => {
       if (!qty || !fromUOM || !itemData) return qty;
@@ -109,7 +117,8 @@ for (let i = 0; i < data.table_to.length; i++) {
 
       // Still check order limits (use base quantities)
       const orderLimitBase =
-        orderQtyBase * (1 + (itemData.over_delivery_tolerance || 0) / 100) -
+        orderQtyBase *
+          (1 + getOverDeliveryTolerance(itemData, currentUOM) / 100) -
         initialDeliveredQtyBase;
 
       if (quantityBase > orderLimitBase) {
@@ -132,7 +141,8 @@ for (let i = 0; i < data.table_to.length; i++) {
 
     // Calculate order limit with tolerance (use base quantities)
     const orderLimitBase =
-      orderQtyBase * (1 + (itemData.over_delivery_tolerance || 0) / 100) -
+      orderQtyBase *
+        (1 + getOverDeliveryTolerance(itemData, currentUOM) / 100) -
       initialDeliveredQtyBase;
 
     // Check order limit first (business rule validation)

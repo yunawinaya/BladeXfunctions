@@ -57,10 +57,14 @@
 
       console.log("data", resItem.data);
       if (resItem.data && resItem.data[0]) {
+        // over_delivery_tolerance now lives per-UOM inside table_uom_conversion,
+        // keyed by alt_uom_id — match the PP line's order UOM.
+        const overDeliveryTolerance =
+          ((resItem.data[0].table_uom_conversion || []).find(
+            (c) => c.alt_uom_id === data.table_to[rowIndex].to_order_uom_id,
+          ) || {}).over_delivery_tolerance || 0;
         const orderLimit =
-          (to_order_quantity *
-            (100 + resItem.data[0].over_delivery_tolerance)) /
-          100;
+          (to_order_quantity * (100 + overDeliveryTolerance)) / 100;
 
         if (
           toStatus === "Created" &&

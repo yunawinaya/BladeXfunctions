@@ -2788,7 +2788,11 @@ const fetchDeliveredQuantity = async () => {
     const soLine = soLineItemData.find((so) => so.id === item.so_line_item_id);
     const itemInfo = itemData.find((data) => data.id === item.material_id);
     if (soLine) {
-      const tolerance = itemInfo ? itemInfo.over_delivery_tolerance || 0 : 0;
+      const tolerance = itemInfo
+        ? ((itemInfo.table_uom_conversion || []).find(
+            (c) => c.alt_uom_id === item.to_order_uom_id,
+          ) || {}).over_delivery_tolerance || 0
+        : 0;
       const maxDeliverableQty =
         ((soLine.so_quantity || 0) - (soLine.planned_qty || 0)) *
         ((100 + tolerance) / 100);

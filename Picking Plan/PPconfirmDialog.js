@@ -48,9 +48,14 @@
     const resItem = await db.collection("Item").where({ id: materialId }).get();
 
     if (resItem.data && resItem.data[0]) {
+      // over_delivery_tolerance now lives per-UOM inside table_uom_conversion,
+      // keyed by alt_uom_id — match the PP line's order UOM (pickingPlanUOM).
+      const overDeliveryTolerance =
+        ((resItem.data[0].table_uom_conversion || []).find(
+          (c) => c.alt_uom_id === pickingPlanUOM,
+        ) || {}).over_delivery_tolerance || 0;
       orderLimit =
-        (to_order_quantity * (100 + resItem.data[0].over_delivery_tolerance)) /
-        100;
+        (to_order_quantity * (100 + overDeliveryTolerance)) / 100;
     }
   }
 
