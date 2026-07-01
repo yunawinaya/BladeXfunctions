@@ -166,6 +166,16 @@ const fetchUnrestrictedQty = async (
 
       console.log("item", item);
 
+      let defaultSalesDetail = item.table_uom_conversion.find(
+        (uom) => uom.sales_default_uom === 1,
+      );
+
+      if (!defaultSalesDetail) {
+        defaultSalesDetail = item.table_uom_conversion.find(
+          (uom) => uom.alt_uom_id === item.based_uom,
+        );
+      }
+
       const initialQty = await fetchUnrestrictedQty(
         item.id,
         item.item_batch_management,
