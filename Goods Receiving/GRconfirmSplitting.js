@@ -5,13 +5,17 @@
   const rowIndex = data.rowIndex;
   const uom = this.getValue(`table_gr.${rowIndex}.item_uom`);
   const isSerializedItem = this.getValue(
-    `table_gr.${rowIndex}.is_serialized_item`
+    `table_gr.${rowIndex}.is_serialized_item`,
   );
+  const storageLocationId = this.getValue(
+    `table_gr.${rowIndex}.storage_location_id`,
+  );
+  const locationId = this.getValue(`table_gr.${rowIndex}.location_id`);
 
   // Validation for serialized items
   if (isSerializedItem === 1 && noOfSplit > toReceivedQty) {
     this.$message.error(
-      "Number of split cannot be greater than quantity to receive for serialized item"
+      "Number of split cannot be greater than quantity to receive for serialized item",
     );
     return;
   }
@@ -24,8 +28,8 @@
       sub_seq: i + 1,
       received_qty: qtyByRow,
       item_uom: uom,
-      storage_location_id: "",
-      location_id: "",
+      storage_location_id: storageLocationId,
+      location_id: locationId,
       line_remark_1: "",
       line_remark_2: "",
       line_remark_3: "",
@@ -41,12 +45,12 @@
     await this.setData({ [`split_dialog.table_split.received_qty`]: 0 });
 
     const serialNumbers = this.getValue(
-      `table_gr.${rowIndex}.select_serial_number`
+      `table_gr.${rowIndex}.select_serial_number`,
     );
     for (let i = 0; i < noOfSplit; i++) {
       await this.setOptionData(
         `split_dialog.table_split.${i}.select_serial_number`,
-        serialNumbers
+        serialNumbers,
       );
     }
   }
