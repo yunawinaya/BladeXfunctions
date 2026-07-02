@@ -12967,7 +12967,7 @@
                         "name": "Auto-GR Prep",
                         "script": {
                           "type": "javascript",
-                          "code": "const cvId = {{node:code_node_cv51vgiy.data.gdId}} || '';\nconst allData = {{workflowparams:allData}};\nconst gdId = cvId || (allData ? (allData.id || '') : '');\nconst gdNo = allData ? (allData.delivery_no || '') : '';\nreturn { gdId: gdId, gdNo: gdNo };\n"
+                          "code": "const cvId = {{node:code_node_cv51vgiy.data.gdId}} || '';\nconst allData = {{workflowparams:allData}};\nconst gdId = cvId || (allData ? (allData.id || '') : '');\nconst gdNo = allData ? (allData.delivery_no || '') : '';\n// Batch allocation (temp_qty_data) lives on the GD line-items sub-table, NOT on the\n// allData form payload. Reuse the already-fetched 'Get Table GD' rows (search_node_CkZCzl31)\n// so GDtoGR does not re-fetch the GD.\nconst gdRowsRaw = {{node:search_node_CkZCzl31.data.data}};\nconst gdRows = Array.isArray(gdRowsRaw) ? gdRowsRaw : (gdRowsRaw ? [gdRowsRaw] : []);\nconst gdTable = gdRows.map(function (l) {\n  return {\n    material_id: l.material_id,\n    line_so_id: l.line_so_id,\n    so_line_item_id: l.so_line_item_id,\n    gd_qty: l.gd_qty,\n    gd_order_uom_id: l.gd_order_uom_id,\n    temp_qty_data: l.temp_qty_data\n  };\n});\nreturn { gdId: gdId, gdNo: gdNo, gdTable: gdTable };\n"
                         },
                         "response_json": [
                           {
@@ -12985,6 +12985,15 @@
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
+                          },
+                          {
+                            "key": "trg_gdtable",
+                            "name": "gdTable",
+                            "title": "gdTable",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
                           }
                         ]
                       },
@@ -13082,6 +13091,16 @@
                               "valueType": "field",
                               "valueTypeLabel": "",
                               "value": "{{node:code_gr_trigger_prep.data.gdNo}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "gd_table",
+                              "propLabel": "gd_table",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_gr_trigger_prep.data.gdTable}}",
                               "valueLabel": ""
                             }
                           ]

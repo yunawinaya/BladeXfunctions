@@ -4418,6 +4418,96 @@
                           ]
                         },
                         {
+                          "id": "search_existing_batch",
+                          "type": "search-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Batch:Table:1902719754154655746",
+                              "rules": {
+                                "collectionId": "1902719754154655746",
+                                "list": [
+                                  {
+                                    "id": 900000000101,
+                                    "parentId": 900000000100,
+                                    "isTop": true,
+                                    "type": "branch",
+                                    "operator": "all",
+                                    "prop": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "level": 1,
+                                    "children": [
+                                      {
+                                        "id": 900000000102,
+                                        "parentId": 900000000101,
+                                        "isTop": false,
+                                        "prop": "batch_number",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.batch_no}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "batch_number",
+                                        "valueLabel": "",
+                                        "operatorLabel": "equal"
+                                      },
+                                      {
+                                        "id": 900000000103,
+                                        "parentId": 900000000101,
+                                        "isTop": false,
+                                        "prop": "material_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.material_id}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "material_id",
+                                        "valueLabel": "",
+                                        "operatorLabel": "equal"
+                                      },
+                                      {
+                                        "id": 900000000104,
+                                        "parentId": 900000000101,
+                                        "isTop": false,
+                                        "prop": "organization_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.organization_id}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "organization_id",
+                                        "valueLabel": "",
+                                        "operatorLabel": "equal"
+                                      },
+                                      {
+                                        "id": 900000000105,
+                                        "parentId": 900000000101,
+                                        "isTop": false,
+                                        "prop": "plant_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_D9IbUV8t.data.plant_id}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "plant_id",
+                                        "valueLabel": "",
+                                        "operatorLabel": "equal"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            },
+                            "condition": {},
+                            "limit": 1,
+                            "title": "Get Existing Batch",
+                            "isValidator": true,
+                            "nodeName": "Get Existing Batch",
+                            "name": "Get Existing Batch"
+                          },
+                          "blocks": []
+                        },
+                        {
                           "id": "code_node_ip8w2l8k",
                           "type": "code-node",
                           "data": {
@@ -4430,7 +4520,7 @@
                             "name": "Data Preparation",
                             "script": {
                               "type": "javascript",
-                              "code": "const isChild = {{node:code_node_D9IbUV8t.data.isChild}};\nlet batchId = null;\nlet batchNumber = \"-\";\nlet poQty = 0, poAmount = 0, exchangeRate = 1;\n\nif (isChild === 1) {\n  // Split child: reuse the batch the parent created (cached) + parent's cached PO figures\n  let bid = {{node:get_cache_node_tMiO2epL.data}};\n  if (!bid || bid === '' || bid === 'null' || bid === 'undefined') { bid = null; }\n  batchId = bid;\n  batchNumber = \"-\";\n  const poDataRaw = {{node:get_cache_node_pkIaRLdL.data}};\n  const poData = ((__v)=>{try{return __v?JSON.parse(__v):{}}catch(__e){return {}}})(poDataRaw);\n  poQty = poData.poQty || 0;\n  poAmount = poData.poAmount || 0;\n  exchangeRate = poData.exchangeRate || 1;\n} else {\n  // Normal line: no pre-existing batch id; pass the batch NUMBER for the inventory\n  // workflow to resolve/create. PO figures come from the fresh PO Data Preparation.\n  batchId = null;\n  batchNumber = {{node:code_node_D9IbUV8t.data.batch_no}} || \"-\";\n  poQty = {{node:code_node_H4Eg0oEI.data.poQty}} || 0;\n  poAmount = {{node:code_node_H4Eg0oEI.data.poAmount}} || 0;\n  exchangeRate = {{node:code_node_H4Eg0oEI.data.exchangeRate}} || 1;\n}\n\nreturn { batchId, batchNumber, poQty, poAmount, exchangeRate }"
+                              "code": "const isChild = {{node:code_node_D9IbUV8t.data.isChild}};\nlet batchId = null;\nlet batchNumber = \"-\";\nlet poQty = 0, poAmount = 0, exchangeRate = 1;\n\nif (isChild === 1) {\n  // Split child: reuse the batch the parent created (cached) + parent's cached PO figures\n  let bid = {{node:get_cache_node_tMiO2epL.data}};\n  if (!bid || bid === '' || bid === 'null' || bid === 'undefined') { bid = null; }\n  batchId = bid;\n  batchNumber = \"-\";\n  const poDataRaw = {{node:get_cache_node_pkIaRLdL.data}};\n  const poData = ((__v)=>{try{return __v?JSON.parse(__v):{}}catch(__e){return {}}})(poDataRaw);\n  poQty = poData.poQty || 0;\n  poAmount = poData.poAmount || 0;\n  exchangeRate = poData.exchangeRate || 1;\n} else {\n  // Normal line: reuse an existing batch by NUMBER when one already exists\n  // (e.g. same seller batch received again), else pass the number for the\n  // inventory workflow to create. PO figures come from the fresh PO Data Preparation.\n  const batchNo = {{node:code_node_D9IbUV8t.data.batch_no}} || \"-\";\n  const existRows = {{node:search_existing_batch.data.data}};\n  const existArr = Array.isArray(existRows) ? existRows : (existRows ? [existRows] : []);\n  if (batchNo !== \"-\" && existArr.length > 0 && existArr[0] && existArr[0].id) {\n    batchId = existArr[0].id;\n    batchNumber = \"-\";\n  } else {\n    batchId = null;\n    batchNumber = batchNo;\n  }\n  poQty = {{node:code_node_H4Eg0oEI.data.poQty}} || 0;\n  poAmount = {{node:code_node_H4Eg0oEI.data.poAmount}} || 0;\n  exchangeRate = {{node:code_node_H4Eg0oEI.data.exchangeRate}} || 1;\n}\n\nreturn { batchId, batchNumber, poQty, poAmount, exchangeRate }"
                             },
                             "response_json": [
                               {
