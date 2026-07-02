@@ -193,6 +193,13 @@ const findFieldMessage = (obj) => {
       entry.auto_create_so = entry.auto_create_so === 1 ? 1 : 0;
       entry.auto_create_gr = entry.auto_create_gr === 1 ? 1 : 0;
       entry.auto_create_pi = entry.auto_create_pi === 1 ? 1 : 0;
+      entry.skip_picking = entry.skip_picking === 1 ? 1 : 0;
+      entry.skip_putaway = entry.skip_putaway === 1 ? 1 : 0;
+
+      if (entry.auto_create_gr === 0) {
+        entry.skip_picking = 0;
+        entry.skip_putaway = 0;
+      }
 
       console.log("entry", entry);
 
