@@ -139,7 +139,10 @@
         "nodeName": "IF Already Linked",
         "name": "IF Already Linked",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -163,7 +166,9 @@
         {
           "id": "if_already_linked_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_skip",
@@ -218,134 +223,605 @@
         {
           "id": "if_already_linked_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
     },
     {
-      "id": "search_its",
-      "type": "search-node",
+      "id": "code_extract_gd",
+      "type": "code-node",
       "data": {
-        "table_id": {
-          "source": "Internal Trading Setup:Table:2069278647482400769",
-          "rules": {
-            "collectionId": "2069278647482400769",
-            "list": [
-              {
-                "id": 180000000009,
-                "parentId": 180000000013,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000010,
-                    "parentId": 180000000009,
-                    "isTop": false,
-                    "prop": "buyer_org_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:buyer_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "buyer_org_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 180000000011,
-                    "parentId": 180000000009,
-                    "isTop": false,
-                    "prop": "seller_org_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:seller_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "seller_org_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 180000000012,
-                    "parentId": 180000000009,
-                    "isTop": false,
-                    "prop": "is_active",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 1,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_active",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Internal Trading Setup",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Extract GD SO+Batch Ids",
         "isValidator": true,
-        "nodeName": "Get Internal Trading Setup",
-        "name": "Get Internal Trading Setup"
+        "nodeName": "Extract GD SO+Batch Ids",
+        "name": "Extract GD SO+Batch Ids",
+        "script": {
+          "type": "javascript",
+          "code": "\nconst gdTable = {{workflowparams:gd_table}} || [];\nconst soSet = {};\nconst batchSet = {};\nfor (const l of gdTable) {\n  if (!l) continue;\n  if (l.line_so_id) soSet[String(l.line_so_id)] = true;\n  let tqd = [];\n  try { tqd = l.temp_qty_data ? JSON.parse(l.temp_qty_data) : []; } catch (e) { tqd = []; }\n  if (!Array.isArray(tqd)) tqd = [];\n  for (const t of tqd) { if (t && t.batch_id) batchSet[String(t.batch_id)] = true; }\n}\nlet soIds = Object.keys(soSet);\nif (soIds.length === 0) soIds = [\"0\"];\nlet batchIds = Object.keys(batchSet);\nif (batchIds.length === 0) batchIds = [\"0\"];\nreturn { soIds: soIds, batchIds: batchIds };\n"
+        },
+        "response_json": [
+          {
+            "key": "g2g_soids",
+            "name": "soIds",
+            "title": "soIds",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "g2g_batchids",
+            "name": "batchIds",
+            "title": "batchIds",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
       },
       "blocks": []
     },
     {
-      "id": "search_po",
-      "type": "search-node",
+      "id": "parallel_fetch_1",
+      "type": "condition-all-node",
       "data": {
-        "table_id": {
-          "source": "Purchase Order:Table:1902776039445217282",
-          "rules": {
-            "collectionId": "1902776039445217282",
-            "list": [
-              {
-                "id": 180000000014,
-                "parentId": 180000000016,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000015,
-                    "parentId": 180000000014,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{workflowparams:po_ids}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
+        "title": "Parallel Fetch 1",
+        "filter": {
+          "list": []
         },
-        "condition": {},
-        "limit": 200,
-        "title": "Get Eligible POs",
-        "isValidator": true,
-        "nodeName": "Get Eligible POs",
-        "name": "Get Eligible POs"
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
       },
-      "blocks": []
+      "blocks": [
+        {
+          "id": "cai_po",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "PO",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "PO",
+            "name": "PO",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_po",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Order:Table:1902776039445217282",
+                  "rules": {
+                    "collectionId": "1902776039445217282",
+                    "list": [
+                      {
+                        "id": 180000000014,
+                        "parentId": 180000000016,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000015,
+                            "parentId": 180000000014,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{workflowparams:po_ids}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Eligible POs",
+                "isValidator": true,
+                "nodeName": "Get Eligible POs",
+                "name": "Get Eligible POs"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_its",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "ITS",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "ITS",
+            "name": "ITS",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_its",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Internal Trading Setup:Table:2069278647482400769",
+                  "rules": {
+                    "collectionId": "2069278647482400769",
+                    "list": [
+                      {
+                        "id": 180000000009,
+                        "parentId": 180000000013,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000010,
+                            "parentId": 180000000009,
+                            "isTop": false,
+                            "prop": "buyer_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:buyer_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "buyer_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 180000000011,
+                            "parentId": 180000000009,
+                            "isTop": false,
+                            "prop": "seller_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:seller_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "seller_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 180000000012,
+                            "parentId": 180000000009,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_active",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Internal Trading Setup",
+                "isValidator": true,
+                "nodeName": "Get Internal Trading Setup",
+                "name": "Get Internal Trading Setup"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_acc",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Accounting",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Accounting",
+            "name": "Accounting",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_acc",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Accounting Integration:Table:1930794597760651266",
+                  "rules": {
+                    "collectionId": "1930794597760651266",
+                    "list": [
+                      {
+                        "id": 180000000037,
+                        "parentId": 180000000039,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000038,
+                            "parentId": 180000000037,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:buyer_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "organization_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Accounting Integration",
+                "isValidator": true,
+                "nodeName": "Get Accounting Integration",
+                "name": "Get Accounting Integration"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_grrule",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "GR Rule",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "GR Rule",
+            "name": "GR Rule",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_gr_rule",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "流水号规则表:Table:1994006139209117697",
+                  "rules": {
+                    "collectionId": "1994006139209117697",
+                    "list": [
+                      {
+                        "id": 180000000040,
+                        "parentId": 180000000044,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000041,
+                            "parentId": 180000000040,
+                            "isTop": false,
+                            "prop": "business_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Goods Receiving",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "business_type",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 180000000042,
+                            "parentId": 180000000040,
+                            "isTop": false,
+                            "prop": "department_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:buyer_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "department_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 180000000043,
+                            "parentId": 180000000040,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_default",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get GR Number Rule",
+                "isValidator": true,
+                "nodeName": "Get GR Number Rule",
+                "name": "Get GR Number Rule"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_addrpurpose",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Shipping Purpose",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Shipping Purpose",
+            "name": "Shipping Purpose",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_addr_purpose",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Address Purpose:Table:1901980197721329665",
+                  "rules": {
+                    "collectionId": "1901980197721329665",
+                    "list": [
+                      {
+                        "id": 180000000051,
+                        "parentId": 180000000053,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000052,
+                            "parentId": 180000000051,
+                            "isTop": false,
+                            "prop": "purpose_name",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Shipping",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "purpose_name",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Shipping Purpose",
+                "isValidator": true,
+                "nodeName": "Get Shipping Purpose",
+                "name": "Get Shipping Purpose"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_so",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Source SOs",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Source SOs",
+            "name": "Source SOs",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_so",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Order:Table:1902773735979597826",
+                  "rules": {
+                    "collectionId": "1902773735979597826",
+                    "list": [
+                      {
+                        "id": 180000000200,
+                        "parentId": 180000000202,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000201,
+                            "parentId": 180000000200,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_extract_gd.data.soIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Source SOs",
+                "isValidator": true,
+                "nodeName": "Get Source SOs",
+                "name": "Get Source SOs"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_batch",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Seller Batches",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Seller Batches",
+            "name": "Seller Batches",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_batch",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Batch:Table:1902719754154655746",
+                  "rules": {
+                    "collectionId": "1902719754154655746",
+                    "list": [
+                      {
+                        "id": 180000000210,
+                        "parentId": 180000000212,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000211,
+                            "parentId": 180000000210,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_extract_gd.data.batchIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 500,
+                "title": "Get Seller Batches",
+                "isValidator": true,
+                "nodeName": "Get Seller Batches",
+                "name": "Get Seller Batches"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "code_build_lines",
@@ -360,7 +836,7 @@
         "name": "Build GR Lines",
         "script": {
           "type": "javascript",
-          "code": "\nconst poRows = {{node:search_po.data.data}};\nconst pos = Array.isArray(poRows) ? poRows : (poRows ? [poRows] : []);\nconst buyerOrg = {{workflowparams:buyer_org}} || '';\nconst itsRows = {{node:search_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\n\nconst baseLines = [];\nconst itemIdSet = {};\nconst poIdList = [];\nconst poNoList = [];\nlet supplierId = '';\nlet currencyCode = '';\nlet first = null;\n\nfor (const po of pos) {\n  if (!po) continue;\n  if (!first) first = po;\n  if (po.id) poIdList.push(po.id);\n  if (po.purchase_order_no) poNoList.push(po.purchase_order_no);\n  if (!supplierId && po.po_supplier_id) supplierId = po.po_supplier_id;\n  if (!currencyCode && po.po_currency) currencyCode = po.po_currency;\n  const lines = po.table_po || [];\n  for (const item of lines) {\n    if ((item.received_qty || 0) >= (item.quantity || 0)) continue;\n    const recv = parseFloat(((item.quantity || 0) - (item.received_qty || 0) - (item.created_received_qty || 0)).toFixed(3));\n    if (recv <= 0) continue;\n    if (item.item_id) itemIdSet[String(item.item_id)] = true;\n    baseLines.push({\n      item_id: item.item_id || null,\n      item_name: item.item_name,\n      item_desc: item.item_desc,\n      more_desc: item.more_desc,\n      ordered_qty: item.quantity,\n      ordered_qty_uom: item.quantity_uom || null,\n      to_received_qty_uom: item.quantity_uom || null,\n      received_qty: recv,\n      item_uom: item.quantity_uom || null,\n      line_po_no: po.purchase_order_no,\n      initial_received_qty: parseFloat((item.received_qty || 0).toFixed(3)),\n      line_po_id: po.id,\n      unit_price: item.unit_price,\n      total_price: item.po_amount,\n      line_remark_1: item.line_remark_1,\n      line_remark_2: item.line_remark_2,\n      po_line_item_id: item.id,\n      item_category_id: item.item_category_id || null\n    });\n  }\n}\n\nlet itemIds = Object.keys(itemIdSet);\nif (itemIds.length === 0) itemIds = [\"0\"];\nconst supplierIds = supplierId ? [String(supplierId)] : [\"0\"];\n\n// Setups are unique per (buyer_org, buyer_supplier); the buyer+seller query can\n// return several. Pick the row for THIS PO's supplier, else the enabled one.\nlet itsMatch = itsArr.find(function (r) { return r && String(r.buyer_supplier_id) === String(supplierId); });\nif (!itsMatch) itsMatch = itsArr.find(function (r) { return r && Number(r.auto_create_gr) === 1; }) || itsArr[0] || null;\nconst buyerPlant = (itsMatch && itsMatch.buyer_plant_id) ? itsMatch.buyer_plant_id : '';\n\nreturn {\n  baseLines: baseLines,\n  itemIds: itemIds,\n  supplierId: supplierId || '',\n  supplierIds: supplierIds,\n  currencyCode: currencyCode || '',\n  poNos: poNoList.join(', '),\n  poIds: poIdList,\n  organizationId: buyerOrg,\n  plantId: buyerPlant || (first && first.po_plant ? first.po_plant : ''),\n  grRemark1: first && first.po_remark ? first.po_remark : '',\n  grRemark2: first && first.po_remark2 ? first.po_remark2 : '',\n  grRemark3: first && first.po_remark3 ? first.po_remark3 : '',\n  grRemark4: first && first.po_remark4 ? first.po_remark4 : '',\n  grRemark5: first && first.po_remark5 ? first.po_remark5 : '',\n  lineCount: baseLines.length\n};\n"
+          "code": "\nconst poRows = {{node:search_po.data.data}};\nconst pos = Array.isArray(poRows) ? poRows : (poRows ? [poRows] : []);\nconst buyerOrg = {{workflowparams:buyer_org}} || '';\nconst itsRows = {{node:search_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\n\nconst baseLines = [];\nconst itemIdSet = {};\nconst poIdList = [];\nconst poNoList = [];\nlet supplierId = '';\nlet currencyCode = '';\nlet first = null;\n\nfor (const po of pos) {\n  if (!po) continue;\n  if (!first) first = po;\n  if (po.id) poIdList.push(po.id);\n  if (po.purchase_order_no) poNoList.push(po.purchase_order_no);\n  if (!supplierId && po.po_supplier_id) supplierId = po.po_supplier_id;\n  if (!currencyCode && po.po_currency) currencyCode = po.po_currency;\n  const lines = po.table_po || [];\n  for (const item of lines) {\n    if ((item.received_qty || 0) >= (item.quantity || 0)) continue;\n    const recv = parseFloat(((item.quantity || 0) - (item.received_qty || 0) - (item.created_received_qty || 0)).toFixed(3));\n    if (recv <= 0) continue;\n    if (item.item_id) itemIdSet[String(item.item_id)] = true;\n    baseLines.push({\n      item_id: item.item_id || null,\n      item_name: item.item_name,\n      item_desc: item.item_desc,\n      more_desc: item.more_desc,\n      ordered_qty: item.quantity,\n      ordered_qty_uom: item.quantity_uom || null,\n      to_received_qty_uom: item.quantity_uom || null,\n      received_qty: recv,\n      item_uom: item.quantity_uom || null,\n      line_po_no: po.purchase_order_no,\n      initial_received_qty: parseFloat((item.received_qty || 0).toFixed(3)),\n      line_po_id: po.id,\n      unit_price: item.unit_price,\n      total_price: item.po_amount,\n      line_remark_1: item.line_remark_1,\n      line_remark_2: item.line_remark_2,\n      po_line_item_id: item.id,\n      item_category_id: item.item_category_id || null\n    });\n  }\n}\n\nlet itemIds = Object.keys(itemIdSet);\nif (itemIds.length === 0) itemIds = [\"0\"];\nconst supplierIds = supplierId ? [String(supplierId)] : [\"0\"];\n\n// Setups are unique per (buyer_org, buyer_supplier); the buyer+seller query can\n// return several. Pick the row for THIS PO's supplier, else the enabled one.\nlet itsMatch = itsArr.find(function (r) { return r && String(r.buyer_supplier_id) === String(supplierId); });\nif (!itsMatch) itsMatch = itsArr.find(function (r) { return r && Number(r.auto_create_gr) === 1; }) || itsArr[0] || null;\nconst buyerPlant = (itsMatch && itsMatch.buyer_plant_id) ? itsMatch.buyer_plant_id : '';\nconst skipPutaway = (itsMatch && Number(itsMatch.skip_putaway) === 1) ? 1 : 0;\n\nreturn {\n  baseLines: baseLines,\n  skipPutaway: skipPutaway,\n  itemIds: itemIds,\n  supplierId: supplierId || '',\n  supplierIds: supplierIds,\n  currencyCode: currencyCode || '',\n  poNos: poNoList.join(', '),\n  poIds: poIdList,\n  organizationId: buyerOrg,\n  plantId: buyerPlant || (first && first.po_plant ? first.po_plant : ''),\n  grRemark1: first && first.po_remark ? first.po_remark : '',\n  grRemark2: first && first.po_remark2 ? first.po_remark2 : '',\n  grRemark3: first && first.po_remark3 ? first.po_remark3 : '',\n  grRemark4: first && first.po_remark4 ? first.po_remark4 : '',\n  grRemark5: first && first.po_remark5 ? first.po_remark5 : '',\n  lineCount: baseLines.length\n};\n"
         },
         "response_json": [
           {
@@ -480,6 +956,14 @@
             "isExpand": false
           },
           {
+            "key": "g2g_bl_skipputaway",
+            "name": "skipPutaway",
+            "title": "skipPutaway",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
             "key": "g2g_linecount",
             "name": "lineCount",
             "title": "lineCount",
@@ -492,890 +976,763 @@
       "blocks": []
     },
     {
-      "id": "search_items",
-      "type": "search-node",
+      "id": "parallel_fetch_2",
+      "type": "condition-all-node",
       "data": {
-        "table_id": {
-          "source": "Item:Table:1901546842240438273",
-          "rules": {
-            "collectionId": "1901546842240438273",
-            "list": [
-              {
-                "id": 180000000017,
-                "parentId": 180000000019,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000018,
-                    "parentId": 180000000017,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_build_lines.data.itemIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
+        "title": "Parallel Fetch 2",
+        "filter": {
+          "list": []
         },
-        "condition": {},
-        "limit": 500,
-        "title": "Get Items",
-        "isValidator": true,
-        "nodeName": "Get Items",
-        "name": "Get Items"
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
       },
-      "blocks": []
-    },
-    {
-      "id": "search_storage_location",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Storage Location:Table:1986694920453566466",
-          "rules": {
-            "collectionId": "1986694920453566466",
-            "list": [
-              {
-                "id": 180000000020,
-                "parentId": 180000000025,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000021,
-                    "parentId": 180000000020,
-                    "isTop": false,
-                    "prop": "plant_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{node:code_build_lines.data.plantId}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "plant_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 180000000022,
-                    "parentId": 180000000020,
-                    "isTop": false,
-                    "prop": "is_deleted",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 0,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_deleted",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
-                  },
-                  {
-                    "id": 180000000023,
-                    "parentId": 180000000020,
-                    "isTop": false,
-                    "prop": "is_default",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 1,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_default",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
-                  },
-                  {
-                    "id": 180000000024,
-                    "parentId": 180000000020,
-                    "isTop": false,
-                    "prop": "location_type",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Common",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "location_type",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 10,
-        "title": "Get Storage Location",
-        "isValidator": true,
-        "nodeName": "Get Storage Location",
-        "name": "Get Storage Location"
-      },
-      "blocks": []
-    },
-    {
-      "id": "code_sl",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Default Storage Location",
-        "isValidator": true,
-        "nodeName": "Default Storage Location",
-        "name": "Default Storage Location",
-        "script": {
-          "type": "javascript",
-          "code": "\nconst rows = {{node:search_storage_location.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\nconst slId = arr.length > 0 && arr[0] ? arr[0].id : '';\nreturn { slId: slId || '', slIds: slId ? [String(slId)] : [\"0\"] };\n"
-        },
-        "response_json": [
-          {
-            "key": "g2g_slid",
-            "name": "slId",
-            "title": "slId",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
+      "blocks": [
+        {
+          "id": "cai_items",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Items",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Items",
+            "name": "Items",
+            "condition_type": "ConditionRule"
           },
-          {
-            "key": "g2g_slids",
-            "name": "slIds",
-            "title": "slIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_bin_location",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Bin Location:Table:1902282127538507778",
-          "rules": {
-            "collectionId": "1902282127538507778",
-            "list": [
-              {
-                "id": 180000000026,
-                "parentId": 180000000031,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000027,
-                    "parentId": 180000000026,
-                    "isTop": false,
-                    "prop": "storage_location_id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_sl.data.slIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "storage_location_id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  },
-                  {
-                    "id": 180000000028,
-                    "parentId": 180000000026,
-                    "isTop": false,
-                    "prop": "plant_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{node:code_build_lines.data.plantId}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "plant_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 180000000029,
-                    "parentId": 180000000026,
-                    "isTop": false,
-                    "prop": "is_default",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 1,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_default",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
-                  },
-                  {
-                    "id": 180000000030,
-                    "parentId": 180000000026,
-                    "isTop": false,
-                    "prop": "is_deleted",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 0,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_deleted",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
+          "blocks": [
+            {
+              "id": "search_items",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 180000000017,
+                        "parentId": 180000000019,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000018,
+                            "parentId": 180000000017,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_build_lines.data.itemIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
                   }
-                ]
-              }
-            ]
-          }
+                },
+                "condition": {},
+                "limit": 500,
+                "title": "Get Items",
+                "isValidator": true,
+                "nodeName": "Get Items",
+                "name": "Get Items"
+              },
+              "blocks": []
+            }
+          ]
         },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Default Bin",
-        "isValidator": true,
-        "nodeName": "Get Default Bin",
-        "name": "Get Default Bin"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_putaway_setup",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Putaway Setup:Table:1937437989915992066",
-          "rules": {
-            "collectionId": "1937437989915992066",
-            "list": [
-              {
-                "id": 180000000032,
-                "parentId": 180000000036,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000033,
-                    "parentId": 180000000032,
-                    "isTop": false,
-                    "prop": "plant_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{node:code_build_lines.data.plantId}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "plant_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 180000000034,
-                    "parentId": 180000000032,
-                    "isTop": false,
-                    "prop": "is_deleted",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 0,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_deleted",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
-                  },
-                  {
-                    "id": 180000000035,
-                    "parentId": 180000000032,
-                    "isTop": false,
-                    "prop": "movement_type",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Good Receiving",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "movement_type",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Putaway Setup",
-        "isValidator": true,
-        "nodeName": "Get Putaway Setup",
-        "name": "Get Putaway Setup"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_acc",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Accounting Integration:Table:1930794597760651266",
-          "rules": {
-            "collectionId": "1930794597760651266",
-            "list": [
-              {
-                "id": 180000000037,
-                "parentId": 180000000039,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000038,
-                    "parentId": 180000000037,
-                    "isTop": false,
-                    "prop": "organization_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:buyer_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "organization_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Accounting Integration",
-        "isValidator": true,
-        "nodeName": "Get Accounting Integration",
-        "name": "Get Accounting Integration"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_gr_rule",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "流水号规则表:Table:1994006139209117697",
-          "rules": {
-            "collectionId": "1994006139209117697",
-            "list": [
-              {
-                "id": 180000000040,
-                "parentId": 180000000044,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000041,
-                    "parentId": 180000000040,
-                    "isTop": false,
-                    "prop": "business_type",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Goods Receiving",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "business_type",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 180000000042,
-                    "parentId": 180000000040,
-                    "isTop": false,
-                    "prop": "department_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:buyer_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "department_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 180000000043,
-                    "parentId": 180000000040,
-                    "isTop": false,
-                    "prop": "is_default",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 1,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_default",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get GR Number Rule",
-        "isValidator": true,
-        "nodeName": "Get GR Number Rule",
-        "name": "Get GR Number Rule"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_supplier",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Supplier:Table:1901541078662762497",
-          "rules": {
-            "collectionId": "1901541078662762497",
-            "list": [
-              {
-                "id": 180000000045,
-                "parentId": 180000000047,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000046,
-                    "parentId": 180000000045,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_build_lines.data.supplierIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Supplier",
-        "isValidator": true,
-        "nodeName": "Get Supplier",
-        "name": "Get Supplier"
-      },
-      "blocks": []
-    },
-    {
-      "id": "code_supplier_ids",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Supplier Lookup Ids",
-        "isValidator": true,
-        "nodeName": "Supplier Lookup Ids",
-        "name": "Supplier Lookup Ids",
-        "script": {
-          "type": "javascript",
-          "code": "\nconst rows = {{node:search_supplier.data.data}};\nconst s = Array.isArray(rows) ? rows[0] : rows;\nconst countryIds = [];\nconst stateIds = [];\nlet currencyId = '';\nif (s) {\n  currencyId = s.currency_id || '';\n  const addrs = (s.address_list || []).filter(a => a.switch_save_as_default);\n  for (const a of addrs) {\n    if (a.address_country_id) countryIds.push(String(a.address_country_id));\n    if (a.adddress_state) stateIds.push(String(a.adddress_state));\n  }\n}\nlet cIds = Array.from(new Set(countryIds)); if (cIds.length === 0) cIds = [\"0\"];\nlet sIds = Array.from(new Set(stateIds)); if (sIds.length === 0) sIds = [\"0\"];\nreturn {\n  countryIds: cIds,\n  stateIds: sIds,\n  currencyIds: currencyId ? [String(currencyId)] : [\"0\"]\n};\n"
-        },
-        "response_json": [
-          {
-            "key": "g2g_countryids",
-            "name": "countryIds",
-            "title": "countryIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
+        {
+          "id": "cai_putaway",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Putaway Setup",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Putaway Setup",
+            "name": "Putaway Setup",
+            "condition_type": "ConditionRule"
           },
-          {
-            "key": "g2g_stateids",
-            "name": "stateIds",
-            "title": "stateIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
+          "blocks": [
+            {
+              "id": "search_putaway_setup",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Putaway Setup:Table:1937437989915992066",
+                  "rules": {
+                    "collectionId": "1937437989915992066",
+                    "list": [
+                      {
+                        "id": 180000000032,
+                        "parentId": 180000000036,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000033,
+                            "parentId": 180000000032,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_build_lines.data.plantId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "plant_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 180000000034,
+                            "parentId": 180000000032,
+                            "isTop": false,
+                            "prop": "is_deleted",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 0,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_deleted",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          },
+                          {
+                            "id": 180000000035,
+                            "parentId": 180000000032,
+                            "isTop": false,
+                            "prop": "movement_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Good Receiving",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "movement_type",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Putaway Setup",
+                "isValidator": true,
+                "nodeName": "Get Putaway Setup",
+                "name": "Get Putaway Setup"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_location",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Location",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Location",
+            "name": "Location",
+            "condition_type": "ConditionRule"
           },
-          {
-            "key": "g2g_currencyids",
-            "name": "currencyIds",
-            "title": "currencyIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_supplier_currency",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Currency:Table:1902047936116805633",
-          "rules": {
-            "collectionId": "1902047936116805633",
-            "list": [
-              {
-                "id": 180000000048,
-                "parentId": 180000000050,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
+          "blocks": [
+            {
+              "id": "search_storage_location",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Storage Location:Table:1986694920453566466",
+                  "rules": {
+                    "collectionId": "1986694920453566466",
+                    "list": [
+                      {
+                        "id": 180000000020,
+                        "parentId": 180000000025,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000021,
+                            "parentId": 180000000020,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_build_lines.data.plantId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "plant_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 180000000022,
+                            "parentId": 180000000020,
+                            "isTop": false,
+                            "prop": "is_deleted",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 0,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_deleted",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          },
+                          {
+                            "id": 180000000023,
+                            "parentId": 180000000020,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_default",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          },
+                          {
+                            "id": 180000000024,
+                            "parentId": 180000000020,
+                            "isTop": false,
+                            "prop": "location_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Common",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "location_type",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 10,
+                "title": "Get Storage Location",
+                "isValidator": true,
+                "nodeName": "Get Storage Location",
+                "name": "Get Storage Location"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_sl",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Default Storage Location",
+                "isValidator": true,
+                "nodeName": "Default Storage Location",
+                "name": "Default Storage Location",
+                "script": {
+                  "type": "javascript",
+                  "code": "\nconst rows = {{node:search_storage_location.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\nconst slId = arr.length > 0 && arr[0] ? arr[0].id : '';\nreturn { slId: slId || '', slIds: slId ? [String(slId)] : [\"0\"] };\n"
+                },
+                "response_json": [
                   {
-                    "id": 180000000049,
-                    "parentId": 180000000048,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_supplier_ids.data.currencyIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
+                    "key": "g2g_slid",
+                    "name": "slId",
+                    "title": "slId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "g2g_slids",
+                    "name": "slIds",
+                    "title": "slIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
                   }
                 ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Supplier Currency",
-        "isValidator": true,
-        "nodeName": "Get Supplier Currency",
-        "name": "Get Supplier Currency"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_addr_purpose",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Address Purpose:Table:1901980197721329665",
-          "rules": {
-            "collectionId": "1901980197721329665",
-            "list": [
-              {
-                "id": 180000000051,
-                "parentId": 180000000053,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000052,
-                    "parentId": 180000000051,
-                    "isTop": false,
-                    "prop": "purpose_name",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Shipping",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "purpose_name",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_bin_location",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Bin Location:Table:1902282127538507778",
+                  "rules": {
+                    "collectionId": "1902282127538507778",
+                    "list": [
+                      {
+                        "id": 180000000026,
+                        "parentId": 180000000031,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000027,
+                            "parentId": 180000000026,
+                            "isTop": false,
+                            "prop": "storage_location_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_sl.data.slIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "storage_location_id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 180000000028,
+                            "parentId": 180000000026,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_build_lines.data.plantId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "plant_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 180000000029,
+                            "parentId": 180000000026,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_default",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          },
+                          {
+                            "id": 180000000030,
+                            "parentId": 180000000026,
+                            "isTop": false,
+                            "prop": "is_deleted",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 0,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_deleted",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
                   }
-                ]
-              }
-            ]
-          }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Default Bin",
+                "isValidator": true,
+                "nodeName": "Get Default Bin",
+                "name": "Get Default Bin"
+              },
+              "blocks": []
+            }
+          ]
         },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Shipping Purpose",
-        "isValidator": true,
-        "nodeName": "Get Shipping Purpose",
-        "name": "Get Shipping Purpose"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_addr_country",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Country:Table:1902728191097815041",
-          "rules": {
-            "collectionId": "1902728191097815041",
-            "list": [
-              {
-                "id": 180000000054,
-                "parentId": 180000000056,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000055,
-                    "parentId": 180000000054,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_supplier_ids.data.countryIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 50,
-        "title": "Get Address Countries",
-        "isValidator": true,
-        "nodeName": "Get Address Countries",
-        "name": "Get Address Countries"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_addr_state",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "State:Table:1902728532698710017",
-          "rules": {
-            "collectionId": "1902728532698710017",
-            "list": [
-              {
-                "id": 180000000057,
-                "parentId": 180000000059,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000058,
-                    "parentId": 180000000057,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_supplier_ids.data.stateIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 50,
-        "title": "Get Address States",
-        "isValidator": true,
-        "nodeName": "Get Address States",
-        "name": "Get Address States"
-      },
-      "blocks": []
-    },
-    {
-      "id": "code_extract_gd",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Extract GD SO+Batch Ids",
-        "isValidator": true,
-        "nodeName": "Extract GD SO+Batch Ids",
-        "name": "Extract GD SO+Batch Ids",
-        "script": {
-          "type": "javascript",
-          "code": "\nconst gdTable = {{workflowparams:gd_table}} || [];\nconst soSet = {};\nconst batchSet = {};\nfor (const l of gdTable) {\n  if (!l) continue;\n  if (l.line_so_id) soSet[String(l.line_so_id)] = true;\n  let tqd = [];\n  try { tqd = l.temp_qty_data ? JSON.parse(l.temp_qty_data) : []; } catch (e) { tqd = []; }\n  if (!Array.isArray(tqd)) tqd = [];\n  for (const t of tqd) { if (t && t.batch_id) batchSet[String(t.batch_id)] = true; }\n}\nlet soIds = Object.keys(soSet);\nif (soIds.length === 0) soIds = [\"0\"];\nlet batchIds = Object.keys(batchSet);\nif (batchIds.length === 0) batchIds = [\"0\"];\nreturn { soIds: soIds, batchIds: batchIds };\n"
-        },
-        "response_json": [
-          {
-            "key": "g2g_soids",
-            "name": "soIds",
-            "title": "soIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
+        {
+          "id": "cai_supplier",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Supplier",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Supplier",
+            "name": "Supplier",
+            "condition_type": "ConditionRule"
           },
-          {
-            "key": "g2g_batchids",
-            "name": "batchIds",
-            "title": "batchIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_so",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Sales Order:Table:1902773735979597826",
-          "rules": {
-            "collectionId": "1902773735979597826",
-            "list": [
-              {
-                "id": 180000000200,
-                "parentId": 180000000202,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
+          "blocks": [
+            {
+              "id": "search_supplier",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Supplier:Table:1901541078662762497",
+                  "rules": {
+                    "collectionId": "1901541078662762497",
+                    "list": [
+                      {
+                        "id": 180000000045,
+                        "parentId": 180000000047,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 180000000046,
+                            "parentId": 180000000045,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_build_lines.data.supplierIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Supplier",
+                "isValidator": true,
+                "nodeName": "Get Supplier",
+                "name": "Get Supplier"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_supplier_ids",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Supplier Lookup Ids",
+                "isValidator": true,
+                "nodeName": "Supplier Lookup Ids",
+                "name": "Supplier Lookup Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "\nconst rows = {{node:search_supplier.data.data}};\nconst s = Array.isArray(rows) ? rows[0] : rows;\nconst countryIds = [];\nconst stateIds = [];\nlet currencyId = '';\nif (s) {\n  currencyId = s.currency_id || '';\n  const addrs = (s.address_list || []).filter(a => a.switch_save_as_default);\n  for (const a of addrs) {\n    if (a.address_country_id) countryIds.push(String(a.address_country_id));\n    if (a.adddress_state) stateIds.push(String(a.adddress_state));\n  }\n}\nlet cIds = Array.from(new Set(countryIds)); if (cIds.length === 0) cIds = [\"0\"];\nlet sIds = Array.from(new Set(stateIds)); if (sIds.length === 0) sIds = [\"0\"];\nreturn {\n  countryIds: cIds,\n  stateIds: sIds,\n  currencyIds: currencyId ? [String(currencyId)] : [\"0\"]\n};\n"
+                },
+                "response_json": [
                   {
-                    "id": 180000000201,
-                    "parentId": 180000000200,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_extract_gd.data.soIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
+                    "key": "g2g_countryids",
+                    "name": "countryIds",
+                    "title": "countryIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "g2g_stateids",
+                    "name": "stateIds",
+                    "title": "stateIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "g2g_currencyids",
+                    "name": "currencyIds",
+                    "title": "currencyIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
                   }
                 ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 200,
-        "title": "Get Source SOs",
-        "isValidator": true,
-        "nodeName": "Get Source SOs",
-        "name": "Get Source SOs"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_batch",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Batch:Table:1902719754154655746",
-          "rules": {
-            "collectionId": "1902719754154655746",
-            "list": [
-              {
-                "id": 180000000210,
-                "parentId": 180000000212,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 180000000211,
-                    "parentId": 180000000210,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_extract_gd.data.batchIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 500,
-        "title": "Get Seller Batches",
-        "isValidator": true,
-        "nodeName": "Get Seller Batches",
-        "name": "Get Seller Batches"
-      },
-      "blocks": []
+              },
+              "blocks": []
+            },
+            {
+              "id": "parallel_supplier_addr",
+              "type": "condition-all-node",
+              "data": {
+                "title": "Supplier Addr/Currency",
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "cai_currency",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Currency",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Currency",
+                    "name": "Currency",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_supplier_currency",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Currency:Table:1902047936116805633",
+                          "rules": {
+                            "collectionId": "1902047936116805633",
+                            "list": [
+                              {
+                                "id": 180000000048,
+                                "parentId": 180000000050,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 180000000049,
+                                    "parentId": 180000000048,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_supplier_ids.data.currencyIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1,
+                        "title": "Get Supplier Currency",
+                        "isValidator": true,
+                        "nodeName": "Get Supplier Currency",
+                        "name": "Get Supplier Currency"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_country",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Countries",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Countries",
+                    "name": "Countries",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_addr_country",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Country:Table:1902728191097815041",
+                          "rules": {
+                            "collectionId": "1902728191097815041",
+                            "list": [
+                              {
+                                "id": 180000000054,
+                                "parentId": 180000000056,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 180000000055,
+                                    "parentId": 180000000054,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_supplier_ids.data.countryIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 50,
+                        "title": "Get Address Countries",
+                        "isValidator": true,
+                        "nodeName": "Get Address Countries",
+                        "name": "Get Address Countries"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_state",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "States",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "States",
+                    "name": "States",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_addr_state",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "State:Table:1902728532698710017",
+                          "rules": {
+                            "collectionId": "1902728532698710017",
+                            "list": [
+                              {
+                                "id": 180000000057,
+                                "parentId": 180000000059,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 180000000058,
+                                    "parentId": 180000000057,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_supplier_ids.data.stateIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 50,
+                        "title": "Get Address States",
+                        "isValidator": true,
+                        "nodeName": "Get Address States",
+                        "name": "Get Address States"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "code_assemble",
@@ -1390,7 +1747,7 @@
         "name": "Assemble GR Payload",
         "script": {
           "type": "javascript",
-          "code": "\nconst baseLines = {{node:code_build_lines.data.baseLines}} || [];\nconst items = {{node:search_items.data.data}};\nconst itemArr = Array.isArray(items) ? items : (items ? [items] : []);\nconst putawayRows = {{node:search_putaway_setup.data.data}};\nconst putawayArr = Array.isArray(putawayRows) ? putawayRows : (putawayRows ? [putawayRows] : []);\nconst putawaySetup = putawayArr.length > 0 ? putawayArr[0] : null;\nconst binRows = {{node:search_bin_location.data.data}};\nconst binArr = Array.isArray(binRows) ? binRows : (binRows ? [binRows] : []);\nconst defaultBinLocation = binArr.length > 0 ? binArr[0].id : '';\nconst defaultStorageLocation = {{node:code_sl.data.slId}} || '';\nconst accRows = {{node:search_acc.data.data}};\nconst accArr = Array.isArray(accRows) ? accRows : (accRows ? [accRows] : []);\nconst accType = accArr.length > 0 ? accArr[0].acc_integration_type : '';\nconst ruleRows = {{node:search_gr_rule.data.data}};\nconst ruleArr = Array.isArray(ruleRows) ? ruleRows : (ruleRows ? [ruleRows] : []);\nconst grNoType = ruleArr.length > 0 ? ruleArr[0].id : '';\n\nconst supplierRows = {{node:search_supplier.data.data}};\nconst supplier = Array.isArray(supplierRows) ? supplierRows[0] : supplierRows;\nconst currencyRows = {{node:search_supplier_currency.data.data}};\nconst currencyArr = Array.isArray(currencyRows) ? currencyRows : (currencyRows ? [currencyRows] : []);\nconst supplierCurrencyCode = currencyArr.length > 0 ? currencyArr[0].currency_code : '';\nconst purposeRows = {{node:search_addr_purpose.data.data}};\nconst purposeArr = Array.isArray(purposeRows) ? purposeRows : (purposeRows ? [purposeRows] : []);\nconst shippingPurposeId = purposeArr.length > 0 ? purposeArr[0].id : '';\nconst countryRows = {{node:search_addr_country.data.data}};\nconst countryArr = Array.isArray(countryRows) ? countryRows : (countryRows ? [countryRows] : []);\nconst stateRows = {{node:search_addr_state.data.data}};\nconst stateArr = Array.isArray(stateRows) ? stateRows : (stateRows ? [stateRows] : []);\n\nconst supplierId = {{node:code_build_lines.data.supplierId}} || '';\nconst poCurrency = {{node:code_build_lines.data.currencyCode}} || '';\nconst poNos = {{node:code_build_lines.data.poNos}} || '';\nconst poIds = {{node:code_build_lines.data.poIds}} || [];\nconst orgId = {{node:code_build_lines.data.organizationId}} || '';\nconst plantId = {{node:code_build_lines.data.plantId}} || '';\nconst grRemark1 = {{node:code_build_lines.data.grRemark1}} || '';\nconst grRemark2 = {{node:code_build_lines.data.grRemark2}} || '';\nconst grRemark3 = {{node:code_build_lines.data.grRemark3}} || '';\nconst grRemark4 = {{node:code_build_lines.data.grRemark4}} || '';\nconst grRemark5 = {{node:code_build_lines.data.grRemark5}} || '';\nconst gdId = {{workflowparams:gd_id}} || '';\nconst gdNo = {{workflowparams:gd_no}} || '';\n\nconst itemMap = {};\nfor (const it of itemArr) { if (it && it.id) itemMap[String(it.id)] = it; }\nconst countryMap = {};\nfor (const c of countryArr) { if (c && c.id) countryMap[String(c.id)] = c.country_name; }\nconst stateMap = {};\nfor (const s of stateArr) { if (s && s.id) stateMap[String(s.id)] = s.state_name; }\n\nconst convertAltToBase = (altQty, table, altUOM) => {\n  if (!Array.isArray(table) || table.length === 0 || !altUOM) return altQty;\n  const c = table.find((x) => x.alt_uom_id === altUOM);\n  if (!c || !c.alt_qty) return altQty;\n  return Math.round(altQty * c.base_qty * 1000) / 1000;\n};\n\nconst putawayCategory = (putawaySetup && putawaySetup.category) ? putawaySetup.category : 'In Transit';\n\n// --- GD batch enrichment inputs (GD table passed from GDheadWorkflow; SO + Batch fetched here) ---\nconst gdTable = {{workflowparams:gd_table}} || [];\nconst soRows = {{node:search_so.data.data}};\nconst soArr = Array.isArray(soRows) ? soRows : (soRows ? [soRows] : []);\nconst batchRows = {{node:search_batch.data.data}};\nconst batchArr = Array.isArray(batchRows) ? batchRows : (batchRows ? [batchRows] : []);\n\n// SO line id -> source PO line item id (stamped by auto-SO creation)\nconst soLineToPoLine = {};\nfor (const so of soArr) {\n  if (!so || !Array.isArray(so.table_so)) continue;\n  for (const sl of so.table_so) {\n    if (sl && sl.id && sl.source_po_line_item_id) soLineToPoLine[String(sl.id)] = String(sl.source_po_line_item_id);\n  }\n}\n// batch id -> { batch_number, manufacturing_date, expired_date }\nconst batchInfo = {};\nfor (const b of batchArr) {\n  if (b && b.id) batchInfo[String(b.id)] = { batch_number: b.batch_number || '', manufacturing_date: b.manufacturing_date || null, expired_date: b.expired_date || null };\n}\n// PO line item id -> { order:[batchId...], map:{batchId:qty} } aggregated across GD lines\nconst poLineBatches = {};\nfor (const gl of gdTable) {\n  if (!gl) continue;\n  const poLineId = gl.so_line_item_id ? soLineToPoLine[String(gl.so_line_item_id)] : null;\n  if (!poLineId) continue;\n  let tqd = [];\n  try { tqd = gl.temp_qty_data ? JSON.parse(gl.temp_qty_data) : []; } catch (e) { tqd = []; }\n  if (!Array.isArray(tqd)) tqd = [];\n  if (!poLineBatches[poLineId]) poLineBatches[poLineId] = { order: [], map: {} };\n  const grp = poLineBatches[poLineId];\n  for (const t of tqd) {\n    if (!t) continue;\n    const q = parseFloat(t.gd_quantity) || 0;\n    if (q <= 0) continue;\n    const bId = t.batch_id ? String(t.batch_id) : 'none';\n    if (grp.map[bId] === undefined) { grp.map[bId] = 0; grp.order.push(bId); }\n    grp.map[bId] += q;\n  }\n}\nconst letterSuffix = (n) => { let s = ''; let x = n; while (x >= 0) { s = String.fromCharCode(65 + (x % 26)) + s; x = Math.floor(x / 26) - 1; } return s; };\n\nconst buildRec = (item, itemData, rowQty, batchNo, mfgDate, expDate, splitInfo) => {\n  const rec = Object.assign({}, item);\n  rec.base_ordered_qty = item.ordered_qty;\n  rec.base_ordered_qty_uom = item.ordered_qty_uom || null;\n  rec.base_item_uom = item.ordered_qty_uom || null;\n  rec.base_received_qty_uom = item.ordered_qty_uom || null;\n  rec.inspection_required = (itemData && itemData.receiving_inspection === 1) ? 'Yes' : 'No';\n  rec.to_received_qty = 0;\n  rec.received_qty = rowQty;\n  rec.base_received_qty = parseFloat((Number(rowQty) || 0).toFixed(3));\n  rec.storage_location_id = defaultStorageLocation;\n  rec.location_id = defaultBinLocation;\n  rec.item_batch_no = batchNo;\n  rec.manufacturing_date = mfgDate;\n  rec.expired_date = expDate;\n  rec.inv_category = '';\n  rec.item_costing_method = itemData ? (itemData.material_costing_method || null) : null;\n  rec.uom_conversion = 0;\n  rec.is_split = splitInfo ? 'Yes' : 'No';\n  rec.parent_or_child = splitInfo ? 'Split-Parent' : 'Parent';\n  rec.parent_index = splitInfo ? splitInfo.parentIndex : 0;\n  if (splitInfo) rec.line_index = splitInfo.lineIndex;\n\n  const isAltUOM = (itemData && itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find((c) => c.alt_uom_id === item.ordered_qty_uom && c.alt_uom_id !== itemData.based_uom)\n    : null;\n  if (isAltUOM) {\n    rec.base_ordered_qty = convertAltToBase(item.ordered_qty, itemData.table_uom_conversion, item.ordered_qty_uom);\n    rec.base_ordered_qty_uom = itemData.based_uom;\n    rec.base_received_qty_uom = itemData.based_uom;\n    rec.base_item_uom = itemData.based_uom;\n    rec.base_received_qty = convertAltToBase(Number(rowQty) || 0, itemData.table_uom_conversion, item.ordered_qty_uom);\n    rec.uom_conversion = isAltUOM.base_qty;\n  }\n  if (itemData && itemData.serial_number_management === 1) rec.is_serialized_item = 1;\n  if (itemData && itemData.formula && itemData.formula !== '') { rec.has_formula = 1; rec.formula = itemData.formula; }\n\n  let invCat = '';\n  if (rec.inspection_required === 'No') {\n    if (!putawaySetup || putawaySetup.putaway_required === 0) invCat = 'Unrestricted';\n    else if (putawaySetup.putaway_required === 1) invCat = putawayCategory;\n  } else {\n    invCat = 'Quality Inspection';\n  }\n  rec.inv_category = invCat;\n  return rec;\n};\n\nconst tableGr = [];\nfor (let li = 0; li < baseLines.length; li++) {\n  const item = baseLines[li];\n  const itemData = item.item_id ? itemMap[String(item.item_id)] : null;\n  const isBatchItem = itemData && itemData.item_batch_management !== 0;\n  const isAutoGen = itemData && itemData.batch_number_genaration === 'According To System Settings';\n  const defaultBatchNo = itemData\n    ? (itemData.item_batch_management === 0 ? '-' : (isAutoGen ? 'Auto-generated batch number' : ''))\n    : '-';\n\n  const grp = poLineBatches[item.po_line_item_id];\n  const batchIds = (isBatchItem && grp && grp.order.length > 0) ? grp.order : null;\n\n  // No batch breakdown (non-batch item, or unmapped/legacy SO) -> single row, current behavior\n  if (!batchIds) {\n    const rec = buildRec(item, itemData, item.received_qty, defaultBatchNo, null, null, null);\n    if (Number(rec.received_qty) !== 0) tableGr.push(rec);\n    continue;\n  }\n\n  // Distribute the PO line's received qty across seller batches proportionally\n  const R = parseFloat((Number(item.received_qty) || 0).toFixed(3));\n  const totalGd = batchIds.reduce((s, b) => s + (grp.map[b] || 0), 0);\n  const multi = batchIds.length >= 2;\n  let allocated = 0;\n  for (let bi = 0; bi < batchIds.length; bi++) {\n    const bId = batchIds[bi];\n    let rowQty;\n    if (bi === batchIds.length - 1) {\n      rowQty = parseFloat((R - allocated).toFixed(3));\n    } else {\n      rowQty = totalGd > 0 ? parseFloat((R * (grp.map[bId] / totalGd)).toFixed(3)) : 0;\n      allocated = parseFloat((allocated + rowQty).toFixed(3));\n    }\n    if (rowQty <= 0) continue;\n    const info = (bId !== 'none' && batchInfo[bId]) ? batchInfo[bId] : null;\n    let batchNo;\n    if (itemData && itemData.item_batch_management === 0) batchNo = '-';\n    else if (isAutoGen) batchNo = 'Auto-generated batch number';\n    else batchNo = info ? info.batch_number : defaultBatchNo;\n    const mfg = info ? info.manufacturing_date : null;\n    const exp = info ? info.expired_date : null;\n    const splitInfo = multi ? { parentIndex: li, lineIndex: (li + 1) + '-' + letterSuffix(bi) } : null;\n    const rec = buildRec(item, itemData, rowQty, batchNo, mfg, exp, splitInfo);\n    if (Number(rec.received_qty) !== 0) tableGr.push(rec);\n  }\n}\n\nlet supplierContactPerson = '';\nlet supplierContactNumber = '';\nlet supplierEmail = '';\nlet currencyCode = poCurrency;\nconst addrFields = {};\nif (supplier) {\n  if (supplier.contact_list && supplier.contact_list.length) {\n    const c0 = supplier.contact_list[0];\n    supplierContactPerson = ((c0.person_name || '') + ' ' + (c0.person_last_name || '')).trim();\n    supplierContactNumber = c0.phone_number || '';\n    supplierEmail = c0.person_email || '';\n  }\n  if (supplierCurrencyCode) currencyCode = supplierCurrencyCode;\n  const addresses = (supplier.address_list || []).filter((a) => a.switch_save_as_default);\n  for (const address of addresses) {\n    const country = address.address_country_id ? (countryMap[String(address.address_country_id)] || '') : '';\n    const state = address.adddress_state ? (stateMap[String(address.adddress_state)] || '') : '';\n    const isShipping = address.address_purpose_id === shippingPurposeId;\n    const addressType = isShipping ? 'shipping' : 'billing';\n    const addressTypeUpperCase = isShipping ? 'Shipping' : 'Billing';\n    const lineParts = [address.address_line_1, address.address_line_2, address.address_line_3, address.address_line_4].filter((l) => l);\n    const addressLines = lineParts.join((lineParts[lineParts.length - 1] || '').endsWith(',') ? ' ' : ', ');\n    const cityParts = [address.address_city, address.address_postal_code, address.adddress_state ? state : '', address.address_country_id ? country : ''].filter((d) => d);\n    const cityDetails = cityParts.join((cityParts[cityParts.length - 1] || '').endsWith(',') ? ' ' : ', ');\n    const addressAttention = address.address_attention ? '\\nAttention: ' + address.address_attention : '';\n    const addressPurposeName = '\\n' + addressTypeUpperCase + ' Address';\n    const personParts = [address.address_name, address.address_phone].filter((p) => p);\n    const addressPerson = personParts.length > 0 ? personParts.join(' | ') : '';\n    const formattedAddress = [addressPerson, addressPurposeName, addressLines, cityDetails, addressAttention].filter(Boolean).join('\\n');\n    addrFields[addressType + '_address_line_1'] = address.address_line_1;\n    addrFields[addressType + '_address_line_2'] = address.address_line_2;\n    addrFields[addressType + '_address_line_3'] = address.address_line_3;\n    addrFields[addressType + '_address_line_4'] = address.address_line_4;\n    addrFields[addressType + '_address_city'] = address.address_city;\n    addrFields[addressType + '_address_state'] = address.adddress_state;\n    addrFields[addressType + '_postal_code'] = address.address_postal_code;\n    addrFields[addressType + '_address_country'] = address.address_country_id;\n    addrFields[addressType + '_address_name'] = address.address_name;\n    addrFields[addressType + '_address_phone'] = address.address_phone;\n    addrFields[addressType + '_attention'] = address.address_attention;\n    addrFields['gr_' + addressType + '_address'] = formattedAddress;\n  }\n}\n\nconst today = new Date().toISOString().split('T')[0];\n\nconst grAllData = Object.assign({\n  gr_status: 'Draft',\n  page_status: 'Add',\n  from_convert: 'Yes',\n  plant_id: plantId,\n  organization_id: orgId,\n  purchase_order_number: poNos,\n  po_id: poIds,\n  gr_no: '',\n  gr_no_type: grNoType,\n  gr_date: today,\n  gr_received_by: 'Internal Trading System',\n  supplier_name: supplierId,\n  currency_code: currencyCode,\n  acc_integration_type: accType,\n  supplier_contact_person: supplierContactPerson,\n  supplier_contact_number: supplierContactNumber,\n  supplier_email: supplierEmail,\n  gr_remark1: grRemark1,\n  gr_remark2: grRemark2,\n  gr_remark3: grRemark3,\n  gr_remark4: grRemark4,\n  gr_remark5: grRemark5,\n  table_gr: tableGr\n}, addrFields);\n\nreturn { grAllData: grAllData, lineCount: tableGr.length };\n"
+          "code": "\nconst baseLines = {{node:code_build_lines.data.baseLines}} || [];\nconst items = {{node:search_items.data.data}};\nconst itemArr = Array.isArray(items) ? items : (items ? [items] : []);\nconst putawayRows = {{node:search_putaway_setup.data.data}};\nconst putawayArr = Array.isArray(putawayRows) ? putawayRows : (putawayRows ? [putawayRows] : []);\nconst putawaySetup = putawayArr.length > 0 ? putawayArr[0] : null;\nconst binRows = {{node:search_bin_location.data.data}};\nconst binArr = Array.isArray(binRows) ? binRows : (binRows ? [binRows] : []);\nconst defaultBinLocation = binArr.length > 0 ? binArr[0].id : '';\nconst defaultStorageLocation = {{node:code_sl.data.slId}} || '';\nconst accRows = {{node:search_acc.data.data}};\nconst accArr = Array.isArray(accRows) ? accRows : (accRows ? [accRows] : []);\nconst accType = accArr.length > 0 ? accArr[0].acc_integration_type : '';\nconst ruleRows = {{node:search_gr_rule.data.data}};\nconst ruleArr = Array.isArray(ruleRows) ? ruleRows : (ruleRows ? [ruleRows] : []);\nconst grNoType = ruleArr.length > 0 ? ruleArr[0].id : '';\n\nconst supplierRows = {{node:search_supplier.data.data}};\nconst supplier = Array.isArray(supplierRows) ? supplierRows[0] : supplierRows;\nconst currencyRows = {{node:search_supplier_currency.data.data}};\nconst currencyArr = Array.isArray(currencyRows) ? currencyRows : (currencyRows ? [currencyRows] : []);\nconst supplierCurrencyCode = currencyArr.length > 0 ? currencyArr[0].currency_code : '';\nconst purposeRows = {{node:search_addr_purpose.data.data}};\nconst purposeArr = Array.isArray(purposeRows) ? purposeRows : (purposeRows ? [purposeRows] : []);\nconst shippingPurposeId = purposeArr.length > 0 ? purposeArr[0].id : '';\nconst countryRows = {{node:search_addr_country.data.data}};\nconst countryArr = Array.isArray(countryRows) ? countryRows : (countryRows ? [countryRows] : []);\nconst stateRows = {{node:search_addr_state.data.data}};\nconst stateArr = Array.isArray(stateRows) ? stateRows : (stateRows ? [stateRows] : []);\n\nconst supplierId = {{node:code_build_lines.data.supplierId}} || '';\nconst poCurrency = {{node:code_build_lines.data.currencyCode}} || '';\nconst poNos = {{node:code_build_lines.data.poNos}} || '';\nconst poIds = {{node:code_build_lines.data.poIds}} || [];\nconst orgId = {{node:code_build_lines.data.organizationId}} || '';\nconst plantId = {{node:code_build_lines.data.plantId}} || '';\nconst grRemark1 = {{node:code_build_lines.data.grRemark1}} || '';\nconst grRemark2 = {{node:code_build_lines.data.grRemark2}} || '';\nconst grRemark3 = {{node:code_build_lines.data.grRemark3}} || '';\nconst grRemark4 = {{node:code_build_lines.data.grRemark4}} || '';\nconst grRemark5 = {{node:code_build_lines.data.grRemark5}} || '';\nconst skipPutaway = {{node:code_build_lines.data.skipPutaway}} || 0;\nconst gdId = {{workflowparams:gd_id}} || '';\nconst gdNo = {{workflowparams:gd_no}} || '';\n\nconst itemMap = {};\nfor (const it of itemArr) { if (it && it.id) itemMap[String(it.id)] = it; }\nconst countryMap = {};\nfor (const c of countryArr) { if (c && c.id) countryMap[String(c.id)] = c.country_name; }\nconst stateMap = {};\nfor (const s of stateArr) { if (s && s.id) stateMap[String(s.id)] = s.state_name; }\n\nconst convertAltToBase = (altQty, table, altUOM) => {\n  if (!Array.isArray(table) || table.length === 0 || !altUOM) return altQty;\n  const c = table.find((x) => x.alt_uom_id === altUOM);\n  if (!c || !c.alt_qty) return altQty;\n  return Math.round(altQty * c.base_qty * 1000) / 1000;\n};\n\nconst putawayCategory = (putawaySetup && putawaySetup.category) ? putawaySetup.category : 'In Transit';\n\n// --- GD batch enrichment inputs (GD table passed from GDheadWorkflow; SO + Batch fetched here) ---\nconst gdTable = {{workflowparams:gd_table}} || [];\nconst soRows = {{node:search_so.data.data}};\nconst soArr = Array.isArray(soRows) ? soRows : (soRows ? [soRows] : []);\nconst batchRows = {{node:search_batch.data.data}};\nconst batchArr = Array.isArray(batchRows) ? batchRows : (batchRows ? [batchRows] : []);\n\n// SO line id -> source PO line item id (stamped by auto-SO creation)\nconst soLineToPoLine = {};\nfor (const so of soArr) {\n  if (!so || !Array.isArray(so.table_so)) continue;\n  for (const sl of so.table_so) {\n    if (sl && sl.id && sl.source_po_line_item_id) soLineToPoLine[String(sl.id)] = String(sl.source_po_line_item_id);\n  }\n}\n// batch id -> { batch_number, manufacturing_date, expired_date }\nconst batchInfo = {};\nfor (const b of batchArr) {\n  if (b && b.id) batchInfo[String(b.id)] = { batch_number: b.batch_number || '', manufacturing_date: b.manufacturing_date || null, expired_date: b.expired_date || null };\n}\n// PO line item id -> { order:[batchId...], map:{batchId:qty} } aggregated across GD lines\nconst poLineBatches = {};\nfor (const gl of gdTable) {\n  if (!gl) continue;\n  const poLineId = gl.so_line_item_id ? soLineToPoLine[String(gl.so_line_item_id)] : null;\n  if (!poLineId) continue;\n  let tqd = [];\n  try { tqd = gl.temp_qty_data ? JSON.parse(gl.temp_qty_data) : []; } catch (e) { tqd = []; }\n  if (!Array.isArray(tqd)) tqd = [];\n  if (!poLineBatches[poLineId]) poLineBatches[poLineId] = { order: [], map: {} };\n  const grp = poLineBatches[poLineId];\n  for (const t of tqd) {\n    if (!t) continue;\n    const q = parseFloat(t.gd_quantity) || 0;\n    if (q <= 0) continue;\n    const bId = t.batch_id ? String(t.batch_id) : 'none';\n    if (grp.map[bId] === undefined) { grp.map[bId] = 0; grp.order.push(bId); }\n    grp.map[bId] += q;\n  }\n}\nconst letterSuffix = (n) => { let s = ''; let x = n; while (x >= 0) { s = String.fromCharCode(65 + (x % 26)) + s; x = Math.floor(x / 26) - 1; } return s; };\n\nconst buildRec = (item, itemData, rowQty, batchNo, mfgDate, expDate, splitInfo) => {\n  const rec = Object.assign({}, item);\n  rec.base_ordered_qty = item.ordered_qty;\n  rec.base_ordered_qty_uom = item.ordered_qty_uom || null;\n  rec.base_item_uom = item.ordered_qty_uom || null;\n  rec.base_received_qty_uom = item.ordered_qty_uom || null;\n  rec.inspection_required = (itemData && itemData.receiving_inspection === 1) ? 'Yes' : 'No';\n  rec.to_received_qty = 0;\n  rec.received_qty = rowQty;\n  rec.base_received_qty = parseFloat((Number(rowQty) || 0).toFixed(3));\n  rec.storage_location_id = defaultStorageLocation;\n  rec.location_id = defaultBinLocation;\n  rec.item_batch_no = batchNo;\n  rec.manufacturing_date = mfgDate;\n  rec.expired_date = expDate;\n  rec.inv_category = '';\n  rec.item_costing_method = itemData ? (itemData.material_costing_method || null) : null;\n  rec.uom_conversion = 0;\n  rec.is_split = splitInfo ? 'Yes' : 'No';\n  rec.parent_or_child = splitInfo ? 'Split-Parent' : 'Parent';\n  rec.parent_index = splitInfo ? splitInfo.parentIndex : 0;\n  if (splitInfo) rec.line_index = splitInfo.lineIndex;\n\n  const isAltUOM = (itemData && itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find((c) => c.alt_uom_id === item.ordered_qty_uom && c.alt_uom_id !== itemData.based_uom)\n    : null;\n  if (isAltUOM) {\n    rec.base_ordered_qty = convertAltToBase(item.ordered_qty, itemData.table_uom_conversion, item.ordered_qty_uom);\n    rec.base_ordered_qty_uom = itemData.based_uom;\n    rec.base_received_qty_uom = itemData.based_uom;\n    rec.base_item_uom = itemData.based_uom;\n    rec.base_received_qty = convertAltToBase(Number(rowQty) || 0, itemData.table_uom_conversion, item.ordered_qty_uom);\n    rec.uom_conversion = isAltUOM.base_qty;\n  }\n  if (itemData && itemData.serial_number_management === 1) rec.is_serialized_item = 1;\n  if (itemData && itemData.formula && itemData.formula !== '') { rec.has_formula = 1; rec.formula = itemData.formula; }\n\n  let invCat = '';\n  if (rec.inspection_required === 'No') {\n    if (!putawaySetup || putawaySetup.putaway_required === 0) invCat = 'Unrestricted';\n    else if (putawaySetup.putaway_required === 1) invCat = putawayCategory;\n  } else {\n    invCat = 'Quality Inspection';\n  }\n  rec.inv_category = invCat;\n  // skip_putaway: force straight-to-Unrestricted (overrides Quality Inspection too)\n  if (skipPutaway === 1) { rec.inspection_required = 'No'; rec.inv_category = 'Unrestricted'; }\n  return rec;\n};\n\nconst tableGr = [];\nfor (let li = 0; li < baseLines.length; li++) {\n  const item = baseLines[li];\n  const itemData = item.item_id ? itemMap[String(item.item_id)] : null;\n  const isBatchItem = itemData && itemData.item_batch_management !== 0;\n  const isAutoGen = itemData && itemData.batch_number_genaration === 'According To System Settings';\n  const defaultBatchNo = itemData\n    ? (itemData.item_batch_management === 0 ? '-' : (isAutoGen ? 'Auto-generated batch number' : ''))\n    : '-';\n\n  const grp = poLineBatches[item.po_line_item_id];\n  const batchIds = (isBatchItem && grp && grp.order.length > 0) ? grp.order : null;\n\n  // No batch breakdown (non-batch item, or unmapped/legacy SO) -> single row, current behavior\n  if (!batchIds) {\n    const rec = buildRec(item, itemData, item.received_qty, defaultBatchNo, null, null, null);\n    if (Number(rec.received_qty) !== 0) tableGr.push(rec);\n    continue;\n  }\n\n  // Distribute the PO line's received qty across seller batches proportionally\n  const R = parseFloat((Number(item.received_qty) || 0).toFixed(3));\n  const totalGd = batchIds.reduce((s, b) => s + (grp.map[b] || 0), 0);\n  const multi = batchIds.length >= 2;\n  let allocated = 0;\n  for (let bi = 0; bi < batchIds.length; bi++) {\n    const bId = batchIds[bi];\n    let rowQty;\n    if (bi === batchIds.length - 1) {\n      rowQty = parseFloat((R - allocated).toFixed(3));\n    } else {\n      rowQty = totalGd > 0 ? parseFloat((R * (grp.map[bId] / totalGd)).toFixed(3)) : 0;\n      allocated = parseFloat((allocated + rowQty).toFixed(3));\n    }\n    if (rowQty <= 0) continue;\n    const info = (bId !== 'none' && batchInfo[bId]) ? batchInfo[bId] : null;\n    let batchNo;\n    if (itemData && itemData.item_batch_management === 0) batchNo = '-';\n    else if (isAutoGen) batchNo = 'Auto-generated batch number';\n    else batchNo = info ? info.batch_number : defaultBatchNo;\n    const mfg = info ? info.manufacturing_date : null;\n    const exp = info ? info.expired_date : null;\n    const splitInfo = multi ? { parentIndex: li, lineIndex: (li + 1) + '-' + letterSuffix(bi) } : null;\n    const rec = buildRec(item, itemData, rowQty, batchNo, mfg, exp, splitInfo);\n    if (Number(rec.received_qty) !== 0) tableGr.push(rec);\n  }\n}\n\nlet supplierContactPerson = '';\nlet supplierContactNumber = '';\nlet supplierEmail = '';\nlet currencyCode = poCurrency;\nconst addrFields = {};\nif (supplier) {\n  if (supplier.contact_list && supplier.contact_list.length) {\n    const c0 = supplier.contact_list[0];\n    supplierContactPerson = ((c0.person_name || '') + ' ' + (c0.person_last_name || '')).trim();\n    supplierContactNumber = c0.phone_number || '';\n    supplierEmail = c0.person_email || '';\n  }\n  if (supplierCurrencyCode) currencyCode = supplierCurrencyCode;\n  const addresses = (supplier.address_list || []).filter((a) => a.switch_save_as_default);\n  for (const address of addresses) {\n    const country = address.address_country_id ? (countryMap[String(address.address_country_id)] || '') : '';\n    const state = address.adddress_state ? (stateMap[String(address.adddress_state)] || '') : '';\n    const isShipping = address.address_purpose_id === shippingPurposeId;\n    const addressType = isShipping ? 'shipping' : 'billing';\n    const addressTypeUpperCase = isShipping ? 'Shipping' : 'Billing';\n    const lineParts = [address.address_line_1, address.address_line_2, address.address_line_3, address.address_line_4].filter((l) => l);\n    const addressLines = lineParts.join((lineParts[lineParts.length - 1] || '').endsWith(',') ? ' ' : ', ');\n    const cityParts = [address.address_city, address.address_postal_code, address.adddress_state ? state : '', address.address_country_id ? country : ''].filter((d) => d);\n    const cityDetails = cityParts.join((cityParts[cityParts.length - 1] || '').endsWith(',') ? ' ' : ', ');\n    const addressAttention = address.address_attention ? '\\nAttention: ' + address.address_attention : '';\n    const addressPurposeName = '\\n' + addressTypeUpperCase + ' Address';\n    const personParts = [address.address_name, address.address_phone].filter((p) => p);\n    const addressPerson = personParts.length > 0 ? personParts.join(' | ') : '';\n    const formattedAddress = [addressPerson, addressPurposeName, addressLines, cityDetails, addressAttention].filter(Boolean).join('\\n');\n    addrFields[addressType + '_address_line_1'] = address.address_line_1;\n    addrFields[addressType + '_address_line_2'] = address.address_line_2;\n    addrFields[addressType + '_address_line_3'] = address.address_line_3;\n    addrFields[addressType + '_address_line_4'] = address.address_line_4;\n    addrFields[addressType + '_address_city'] = address.address_city;\n    addrFields[addressType + '_address_state'] = address.adddress_state;\n    addrFields[addressType + '_postal_code'] = address.address_postal_code;\n    addrFields[addressType + '_address_country'] = address.address_country_id;\n    addrFields[addressType + '_address_name'] = address.address_name;\n    addrFields[addressType + '_address_phone'] = address.address_phone;\n    addrFields[addressType + '_attention'] = address.address_attention;\n    addrFields['gr_' + addressType + '_address'] = formattedAddress;\n  }\n}\n\nconst today = new Date().toISOString().split('T')[0];\n\nconst grAllData = Object.assign({\n  gr_status: 'Draft',\n  page_status: 'Add',\n  from_convert: 'Yes',\n  plant_id: plantId,\n  organization_id: orgId,\n  purchase_order_number: poNos,\n  po_id: poIds,\n  gr_no: '',\n  gr_no_type: grNoType,\n  gr_date: today,\n  gr_received_by: 'Internal Trading System',\n  supplier_name: supplierId,\n  currency_code: currencyCode,\n  acc_integration_type: accType,\n  supplier_contact_person: supplierContactPerson,\n  supplier_contact_number: supplierContactNumber,\n  supplier_email: supplierEmail,\n  gr_remark1: grRemark1,\n  gr_remark2: grRemark2,\n  gr_remark3: grRemark3,\n  gr_remark4: grRemark4,\n  gr_remark5: grRemark5,\n  table_gr: tableGr\n}, addrFields);\n\nreturn { grAllData: grAllData, skipPutaway: skipPutaway, lineCount: tableGr.length };\n"
         },
         "response_json": [
           {
@@ -1401,6 +1758,14 @@
             "bsonType": "any",
             "isExpand": false,
             "children": []
+          },
+          {
+            "key": "g2g_asm_skipputaway",
+            "name": "skipPutaway",
+            "title": "skipPutaway",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
           },
           {
             "key": "g2g_linecount",
@@ -1487,6 +1852,16 @@
               "valueTypeLabel": "",
               "value": "Yes",
               "valueLabel": ""
+            },
+            {
+              "prop": "skip_putaway",
+              "propLabel": "skip_putaway",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_assemble.data.skipPutaway}}",
+              "valueLabel": ""
             }
           ]
         }
@@ -1562,7 +1937,10 @@
         "nodeName": "IF GR OK",
         "name": "IF GR OK",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -1586,7 +1964,9 @@
         {
           "id": "if_gr_ok_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "add_gd_gr_linkage",
@@ -1594,7 +1974,10 @@
               "data": {
                 "table_id": {
                   "source": "Document Linkage:Table:2069270865093935105",
-                  "rules": { "collectionId": "2069270865093935105", "list": [] }
+                  "rules": {
+                    "collectionId": "2069270865093935105",
+                    "list": []
+                  }
                 },
                 "fields": [],
                 "title": "Add GD-GR Linkage",
@@ -1754,7 +2137,9 @@
         {
           "id": "if_gr_ok_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1768,7 +2153,10 @@
         "nodeName": "IF GR Failed",
         "name": "IF GR Failed",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -1792,7 +2180,9 @@
         {
           "id": "if_gr_failed_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_fail",
@@ -1847,7 +2237,9 @@
         {
           "id": "if_gr_failed_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]

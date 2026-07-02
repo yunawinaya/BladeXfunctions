@@ -42,18 +42,45 @@
         "filter": {
           "list": [
             {
-              "id": 210500000002,
-              "parentId": 210500000003,
+              "id": 210500000003,
+              "parentId": 210500000004,
               "isTop": true,
-              "prop": "workflowparams.saveAs",
-              "operator": "equal",
-              "valueType": "value",
-              "value": "Completed",
-              "type": "leaf",
+              "type": "branch",
+              "operator": "any",
+              "prop": "",
+              "valueType": "",
+              "value": "",
               "level": 1,
-              "propLabel": "saveAs",
-              "valueLabel": "",
-              "operatorLabel": "Equal"
+              "children": [
+                {
+                  "id": 210500000002,
+                  "parentId": 210500000003,
+                  "isTop": false,
+                  "prop": "workflowparams.saveAs",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Completed",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "saveAs",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                },
+                {
+                  "id": 210500000005,
+                  "parentId": 210500000003,
+                  "isTop": false,
+                  "prop": "workflowparams.saveAs",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Created",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "saveAs",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
             }
           ]
         }
@@ -243,6 +270,41 @@
               "blocks": []
             },
             {
+              "id": "if_gr_has_link",
+              "type": "if",
+              "data": {
+                "title": "IF Has Linkage",
+                "isValidator": true,
+                "nodeName": "IF Has Linkage",
+                "name": "IF Has Linkage",
+                "condition_type": "ConditionRule",
+                "expression": { "type": "javascript", "code": "" },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 170000000020,
+                      "parentId": 170000000021,
+                      "isTop": true,
+                      "prop": "node.code_gr_link.data.hasLink",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "hasLink",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_gr_has_link_t",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+            {
               "id": "search_gr_its",
               "type": "search-node",
               "data": {
@@ -317,6 +379,16 @@
                 "name": "GR Gate - Internal Trading Setup"
               },
               "blocks": []
+            }
+                  ]
+                },
+                {
+                  "id": "if_gr_has_link_f",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
             },
             {
               "id": "code_gr_cover_ids",
@@ -469,7 +541,7 @@
                 "name": "GR Gate - Decision",
                 "script": {
                   "type": "javascript",
-                  "code": "const saveAs = {{workflowparams:saveAs}} || '';\nconst autoConfirmed = {{workflowparams:auto_gr_confirmed}} || false;\nconst autoSkip = {{workflowparams:auto_gr_skip}} || false;\nconst allData = {{workflowparams:allData}};\nconst linkedSoIds = {{node:code_gr_link.data.linkedSoIds}} || [];\nconst itsRows = {{node:search_gr_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\nconst soRows = {{node:search_gr_so.data.data}};\nconst soArr = Array.isArray(soRows) ? soRows : (soRows ? [soRows] : []);\n\nconst linkedSet = {};\nfor (const s of linkedSoIds) linkedSet[String(s)] = true;\nconst autoCreateGr = itsArr.some(function (r) { return r && Number(r.auto_create_gr) === 1; });\n\n// Per-line fullness comes from the GD (no fetch). Coverage (every SO line present)\n// needs soArr, which is only populated after the user confirms auto-GR.\nconst tableGd = (allData && allData.table_gd) || [];\nconst gdLineSet = {};\nlet allLinesFull = true;\nfor (const row of tableGd) {\n  if (!row || !row.material_id) continue;\n  const so = String(row.line_so_id || (allData ? allData.so_id : '') || '');\n  if (!linkedSet[so]) continue;\n  if (row.so_line_item_id) gdLineSet[so + '|' + String(row.so_line_item_id)] = true;\n  if ((Number(row.gd_qty) || 0) < (Number(row.gd_order_quantity) || 0)) allLinesFull = false;\n}\n\nlet coversAll = true;\nfor (const so of soArr) {\n  if (!so || !so.id) continue;\n  const soId = String(so.id);\n  if (!linkedSet[soId]) continue;\n  const soLines = so.table_so || [];\n  for (const sl of soLines) {\n    if (!sl || !sl.id || !sl.item_name) continue;\n    if (!gdLineSet[soId + '|' + String(sl.id)]) { coversAll = false; break; }\n  }\n  if (!coversAll) break;\n}\n\nconst internalLinked = (saveAs === 'Completed') && linkedSoIds.length > 0 && autoCreateGr;\n\nlet grConfirm = 0;\nlet msg = '';\nlet doAutoGr = 0;\n\nif (!internalLinked || autoSkip) {\n  grConfirm = 0;\n} else if (!allLinesFull) {\n  // Partial quantity — detected without fetching the SO; block.\n  grConfirm = 409;\n  msg = 'This delivery is linked to an internal Purchase Order, but it does not fully complete the Sales Order in a single delivery.<br><br>A linked delivery must deliver every line of the order in full before the Goods Receipt can be auto-created.';\n} else if (!autoConfirmed) {\n  grConfirm = 408;\n  msg = 'This delivery is linked to an internal Purchase Order.<br><br>Auto-create the Goods Receipt in the buyer organization when this delivery is completed?';\n} else if (!coversAll) {\n  // Confirmed: SO fetched and a line of the order is missing from this delivery; block.\n  grConfirm = 409;\n  msg = 'This delivery is linked to an internal Purchase Order, but it does not include every line of the Sales Order.<br><br>A linked delivery must deliver every line of the order in full before the Goods Receipt can be auto-created.';\n} else {\n  doAutoGr = 1;\n}\n\nreturn { grConfirm: grConfirm, msg: msg, doAutoGr: doAutoGr };\n"
+                  "code": "const saveAs = {{workflowparams:saveAs}} || '';\nconst autoConfirmed = {{workflowparams:auto_gr_confirmed}} || false;\nconst autoSkip = {{workflowparams:auto_gr_skip}} || false;\nconst allData = {{workflowparams:allData}};\nconst linkedSoIds = {{node:code_gr_link.data.linkedSoIds}} || [];\nconst itsRows = {{node:search_gr_its.data.data}};\nconst itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);\nconst soRows = {{node:search_gr_so.data.data}};\nconst soArr = Array.isArray(soRows) ? soRows : (soRows ? [soRows] : []);\n\nconst linkedSet = {};\nfor (const s of linkedSoIds) linkedSet[String(s)] = true;\nconst autoCreateGr = itsArr.some(function (r) { return r && Number(r.auto_create_gr) === 1; });\n\n// Per-line fullness comes from the GD (no fetch). Coverage (every SO line present)\n// needs soArr, which is only populated after the user confirms auto-GR.\nconst tableGd = (allData && allData.table_gd) || [];\nconst gdLineSet = {};\nlet allLinesFull = true;\nfor (const row of tableGd) {\n  if (!row || !row.material_id) continue;\n  const so = String(row.line_so_id || (allData ? allData.so_id : '') || '');\n  if (!linkedSet[so]) continue;\n  if (row.so_line_item_id) gdLineSet[so + '|' + String(row.so_line_item_id)] = true;\n  if ((Number(row.gd_qty) || 0) < (Number(row.gd_order_quantity) || 0)) allLinesFull = false;\n}\n\nlet coversAll = true;\nfor (const so of soArr) {\n  if (!so || !so.id) continue;\n  const soId = String(so.id);\n  if (!linkedSet[soId]) continue;\n  const soLines = so.table_so || [];\n  for (const sl of soLines) {\n    if (!sl || !sl.id || !sl.item_name) continue;\n    if (!gdLineSet[soId + '|' + String(sl.id)]) { coversAll = false; break; }\n  }\n  if (!coversAll) break;\n}\n\nconst internalLinked = (saveAs === 'Completed') && linkedSoIds.length > 0 && autoCreateGr;\n\nlet grConfirm = 0;\nlet msg = '';\nlet doAutoGr = 0;\n\nif (!internalLinked || autoSkip) {\n  grConfirm = 0;\n} else if (!allLinesFull) {\n  // Partial quantity — detected without fetching the SO; block.\n  grConfirm = 409;\n  msg = 'This delivery is linked to an internal Purchase Order, but it does not fully complete the Sales Order in a single delivery.<br><br>A linked delivery must deliver every line of the order in full before the Goods Receipt can be auto-created.';\n} else if (!autoConfirmed) {\n  grConfirm = 408;\n  msg = 'This delivery is linked to an internal Purchase Order.<br><br>Auto-create the Goods Receipt in the buyer organization when this delivery is completed?';\n} else if (!coversAll) {\n  // Confirmed: SO fetched and a line of the order is missing from this delivery; block.\n  grConfirm = 409;\n  msg = 'This delivery is linked to an internal Purchase Order, but it does not include every line of the Sales Order.<br><br>A linked delivery must deliver every line of the order in full before the Goods Receipt can be auto-created.';\n} else {\n  doAutoGr = 1;\n}\n\n// skip_picking: an internal-trading (linked + auto_create_gr) GD may bypass the\n// picking/packing completion gates. Only internal auto-GR GDs can skip.\nconst skipPicking = (linkedSoIds.length > 0 && autoCreateGr && itsArr.some(function (r) { return r && Number(r.skip_picking) === 1; })) ? 1 : 0;\n\nreturn { grConfirm: grConfirm, msg: msg, doAutoGr: doAutoGr, skipPicking: skipPicking };\n"
                 },
                 "response_json": [
                   {
@@ -492,6 +564,14 @@
                     "key": "grg_doautogr",
                     "name": "doAutoGr",
                     "title": "doAutoGr",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "grg_skippicking",
+                    "name": "skipPicking",
+                    "title": "skipPicking",
                     "description": "",
                     "bsonType": "int",
                     "isExpand": false
@@ -2942,7 +3022,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\n\n// Cancel gate: a Completed Goods Delivery has already moved inventory and\n// posted downstream. It cannot be cancelled through this save path — it must\n// be reversed via the proper completion-reversal flow. Block the save with a\n// clear error, reusing the invalidData -> 400 path (if_vnwLSl9x).\nif (saveAs === \"Cancelled\" && allData.gd_status === \"Completed\") {\n  return {\n    allData: allData,\n    gd_status: allData.gd_status,\n    needCL: \"not required\",\n    picking_status: allData.picking_status,\n    packing_status: allData.packing_status,\n    needSOCleanUp: 0,\n    invalidData: 1,\n    invalidDataMessage: \"Cannot cancel Goods Delivery \" + (allData.delivery_no || \"\") + \" because it is already Completed. Reverse the completion before cancelling.\"\n  };\n}\n\n// M:N edit gate: when allow_full_picking=1 AND user is editing a GD that has\n// multiple non-terminal Pickings (Created / In Progress), block the save with\n// a clear error. Forces user to cancel or complete those Pickings before\n// modifying the GD upstream of them. Reuses the invalidData -> 400 path\n// (if_vnwLSl9x).\nif (\n  pickingSetup &&\n  pickingSetup.allow_full_picking === 1 &&\n  saveAs === \"Created\" &&\n  pageStatus === \"Edit\"\n) {\n  const activePickings = ({{node:search_node_NBAQ9gsj.data.data}} || [])\n    .filter(function(to) {\n      return to.to_status !== \"Completed\" &&\n             to.to_status !== \"Cancelled\" &&\n             to.to_status !== \"Draft\";\n    });\n  if (activePickings.length > 1) {\n    const list = activePickings\n      .map(function(to) { return to.to_id || to.id; })\n      .slice(0, 5)\n      .join(\", \");\n    const suffix = activePickings.length > 5\n      ? \" (+\" + (activePickings.length - 5) + \" more)\"\n      : \"\";\n    return {\n      allData: allData,\n      gd_status: allData.gd_status,\n      needCL: \"not required\",\n      picking_status: allData.picking_status,\n      packing_status: allData.packing_status,\n      needSOCleanUp: 0,\n      invalidData: 1,\n      invalidDataMessage: \"Cannot edit this Goods Delivery while \" + activePickings.length + \" Pickings are active: \" + list + suffix + \". Cancel or complete those Pickings before editing.\"\n    };\n  }\n}\n\nconst skippedRows = [];\n\n// Build flags map from Get Items (only populated when picking_mode=Auto ran).\n// Used to detect description-only rows: stock_control=0 AND show_delivery=0.\nconst itemDataRaw = {{node:search_node_w1NxF9TX.data.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\nconst itemFlagsMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemFlagsMap[it.id] = {\n      stock_control: it.stock_control,\n      show_delivery: it.show_delivery\n    };\n  }\n}\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\nfor (const [index, gdLineItem] of allData.table_gd.entries()) {\n  if (saveAs !== \"Draft\" && (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0)) {\n    continue;\n  }\n\n  // Descriptive (no-stock) line: material_id empty, OR item has stock_control=0 AND show_delivery=0\n  const flags = gdLineItem.material_id ? itemFlagsMap[gdLineItem.material_id] : null;\n  const isNonStockNoShow = flags && flags.stock_control === 0 && flags.show_delivery === 0;\n  const isDescriptive = !gdLineItem.material_id || gdLineItem.material_id === \"\" || isNonStockNoShow;\n  if (isDescriptive) {\n    const hasDescription =\n      (gdLineItem.material_name && gdLineItem.material_name !== \"\") ||\n      (gdLineItem.gd_material_desc && gdLineItem.gd_material_desc !== \"\");\n    if (!hasDescription && saveAs !== \"Draft\") {\n      skippedRows.push({\n        index: index,\n        material_name: \"(none)\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"row has no material_id and no description\",\n      });\n      continue;\n    }\n    gdLineItem.customer_id = allData.customer_name || null;\n    gdLineItem.organization_id = allData.organization_id;\n    gdLineItem.plant_id = allData.plant_id || null;\n    gdLineItem.billing_state_id = allData.billing_address_state || null;\n    gdLineItem.billing_country_id = allData.billing_address_country || null;\n    gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n    gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n    gdLineItem.assigned_to = allData.assigned_to || null;\n    gdLineItem.area_id = allData.gd_area_id || null;\n    gdLineItem.line_index = index + 1;\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.picking_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n    }\n    if (\n      pickingSetup &&\n      allData.is_select_picking !== 1 &&\n      (!allData.picking_status || allData.picking_status === \"\") &&\n      saveAs === \"Created\" &&\n      pickingSetup.picking_required === 1\n    ) {\n      // Descriptive lines have no picking item — mark Completed so the GD-level\n      // picking_status can flip to Completed once the real stock rows are picked.\n      gdLineItem.picking_status = \"Completed\";\n    }\n    // Same treatment for packing_status: descriptive lines have no packing item,\n    // so they must be marked Completed for the GD-level rollup to succeed.\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.packing_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.packing_status = gdLineItem.packing_status ? \"Cancelled\" : null;\n    } else if (saveAs === \"Created\" && allData.is_select_picking !== 1) {\n      gdLineItem.packing_status = \"Completed\";\n    }\n    updatedGD.push(gdLineItem);\n    continue;\n  }\n\n  if (saveAs !== \"Draft\") {\n    const tempQtyData = gdLineItem.temp_qty_data;\n    const isEmpty =\n      !tempQtyData ||\n      tempQtyData === \"\" ||\n      tempQtyData === \"[]\" ||\n      tempQtyData === null;\n\n    if (isEmpty) {\n      skippedRows.push({\n        index: index,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data is empty\",\n      });\n      continue;\n    }\n\n    try {\n      const parsedTempQty = JSON.parse(tempQtyData);\n      const totalAllocated = parsedTempQty.reduce(\n        (sum, item) => sum + (parseFloat(item.gd_quantity) || 0),\n        0\n      );\n      const gdQty = parseFloat(gdLineItem.gd_qty) || 0;\n\n      if (Math.abs(totalAllocated - gdQty) > 0.001) {\n        skippedRows.push({\n          index: index,\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          allocated_qty: totalAllocated,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `temp_qty_data total (${totalAllocated}) != gd_qty (${gdQty})`,\n        });\n        continue;\n      }\n    } catch (e) {\n      skippedRows.push({\n        index: index,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data parse error\",\n      });\n      continue;\n    }\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = index + 1;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    allData.is_select_picking !== 1 &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  updatedGD.push(gdLineItem);\n}\n\nallData.table_gd = updatedGD;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\n// All-descriptive GD detection: if every surviving row is either a no-material_id\n// row or a stock_control=0 && show_delivery=0 row, there is nothing to pick.\n// Mark picking as Completed up front so no empty picking record is created.\nconst hasRealStockRow = updatedGD.some(function(row) {\n  if (!row.material_id || row.material_id === \"\") return false;\n  const f = itemFlagsMap[row.material_id];\n  if (f && f.stock_control === 0 && f.show_delivery === 0) return false;\n  return true;\n});\n\nif (\n  pickingSetup &&\n  allData.is_select_picking !== 1 &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (!hasRealStockRow) {\n    allData.picking_status = \"Completed\";\n    updatedGD.forEach(function(row) {\n      if (row.picking_status === \"Created\" || row.picking_status === \"Not Created\") {\n        row.picking_status = \"Completed\";\n      }\n    });\n  } else if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\n// GD-level packing_status: for all-skip-items GDs, mark Completed so the\n// \"IF need Packing\" gate doesn't block subsequent workflow steps.\nif (\n  allData.is_select_picking !== 1 &&\n  (!allData.packing_status || allData.packing_status === \"\") &&\n  saveAs === \"Created\" &&\n  !hasRealStockRow\n) {\n  allData.packing_status = \"Completed\";\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\nif (allData.acc_integration_type !== \"No Accounting\" && {{workflowparams:needCL}} === \"required\") {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n  // For Created GDs being cancelled, suffix delivery_no with \"-Cancelled\"\n  // so the (still-issued) document number is visually flagged.\n  if (\n    allData.gd_status === \"Created\" &&\n    typeof allData.delivery_no === \"string\" &&\n    allData.delivery_no &&\n    !allData.delivery_no.endsWith(\"-Cancelled\")\n  ) {\n    allData.delivery_no = allData.delivery_no + \"-Cancelled\";\n  }\n}\n\nlet needSOCleanUp = 0;\nlet originalTableGD = [];\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n  originalTableGD = originalTableGD.table_gd;\n\n  allData.table_gd.forEach((item) => {\n    const originalItem = originalGD.table_gd?.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (allData.table_gd.length !== originalGD.table_gd.length) {\n    needSOCleanUp = 1\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.index + 1}: ${row.material_name} - qty: ${row.gd_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid allocation data:\\n\\n${rowDetails}\\n\\nThese rows may need manual allocation or the allocation workflow may have failed.`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage,\n  originalTableGD: originalTableGD\n};\n"
+          "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\n// skip_picking (internal auto-GR): treat picking as not required across the whole GD\n// lifecycle (incl. Created), so no picking_status is stamped and no picking TO is created.\nconst skipPickingGate = {{node:code_gr_gate.data.skipPicking}} || 0;\nif (skipPickingGate === 1 && pickingSetup) { pickingSetup.picking_required = 0; }\n\n// Cancel gate: a Completed Goods Delivery has already moved inventory and\n// posted downstream. It cannot be cancelled through this save path — it must\n// be reversed via the proper completion-reversal flow. Block the save with a\n// clear error, reusing the invalidData -> 400 path (if_vnwLSl9x).\nif (saveAs === \"Cancelled\" && allData.gd_status === \"Completed\") {\n  return {\n    allData: allData,\n    gd_status: allData.gd_status,\n    needCL: \"not required\",\n    picking_status: allData.picking_status,\n    packing_status: allData.packing_status,\n    needSOCleanUp: 0,\n    invalidData: 1,\n    invalidDataMessage: \"Cannot cancel Goods Delivery \" + (allData.delivery_no || \"\") + \" because it is already Completed. Reverse the completion before cancelling.\"\n  };\n}\n\n// M:N edit gate: when allow_full_picking=1 AND user is editing a GD that has\n// multiple non-terminal Pickings (Created / In Progress), block the save with\n// a clear error. Forces user to cancel or complete those Pickings before\n// modifying the GD upstream of them. Reuses the invalidData -> 400 path\n// (if_vnwLSl9x).\nif (\n  pickingSetup &&\n  pickingSetup.allow_full_picking === 1 &&\n  saveAs === \"Created\" &&\n  pageStatus === \"Edit\"\n) {\n  const activePickings = ({{node:search_node_NBAQ9gsj.data.data}} || [])\n    .filter(function(to) {\n      return to.to_status !== \"Completed\" &&\n             to.to_status !== \"Cancelled\" &&\n             to.to_status !== \"Draft\";\n    });\n  if (activePickings.length > 1) {\n    const list = activePickings\n      .map(function(to) { return to.to_id || to.id; })\n      .slice(0, 5)\n      .join(\", \");\n    const suffix = activePickings.length > 5\n      ? \" (+\" + (activePickings.length - 5) + \" more)\"\n      : \"\";\n    return {\n      allData: allData,\n      gd_status: allData.gd_status,\n      needCL: \"not required\",\n      picking_status: allData.picking_status,\n      packing_status: allData.packing_status,\n      needSOCleanUp: 0,\n      invalidData: 1,\n      invalidDataMessage: \"Cannot edit this Goods Delivery while \" + activePickings.length + \" Pickings are active: \" + list + suffix + \". Cancel or complete those Pickings before editing.\"\n    };\n  }\n}\n\nconst skippedRows = [];\n\n// Build flags map from Get Items (only populated when picking_mode=Auto ran).\n// Used to detect description-only rows: stock_control=0 AND show_delivery=0.\nconst itemDataRaw = {{node:search_node_w1NxF9TX.data.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\nconst itemFlagsMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemFlagsMap[it.id] = {\n      stock_control: it.stock_control,\n      show_delivery: it.show_delivery\n    };\n  }\n}\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\nfor (const [index, gdLineItem] of allData.table_gd.entries()) {\n  if (saveAs !== \"Draft\" && (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0)) {\n    continue;\n  }\n\n  // Descriptive (no-stock) line: material_id empty, OR item has stock_control=0 AND show_delivery=0\n  const flags = gdLineItem.material_id ? itemFlagsMap[gdLineItem.material_id] : null;\n  const isNonStockNoShow = flags && flags.stock_control === 0 && flags.show_delivery === 0;\n  const isDescriptive = !gdLineItem.material_id || gdLineItem.material_id === \"\" || isNonStockNoShow;\n  if (isDescriptive) {\n    const hasDescription =\n      (gdLineItem.material_name && gdLineItem.material_name !== \"\") ||\n      (gdLineItem.gd_material_desc && gdLineItem.gd_material_desc !== \"\");\n    if (!hasDescription && saveAs !== \"Draft\") {\n      skippedRows.push({\n        index: index,\n        material_name: \"(none)\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"row has no material_id and no description\",\n      });\n      continue;\n    }\n    gdLineItem.customer_id = allData.customer_name || null;\n    gdLineItem.organization_id = allData.organization_id;\n    gdLineItem.plant_id = allData.plant_id || null;\n    gdLineItem.billing_state_id = allData.billing_address_state || null;\n    gdLineItem.billing_country_id = allData.billing_address_country || null;\n    gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n    gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n    gdLineItem.assigned_to = allData.assigned_to || null;\n    gdLineItem.area_id = allData.gd_area_id || null;\n    gdLineItem.line_index = index + 1;\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.picking_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n    }\n    if (\n      pickingSetup &&\n      allData.is_select_picking !== 1 &&\n      (!allData.picking_status || allData.picking_status === \"\") &&\n      saveAs === \"Created\" &&\n      pickingSetup.picking_required === 1\n    ) {\n      // Descriptive lines have no picking item — mark Completed so the GD-level\n      // picking_status can flip to Completed once the real stock rows are picked.\n      gdLineItem.picking_status = \"Completed\";\n    }\n    // Same treatment for packing_status: descriptive lines have no packing item,\n    // so they must be marked Completed for the GD-level rollup to succeed.\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.packing_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.packing_status = gdLineItem.packing_status ? \"Cancelled\" : null;\n    } else if (saveAs === \"Created\" && allData.is_select_picking !== 1) {\n      gdLineItem.packing_status = \"Completed\";\n    }\n    updatedGD.push(gdLineItem);\n    continue;\n  }\n\n  if (saveAs !== \"Draft\") {\n    const tempQtyData = gdLineItem.temp_qty_data;\n    const isEmpty =\n      !tempQtyData ||\n      tempQtyData === \"\" ||\n      tempQtyData === \"[]\" ||\n      tempQtyData === null;\n\n    if (isEmpty) {\n      skippedRows.push({\n        index: index,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data is empty\",\n      });\n      continue;\n    }\n\n    try {\n      const parsedTempQty = JSON.parse(tempQtyData);\n      const totalAllocated = parsedTempQty.reduce(\n        (sum, item) => sum + (parseFloat(item.gd_quantity) || 0),\n        0\n      );\n      const gdQty = parseFloat(gdLineItem.gd_qty) || 0;\n\n      if (Math.abs(totalAllocated - gdQty) > 0.001) {\n        skippedRows.push({\n          index: index,\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          allocated_qty: totalAllocated,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `temp_qty_data total (${totalAllocated}) != gd_qty (${gdQty})`,\n        });\n        continue;\n      }\n    } catch (e) {\n      skippedRows.push({\n        index: index,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data parse error\",\n      });\n      continue;\n    }\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = index + 1;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    allData.is_select_picking !== 1 &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  updatedGD.push(gdLineItem);\n}\n\nallData.table_gd = updatedGD;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\n// All-descriptive GD detection: if every surviving row is either a no-material_id\n// row or a stock_control=0 && show_delivery=0 row, there is nothing to pick.\n// Mark picking as Completed up front so no empty picking record is created.\nconst hasRealStockRow = updatedGD.some(function(row) {\n  if (!row.material_id || row.material_id === \"\") return false;\n  const f = itemFlagsMap[row.material_id];\n  if (f && f.stock_control === 0 && f.show_delivery === 0) return false;\n  return true;\n});\n\nif (\n  pickingSetup &&\n  allData.is_select_picking !== 1 &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (!hasRealStockRow) {\n    allData.picking_status = \"Completed\";\n    updatedGD.forEach(function(row) {\n      if (row.picking_status === \"Created\" || row.picking_status === \"Not Created\") {\n        row.picking_status = \"Completed\";\n      }\n    });\n  } else if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\n// GD-level packing_status: for all-skip-items GDs, mark Completed so the\n// \"IF need Packing\" gate doesn't block subsequent workflow steps.\nif (\n  allData.is_select_picking !== 1 &&\n  (!allData.packing_status || allData.packing_status === \"\") &&\n  saveAs === \"Created\" &&\n  !hasRealStockRow\n) {\n  allData.packing_status = \"Completed\";\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\nif (allData.acc_integration_type !== \"No Accounting\" && {{workflowparams:needCL}} === \"required\") {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n  // For Created GDs being cancelled, suffix delivery_no with \"-Cancelled\"\n  // so the (still-issued) document number is visually flagged.\n  if (\n    allData.gd_status === \"Created\" &&\n    typeof allData.delivery_no === \"string\" &&\n    allData.delivery_no &&\n    !allData.delivery_no.endsWith(\"-Cancelled\")\n  ) {\n    allData.delivery_no = allData.delivery_no + \"-Cancelled\";\n  }\n}\n\nlet needSOCleanUp = 0;\nlet originalTableGD = [];\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n  originalTableGD = originalTableGD.table_gd;\n\n  allData.table_gd.forEach((item) => {\n    const originalItem = originalGD.table_gd?.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (allData.table_gd.length !== originalGD.table_gd.length) {\n    needSOCleanUp = 1\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.index + 1}: ${row.material_name} - qty: ${row.gd_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid allocation data:\\n\\n${rowDetails}\\n\\nThese rows may need manual allocation or the allocation workflow may have failed.`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage,\n  originalTableGD: originalTableGD\n};\n"
         },
         "response_json": [
           {
@@ -3304,7 +3384,7 @@
         "name": "Picking Status",
         "script": {
           "type": "javascript",
-          "code": "const pickingSetup = {{node:get_node_iFPuvJX2.data.data}} || {};\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isGDPP = {{node:code_node_IyJHrBst.data.allData.is_select_picking}} || 0\nlet picking_status = {{node:code_node_IyJHrBst.data.picking_status}}\n\nif (pickingSetup && isGDPP !== 1 && (!picking_status || picking_status === \"\") && saveAs === \"Created\" && pickingSetup.picking_required === 1) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    picking_status = \"Created\"\n  } else {\n    picking_status = \"Not Created\"\n  }\n}\n\nif (pickingSetup && isGDPP !== 1 && pickingSetup.picking_required === 1 && saveAs === \"Cancelled\") {\n  picking_status = \"Cancelled\"\n}\n\nreturn {\n  picking_status: picking_status,\n  auto_trigger_to: pickingSetup.auto_trigger_to\n}"
+          "code": "const pickingSetup = {{node:get_node_iFPuvJX2.data.data}} || {};\n// skip_picking (internal auto-GR): treat picking as not required so no status is stamped.\nconst skipPickingGate = {{node:code_gr_gate.data.skipPicking}} || 0;\nif (skipPickingGate === 1 && pickingSetup) { pickingSetup.picking_required = 0; }\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isGDPP = {{node:code_node_IyJHrBst.data.allData.is_select_picking}} || 0\nlet picking_status = {{node:code_node_IyJHrBst.data.picking_status}}\n\nif (pickingSetup && isGDPP !== 1 && (!picking_status || picking_status === \"\") && saveAs === \"Created\" && pickingSetup.picking_required === 1) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    picking_status = \"Created\"\n  } else {\n    picking_status = \"Not Created\"\n  }\n}\n\nif (pickingSetup && isGDPP !== 1 && pickingSetup.picking_required === 1 && saveAs === \"Cancelled\") {\n  picking_status = \"Cancelled\"\n}\n\nreturn {\n  picking_status: picking_status,\n  auto_trigger_to: pickingSetup.auto_trigger_to\n}"
         },
         "response_json": [
           {
@@ -3697,6 +3777,20 @@
                           "type": "leaf",
                           "level": 2,
                           "propLabel": "Picking Required",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        },
+                        {
+                          "id": 1770186284568,
+                          "parentId": 1770186284565,
+                          "isTop": false,
+                          "prop": "node.code_gr_gate.data.skipPicking",
+                          "operator": "numberEqual",
+                          "valueType": "value",
+                          "value": 0,
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "skipPicking",
                           "valueLabel": "",
                           "operatorLabel": "Equal"
                         }
@@ -4216,6 +4310,20 @@
                           "propLabel": "packing_status",
                           "valueLabel": "",
                           "operatorLabel": "Not Equal"
+                        },
+                        {
+                          "id": 1770089203999,
+                          "parentId": 1770089203996,
+                          "isTop": false,
+                          "prop": "node.code_gr_gate.data.skipPicking",
+                          "operator": "numberEqual",
+                          "valueType": "value",
+                          "value": 0,
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "skipPicking",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
                         }
                       ]
                     }
@@ -9197,6 +9305,20 @@
                           "propLabel": "picking_status",
                           "valueLabel": "",
                           "operatorLabel": "Not Equal"
+                        },
+                        {
+                          "id": 1779334000002,
+                          "parentId": 1770688167638,
+                          "isTop": false,
+                          "prop": "node.code_gr_gate.data.skipPicking",
+                          "operator": "numberEqual",
+                          "valueType": "value",
+                          "value": 0,
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "skipPicking",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
                         }
                       ]
                     }
@@ -12967,7 +13089,7 @@
                         "name": "Auto-GR Prep",
                         "script": {
                           "type": "javascript",
-                          "code": "const cvId = {{node:code_node_cv51vgiy.data.gdId}} || '';\nconst allData = {{workflowparams:allData}};\nconst gdId = cvId || (allData ? (allData.id || '') : '');\nconst gdNo = allData ? (allData.delivery_no || '') : '';\n// Batch allocation (temp_qty_data) lives on the GD line-items sub-table, NOT on the\n// allData form payload. Reuse the already-fetched 'Get Table GD' rows (search_node_CkZCzl31)\n// so GDtoGR does not re-fetch the GD.\nconst gdRowsRaw = {{node:search_node_CkZCzl31.data.data}};\nconst gdRows = Array.isArray(gdRowsRaw) ? gdRowsRaw : (gdRowsRaw ? [gdRowsRaw] : []);\nconst gdTable = gdRows.map(function (l) {\n  return {\n    material_id: l.material_id,\n    line_so_id: l.line_so_id,\n    so_line_item_id: l.so_line_item_id,\n    gd_qty: l.gd_qty,\n    gd_order_uom_id: l.gd_order_uom_id,\n    temp_qty_data: l.temp_qty_data\n  };\n});\nreturn { gdId: gdId, gdNo: gdNo, gdTable: gdTable };\n"
+                          "code": "const cvId = {{node:code_node_cv51vgiy.data.gdId}} || '';\nconst allData = {{workflowparams:allData}};\nconst gdId = cvId || (allData ? (allData.id || '') : '');\nconst gdNo = allData ? (allData.delivery_no || '') : '';\n// Batch allocation (temp_qty_data) lives on the processed GD lines from code_node_IyJHrBst\n// (main data-prep; runs on every save and carries the final table_gd incl. temp_qty_data).\n// Do NOT use search_node_CkZCzl31 'Get Table GD' — it is conditional and may not run.\nconst idata = {{node:code_node_IyJHrBst.data.allData}};\nconst gdRows = (idata && Array.isArray(idata.table_gd)) ? idata.table_gd : [];\nconst gdTable = gdRows.map(function (l) {\n  return {\n    material_id: l.material_id,\n    line_so_id: l.line_so_id,\n    so_line_item_id: l.so_line_item_id,\n    gd_qty: l.gd_qty,\n    gd_order_uom_id: l.gd_order_uom_id,\n    temp_qty_data: l.temp_qty_data\n  };\n});\nreturn { gdId: gdId, gdNo: gdNo, gdTable: gdTable };\n"
                         },
                         "response_json": [
                           {

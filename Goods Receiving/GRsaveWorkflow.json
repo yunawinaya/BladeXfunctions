@@ -267,7 +267,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}}\nconst updatedGR = []\nlet saveAs = {{workflowparams:saveAs}}\nconst putawaySetup = {{node:get_node_QBrFrLs9.data.data}} || null;\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, grLineItem] of allData.table_gr.entries()) {\n  // Format qty and price fields\n  grLineItem.ordered_qty = formatNumber(grLineItem.ordered_qty);\n  grLineItem.base_ordered_qty = formatNumber(grLineItem.base_ordered_qty);\n  grLineItem.to_received_qty = formatNumber(grLineItem.to_received_qty);\n  grLineItem.received_qty = formatNumber(grLineItem.received_qty);\n  grLineItem.base_received_qty = formatNumber(grLineItem.base_received_qty);\n  grLineItem.initial_received_qty = formatNumber(grLineItem.initial_received_qty);\n  grLineItem.unit_price = formatNumber(grLineItem.unit_price);\n  grLineItem.total_price = formatNumber(grLineItem.total_price);\n  grLineItem.uom_conversion = formatNumber(grLineItem.uom_conversion);\n\n  grLineItem.supplier_id = allData.supplier_name || null;\n  grLineItem.organization_id = allData.organization_id;\n  grLineItem.plant_id = allData.plant_id || null;\n  grLineItem.billing_state_id = allData.billing_address_state || null;\n  grLineItem.billing_country_id = allData.billing_address_country || null;\n  grLineItem.shipping_state_id = allData.shipping_address_state || null;\n  grLineItem.shipping_country_id = allData.shipping_address_country || null;\n  grLineItem.assigned_to = allData.assigned_to || null;\n  grLineItem.line_index = index + 1;\n\n  // Re-sync base_received_qty for same-UOM lines. base_received_qty is a\n  // derived field; the form's onChange may not have updated it before save,\n  // leaving received_qty != base_received_qty and blocking completion.\n  // Skip hierarchy split parents (their qty is rolled up from children later).\n  if (\n    grLineItem.item_uom &&\n    grLineItem.base_item_uom &&\n    String(grLineItem.item_uom) === String(grLineItem.base_item_uom) &&\n    !(grLineItem.is_split === \"Yes\" && grLineItem.parent_or_child === \"Parent\")\n  ) {\n    grLineItem.base_received_qty = grLineItem.received_qty;\n  }\n\n  updatedGR.push(grLineItem)\n}\n\nallData.table_gr = updatedGR;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gr_status = \"Draft\";\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    allData.gr_no_type !== -9999 &&\n    (!allData.gr_no ||\n      allData.gr_no === null ||\n      allData.gr_no === \"\")\n  ) {\n    allData.gr_no = \"draft\";\n  }\n} else {\n  if (\n    allData.gr_no_type !== -9999 &&\n    (!allData.gr_no ||\n      allData.gr_no === null ||\n      allData.gr_no === \"\" ||\n      allData.previous_status === \"Draft\")\n  ) {\n    allData.gr_no = \"issued\";\n  }\n}\n\nallData.table_gr = allData.table_gr.filter((item) => item.received_qty > 0);\n\n// Determine saveAs status based on item categories and putaway setup\nif (saveAs === \"Completed\") {\n  // Check if all items are noQI (none have \"Quality Inspection\" category)\n  const allNoQICategory = allData.table_gr.length > 0 && allData.table_gr.every(item => {\n    return item.inv_category !== \"Quality Inspection\"\n  })\n  \n  const noPutawayRequired = !putawaySetup || Object.keys(putawaySetup).length === 0 || putawaySetup.putaway_required === 0\n  \n  if (allNoQICategory && noPutawayRequired) {\n    saveAs = \"Completed\"\n  } else {\n    saveAs = \"Received\"\n  }\n}\n\nlet poID = [];\nlet purchaseOrderNumber = [];\n\nfor (const gr of allData.table_gr) {\n  poID.push(gr.line_po_id);\n  purchaseOrderNumber.push(gr.line_po_no);\n}\n\npoID = [...new Set(poID)];\npurchaseOrderNumber = [...new Set(purchaseOrderNumber)];\n\nallData.po_id = poID;\nallData.po_no_display = purchaseOrderNumber.join(\", \");\n\nlet invalidMessage\n\nif (allData.table_gr.length === 0) {\n  invalidMessage = \"All Received Quantity must not be 0. Please add at lease one item with received quantity > 0.\"\n}\n\nconst poIds = Array.isArray(allData.po_id) ? allData.po_id : [allData.po_id];\n\nreturn {\n  allData,\n  saveAs,\n  gr_status: allData.gr_status,\n  poIds,\n  invalidMessage,\n};\n"
+          "code": "let allData = {{workflowparams:allData}}\nconst updatedGR = []\nlet saveAs = {{workflowparams:saveAs}}\nconst putawaySetup = {{node:get_node_QBrFrLs9.data.data}} || null;\nconst skipPutaway = ({{workflowparams:skip_putaway}} === 1 || {{workflowparams:skip_putaway}} === \"1\") ? 1 : 0;\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, grLineItem] of allData.table_gr.entries()) {\n  // Format qty and price fields\n  grLineItem.ordered_qty = formatNumber(grLineItem.ordered_qty);\n  grLineItem.base_ordered_qty = formatNumber(grLineItem.base_ordered_qty);\n  grLineItem.to_received_qty = formatNumber(grLineItem.to_received_qty);\n  grLineItem.received_qty = formatNumber(grLineItem.received_qty);\n  grLineItem.base_received_qty = formatNumber(grLineItem.base_received_qty);\n  grLineItem.initial_received_qty = formatNumber(grLineItem.initial_received_qty);\n  grLineItem.unit_price = formatNumber(grLineItem.unit_price);\n  grLineItem.total_price = formatNumber(grLineItem.total_price);\n  grLineItem.uom_conversion = formatNumber(grLineItem.uom_conversion);\n\n  grLineItem.supplier_id = allData.supplier_name || null;\n  grLineItem.organization_id = allData.organization_id;\n  grLineItem.plant_id = allData.plant_id || null;\n  grLineItem.billing_state_id = allData.billing_address_state || null;\n  grLineItem.billing_country_id = allData.billing_address_country || null;\n  grLineItem.shipping_state_id = allData.shipping_address_state || null;\n  grLineItem.shipping_country_id = allData.shipping_address_country || null;\n  grLineItem.assigned_to = allData.assigned_to || null;\n  grLineItem.line_index = index + 1;\n\n  // Re-sync base_received_qty for same-UOM lines. base_received_qty is a\n  // derived field; the form's onChange may not have updated it before save,\n  // leaving received_qty != base_received_qty and blocking completion.\n  // Skip hierarchy split parents (their qty is rolled up from children later).\n  if (\n    grLineItem.item_uom &&\n    grLineItem.base_item_uom &&\n    String(grLineItem.item_uom) === String(grLineItem.base_item_uom) &&\n    !(grLineItem.is_split === \"Yes\" && grLineItem.parent_or_child === \"Parent\")\n  ) {\n    grLineItem.base_received_qty = grLineItem.received_qty;\n  }\n\n  updatedGR.push(grLineItem)\n}\n\nallData.table_gr = updatedGR;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gr_status = \"Draft\";\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    allData.gr_no_type !== -9999 &&\n    (!allData.gr_no ||\n      allData.gr_no === null ||\n      allData.gr_no === \"\")\n  ) {\n    allData.gr_no = \"draft\";\n  }\n} else {\n  if (\n    allData.gr_no_type !== -9999 &&\n    (!allData.gr_no ||\n      allData.gr_no === null ||\n      allData.gr_no === \"\" ||\n      allData.previous_status === \"Draft\")\n  ) {\n    allData.gr_no = \"issued\";\n  }\n}\n\nallData.table_gr = allData.table_gr.filter((item) => item.received_qty > 0);\n\n// Determine saveAs status based on item categories and putaway setup\nif (saveAs === \"Completed\") {\n  // Check if all items are noQI (none have \"Quality Inspection\" category)\n  const allNoQICategory = allData.table_gr.length > 0 && allData.table_gr.every(item => {\n    return item.inv_category !== \"Quality Inspection\"\n  })\n  \n  const noPutawayRequired = skipPutaway === 1 || !putawaySetup || Object.keys(putawaySetup).length === 0 || putawaySetup.putaway_required === 0\n  \n  if (allNoQICategory && noPutawayRequired) {\n    saveAs = \"Completed\"\n  } else {\n    saveAs = \"Received\"\n  }\n}\n\nlet poID = [];\nlet purchaseOrderNumber = [];\n\nfor (const gr of allData.table_gr) {\n  poID.push(gr.line_po_id);\n  purchaseOrderNumber.push(gr.line_po_no);\n}\n\npoID = [...new Set(poID)];\npurchaseOrderNumber = [...new Set(purchaseOrderNumber)];\n\nallData.po_id = poID;\nallData.po_no_display = purchaseOrderNumber.join(\", \");\n\nlet invalidMessage\n\nif (allData.table_gr.length === 0) {\n  invalidMessage = \"All Received Quantity must not be 0. Please add at lease one item with received quantity > 0.\"\n}\n\nconst poIds = Array.isArray(allData.po_id) ? allData.po_id : [allData.po_id];\n\nreturn {\n  allData,\n  saveAs,\n  gr_status: allData.gr_status,\n  poIds,\n  invalidMessage,\n  skipPutaway,\n};\n"
         },
         "response_json": [
           {
@@ -322,6 +322,14 @@
             "title": "saveAs",
             "description": "",
             "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "gr_skipputaway",
+            "name": "skipPutaway",
+            "title": "skipPutaway",
+            "description": "",
+            "bsonType": "int",
             "isExpand": false
           }
         ]
@@ -3204,7 +3212,7 @@
                     "name": "Subform Preparation",
                     "script": {
                       "type": "javascript",
-                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nconst page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\n\n\nconst putawaySetup = {{node:get_node_QBrFrLs9.data.data}} || {};\nconst subformData = allData.table_gr;\nconst currentIndexRaw = {{node:get_cache_node_5vPHf6xv.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.plant_id;\nconst organization_id = allData.organization_id;\nconst gr_no = allData.gr_no;\nconst doc_date = allData.gr_date;\n\nconst item = subformData[index];\nconst material_id = item.item_id;\nconst material_uom = item.item_uom || item.ordered_uom;\nconst quantity = item.received_qty;\nconst unit_price = item.unit_price;\nlet storage_location_id = item.storage_location_id;\nconst batch_no = item.item_batch_no || null;\nconst remark = item.line_remark_1 || null;\nconst remark2 = item.line_remark_2 || null;\nconst remark3 = item.line_remark_3 || null;\nconst inventory_category = item.inv_category || \"Unrestricted\";\nconst manufacturing_date = item.manufacturing_date || null;\nconst expired_date = item.expired_date || null;\nconst po_no = item.line_po_no || \"\";\nconst po_id = item.line_po_id || \"\";\nconst po_line_id = item.po_line_item_id || \"\";\nconst onOrderQty = roundQty(item.base_received_qty) || roundQty(item.received_qty) || 0;\n\n// === NEW: Split detection fields ===\nconst is_split = item.is_split || \"No\";\nconst parent_or_child = item.parent_or_child || \"Parent\";\nconst parent_index = item.parent_index;\n\n// === UPDATED: skipInventory logic ===\n// Skip if: no material_id OR split parent row\nconst isSplitParent = is_split === \"Yes\" && parent_or_child === \"Parent\";\nconst skipInventory = (!material_id || isSplitParent) ? 1 : 0;\n\n// === NEW: isChild flag for easier branching ===\nconst isChild = parent_or_child === \"Child\" ? 1 : 0;\n\nlet location_id = item.location_id;\n\nif (putawaySetup.putaway_required === 1 && putawaySetup.is_loading_bay === 1 && putawaySetup.default_loading_bay && putawaySetup.default_loading_bay !== \"\") {\n  location_id = putawaySetup.default_loading_bay;\n  storage_location_id = \"\";\n} else if (putawaySetup.putaway_required === 1 && putawaySetup.is_loading_bay === 1) {\n  const storageLocationData = {{node:get_node_njg7cSUu.data.data}};\n  location_id = storageLocationData.table_bin_location?.find((bin) => bin.is_default_bin === 1)?.bin_location_id;\n  storage_location_id = \"\";\n}\n\n// === Derived routing flags for linear (de-duplicated) loop body ===\nconst createsBatch = isSplitParent ? 1 : 0;\nconst updatesPOLine = isChild === 1 ? 0 : 1;\nconst updatesOnOrder = (isSplitParent || (!isSplitParent && isChild === 0 && skipInventory === 0)) ? 1 : 0;\nconst addsInventory = (isChild === 1 || (!isSplitParent && skipInventory === 0)) ? 1 : 0;\n\nreturn {\n  skipInventory: skipInventory,\n  plant_id: plant_id,\n  organization_id: organization_id,\n  gr_no: gr_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  quantity: quantity,\n  unit_price: unit_price,\n  storage_location_id: storage_location_id,\n  location_id: location_id,\n  batch_no: batch_no,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  index: index,\n  nextIndex: index + 1,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  po_no: po_no,\n  po_id: po_id,\n  po_line_id: po_line_id,\n  onOrderQty: onOrderQty,\n  grData: allData,\n  grItem: item,\n  is_split: is_split,\n  parent_or_child: parent_or_child,\n  parent_index: parent_index,\n  isChild: isChild,\n  isSplitParent: isSplitParent ? 1 : 0,\n  createsBatch: createsBatch,\n  updatesPOLine: updatesPOLine,\n  updatesOnOrder: updatesOnOrder,\n  addsInventory: addsInventory,\n};\n"
+                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nconst page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\n\n\nconst putawaySetup = {{node:get_node_QBrFrLs9.data.data}} || {};\nconst skipPutaway = ({{workflowparams:skip_putaway}} === 1 || {{workflowparams:skip_putaway}} === \"1\") ? 1 : 0;\nconst subformData = allData.table_gr;\nconst currentIndexRaw = {{node:get_cache_node_5vPHf6xv.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.plant_id;\nconst organization_id = allData.organization_id;\nconst gr_no = allData.gr_no;\nconst doc_date = allData.gr_date;\n\nconst item = subformData[index];\nconst material_id = item.item_id;\nconst material_uom = item.item_uom || item.ordered_uom;\nconst quantity = item.received_qty;\nconst unit_price = item.unit_price;\nlet storage_location_id = item.storage_location_id;\nconst batch_no = item.item_batch_no || null;\nconst remark = item.line_remark_1 || null;\nconst remark2 = item.line_remark_2 || null;\nconst remark3 = item.line_remark_3 || null;\nconst inventory_category = item.inv_category || \"Unrestricted\";\nconst manufacturing_date = item.manufacturing_date || null;\nconst expired_date = item.expired_date || null;\nconst po_no = item.line_po_no || \"\";\nconst po_id = item.line_po_id || \"\";\nconst po_line_id = item.po_line_item_id || \"\";\nconst onOrderQty = roundQty(item.base_received_qty) || roundQty(item.received_qty) || 0;\n\n// === NEW: Split detection fields ===\nconst is_split = item.is_split || \"No\";\nconst parent_or_child = item.parent_or_child || \"Parent\";\nconst parent_index = item.parent_index;\n\n// === UPDATED: skipInventory logic ===\n// Skip if: no material_id OR split parent row\nconst isSplitParent = is_split === \"Yes\" && parent_or_child === \"Parent\";\nconst skipInventory = (!material_id || isSplitParent) ? 1 : 0;\n\n// === NEW: isChild flag for easier branching ===\nconst isChild = parent_or_child === \"Child\" ? 1 : 0;\n\nlet location_id = item.location_id;\n\nif (skipPutaway !== 1 && putawaySetup.putaway_required === 1 && putawaySetup.is_loading_bay === 1 && putawaySetup.default_loading_bay && putawaySetup.default_loading_bay !== \"\") {\n  location_id = putawaySetup.default_loading_bay;\n  storage_location_id = \"\";\n} else if (skipPutaway !== 1 && putawaySetup.putaway_required === 1 && putawaySetup.is_loading_bay === 1) {\n  const storageLocationData = {{node:get_node_njg7cSUu.data.data}};\n  location_id = storageLocationData.table_bin_location?.find((bin) => bin.is_default_bin === 1)?.bin_location_id;\n  storage_location_id = \"\";\n}\n\n// === Derived routing flags for linear (de-duplicated) loop body ===\nconst createsBatch = isSplitParent ? 1 : 0;\nconst updatesPOLine = isChild === 1 ? 0 : 1;\nconst updatesOnOrder = (isSplitParent || (!isSplitParent && isChild === 0 && skipInventory === 0)) ? 1 : 0;\nconst addsInventory = (isChild === 1 || (!isSplitParent && skipInventory === 0)) ? 1 : 0;\n\nreturn {\n  skipInventory: skipInventory,\n  plant_id: plant_id,\n  organization_id: organization_id,\n  gr_no: gr_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  quantity: quantity,\n  unit_price: unit_price,\n  storage_location_id: storage_location_id,\n  location_id: location_id,\n  batch_no: batch_no,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  index: index,\n  nextIndex: index + 1,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  po_no: po_no,\n  po_id: po_id,\n  po_line_id: po_line_id,\n  onOrderQty: onOrderQty,\n  grData: allData,\n  grItem: item,\n  is_split: is_split,\n  parent_or_child: parent_or_child,\n  parent_index: parent_index,\n  isChild: isChild,\n  isSplitParent: isSplitParent ? 1 : 0,\n  createsBatch: createsBatch,\n  updatesPOLine: updatesPOLine,\n  updatesOnOrder: updatesOnOrder,\n  addsInventory: addsInventory,\n};\n"
                     },
                     "response_json": [
                       {
@@ -4418,6 +4426,68 @@
                           ]
                         },
                         {
+                          "id": "if_needs_batch_lookup",
+                          "type": "if",
+                          "data": {
+                            "title": "IF Needs Batch Lookup",
+                            "isValidator": true,
+                            "nodeName": "IF Needs Batch Lookup",
+                            "name": "IF Needs Batch Lookup",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 900000000110,
+                                  "parentId": 900000000111,
+                                  "isTop": true,
+                                  "type": "branch",
+                                  "operator": "all",
+                                  "prop": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "level": 1,
+                                  "children": [
+                                    {
+                                      "id": 900000000112,
+                                      "parentId": 900000000110,
+                                      "isTop": false,
+                                      "prop": "node.code_node_D9IbUV8t.data.batch_no",
+                                      "operator": "notEqual",
+                                      "valueType": "value",
+                                      "value": "-",
+                                      "type": "leaf",
+                                      "level": 2,
+                                      "propLabel": "batch_no",
+                                      "valueLabel": "",
+                                      "operatorLabel": "Not Equal"
+                                    },
+                                    {
+                                      "id": 900000000113,
+                                      "parentId": 900000000110,
+                                      "isTop": false,
+                                      "prop": "node.code_node_D9IbUV8t.data.isChild",
+                                      "operator": "numberEqual",
+                                      "valueType": "value",
+                                      "value": 0,
+                                      "type": "leaf",
+                                      "level": 2,
+                                      "propLabel": "isChild",
+                                      "valueLabel": "",
+                                      "operatorLabel": "Equal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_needs_batch_lookup_t",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                        {
                           "id": "search_existing_batch",
                           "type": "search-node",
                           "data": {
@@ -4506,6 +4576,16 @@
                             "name": "Get Existing Batch"
                           },
                           "blocks": []
+                        }
+                              ]
+                            },
+                            {
+                              "id": "if_needs_batch_lookup_f",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
                         },
                         {
                           "id": "code_node_ip8w2l8k",
@@ -5567,6 +5647,20 @@
                                       "propLabel": "inventory_category",
                                       "valueLabel": "",
                                       "operatorLabel": "Not Equal"
+                                    },
+                                    {
+                                      "id": 1772694672594,
+                                      "parentId": 1772694672590,
+                                      "isTop": false,
+                                      "prop": "node.code_node_4r2Fv9G5.data.skipPutaway",
+                                      "operator": "numberEqual",
+                                      "valueType": "value",
+                                      "value": 0,
+                                      "type": "leaf",
+                                      "level": 2,
+                                      "propLabel": "skipPutaway",
+                                      "valueLabel": "",
+                                      "operatorLabel": "Equal"
                                     }
                                   ]
                                 }
@@ -6526,6 +6620,20 @@
                                   "type": "leaf",
                                   "level": 2,
                                   "propLabel": "Putaway Required",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1773040558342,
+                                  "parentId": 1773040558339,
+                                  "isTop": false,
+                                  "prop": "node.code_node_4r2Fv9G5.data.skipPutaway",
+                                  "operator": "numberEqual",
+                                  "valueType": "value",
+                                  "value": 0,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "skipPutaway",
                                   "valueLabel": "",
                                   "operatorLabel": "Equal"
                                 }
@@ -7803,6 +7911,14 @@
       "title": "continueZero",
       "description": "",
       "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gr_req_skipputaway",
+      "name": "skip_putaway",
+      "title": "skip_putaway",
+      "description": "",
+      "bsonType": "int",
       "isExpand": false
     }
   ],

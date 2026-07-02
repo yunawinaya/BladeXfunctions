@@ -231,540 +231,735 @@
       ]
     },
     {
-      "id": "search_si",
-      "type": "search-node",
+      "id": "sitopi_par_src",
+      "type": "condition-all-node",
       "data": {
-        "table_id": {
-          "source": "Sales Invoice:Table:1902525285396496385",
-          "rules": {
-            "collectionId": "1902525285396496385",
-            "list": [
-              {
-                "id": 190000000010,
-                "parentId": 190000000011,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000012,
-                    "parentId": 190000000010,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:si_id}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
+        "title": "Parallel Source Fetch",
+        "filter": {
+          "list": []
         },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Sales Invoice",
-        "isValidator": true,
-        "nodeName": "Get Sales Invoice",
-        "name": "Get Sales Invoice"
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
       },
-      "blocks": []
-    },
-    {
-      "id": "code_srcids",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Collect Source Ids",
-        "isValidator": true,
-        "nodeName": "Collect Source Ids",
-        "name": "Collect Source Ids",
-        "script": {
-          "type": "javascript",
-          "code": "\nconst rows = {{node:search_si.data.data}};\nconst si = Array.isArray(rows) ? rows[0] : rows;\nconst tableSi = (si && si.table_si) ? si.table_si : [];\nconst soSet = {}; const gdSet = {};\nfor (const r of tableSi) {\n  if (!r) continue;\n  if ((r.invoice_qty || 0) <= 0) continue;\n  if (r.line_so_id) soSet[String(r.line_so_id)] = true;\n  if (r.line_gd_id) gdSet[String(r.line_gd_id)] = true;\n}\nlet soIds = Object.keys(soSet); if (soIds.length === 0) soIds = [\"0\"];\nlet gdIds = Object.keys(gdSet); if (gdIds.length === 0) gdIds = [\"0\"];\nreturn { soIds: soIds, gdIds: gdIds, siNo: (si && si.sales_invoice_no) ? si.sales_invoice_no : '' };\n"
-        },
-        "response_json": [
-          {
-            "key": "s2p_soids",
-            "name": "soIds",
-            "title": "soIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
+      "blocks": [
+        {
+          "id": "sitopi_cai_sichain",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "SI Source Chain",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "SI Source Chain",
+            "name": "SI Source Chain",
+            "condition_type": "ConditionRule"
           },
-          {
-            "key": "s2p_gdids",
-            "name": "gdIds",
-            "title": "gdIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
+          "blocks": [
+            {
+              "id": "search_si",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Invoice:Table:1902525285396496385",
+                  "rules": {
+                    "collectionId": "1902525285396496385",
+                    "list": [
+                      {
+                        "id": 190000000010,
+                        "parentId": 190000000011,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 190000000012,
+                            "parentId": 190000000010,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:si_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Sales Invoice",
+                "isValidator": true,
+                "nodeName": "Get Sales Invoice",
+                "name": "Get Sales Invoice"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_srcids",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Collect Source Ids",
+                "isValidator": true,
+                "nodeName": "Collect Source Ids",
+                "name": "Collect Source Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "\nconst rows = {{node:search_si.data.data}};\nconst si = Array.isArray(rows) ? rows[0] : rows;\nconst tableSi = (si && si.table_si) ? si.table_si : [];\nconst soSet = {}; const gdSet = {};\nfor (const r of tableSi) {\n  if (!r) continue;\n  if ((r.invoice_qty || 0) <= 0) continue;\n  if (r.line_so_id) soSet[String(r.line_so_id)] = true;\n  if (r.line_gd_id) gdSet[String(r.line_gd_id)] = true;\n}\nlet soIds = Object.keys(soSet); if (soIds.length === 0) soIds = [\"0\"];\nlet gdIds = Object.keys(gdSet); if (gdIds.length === 0) gdIds = [\"0\"];\nreturn { soIds: soIds, gdIds: gdIds, siNo: (si && si.sales_invoice_no) ? si.sales_invoice_no : '' };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "s2p_soids",
+                    "name": "soIds",
+                    "title": "soIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2p_gdids",
+                    "name": "gdIds",
+                    "title": "gdIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2p_sino",
+                    "name": "siNo",
+                    "title": "siNo",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "sitopi_par_srclink",
+              "type": "condition-all-node",
+              "data": {
+                "title": "SO-PO / GD-GR Linkage",
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "sitopi_cai_sopo",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "SO-PO Linkage",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "SO-PO Linkage",
+                    "name": "SO-PO Linkage",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_sopo_link",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Document Linkage:Table:2069270865093935105",
+                          "rules": {
+                            "collectionId": "2069270865093935105",
+                            "list": [
+                              {
+                                "id": 190000000013,
+                                "parentId": 190000000014,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 190000000015,
+                                    "parentId": 190000000013,
+                                    "isTop": false,
+                                    "prop": "target_doc_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Sales Order",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "target_doc_type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 190000000016,
+                                    "parentId": 190000000013,
+                                    "isTop": false,
+                                    "prop": "target_doc_id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_srcids.data.soIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "target_doc_id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  },
+                                  {
+                                    "id": 190000000017,
+                                    "parentId": 190000000013,
+                                    "isTop": false,
+                                    "prop": "link_status",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Linked",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "link_status",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 200,
+                        "title": "Get SO-PO Linkage",
+                        "isValidator": true,
+                        "nodeName": "Get SO-PO Linkage",
+                        "name": "Get SO-PO Linkage"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "sitopi_cai_gdgr",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "GD-GR Linkage",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "GD-GR Linkage",
+                    "name": "GD-GR Linkage",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_gdgr_link",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Document Linkage:Table:2069270865093935105",
+                          "rules": {
+                            "collectionId": "2069270865093935105",
+                            "list": [
+                              {
+                                "id": 190000000018,
+                                "parentId": 190000000019,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 190000000020,
+                                    "parentId": 190000000018,
+                                    "isTop": false,
+                                    "prop": "source_doc_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Goods Delivery",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "source_doc_type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 190000000021,
+                                    "parentId": 190000000018,
+                                    "isTop": false,
+                                    "prop": "source_doc_id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_srcids.data.gdIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "source_doc_id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  },
+                                  {
+                                    "id": 190000000022,
+                                    "parentId": 190000000018,
+                                    "isTop": false,
+                                    "prop": "link_status",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Linked",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "link_status",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 200,
+                        "title": "Get GD-GR Linkage",
+                        "isValidator": true,
+                        "nodeName": "Get GD-GR Linkage",
+                        "name": "Get GD-GR Linkage"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_doc_maps",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Build Doc Maps",
+                "isValidator": true,
+                "nodeName": "Build Doc Maps",
+                "name": "Build Doc Maps",
+                "script": {
+                  "type": "javascript",
+                  "code": "\nconst sopoRows = {{node:search_sopo_link.data.data}};\nconst gdgrRows = {{node:search_gdgr_link.data.data}};\nconst sopo = Array.isArray(sopoRows) ? sopoRows : (sopoRows ? [sopoRows] : []);\nconst gdgr = Array.isArray(gdgrRows) ? gdgrRows : (gdgrRows ? [gdgrRows] : []);\nconst soPoMap = {}; const gdGrMap = {};\nconst poSet = {}; const grSet = {};\nfor (const r of sopo) {\n  if (!r || !r.target_doc_id || !r.source_doc_id) continue;\n  soPoMap[String(r.target_doc_id)] = { poId: String(r.source_doc_id), poNo: r.source_doc_no || '' };\n  poSet[String(r.source_doc_id)] = true;\n}\nfor (const r of gdgr) {\n  if (!r || !r.source_doc_id || !r.target_doc_id) continue;\n  gdGrMap[String(r.source_doc_id)] = { grId: String(r.target_doc_id), grNo: r.target_doc_no || '' };\n  grSet[String(r.target_doc_id)] = true;\n}\nlet poIds = Object.keys(poSet); if (poIds.length === 0) poIds = [\"0\"];\nlet grIds = Object.keys(grSet); if (grIds.length === 0) grIds = [\"0\"];\nreturn { soPoMap: soPoMap, gdGrMap: gdGrMap, poIds: poIds, grIds: grIds };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "s2p_sopomap",
+                    "name": "soPoMap",
+                    "title": "soPoMap",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2p_gdgrmap",
+                    "name": "gdGrMap",
+                    "title": "gdGrMap",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2p_poids",
+                    "name": "poIds",
+                    "title": "poIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2p_grids",
+                    "name": "grIds",
+                    "title": "grIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "sitopi_par_pogr",
+              "type": "condition-all-node",
+              "data": {
+                "title": "POs / GRs",
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "sitopi_cai_po",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "POs",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "POs",
+                    "name": "POs",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_po",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Purchase Order:Table:1902776039445217282",
+                          "rules": {
+                            "collectionId": "1902776039445217282",
+                            "list": [
+                              {
+                                "id": 190000000023,
+                                "parentId": 190000000024,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 190000000025,
+                                    "parentId": 190000000023,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_doc_maps.data.poIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 200,
+                        "title": "Get POs",
+                        "isValidator": true,
+                        "nodeName": "Get POs",
+                        "name": "Get POs"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "sitopi_cai_gr",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "GRs",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "GRs",
+                    "name": "GRs",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_gr",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Goods Receiving:Table:1901845517592285186",
+                          "rules": {
+                            "collectionId": "1901845517592285186",
+                            "list": [
+                              {
+                                "id": 190000000026,
+                                "parentId": 190000000027,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 190000000028,
+                                    "parentId": 190000000026,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_doc_maps.data.grIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 200,
+                        "title": "Get GRs",
+                        "isValidator": true,
+                        "nodeName": "Get GRs",
+                        "name": "Get GRs"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sitopi_cai_its",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "ITS",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "ITS",
+            "name": "ITS",
+            "condition_type": "ConditionRule"
           },
-          {
-            "key": "s2p_sino",
-            "name": "siNo",
-            "title": "siNo",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_sopo_link",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Document Linkage:Table:2069270865093935105",
-          "rules": {
-            "collectionId": "2069270865093935105",
-            "list": [
-              {
-                "id": 190000000013,
-                "parentId": 190000000014,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000015,
-                    "parentId": 190000000013,
-                    "isTop": false,
-                    "prop": "target_doc_type",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Sales Order",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "target_doc_type",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 190000000016,
-                    "parentId": 190000000013,
-                    "isTop": false,
-                    "prop": "target_doc_id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_srcids.data.soIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "target_doc_id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  },
-                  {
-                    "id": 190000000017,
-                    "parentId": 190000000013,
-                    "isTop": false,
-                    "prop": "link_status",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Linked",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "link_status",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
+          "blocks": [
+            {
+              "id": "search_its",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Internal Trading Setup:Table:2069278647482400769",
+                  "rules": {
+                    "collectionId": "2069278647482400769",
+                    "list": [
+                      {
+                        "id": 190000000029,
+                        "parentId": 190000000030,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 190000000031,
+                            "parentId": 190000000029,
+                            "isTop": false,
+                            "prop": "buyer_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:buyer_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "buyer_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 190000000032,
+                            "parentId": 190000000029,
+                            "isTop": false,
+                            "prop": "seller_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:seller_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "seller_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 190000000033,
+                            "parentId": 190000000029,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_active",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
                   }
-                ]
-              }
-            ]
-          }
+                },
+                "condition": {},
+                "limit": 10,
+                "title": "Get Internal Trading Setup",
+                "isValidator": true,
+                "nodeName": "Get Internal Trading Setup",
+                "name": "Get Internal Trading Setup"
+              },
+              "blocks": []
+            }
+          ]
         },
-        "condition": {},
-        "limit": 200,
-        "title": "Get SO-PO Linkage",
-        "isValidator": true,
-        "nodeName": "Get SO-PO Linkage",
-        "name": "Get SO-PO Linkage"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_gdgr_link",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Document Linkage:Table:2069270865093935105",
-          "rules": {
-            "collectionId": "2069270865093935105",
-            "list": [
-              {
-                "id": 190000000018,
-                "parentId": 190000000019,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000020,
-                    "parentId": 190000000018,
-                    "isTop": false,
-                    "prop": "source_doc_type",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Goods Delivery",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "source_doc_type",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 190000000021,
-                    "parentId": 190000000018,
-                    "isTop": false,
-                    "prop": "source_doc_id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_srcids.data.gdIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "source_doc_id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  },
-                  {
-                    "id": 190000000022,
-                    "parentId": 190000000018,
-                    "isTop": false,
-                    "prop": "link_status",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Linked",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "link_status",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 200,
-        "title": "Get GD-GR Linkage",
-        "isValidator": true,
-        "nodeName": "Get GD-GR Linkage",
-        "name": "Get GD-GR Linkage"
-      },
-      "blocks": []
-    },
-    {
-      "id": "code_doc_maps",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Build Doc Maps",
-        "isValidator": true,
-        "nodeName": "Build Doc Maps",
-        "name": "Build Doc Maps",
-        "script": {
-          "type": "javascript",
-          "code": "\nconst sopoRows = {{node:search_sopo_link.data.data}};\nconst gdgrRows = {{node:search_gdgr_link.data.data}};\nconst sopo = Array.isArray(sopoRows) ? sopoRows : (sopoRows ? [sopoRows] : []);\nconst gdgr = Array.isArray(gdgrRows) ? gdgrRows : (gdgrRows ? [gdgrRows] : []);\nconst soPoMap = {}; const gdGrMap = {};\nconst poSet = {}; const grSet = {};\nfor (const r of sopo) {\n  if (!r || !r.target_doc_id || !r.source_doc_id) continue;\n  soPoMap[String(r.target_doc_id)] = { poId: String(r.source_doc_id), poNo: r.source_doc_no || '' };\n  poSet[String(r.source_doc_id)] = true;\n}\nfor (const r of gdgr) {\n  if (!r || !r.source_doc_id || !r.target_doc_id) continue;\n  gdGrMap[String(r.source_doc_id)] = { grId: String(r.target_doc_id), grNo: r.target_doc_no || '' };\n  grSet[String(r.target_doc_id)] = true;\n}\nlet poIds = Object.keys(poSet); if (poIds.length === 0) poIds = [\"0\"];\nlet grIds = Object.keys(grSet); if (grIds.length === 0) grIds = [\"0\"];\nreturn { soPoMap: soPoMap, gdGrMap: gdGrMap, poIds: poIds, grIds: grIds };\n"
-        },
-        "response_json": [
-          {
-            "key": "s2p_sopomap",
-            "name": "soPoMap",
-            "title": "soPoMap",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
+        {
+          "id": "sitopi_cai_alias",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Item Alias",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Item Alias",
+            "name": "Item Alias",
+            "condition_type": "ConditionRule"
           },
-          {
-            "key": "s2p_gdgrmap",
-            "name": "gdGrMap",
-            "title": "gdGrMap",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "s2p_poids",
-            "name": "poIds",
-            "title": "poIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "s2p_grids",
-            "name": "grIds",
-            "title": "grIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_po",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Purchase Order:Table:1902776039445217282",
-          "rules": {
-            "collectionId": "1902776039445217282",
-            "list": [
-              {
-                "id": 190000000023,
-                "parentId": 190000000024,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000025,
-                    "parentId": 190000000023,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_doc_maps.data.poIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
+          "blocks": [
+            {
+              "id": "search_alias",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item Alias:Table:2031551233157959682",
+                  "rules": {
+                    "collectionId": "2031551233157959682",
+                    "list": [
+                      {
+                        "id": 190000000034,
+                        "parentId": 190000000035,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 190000000036,
+                            "parentId": 190000000034,
+                            "isTop": false,
+                            "prop": "buyer_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:buyer_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "buyer_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 190000000037,
+                            "parentId": 190000000034,
+                            "isTop": false,
+                            "prop": "seller_org_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:seller_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "seller_org_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
                   }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 200,
-        "title": "Get POs",
-        "isValidator": true,
-        "nodeName": "Get POs",
-        "name": "Get POs"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_gr",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Goods Receiving:Table:1901845517592285186",
-          "rules": {
-            "collectionId": "1901845517592285186",
-            "list": [
-              {
-                "id": 190000000026,
-                "parentId": 190000000027,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000028,
-                    "parentId": 190000000026,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_doc_maps.data.grIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 200,
-        "title": "Get GRs",
-        "isValidator": true,
-        "nodeName": "Get GRs",
-        "name": "Get GRs"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_its",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Internal Trading Setup:Table:2069278647482400769",
-          "rules": {
-            "collectionId": "2069278647482400769",
-            "list": [
-              {
-                "id": 190000000029,
-                "parentId": 190000000030,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000031,
-                    "parentId": 190000000029,
-                    "isTop": false,
-                    "prop": "buyer_org_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:buyer_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "buyer_org_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 190000000032,
-                    "parentId": 190000000029,
-                    "isTop": false,
-                    "prop": "seller_org_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:seller_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "seller_org_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 190000000033,
-                    "parentId": 190000000029,
-                    "isTop": false,
-                    "prop": "is_active",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 1,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_active",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 10,
-        "title": "Get Internal Trading Setup",
-        "isValidator": true,
-        "nodeName": "Get Internal Trading Setup",
-        "name": "Get Internal Trading Setup"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_alias",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Item Alias:Table:2031551233157959682",
-          "rules": {
-            "collectionId": "2031551233157959682",
-            "list": [
-              {
-                "id": 190000000034,
-                "parentId": 190000000035,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000036,
-                    "parentId": 190000000034,
-                    "isTop": false,
-                    "prop": "buyer_org_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:buyer_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "buyer_org_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 190000000037,
-                    "parentId": 190000000034,
-                    "isTop": false,
-                    "prop": "seller_org_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:seller_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "seller_org_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 500,
-        "title": "Get Item Alias",
-        "isValidator": true,
-        "nodeName": "Get Item Alias",
-        "name": "Get Item Alias"
-      },
-      "blocks": []
+                },
+                "condition": {},
+                "limit": 500,
+                "title": "Get Item Alias",
+                "isValidator": true,
+                "nodeName": "Get Item Alias",
+                "name": "Get Item Alias"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "code_build_lines",
@@ -1039,415 +1234,594 @@
       ]
     },
     {
-      "id": "search_acc",
-      "type": "search-node",
+      "id": "sitopi_par_build",
+      "type": "condition-all-node",
       "data": {
-        "table_id": {
-          "source": "Accounting Integration:Table:1930794597760651266",
-          "rules": {
-            "collectionId": "1930794597760651266",
-            "list": [
-              {
-                "id": 190000000040,
-                "parentId": 190000000041,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000042,
-                    "parentId": 190000000040,
-                    "isTop": false,
-                    "prop": "organization_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:buyer_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "organization_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
+        "title": "Parallel Build Fetch",
+        "filter": {
+          "list": []
         },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Accounting Integration",
-        "isValidator": true,
-        "nodeName": "Get Accounting Integration",
-        "name": "Get Accounting Integration"
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
       },
-      "blocks": []
-    },
-    {
-      "id": "search_pi_rule",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "流水号规则表:Table:1994006139209117697",
-          "rules": {
-            "collectionId": "1994006139209117697",
-            "list": [
-              {
-                "id": 190000000043,
-                "parentId": 190000000044,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
+      "blocks": [
+        {
+          "id": "sitopi_cai_acc",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Accounting",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Accounting",
+            "name": "Accounting",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_acc",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Accounting Integration:Table:1930794597760651266",
+                  "rules": {
+                    "collectionId": "1930794597760651266",
+                    "list": [
+                      {
+                        "id": 190000000040,
+                        "parentId": 190000000041,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 190000000042,
+                            "parentId": 190000000040,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:buyer_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "organization_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Accounting Integration",
+                "isValidator": true,
+                "nodeName": "Get Accounting Integration",
+                "name": "Get Accounting Integration"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "sitopi_cai_pirule",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "PI Rule",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "PI Rule",
+            "name": "PI Rule",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_pi_rule",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "流水号规则表:Table:1994006139209117697",
+                  "rules": {
+                    "collectionId": "1994006139209117697",
+                    "list": [
+                      {
+                        "id": 190000000043,
+                        "parentId": 190000000044,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 190000000045,
+                            "parentId": 190000000043,
+                            "isTop": false,
+                            "prop": "business_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Purchase Invoices",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "business_type",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 190000000046,
+                            "parentId": 190000000043,
+                            "isTop": false,
+                            "prop": "department_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:buyer_org}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "department_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 190000000047,
+                            "parentId": 190000000043,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "is_default",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get PI Number Rule",
+                "isValidator": true,
+                "nodeName": "Get PI Number Rule",
+                "name": "Get PI Number Rule"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "sitopi_cai_shippurpose",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Shipping Purpose",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Shipping Purpose",
+            "name": "Shipping Purpose",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_addr_purpose",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Address Purpose:Table:1901980197721329665",
+                  "rules": {
+                    "collectionId": "1901980197721329665",
+                    "list": [
+                      {
+                        "id": 190000000054,
+                        "parentId": 190000000055,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 190000000056,
+                            "parentId": 190000000054,
+                            "isTop": false,
+                            "prop": "purpose_name",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Shipping",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "purpose_name",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Shipping Purpose",
+                "isValidator": true,
+                "nodeName": "Get Shipping Purpose",
+                "name": "Get Shipping Purpose"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "sitopi_cai_supplier",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Supplier",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Supplier",
+            "name": "Supplier",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_supplier",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Supplier:Table:1901541078662762497",
+                  "rules": {
+                    "collectionId": "1901541078662762497",
+                    "list": [
+                      {
+                        "id": 190000000048,
+                        "parentId": 190000000049,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 190000000050,
+                            "parentId": 190000000048,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_build_lines.data.supplierIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1,
+                "title": "Get Supplier",
+                "isValidator": true,
+                "nodeName": "Get Supplier",
+                "name": "Get Supplier"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_supplier_ids",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Supplier Lookup Ids",
+                "isValidator": true,
+                "nodeName": "Supplier Lookup Ids",
+                "name": "Supplier Lookup Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "\nconst rows = {{node:search_supplier.data.data}};\nconst s = Array.isArray(rows) ? rows[0] : rows;\nconst countryIds = [];\nconst stateIds = [];\nlet currencyId = '';\nif (s) {\n  currencyId = s.currency_id || '';\n  const addrs = (s.address_list || []).filter(a => a.switch_save_as_default);\n  for (const a of addrs) {\n    if (a.address_country_id) countryIds.push(String(a.address_country_id));\n    if (a.adddress_state) stateIds.push(String(a.adddress_state));\n  }\n}\nlet cIds = Array.from(new Set(countryIds)); if (cIds.length === 0) cIds = [\"0\"];\nlet sIds = Array.from(new Set(stateIds)); if (sIds.length === 0) sIds = [\"0\"];\nreturn { countryIds: cIds, stateIds: sIds, currencyIds: currencyId ? [String(currencyId)] : [\"0\"] };\n"
+                },
+                "response_json": [
                   {
-                    "id": 190000000045,
-                    "parentId": 190000000043,
-                    "isTop": false,
-                    "prop": "business_type",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Purchase Invoices",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "business_type",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
+                    "key": "s2p_countryids",
+                    "name": "countryIds",
+                    "title": "countryIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
                   },
                   {
-                    "id": 190000000046,
-                    "parentId": 190000000043,
-                    "isTop": false,
-                    "prop": "department_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:buyer_org}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "department_id",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
+                    "key": "s2p_stateids",
+                    "name": "stateIds",
+                    "title": "stateIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
                   },
                   {
-                    "id": 190000000047,
-                    "parentId": 190000000043,
-                    "isTop": false,
-                    "prop": "is_default",
-                    "operator": "numberEqual",
-                    "valueType": "value",
-                    "value": 1,
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "is_default",
-                    "valueLabel": "",
-                    "operatorLabel": "numberEqual"
+                    "key": "s2p_currencyids",
+                    "name": "currencyIds",
+                    "title": "currencyIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
                   }
                 ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get PI Number Rule",
-        "isValidator": true,
-        "nodeName": "Get PI Number Rule",
-        "name": "Get PI Number Rule"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_supplier",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Supplier:Table:1901541078662762497",
-          "rules": {
-            "collectionId": "1901541078662762497",
-            "list": [
-              {
-                "id": 190000000048,
-                "parentId": 190000000049,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000050,
-                    "parentId": 190000000048,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_build_lines.data.supplierIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Supplier",
-        "isValidator": true,
-        "nodeName": "Get Supplier",
-        "name": "Get Supplier"
-      },
-      "blocks": []
-    },
-    {
-      "id": "code_supplier_ids",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Supplier Lookup Ids",
-        "isValidator": true,
-        "nodeName": "Supplier Lookup Ids",
-        "name": "Supplier Lookup Ids",
-        "script": {
-          "type": "javascript",
-          "code": "\nconst rows = {{node:search_supplier.data.data}};\nconst s = Array.isArray(rows) ? rows[0] : rows;\nconst countryIds = [];\nconst stateIds = [];\nlet currencyId = '';\nif (s) {\n  currencyId = s.currency_id || '';\n  const addrs = (s.address_list || []).filter(a => a.switch_save_as_default);\n  for (const a of addrs) {\n    if (a.address_country_id) countryIds.push(String(a.address_country_id));\n    if (a.adddress_state) stateIds.push(String(a.adddress_state));\n  }\n}\nlet cIds = Array.from(new Set(countryIds)); if (cIds.length === 0) cIds = [\"0\"];\nlet sIds = Array.from(new Set(stateIds)); if (sIds.length === 0) sIds = [\"0\"];\nreturn { countryIds: cIds, stateIds: sIds, currencyIds: currencyId ? [String(currencyId)] : [\"0\"] };\n"
-        },
-        "response_json": [
-          {
-            "key": "s2p_countryids",
-            "name": "countryIds",
-            "title": "countryIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "s2p_stateids",
-            "name": "stateIds",
-            "title": "stateIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "s2p_currencyids",
-            "name": "currencyIds",
-            "title": "currencyIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_supplier_currency",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Currency:Table:1902047936116805633",
-          "rules": {
-            "collectionId": "1902047936116805633",
-            "list": [
-              {
-                "id": 190000000051,
-                "parentId": 190000000052,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000053,
-                    "parentId": 190000000051,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_supplier_ids.data.currencyIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Supplier Currency",
-        "isValidator": true,
-        "nodeName": "Get Supplier Currency",
-        "name": "Get Supplier Currency"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_addr_purpose",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Address Purpose:Table:1901980197721329665",
-          "rules": {
-            "collectionId": "1901980197721329665",
-            "list": [
-              {
-                "id": 190000000054,
-                "parentId": 190000000055,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000056,
-                    "parentId": 190000000054,
-                    "isTop": false,
-                    "prop": "purpose_name",
-                    "operator": "equal",
-                    "valueType": "value",
-                    "value": "Shipping",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "purpose_name",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 1,
-        "title": "Get Shipping Purpose",
-        "isValidator": true,
-        "nodeName": "Get Shipping Purpose",
-        "name": "Get Shipping Purpose"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_addr_country",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Country:Table:1902728191097815041",
-          "rules": {
-            "collectionId": "1902728191097815041",
-            "list": [
-              {
-                "id": 190000000057,
-                "parentId": 190000000058,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000059,
-                    "parentId": 190000000057,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_supplier_ids.data.countryIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 50,
-        "title": "Get Address Countries",
-        "isValidator": true,
-        "nodeName": "Get Address Countries",
-        "name": "Get Address Countries"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_addr_state",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "State:Table:1902728532698710017",
-          "rules": {
-            "collectionId": "1902728532698710017",
-            "list": [
-              {
-                "id": 190000000060,
-                "parentId": 190000000061,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 190000000062,
-                    "parentId": 190000000060,
-                    "isTop": false,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_supplier_ids.data.stateIds}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "id",
-                    "valueLabel": "",
-                    "operatorLabel": "in"
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 50,
-        "title": "Get Address States",
-        "isValidator": true,
-        "nodeName": "Get Address States",
-        "name": "Get Address States"
-      },
-      "blocks": []
+              },
+              "blocks": []
+            },
+            {
+              "id": "sitopi_par_addr",
+              "type": "condition-all-node",
+              "data": {
+                "title": "Currency/Country/State",
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "sitopi_cai_currency",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Currency",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Currency",
+                    "name": "Currency",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_supplier_currency",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Currency:Table:1902047936116805633",
+                          "rules": {
+                            "collectionId": "1902047936116805633",
+                            "list": [
+                              {
+                                "id": 190000000051,
+                                "parentId": 190000000052,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 190000000053,
+                                    "parentId": 190000000051,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_supplier_ids.data.currencyIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1,
+                        "title": "Get Supplier Currency",
+                        "isValidator": true,
+                        "nodeName": "Get Supplier Currency",
+                        "name": "Get Supplier Currency"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "sitopi_cai_country",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Countries",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Countries",
+                    "name": "Countries",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_addr_country",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Country:Table:1902728191097815041",
+                          "rules": {
+                            "collectionId": "1902728191097815041",
+                            "list": [
+                              {
+                                "id": 190000000057,
+                                "parentId": 190000000058,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 190000000059,
+                                    "parentId": 190000000057,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_supplier_ids.data.countryIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 50,
+                        "title": "Get Address Countries",
+                        "isValidator": true,
+                        "nodeName": "Get Address Countries",
+                        "name": "Get Address Countries"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "sitopi_cai_state",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "States",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "States",
+                    "name": "States",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_addr_state",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "State:Table:1902728532698710017",
+                          "rules": {
+                            "collectionId": "1902728532698710017",
+                            "list": [
+                              {
+                                "id": 190000000060,
+                                "parentId": 190000000061,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 190000000062,
+                                    "parentId": 190000000060,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_supplier_ids.data.stateIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 50,
+                        "title": "Get Address States",
+                        "isValidator": true,
+                        "nodeName": "Get Address States",
+                        "name": "Get Address States"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "code_assemble",
