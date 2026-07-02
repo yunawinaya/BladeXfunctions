@@ -1233,10 +1233,7 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -1260,9 +1257,7 @@
         {
           "id": "ifBlock_HSGteN1P",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "set_cache_node_BGIDXinit",
@@ -1275,10 +1270,7 @@
                 "isValidator": true,
                 "nodeName": "Init Batch Gen Index",
                 "name": "Init Batch Gen Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "batchGenIndex_{{node:code_node_LFPr1wQW.data.unique}}"
               },
               "blocks": []
@@ -1294,10 +1286,7 @@
                 "isValidator": true,
                 "nodeName": "Init Generated Batches",
                 "name": "Init Generated Batches",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "[]"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "[]" },
                 "redis_key": "generatedBatches_{{node:code_node_LFPr1wQW.data.unique}}"
               },
               "blocks": []
@@ -1479,9 +1468,7 @@
                     {
                       "id": "if_NeedsGen_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "workflow_node_GenBatch",
@@ -1550,6 +1537,14 @@
                                   "value": "{{node:code_node_BatchGenPrep.data.manufacturing_date}}",
                                   "valueLabel": "",
                                   "propLabel": "Manufacturing Date"
+                                },
+                                {
+                                  "prop": "organization_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{workflowparams:allData.organization_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Organization ID"
                                 }
                               ]
                             }
@@ -1636,9 +1631,7 @@
                             {
                               "id": "if_BatchErr_t",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "return_node_BatchErr",
@@ -1681,9 +1674,7 @@
                             {
                               "id": "if_BatchErr_f",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -1754,9 +1745,7 @@
                     {
                       "id": "if_NeedsGen_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -1833,10 +1822,7 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -1860,9 +1846,7 @@
                 {
                   "id": "ifBlock_22mPxtaN",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_node_a31whzYI",
@@ -2375,9 +2359,7 @@
                 {
                   "id": "ifBlock_ZcaiKDKK",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "add_node_nGMSu41b",
@@ -2878,10 +2860,7 @@
                 "isValidator": true,
                 "nodeName": "Set Initial Subform Index",
                 "name": "Set Initial Subform Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "subformIndex_{{node:code_node_LFPr1wQW.data.unique}}"
               },
               "blocks": []
@@ -2897,10 +2876,7 @@
                 "isValidator": true,
                 "nodeName": "Set putawayLineItemData",
                 "name": "Set putawayLineItemData",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "[]"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "[]" },
                 "redis_key": "putawayLineItemData_{{node:code_node_LFPr1wQW.data.unique}}"
               },
               "blocks": []
@@ -2914,10 +2890,7 @@
                 "nodeName": "IF No Default Loading Bay",
                 "name": "IF No Default Loading Bay",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -2981,9 +2954,7 @@
                 {
                   "id": "if_block_Z1fbw-MX",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "get_node_njg7cSUu",
@@ -3079,9 +3050,7 @@
                 {
                   "id": "if_block_E9F8XNPE",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3570,10 +3539,7 @@
                     "nodeName": "IF Creates Batch",
                     "name": "IF Creates Batch",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -3597,9 +3563,7 @@
                     {
                       "id": "if_g_createsBatch_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "if_9IJsWcHK",
@@ -3610,10 +3574,7 @@
                             "nodeName": "IF Batch",
                             "name": "IF Batch",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -3637,9 +3598,7 @@
                             {
                               "id": "if_block_KJLPDqQR",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "add_node_WRixae5d",
@@ -3825,9 +3784,7 @@
                             {
                               "id": "if_block_v2NCNijA",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -3837,9 +3794,7 @@
                     {
                       "id": "if_g_createsBatch_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -3853,10 +3808,7 @@
                     "nodeName": "IF Updates PO Line",
                     "name": "IF Updates PO Line",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -3880,9 +3832,7 @@
                     {
                       "id": "if_g_updatesPO_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "get_node_SnZKYhVp",
@@ -4051,10 +4001,7 @@
                             "nodeName": "IF Split Parent (cache PO)",
                             "name": "IF Split Parent (cache PO)",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -4078,9 +4025,7 @@
                             {
                               "id": "if_g_spCache_t",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "set_cache_node_RBB8V5Ft",
@@ -4106,9 +4051,7 @@
                             {
                               "id": "if_g_spCache_f",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -4190,9 +4133,7 @@
                     {
                       "id": "if_g_updatesPO_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -4206,10 +4147,7 @@
                     "nodeName": "IF Updates On Order",
                     "name": "IF Updates On Order",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -4233,9 +4171,7 @@
                     {
                       "id": "if_g_updatesOO_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "get_node_K8mPq3Rt",
@@ -4370,9 +4306,7 @@
                     {
                       "id": "if_g_updatesOO_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -4386,10 +4320,7 @@
                     "nodeName": "IF Adds Inventory",
                     "name": "IF Adds Inventory",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -4413,9 +4344,7 @@
                     {
                       "id": "if_g_addsInv_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "if_g_isChild",
@@ -4426,10 +4355,7 @@
                             "nodeName": "IF Is Child (read cache)",
                             "name": "IF Is Child (read cache)",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -4453,9 +4379,7 @@
                             {
                               "id": "if_g_isChild_t",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "get_cache_node_tMiO2epL",
@@ -4488,9 +4412,7 @@
                             {
                               "id": "if_g_isChild_f",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -4902,9 +4824,7 @@
                             {
                               "id": "ifBlock_lWlP5cJN",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "return_node_avFiHMGU",
@@ -4947,9 +4867,7 @@
                             {
                               "id": "ifBlock_6u7qjPp2",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -5060,10 +4978,7 @@
                             "nodeName": "IF hasHuData",
                             "name": "IF hasHuData",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -5100,9 +5015,7 @@
                             {
                               "id": "if_block_mYSKb7vC",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "workflow_node_2GqNmp7t",
@@ -5262,9 +5175,7 @@
                             {
                               "id": "if_block_KPaFvALE",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -5278,10 +5189,7 @@
                             "nodeName": "IF Inspection Lot",
                             "name": "IF Inspection Lot",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -5332,9 +5240,7 @@
                             {
                               "id": "ifBlock_QQFxVJtn",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "code_node_BSBUmUSx",
@@ -5502,9 +5408,7 @@
                             {
                               "id": "ifBlock_5KqVOjno",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -5518,10 +5422,7 @@
                             "nodeName": "IF Create Putaway",
                             "name": "IF Create Putaway",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -5586,9 +5487,7 @@
                             {
                               "id": "ifBlock_8NtcJHnF",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "get_cache_node_QjOGmuJM",
@@ -5667,9 +5566,7 @@
                             {
                               "id": "ifBlock_PMtGBKaM",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -5679,9 +5576,7 @@
                     {
                       "id": "if_g_addsInv_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -5800,10 +5695,7 @@
                 "nodeName": "IF PO hasUpdate",
                 "name": "IF PO hasUpdate",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -5827,9 +5719,7 @@
                 {
                   "id": "if_block_8jIBFjle",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_node_xESD8YP4",
@@ -5916,9 +5806,7 @@
                 {
                   "id": "if_block_5CKHcXMs",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -6010,10 +5898,7 @@
                 "nodeName": "IF Auto Create Putaway",
                 "name": "IF Auto Create Putaway",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -6078,9 +5963,7 @@
                 {
                   "id": "if_block_SM3zRFQY",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "get_node_xUdzlNqh",
@@ -6400,10 +6283,7 @@
                         "nodeName": "IF Assigned To",
                         "name": "IF Assigned To",
                         "condition_type": "ConditionRule",
-                        "expression": {
-                          "type": "javascript",
-                          "code": ""
-                        },
+                        "expression": { "type": "javascript", "code": "" },
                         "filter": {
                           "list": [
                             {
@@ -6427,9 +6307,7 @@
                         {
                           "id": "if_block_CHtKh5XL",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "code_node_sG5lxZaS",
@@ -6498,9 +6376,7 @@
                         {
                           "id": "if_block_g4qdxk8D",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -6510,9 +6386,7 @@
                 {
                   "id": "if_block_5pM5GsQ9",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "if_9HxJ3QVf",
@@ -6523,10 +6397,7 @@
                         "nodeName": "IF Picking Not Created",
                         "name": "IF Picking Not Created",
                         "condition_type": "ConditionRule",
-                        "expression": {
-                          "type": "javascript",
-                          "code": ""
-                        },
+                        "expression": { "type": "javascript", "code": "" },
                         "filter": {
                           "list": [
                             {
@@ -6577,9 +6448,7 @@
                         {
                           "id": "if_block_k4SUDIMm",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "update_node_AJkeXj0a",
@@ -6634,9 +6503,7 @@
                         {
                           "id": "if_block_7wrsoovF",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -6650,9 +6517,7 @@
         {
           "id": "ifBlock_wW3Vgiim",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "if_dOq3K8al",
@@ -6663,10 +6528,7 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -6690,9 +6552,7 @@
                 {
                   "id": "ifBlock_0qbQJSjW",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_node_bUR4vc0L",
@@ -7187,9 +7047,7 @@
                 {
                   "id": "ifBlock_WbFACB1w",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "add_node_aSgBuQd7",
