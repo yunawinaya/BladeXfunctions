@@ -504,6 +504,8 @@ const checkInventoryWithDuplicates = async (
           line_remark_1: item.lineRemark1 || "",
           line_remark_2: item.lineRemark2 || "",
           line_remark_3: item.lineRemark3 || "",
+          custom_fields: item.custom_fields,
+          tariff_id: item.tariff_id,
           base_uom_id: "",
           unit_price: item.unitPrice || 0,
           total_price: item.soAmount || 0,
@@ -550,6 +552,8 @@ const checkInventoryWithDuplicates = async (
           line_remark_1: item.lineRemark1 || "",
           line_remark_2: item.lineRemark2 || "",
           line_remark_3: item.lineRemark3 || "",
+          custom_fields: item.custom_fields,
+          tariff_id: item.tariff_id,
           base_uom_id: itemData.based_uom || "",
           unit_price: item.unitPrice || 0,
           total_price: item.soAmount || 0,
@@ -694,6 +698,8 @@ const checkInventoryWithDuplicates = async (
         line_remark_1: item.lineRemark1 || "",
         line_remark_2: item.lineRemark2 || "",
         line_remark_3: item.lineRemark3 || "",
+        custom_fields: item.custom_fields,
+        tariff_id: item.tariff_id,
         base_uom_id: itemData.based_uom || "",
         unit_price: item.unitPrice || 0,
         total_price: item.soAmount || 0,
@@ -1074,6 +1080,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         item_category_id: item.item_category_id,
         base_uom_id: itemData.based_uom,
         custom_fields: item.custom_fields || {},
+        tariff_id: item.tariff_id,
       });
     } else {
       processedItems.push({
@@ -1098,6 +1105,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         so_line_item_id: item.so_line_item_id,
         item_category_id: item.item_category_id,
         custom_fields: item.custom_fields || {},
+        tariff_id: item.tariff_id,
       });
     }
   }
