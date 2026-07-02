@@ -504,6 +504,8 @@ const checkInventoryWithDuplicates = async (
           line_remark_1: item.sourceItem.line_remark_1 || "",
           line_remark_2: item.sourceItem.line_remark_2 || "",
           line_remark_3: item.sourceItem.line_remark_3 || "",
+          custom_fields: item.sourceItem.custom_fields,
+          tariff_id: item.sourceItem.tariff_id,
           base_uom_id: "",
           unit_price: item.sourceItem.so_item_price || 0,
           total_price: item.sourceItem.so_amount || 0,
@@ -550,6 +552,8 @@ const checkInventoryWithDuplicates = async (
           line_remark_1: item.sourceItem.line_remark_1 || "",
           line_remark_2: item.sourceItem.line_remark_2 || "",
           line_remark_3: item.sourceItem.line_remark_3 || "",
+          custom_fields: item.sourceItem.custom_fields,
+          tariff_id: item.sourceItem.tariff_id,
           base_uom_id: itemData.based_uom || "",
           unit_price: item.sourceItem.so_item_price || 0,
           total_price: item.sourceItem.so_amount || 0,
@@ -694,6 +698,8 @@ const checkInventoryWithDuplicates = async (
         line_remark_1: item.sourceItem.line_remark_1 || "",
         line_remark_2: item.sourceItem.line_remark_2 || "",
         line_remark_3: item.sourceItem.line_remark_3 || "",
+        custom_fields: item.sourceItem.custom_fields,
+        tariff_id: item.sourceItem.tariff_id,
         base_uom_id: itemData.based_uom || "",
         unit_price: item.sourceItem.so_item_price || 0,
         total_price: item.sourceItem.so_amount || 0,
@@ -1068,6 +1074,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_remark_1: item.sourceItem.line_remark_1 || "",
         line_remark_2: item.sourceItem.line_remark_2 || "",
         line_remark_3: item.sourceItem.line_remark_3 || "",
+        custom_fields: item.sourceItem.custom_fields,
+        tariff_id: item.sourceItem.tariff_id,
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
@@ -1092,6 +1100,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_remark_1: item.sourceItem.line_remark_1 || "",
         line_remark_2: item.sourceItem.line_remark_2 || "",
         line_remark_3: item.sourceItem.line_remark_3 || "",
+        custom_fields: item.sourceItem.custom_fields,
+        tariff_id: item.sourceItem.tariff_id,
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
@@ -1108,9 +1118,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
 // ============================================================================
 
 (async () => {
-  const referenceType = this.getValue(`dialog_select_item.reference_type`);
+  const referenceType = arguments[0].referenceType;
   const previousReferenceType = this.getValue("reference_type");
-  const currentItemArray = this.getValue(`dialog_select_item.item_array`);
+  const currentItemArray = arguments[0].itemArray || [];
   let existingGD = this.getValue("table_gd");
   const customerName = this.getValue("customer_name");
 
@@ -1186,8 +1196,6 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
     existingGD = [];
   }
-
-  this.closeDialog("dialog_select_item");
   this.showLoading();
 
   switch (referenceType) {
