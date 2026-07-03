@@ -5470,7 +5470,7 @@
                     "patternCheck": false,
                     "patternMessage": "",
                     "validatorCheck": true,
-                    "validator": "const prefix = value.split(/\\d/)[0];\nlet organizationId = this.getVarGlobal(\"deptParentId\");\nif (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n}\ndb.collection(\"batch_level_config\")\n  .where({ organization_id: organizationId })\n  .get()\n  .then(response => {\n    console.log('response', response.data)\n    if(response.data.length > 0) {\n        let batchPrefix = response.data[0].batch_prefix;\n\n        if(batchPrefix && batchPrefix !== '') {\n            batchPrefix = batchPrefix + '-'\n        }\n\n        if(batchPrefix === prefix) {\n            callback('Prefix is reserved by the system.');\n        } else {\n            db.collection(\"batch\")\n            .where({\n                batch_number: value,\n                organization_id: organizationId\n            })\n            .get()\n            .then(resBatch => {\n                const matchingBatches = resBatch.data || [];\n                \n                if (matchingBatches.length > 0 && value) {\n                callback('Batch number already exists');\n                } else {\n                callback();\n                }\n            })\n            .catch(error => {\n                console.error(\"Error checking batch number:\", error);\n                callback('Error checking batch number');\n            });\n        }\n    }\n  })\n  .catch(error => {\n    console.error(\"Error checking batch number:\", error);\n    callback('Error checking batch number');\n  });",
+                    "validator": "const prefix = value.split(/\\d/)[0];\nlet organizationId = this.getVarGlobal(\"deptParentId\");\nif (organizationId === \"0\") {\n  organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n}\n\ndb.collection(\"batch\")\n  .where({\n    batch_number: value,\n    organization_id: organizationId,\n  })\n  .get()\n  .then((resBatch) => {\n    const matchingBatches = resBatch.data || [];\n\n    if (matchingBatches.length > 0 && value) {\n      callback(\"Batch number already exists\");\n    } else {\n      callback();\n    }\n  })\n  .catch((error) => {\n    console.error(\"Error checking batch number:\", error);\n    callback(\"Error checking batch number\");\n  });\n",
                     "placeholder": "",
                     "customClass": "",
                     "disabled": true,
@@ -5512,7 +5512,7 @@
                       "message": ""
                     },
                     {
-                      "func": "const prefix = value.split(/\\d/)[0];\nlet organizationId = this.getVarGlobal(\"deptParentId\");\nif (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n}\ndb.collection(\"batch_level_config\")\n  .where({ organization_id: organizationId })\n  .get()\n  .then(response => {\n    console.log('response', response.data)\n    if(response.data.length > 0) {\n        let batchPrefix = response.data[0].batch_prefix;\n\n        if(batchPrefix && batchPrefix !== '') {\n            batchPrefix = batchPrefix + '-'\n        }\n\n        if(batchPrefix === prefix) {\n            callback('Prefix is reserved by the system.');\n        } else {\n            db.collection(\"batch\")\n            .where({\n                batch_number: value,\n                organization_id: organizationId\n            })\n            .get()\n            .then(resBatch => {\n                const matchingBatches = resBatch.data || [];\n                \n                if (matchingBatches.length > 0 && value) {\n                callback('Batch number already exists');\n                } else {\n                callback();\n                }\n            })\n            .catch(error => {\n                console.error(\"Error checking batch number:\", error);\n                callback('Error checking batch number');\n            });\n        }\n    }\n  })\n  .catch(error => {\n    console.error(\"Error checking batch number:\", error);\n    callback('Error checking batch number');\n  });"
+                      "func": "const prefix = value.split(/\\d/)[0];\nlet organizationId = this.getVarGlobal(\"deptParentId\");\nif (organizationId === \"0\") {\n  organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n}\n\ndb.collection(\"batch\")\n  .where({\n    batch_number: value,\n    organization_id: organizationId,\n  })\n  .get()\n  .then((resBatch) => {\n    const matchingBatches = resBatch.data || [];\n\n    if (matchingBatches.length > 0 && value) {\n      callback(\"Batch number already exists\");\n    } else {\n      callback();\n    }\n  })\n  .catch((error) => {\n    console.error(\"Error checking batch number:\", error);\n    callback(\"Error checking batch number\");\n  });\n"
                     }
                   ]
                 },
@@ -15072,16 +15072,32 @@
                                       "allowView": "",
                                       "ganttConfig": {},
                                       "ignoreFormDisabled": 0,
-                                      "tableFixedHeight": null,
                                       "highlightSelectedRow": false,
                                       "highlightHoverRow": false,
-                                      "headerBgColor": "#FFFFFF"
+                                      "headerBgColor": "#FFFFFF",
+                                      "data_field": "",
+                                      "defaultConfig": {
+                                        "startDateField": "",
+                                        "endDateField": "",
+                                        "textField": "",
+                                        "scaleMode": "",
+                                        "color": "",
+                                        "colorColor": "",
+                                        "colorRules": []
+                                      },
+                                      "multipleView": [],
+                                      "calendarConfig": {}
                                     },
                                     "remoteFunc": "func_yn0bhflq",
                                     "remoteOption": "option_yn0bhflq",
                                     "tableColumn": false,
                                     "subform": false,
-                                    "isGetTree": false
+                                    "isGetTree": false,
+                                    "padding": ["", "", "", ""],
+                                    "radius": ["", "", "", ""],
+                                    "fills": [],
+                                    "borders": [],
+                                    "styles": {}
                                   },
                                   "events": {
                                     "rowClick": "y8hr45iy",
@@ -15110,7 +15126,7 @@
                             "remoteOption": "option_oby5spij",
                             "tableColumn": false,
                             "subform": false,
-                            "elementFxCurrent": "tab_item"
+                            "elementFxCurrent": "tab_document"
                           },
                           "events": {
                             "onClick": "lix0w5m4"
@@ -16855,6 +16871,70 @@
                           "key": "9og0drpe",
                           "model": "is_parent_split",
                           "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "name": "Import Excel",
+                          "el": "su-fm-excel-parse",
+                          "mainIcon": "解析Excel",
+                          "typeIcon": "解析Excel",
+                          "group": "File",
+                          "groupSort": 3,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": false,
+                            "required": false,
+                            "validator": "",
+                            "disabled": false,
+                            "hideLabel": false,
+                            "label": "解析Excel",
+                            "width": null,
+                            "height": null,
+                            "placeholder": "Import Excel",
+                            "buttonSize": "default",
+                            "buttonType": "primary",
+                            "buttonPlain": false,
+                            "buttonRound": false,
+                            "buttonCircle": false,
+                            "action": "/su-code-service/io/convertExcelToJson",
+                            "accept": ".xlsx,.xls",
+                            "headers": [],
+                            "customProps": {
+                              "valueType": "array",
+                              "arrayType": "object",
+                              "buttonText": "Upload",
+                              "uploadingText": "Uploading..."
+                            },
+                            "remoteFunc": "func_owfosbca",
+                            "remoteOption": "option_owfosbca",
+                            "tableColumn": false,
+                            "subform": false,
+                            "dynamicValueType": "fx",
+                            "isDynamicValue": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onUploadSuccess": "",
+                            "onUploadError": "",
+                            "onFocus": "",
+                            "onBlur": "",
+                            "change": ""
+                          },
+                          "source": "system",
+                          "type": "custom",
+                          "novalid": {},
+                          "key": "owfosbca",
+                          "model": "import_data",
+                          "rules": []
                         }
                       ],
                       "key": "4s1wu508",
@@ -17119,12 +17199,16 @@
             "filter_collapse": 0,
             "rowActions": [
               {
-                "title": "删除",
+                "title": "Delete",
                 "type": "delBtn",
                 "styleType": "Link",
                 "icon": "trash",
                 "collapse": 0,
-                "events": []
+                "events": [],
+                "permission": "",
+                "hidden": "",
+                "disabled": "",
+                "ignoreFormDisabled": false
               }
             ],
             "collapse_all": 0,
@@ -17133,8 +17217,6 @@
             "resizable": 0,
             "emptyTip": "",
             "tableHeightMode": "fixed",
-            "tableFixedHeight": null,
-            "tableMaxHeight": null,
             "rowHeightType": "auto",
             "hideIndex": false,
             "showTableBorder": 0,
@@ -17156,7 +17238,13 @@
                   "events": []
                 }
               ]
-            }
+            },
+            "groupBy": "",
+            "childRecordMode": false,
+            "inlineInsert": true,
+            "highlightSelectedRow": false,
+            "highlightHoverRow": false,
+            "headerBgColor": "#FFFFFF"
           },
           "events": {
             "onChange": "",
@@ -17260,7 +17348,8 @@
                   "value": "",
                   "label": "",
                   "image": "",
-                  "icon": ""
+                  "icon": "",
+                  "explain": ""
                 },
                 "remoteFunc": "func_7nbvmpse",
                 "customClass": "",
@@ -17289,7 +17378,15 @@
                       }
                     ]
                   }
-                }
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
               },
               "events": {
                 "onReady": "",
@@ -17305,7 +17402,7 @@
             },
             {
               "type": "number",
-              "name": "Received Quantity",
+              "name": "Quantity",
               "icon": "icon-number",
               "mainIcon": "数字",
               "typeIcon": "数字",
@@ -17736,6 +17833,183 @@
               "novalid": {},
               "key": "8e3qvm3c",
               "model": "location_id",
+              "rules": []
+            },
+            {
+              "version": "1.0.0",
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "单行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-input",
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "disabled": false,
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_p2w2pail",
+                "remoteOption": "option_p2w2pail",
+                "tableColumn": true,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": [],
+                "dynamicValueType": "fx",
+                "isDynamicValue": false
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Batch Number",
+              "novalid": {},
+              "key": "p2w2pail",
+              "model": "batch_no",
+              "rules": []
+            },
+            {
+              "name": "Manufacturing Date",
+              "type": "date",
+              "mainIcon": "日期",
+              "typeIcon": "日期",
+              "icon": "icon-date",
+              "group": "DateTime",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "readonly": false,
+                "disabled": false,
+                "editable": false,
+                "clearable": false,
+                "placeholder": "",
+                "startPlaceholder": "",
+                "endPlaceholder": "",
+                "type": "timestamp",
+                "timeStampType": "timestamp",
+                "format": "YYYY-MM-DD",
+                "timestamp": false,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_doxroj2i",
+                "remoteOption": "option_doxroj2i",
+                "tableColumn": true,
+                "subform": false,
+                "dynamicValueFx": "",
+                "dynamicValueType": "fx",
+                "isDynamicValue": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "z4evvkis",
+              "model": "manufacturing_date",
+              "rules": []
+            },
+            {
+              "name": "Expired Date",
+              "type": "date",
+              "mainIcon": "日期",
+              "typeIcon": "日期",
+              "icon": "icon-date",
+              "group": "DateTime",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "readonly": false,
+                "disabled": false,
+                "editable": false,
+                "clearable": false,
+                "placeholder": "",
+                "startPlaceholder": "",
+                "endPlaceholder": "",
+                "type": "timestamp",
+                "timeStampType": "timestamp",
+                "format": "YYYY-MM-DD",
+                "timestamp": false,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_doxroj2i",
+                "remoteOption": "option_doxroj2i",
+                "tableColumn": true,
+                "subform": false,
+                "dynamicValueFx": "",
+                "dynamicValueType": "fx",
+                "isDynamicValue": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "onsswnfu",
+              "model": "expired_date",
               "rules": []
             },
             {
@@ -22938,6 +23212,12 @@
         "key": "d6y9s588",
         "name": "onChange_d6y9s588",
         "func": "(async () => {\n  const poIDs = arguments[0].value;\n\n  if(poIDs.length > 0) {\n    const firstPO = poIDs[0];\n\n    const resPO = await db.collection('purchase_order').doc(firstPO).get();\n\n    const poData = resPO.data[0];\n\n    this.setData({\n      gr_remark1: poData.po_remark,\n      gr_remark2: poData.po_remark2,\n      gr_remark3: poData.po_remark3,\n    })\n  }\n})();",
+        "type": "js"
+      },
+      {
+        "key": "h8fgooxc",
+        "name": "onChange_h8fgooxc",
+        "func": "// onChange handler for manufacturing_date field\n// When parent's manufacturing_date changes, auto-update all children\n\n(async () => {\n  try {\n    const manufacturingDate = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    if (rowIndex === undefined || rowIndex === null) {\n      return;\n    }\n\n    // Check if this is a split parent row\n    const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);\n    const parentOrChild = this.getValue(`table_gr.${rowIndex}.parent_or_child`);\n\n    // Only propagate to children if this is a split parent\n    if (isSplit === \"Yes\" && parentOrChild === \"Parent\") {\n      const parentIndex = this.getValue(`table_gr.${rowIndex}.parent_index`);\n      const tableGR = this.getValue(\"table_gr\");\n\n      // Find all children belonging to this parent\n      const updates = {};\n      tableGR.forEach((row, idx) => {\n        if (row.parent_or_child === \"Child\" && row.parent_index === parentIndex) {\n          updates[`table_gr.${idx}.manufacturing_date`] = manufacturingDate;\n        }\n      });\n\n      // Update all children's manufacturing_date\n      if (Object.keys(updates).length > 0) {\n        await this.setData(updates);\n      }\n    }\n  } catch (error) {\n    console.error(\"Error updating manufacturing date:\", error);\n  }\n})();\n",
         "type": "js"
       }
     ],
