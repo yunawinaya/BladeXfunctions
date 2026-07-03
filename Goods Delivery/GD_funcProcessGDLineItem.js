@@ -1077,6 +1077,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
+        is_internal: !!(item.is_internal || item.source_po_id || item.source_po_line_item_id),
         item_category_id: item.item_category_id,
         base_uom_id: itemData.based_uom,
         custom_fields: item.custom_fields || {},
@@ -1103,6 +1104,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
+        is_internal: !!(item.is_internal || item.source_po_id || item.source_po_line_item_id),
         item_category_id: item.item_category_id,
         custom_fields: item.custom_fields || {},
         tariff_id: item.tariff_id,
@@ -1118,6 +1120,29 @@ const createTableGdWithBaseUOM = async (allItems) => {
   let allItems = arguments[0].allItems;
   let existingGD = this.getValue("table_gd");
   const plant = this.getValue("plant_id");
+
+  // TEMP GUARD: block combining internal-trading and non-internal SOs in one GD.
+  // Internal = the SO carries a source PO ref (source_po_id header / source_po_line_item_id
+  // line). No DB fetch — the marker is already on the selected records / GD lines.
+  {
+    const isInternalRec = (x) =>
+      !!(x && (x.is_internal || x.source_po_id || x.source_po_line_item_id));
+    const flags = [
+      ...(allItems || []).map(isInternalRec),
+      ...(existingGD || [])
+        .filter((l) => typeof l.is_internal === "boolean")
+        .map((l) => l.is_internal),
+    ];
+    if (flags.includes(true) && flags.includes(false)) {
+      this.hideLoading();
+      this.$alert(
+        "Cannot combine internal trading and non-internal Sales Orders in the same Goods Delivery. Please select only one type.",
+        "Error",
+        { confirmButtonText: "OK", type: "error" },
+      );
+      return;
+    }
+  }
 
   this.disabled(
     [
