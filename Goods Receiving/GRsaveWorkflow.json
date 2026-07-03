@@ -4487,96 +4487,96 @@
                               "type": "ifBlock",
                               "data": { "title": "true" },
                               "blocks": [
-                        {
-                          "id": "search_existing_batch",
-                          "type": "search-node",
-                          "data": {
-                            "table_id": {
-                              "source": "Batch:Table:1902719754154655746",
-                              "rules": {
-                                "collectionId": "1902719754154655746",
-                                "list": [
-                                  {
-                                    "id": 900000000101,
-                                    "parentId": 900000000100,
-                                    "isTop": true,
-                                    "type": "branch",
-                                    "operator": "all",
-                                    "prop": "",
-                                    "valueType": "",
-                                    "value": "",
-                                    "level": 1,
-                                    "children": [
-                                      {
-                                        "id": 900000000102,
-                                        "parentId": 900000000101,
-                                        "isTop": false,
-                                        "prop": "batch_number",
-                                        "operator": "equal",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_D9IbUV8t.data.batch_no}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "batch_number",
-                                        "valueLabel": "",
-                                        "operatorLabel": "equal"
-                                      },
-                                      {
-                                        "id": 900000000103,
-                                        "parentId": 900000000101,
-                                        "isTop": false,
-                                        "prop": "material_id",
-                                        "operator": "equal",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_D9IbUV8t.data.material_id}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "material_id",
-                                        "valueLabel": "",
-                                        "operatorLabel": "equal"
-                                      },
-                                      {
-                                        "id": 900000000104,
-                                        "parentId": 900000000101,
-                                        "isTop": false,
-                                        "prop": "organization_id",
-                                        "operator": "equal",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_D9IbUV8t.data.organization_id}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "organization_id",
-                                        "valueLabel": "",
-                                        "operatorLabel": "equal"
-                                      },
-                                      {
-                                        "id": 900000000105,
-                                        "parentId": 900000000101,
-                                        "isTop": false,
-                                        "prop": "plant_id",
-                                        "operator": "equal",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_D9IbUV8t.data.plant_id}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "plant_id",
-                                        "valueLabel": "",
-                                        "operatorLabel": "equal"
+                                {
+                                  "id": "search_existing_batch",
+                                  "type": "search-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "Batch:Table:1902719754154655746",
+                                      "rules": {
+                                        "collectionId": "1902719754154655746",
+                                        "list": [
+                                          {
+                                            "id": 900000000101,
+                                            "parentId": 900000000100,
+                                            "isTop": true,
+                                            "type": "branch",
+                                            "operator": "all",
+                                            "prop": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "level": 1,
+                                            "children": [
+                                              {
+                                                "id": 900000000102,
+                                                "parentId": 900000000101,
+                                                "isTop": false,
+                                                "prop": "batch_number",
+                                                "operator": "equal",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.batch_no}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "batch_number",
+                                                "valueLabel": "",
+                                                "operatorLabel": "equal"
+                                              },
+                                              {
+                                                "id": 900000000103,
+                                                "parentId": 900000000101,
+                                                "isTop": false,
+                                                "prop": "material_id",
+                                                "operator": "equal",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.material_id}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "material_id",
+                                                "valueLabel": "",
+                                                "operatorLabel": "equal"
+                                              },
+                                              {
+                                                "id": 900000000104,
+                                                "parentId": 900000000101,
+                                                "isTop": false,
+                                                "prop": "organization_id",
+                                                "operator": "equal",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.organization_id}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "organization_id",
+                                                "valueLabel": "",
+                                                "operatorLabel": "equal"
+                                              },
+                                              {
+                                                "id": 900000000105,
+                                                "parentId": 900000000101,
+                                                "isTop": false,
+                                                "prop": "plant_id",
+                                                "operator": "equal",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_D9IbUV8t.data.plant_id}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "plant_id",
+                                                "valueLabel": "",
+                                                "operatorLabel": "equal"
+                                              }
+                                            ]
+                                          }
+                                        ]
                                       }
-                                    ]
-                                  }
-                                ]
-                              }
-                            },
-                            "condition": {},
-                            "limit": 1,
-                            "title": "Get Existing Batch",
-                            "isValidator": true,
-                            "nodeName": "Get Existing Batch",
-                            "name": "Get Existing Batch"
-                          },
-                          "blocks": []
-                        }
+                                    },
+                                    "condition": {},
+                                    "limit": 1,
+                                    "title": "Get Existing Batch",
+                                    "isValidator": true,
+                                    "nodeName": "Get Existing Batch",
+                                    "name": "Get Existing Batch"
+                                  },
+                                  "blocks": []
+                                }
                               ]
                             },
                             {
