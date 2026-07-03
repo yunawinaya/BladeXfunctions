@@ -5,6 +5,46 @@ const handleConvertSI = async (
   plantID,
   filterDraft,
 ) => {
+  // Block combining internal-trading and non-internal Sales Orders into ONE
+  // Sales Invoice. Only relevant for single-SI conversion of 2+ SOs; "multiple"
+  // gives each SO its own SI (no mix). Internal = the SO is the target of a
+  // "Linked" PO->SO row in document_linkage.
+  if (isMultiple === "single" && selectedRecords.length > 1) {
+    const soIds = [...new Set(selectedRecords.map((r) => r.id))];
+    const linkRes = await db
+      .collection("document_linkage")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            {
+              prop: "target_doc_type",
+              operator: "equal",
+              value: "Sales Order",
+            },
+            { prop: "target_doc_id", operator: "in", value: soIds },
+            { prop: "link_status", operator: "equal", value: "Linked" },
+          ],
+        },
+      ])
+      .get();
+
+    const internalSet = new Set(
+      (linkRes?.data || []).map((r) => r.target_doc_id),
+    );
+    const internalCount = soIds.filter((id) => internalSet.has(id)).length;
+
+    if (internalCount > 0 && internalCount < soIds.length) {
+      await this.$alert(
+        "Cannot combine internal trading and non-internal Sales Orders in the same Sales Invoice. Please select only one type, or convert to multiple Sales Invoices.",
+        "Error",
+        { confirmButtonText: "OK", type: "error" },
+      );
+      return;
+    }
+  }
+
   this.showLoading("Converting Sales Order to Sales Invoice...");
   await this.runWorkflow(
     "2029006184569364481",
