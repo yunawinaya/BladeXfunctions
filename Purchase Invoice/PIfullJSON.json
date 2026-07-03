@@ -8315,7 +8315,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "pi_save_as_completed"
           },
           "events": {
             "onClick": "raufkkqk"
@@ -8358,7 +8359,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "pi_save_as_completed_post"
           },
           "events": {
             "onClick": "mun79lbo"
@@ -8402,7 +8404,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "pi_save_as_post"
           },
           "events": {
             "onClick": "jtqa395j"
