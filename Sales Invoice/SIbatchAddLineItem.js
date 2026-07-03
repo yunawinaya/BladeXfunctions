@@ -174,6 +174,81 @@ const processData = async (referenceType, latesttableSI) => {
         });
       }
     }
+
+    // TEMP GUARD: block combining internal-trading and non-internal documents in
+    // one Sales Invoice. Internal = the source SO/GD has a "Linked" row in
+    // document_linkage (created by the PO->SO / GD->GR internal-trading flows).
+    // The reference type is uniform per SI (switching type resets the table
+    // above), so we classify the SO for *-SO and the GD for *-GD.
+    {
+      const isGD = referenceType.endsWith("GD");
+
+      // Collect the doc ids to classify: new selection + existing SI lines, so
+      // adding a non-internal document onto an already-internal invoice is caught.
+      const docIdSet = new Set();
+      if (isGD) {
+        for (const gd of currentItemArray) {
+          if (gd.goods_delivery_id) docIdSet.add(gd.goods_delivery_id);
+        }
+        (existingSI || []).forEach(
+          (l) => l.line_gd_id && docIdSet.add(l.line_gd_id),
+        );
+      } else {
+        for (const so of currentItemArray) {
+          const soId =
+            referenceType === "Document - SO"
+              ? so.sales_order_id
+              : so.sales_order?.id;
+          if (soId) docIdSet.add(soId);
+        }
+        (existingSI || []).forEach(
+          (l) => l.line_so_id && docIdSet.add(l.line_so_id),
+        );
+      }
+
+      const docIds = [...docIdSet];
+      if (docIds.length > 0) {
+        const linkRes = await db
+          .collection("document_linkage")
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [
+                {
+                  prop: isGD ? "source_doc_type" : "target_doc_type",
+                  operator: "equal",
+                  value: isGD ? "Goods Delivery" : "Sales Order",
+                },
+                {
+                  prop: isGD ? "source_doc_id" : "target_doc_id",
+                  operator: "in",
+                  value: docIds,
+                },
+                { prop: "link_status", operator: "equal", value: "Linked" },
+              ],
+            },
+          ])
+          .get();
+
+        const internalSet = new Set(
+          (linkRes?.data || []).map((r) =>
+            isGD ? r.source_doc_id : r.target_doc_id,
+          ),
+        );
+        const internalCount = docIds.filter((id) => internalSet.has(id)).length;
+
+        if (internalCount > 0 && internalCount < docIds.length) {
+          await this.$alert(
+            "Cannot combine internal trading and non-internal documents in the same Sales Invoice. Please select only one type.",
+            "Error",
+            { confirmButtonText: "OK", type: "error" },
+          );
+          return;
+        }
+      }
+    }
+
     this.closeDialog("dialog_select_item");
     this.showLoading();
 
