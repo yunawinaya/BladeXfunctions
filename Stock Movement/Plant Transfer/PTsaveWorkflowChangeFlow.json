@@ -544,9 +544,7 @@
                 {
                   "id": "ifBlock_PTvldTrue",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "return_node_PTvldFail",
@@ -589,9 +587,7 @@
                 {
                   "id": "ifBlock_PTvldFalse",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -12208,6 +12204,82 @@
                       "blocks": []
                     },
                     {
+                      "id": "search_node_d8bhuxPm",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "流水号规则表:Table:1994006139209117697",
+                          "rules": {
+                            "collectionId": "1994006139209117697",
+                            "list": [
+                              {
+                                "id": 180000000040,
+                                "parentId": 180000000044,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 180000000041,
+                                    "parentId": 180000000040,
+                                    "isTop": false,
+                                    "prop": "business_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Plant Transfer",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Document Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 180000000042,
+                                    "parentId": 180000000040,
+                                    "isTop": false,
+                                    "prop": "department_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:allData.organization_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 180000000043,
+                                    "parentId": 180000000040,
+                                    "isTop": false,
+                                    "prop": "is_default",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Default",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1,
+                        "title": "Get PT Number Rule",
+                        "isValidator": true,
+                        "nodeName": "Get PT Number Rule",
+                        "name": "Get PT Number Rule"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "code_node_DuDWkVDG",
                       "type": "code-node",
                       "data": {
@@ -12220,7 +12292,7 @@
                         "name": "Add SM Data Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}}\nconst id = allData.id\nconst stock_movement_no = \"issued\";\nconst movement_type = \"Plant Transfer (Receiving)\";\nlet stock_movement = {{node:get_cache_node_ZChs3u34.data}};\n\nif (stock_movement) {\n  if (typeof stock_movement === 'string') {\n    try {\n      stock_movement = JSON.parse(stock_movement);\n    } catch (e) {\n      stock_movement = [];\n    }\n  } else if (typeof stock_movement === 'array') {\n    stock_movement = stock_movement;\n  }\n}\n\nreturn {\n  stock_movement_no,\n  movement_type,\n  stock_movement,\n  id\n}"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}}\nconst id = allData.id\nconst stock_movement_no = \"issued\";\nconst movement_type = \"Plant Transfer (Receiving)\";\nlet stock_movement = {{node:get_cache_node_ZChs3u34.data}};\nconst ruleRows = {{node:search_node_d8bhuxPm.data.data}};\nconst ruleArr = Array.isArray(ruleRows) ? ruleRows : (ruleRows ? [ruleRows] : []);\nconst ptNoType = ruleArr.length > 0 ? ruleArr[0].id : '';\n\nif (stock_movement) {\n  if (typeof stock_movement === 'string') {\n    try {\n      stock_movement = JSON.parse(stock_movement);\n    } catch (e) {\n      stock_movement = [];\n    }\n  } else if (typeof stock_movement === 'array') {\n    stock_movement = stock_movement;\n  }\n}\n\nreturn {\n  stock_movement_no,\n  movement_type,\n  stock_movement,\n  id,\n  ptNoType\n}"
                         },
                         "response_json": [
                           {
@@ -12263,6 +12335,14 @@
                             "key": "38izxk0r",
                             "name": "id",
                             "title": "id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "1og862r4",
+                            "name": "ptNoType",
+                            "title": "ptNoType",
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
@@ -12450,7 +12530,7 @@
                               "prop": "stock_movement_no_type",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.stock_movement_no_type}}",
+                              "value": "{{node:code_node_DuDWkVDG.data.ptNoType}}",
                               "valueLabel": "",
                               "propLabel": "??"
                             },
