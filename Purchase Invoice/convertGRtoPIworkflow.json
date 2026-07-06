@@ -1,0 +1,880 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "search_node_AHtHRmqi",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Receiving:Table:1901845517592285186",
+          "rules": {
+            "collectionId": "1901845517592285186",
+            "list": [
+              {
+                "id": 1782439092615,
+                "parentId": 1782439092614,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:ids}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Primary Key ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "1. Fetch All GR Data",
+        "isValidator": true,
+        "nodeName": "1. Fetch All GR Data",
+        "name": "1. Fetch All GR Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_5lS2tGyt",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "2-1. Check GR Status",
+        "isValidator": true,
+        "nodeName": "2-1. Check GR Status",
+        "name": "2-1. Check GR Status",
+        "script": {
+          "type": "javascript",
+          "code": "const grList = {{node:search_node_AHtHRmqi.data.data}};\nconst filterDraft = {{workflowparams:filter_draft}};\nconst unCompletedGR = grList.filter((gr) => gr.gr_status !== \"Completed\" && gr.gr_status !== 'Received');\n\nif (unCompletedGR.length > 0 && filterDraft == \"no\") {\n  return {\n    status: \"Failed\",\n    message:\n      \"Selected Goods Receivings with Draft/Created status cannot be converted.<br><br> If proceed, it will filter out the draft/created GR.\",\n  };\n} else {\n  return {\n    status: \"Success\",\n    message: \"\",\n  };\n}\n"
+        },
+        "response_json": [
+          {
+            "key": "1phizhk2",
+            "name": "status",
+            "title": "Status",
+            "description": "Success/Failed",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "di2tl37d",
+            "name": "message",
+            "title": "Message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_K1anOq9v",
+      "type": "if",
+      "data": {
+        "title": "IF failed?",
+        "isValidator": true,
+        "nodeName": "IF failed?",
+        "name": "IF failed?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_5lS2tGyt.data.status}}' == 'Failed'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_mvtPR2cE",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "end_zUhaNxBw",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_5lS2tGyt.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_kwj9N1p7",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_42o2wYvS",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "2-2. Map PO IDs",
+        "isValidator": true,
+        "nodeName": "2-2. Map PO IDs",
+        "name": "2-2. Map PO IDs",
+        "script": {
+          "type": "javascript",
+          "code": "const grList = {{node:search_node_AHtHRmqi.data.data}};\n\n// Use flatMap to combine all po_id arrays into one flat array\nconst poIDs = grList.flatMap((gr) => gr.po_id || []);\n\n// If you want to remove duplicates\nconst uniquePoIDs = [...new Set(poIDs)];\n\nreturn {\n  uniquePoIDs,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "gcpjhso8",
+            "name": "uniquePoIDs",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_d39M3W6h",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Invoice:Table:1902777443710779394",
+          "rules": {
+            "collectionId": "1902777443710779394",
+            "list": [
+              {
+                "id": 1782439349145,
+                "parentId": 1782439328695,
+                "isTop": true,
+                "prop": "po_id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_42o2wYvS.data.uniquePoIDs}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "PO ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "2-2. Existing PI Validation",
+        "isValidator": true,
+        "nodeName": "2-2. Existing PI Validation",
+        "name": "2-2. Existing PI Validation"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_oYmToArz",
+      "type": "if",
+      "data": {
+        "title": "IF has existing PI?",
+        "isValidator": true,
+        "nodeName": "IF has existing PI?",
+        "name": "IF has existing PI?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:search_node_d39M3W6h.data.total}} > 0"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_ngrbeyd7",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_6JxbETDC",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "2-2-1. Existing PI Err Msg",
+                "isValidator": true,
+                "nodeName": "2-2-1. Existing PI Err Msg",
+                "name": "2-2-1. Existing PI Err Msg",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  message: 'Selected Goods Receiving(s) already has existing Purchase Invoice and cannot be converted.'\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "rb1d06kw",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "end_EKbfI_dO",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 402,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_6JxbETDC.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_Y77qArCb",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "search_node_bOF3TVA2",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1782439414061,
+                        "parentId": 1782439414062,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1782439428701,
+                            "parentId": 1782439414061,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{workflowparams:ids}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          },
+                          {
+                            "id": 1782439414063,
+                            "parentId": 1782439414061,
+                            "isTop": false,
+                            "prop": "gr_status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Completed",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "GR Status",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "2-3. Fetch GR Data",
+                "isValidator": true,
+                "nodeName": "2-3. Fetch GR Data",
+                "name": "2-3. Fetch GR Data"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_LqEGUXmi",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "2-4. Check Supplier & Plant",
+                "isValidator": true,
+                "nodeName": "2-4. Check Supplier & Plant",
+                "name": "2-4. Check Supplier & Plant",
+                "script": {
+                  "type": "javascript",
+                  "code": "const grList = {{node:search_node_bOF3TVA2.data.data}}\nconst isMultiple = {{workflowparams:is_multiple}}\nlet suppliers = new Set(grList.map((gr) => gr.supplier_name));\nlet plants = new Set(grList.map((gr) => gr.plant_id));\nif (suppliers.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Receiving(s) must be from the same supplier to create a single Purchase Invoice.\",\n  };\n} else if (plants.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Receiving(s) must be from the same plant to create a single Purchase Invoice.\",\n  };\n} else {\n  return {\n    status: \"Success\",\n    code: 200,\n    message: \"\",\n  };\n}\n"
+                },
+                "response_json": [
+                  {
+                    "key": "vtvx9mnm",
+                    "name": "status",
+                    "title": "Status",
+                    "description": "Success/Failed",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "w2yao59n",
+                    "name": "code",
+                    "title": "Code",
+                    "description": "405/200",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pynfih8d",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_uiTR0Npr",
+              "type": "if",
+              "data": {
+                "title": "IF failed?",
+                "isValidator": true,
+                "nodeName": "IF failed?",
+                "name": "IF failed?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_LqEGUXmi.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_jrZVL-pX",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_B8T7r2uw",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 403,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_LqEGUXmi.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_B-WBW0gK",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "get_node_yDMG0Sab",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "流水号规则表:Table:1994006139209117697",
+                          "rules": {
+                            "collectionId": "1994006139209117697",
+                            "list": [
+                              {
+                                "id": 1772590641107,
+                                "parentId": 1772590641108,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1772590553494,
+                                    "parentId": 1772590641107,
+                                    "isTop": false,
+                                    "prop": "department_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{global:firstLvDeptId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1772590641109,
+                                    "parentId": 1772590641107,
+                                    "isTop": false,
+                                    "prop": "business_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Purchase Invoices",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Document Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1772590641110,
+                                    "parentId": 1772590641107,
+                                    "isTop": false,
+                                    "prop": "is_default",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Default",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "3. Get PI Doc Format",
+                        "isValidator": true,
+                        "nodeName": "3. Get PI Doc Format",
+                        "name": "3. Get PI Doc Format"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_ZtKdDFYw",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "4. Map PO Line IDs",
+                        "isValidator": true,
+                        "nodeName": "4. Map PO Line IDs",
+                        "name": "4. Map PO Line IDs",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const grList = {{node:search_node_AHtHRmqi.data.data}};\n\n// Get all po_line_item_id from table_gr arrays\nconst poLineIds = grList.flatMap((gr) => {\n  // Check if table_gr exists and is an array\n  if (gr.table_gr && Array.isArray(gr.table_gr)) {\n    return gr.table_gr.map((item) => item.po_line_item_id);\n  }\n  return [];\n}).filter(id => id !== null && id !== undefined && id !== '');\n\n// Remove duplicates if needed\nconst uniquePoLineIds = [...new Set(poLineIds)];\n\nreturn {\n  uniquePoLineIds\n};"
+                        },
+                        "response_json": [
+                          {
+                            "key": "4k3iuqrm",
+                            "name": "uniquePoLineIds",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_node_Ivek0yYx",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Purchase Order:Table:1902776039445217282",
+                          "rules": {
+                            "collectionId": "1902776039445217282",
+                            "list": [
+                              {
+                                "id": 1782439695084,
+                                "parentId": 1782439695083,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_42o2wYvS.data.uniquePoIDs}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "Primary Key ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "4. Get PO Data",
+                        "isValidator": true,
+                        "nodeName": "4. Get PO Data",
+                        "name": "4. Get PO Data"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_node_r3bnMaWy",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Item Table(Purchase Order):Table:1939901372270747649",
+                          "rules": {
+                            "collectionId": "1939901372270747649",
+                            "list": [
+                              {
+                                "id": 1782439720174,
+                                "parentId": 1782439720173,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_ZtKdDFYw.data.uniquePoLineIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "4. Get PO Line Data",
+                        "isValidator": true,
+                        "nodeName": "4. Get PO Line Data",
+                        "name": "4. Get PO Line Data"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_sQX9tldw",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "5. Map PI Data",
+                        "isValidator": true,
+                        "nodeName": "5. Map PI Data",
+                        "name": "5. Map PI Data",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const grList = {{node:search_node_bOF3TVA2.data.data}};\nconst isMultiple = {{workflowparams:is_multiple}};\nconst convertTo = {{workflowparams:convert_to}};\nconst docFormat = {{node:get_node_yDMG0Sab.data.data}};\nconst poLineItemList = {{node:search_node_r3bnMaWy.data.data}};\nconst poList = {{node:search_node_Ivek0yYx.data.data}};\nlet piList = [];\n\nconst mapLineItem = (grItem, poLineItem, record, index, poData, plantID) => {\n  // Calculate based on GR quantity\n  const grQuantity = parseFloat(grItem.received_qty) || 0;\n  const poQuantity = parseFloat(poLineItem.quantity) || 1;\n  const unitPrice = parseFloat(poLineItem.unit_price) || 0;\n  let discount = parseFloat(poLineItem.discount) || 0;\n  const discountAmount = parseFloat(poLineItem.discount_amount) || 0;\n  const taxAmount = parseFloat(poLineItem.tax_amount) || 0;\n  const totalAmount = parseFloat(poLineItem.po_amount) || 0;\n\n  // Recalculate amounts based on GR quantity\n  const ratio = poQuantity > 0 ? grQuantity / poQuantity : 0;\n  const recalculatedGross = unitPrice * grQuantity;\n  const recalculatedDiscountAmount = discountAmount * ratio;\n  const recalculatedTaxAmount = taxAmount * ratio;\n  const recalculatedAmount = totalAmount * ratio;\n\n  if (poLineItem.discount_uom && poLineItem.discount_uom === \"Amount\") {\n    discount = discount * ratio;\n  }\n\n  const lineItemPromise = {\n    material_id: grItem.item_id,\n    material_name: grItem.item_name,\n    item_desc: grItem.item_desc,\n    more_desc: grItem.more_desc,\n    purchase_order_no: grItem.line_po_no,\n    order_qty: poQuantity,\n    received_qty: grQuantity,\n    invoice_qty: grQuantity,\n    quantity_uom: grItem.item_uom,\n    order_unit_price: unitPrice,\n    order_gross: recalculatedGross.toFixed(4),\n    order_discount: discount.toFixed(4),\n    discount_uom: poLineItem.discount_uom,\n    discount_amount: recalculatedDiscountAmount.toFixed(4),\n    tax_preference: poLineItem.tax_preference,\n    tax_percent: poLineItem.tax_percent,\n    tax_amount: recalculatedTaxAmount.toFixed(4),\n    tax_inclusive: poLineItem.tax_inclusive,\n    invoice_amount: recalculatedAmount.toFixed(4),\n    line_remark_1: grItem.line_remark_1,\n    line_remark_2: grItem.line_remark_2,\n    available_inv_qty:\n      parseFloat(poLineItem.quantity || 0) -\n      parseFloat(poLineItem.invoice_qty || 0),\n    goods_receiving_no: record.gr_no,\n    gr_line_id: grItem.id,\n    line_po_id: grItem.line_po_id,\n    line_gr_id: record.id,\n    po_line_id: grItem.po_line_item_id,\n    item_category_id: grItem.item_category_id,\n    line_index: index + 1,\n    billing_country_id: grItem.billing_country_id,\n    agent_id: null,\n    shipping_country_id: grItem.shipping_country_id,\n    billing_state_id: grItem.billing_state_id,\n    supplier_id: grItem.supplier_id,\n    shipping_state_id: null,\n    plant_id: plantID,\n    tariff_id: grItem.tariff_id,\n    payment_term_id: poLineItem.payment_term_id,\n\n    exchange_rate:\n      parseFloat(poData.exchange_rate) === 0\n        ? 1\n        : parseFloat(poData.exchange_rate),\n    exchange_rate_currency: poData.exchange_rate_currency,\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (\n  record,\n  lineItemPromise,\n  poNoDisplay,\n  poID,\n  grNoDisplay,\n  grID,\n  totals,\n) => {\n  const data = {\n    page_status: \"Add\",\n    purchase_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    invoice_date: new Date().toISOString().split(\"T\")[0],\n    exchange_rate: lineItemPromise[0].exchange_rate,\n    invoice_payment_term_id: lineItemPromise[0].payment_term_id,\n    pi_description: \"Purchase\",\n    table_pi: lineItemPromise,\n    invoice_subtotal: totals.invoice_subtotal,\n    invoice_total_discount: totals.invoice_total_discount,\n    invoice_taxes_amount: totals.invoice_taxes_amount,\n    invoice_total: totals.invoice_total,\n    remarks: record.gr_remark1,\n    currency_code: record.currency_code,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n    pi_billing_address: record.gr_billing_address,\n    pi_shipping_address: record.gr_shipping_address,\n    supplier_name: record.supplier_name,\n    pi_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    plant_id: record.plant_id,\n    organization_id: record.organization_id,\n    gr_no_display: grNoDisplay,\n    myr_total_amount: totals.myr_total_amount,\n    po_no_display: poNoDisplay,\n    total_amount_currency: record.currency_code,\n    exchange_rate_currency: record.currency_code,\n    total_discount_currency: record.currency_code,\n    total_tax_currency: record.currency_code,\n    total_gross_currency: record.currency_code,\n    po_id: poID,\n    gr_id: grID,\n    remarks2: record.gr_remark2,\n    remarks3: record.gr_remark3,\n    purchase_invoice_no_type: docFormat.id,\n    remarks4: record.gr_remark4,\n    remarks5: record.gr_remark5,\n  };\n\n  return data;\n};\n\n// Helper function to calculate totals from GR lines\nconst calculateTotalsFromGrLines = (grLines) => {\n  let totals = {\n    invoice_subtotal: 0,\n    invoice_total_discount: 0,\n    invoice_taxes_amount: 0,\n    invoice_total: 0,\n    myr_total_amount: 0,\n  };\n\n  for (const grLine of grLines) {\n    totals.invoice_subtotal += parseFloat(grLine.recalculated_gross) || 0;\n    totals.invoice_total_discount +=\n      parseFloat(grLine.recalculated_discount_amount) || 0;\n    totals.invoice_taxes_amount +=\n      parseFloat(grLine.recalculated_tax_amount) || 0;\n    totals.invoice_total += parseFloat(grLine.recalculated_amount) || 0;\n    totals.myr_total_amount += parseFloat(grLine.myr_amount) || 0;\n  }\n\n  totals.invoice_subtotal = totals.invoice_subtotal.toFixed(4);\n  totals.invoice_total_discount = totals.invoice_total_discount.toFixed(4);\n  totals.invoice_taxes_amount = totals.invoice_taxes_amount.toFixed(4);\n  totals.invoice_total = totals.invoice_total.toFixed(4);\n  totals.myr_total_amount = totals.myr_total_amount.toFixed(4);\n\n  return totals;\n};\n\n// Helper function to find matching PO line item\nconst findPoLineItem = (grItem, poLineItemList) => {\n  return poLineItemList.find((item) => item.id === grItem.po_line_item_id);\n};\n\nconst findPOData = (grItem, poList) => {\n  return poList.find((item) => item.id === grItem.line_po_id);\n};\n\n// Process GR list and create PI\nconst processGrList = (grListData) => {\n  const piLineItems = [];\n  let lineCounter = 0;\n  let allGrLines = [];\n  const plantID = grListData[0].plant_id;\n\n  for (const gr of grListData) {\n    // Get GR lines\n    const grLines = gr.table_gr || [];\n\n    for (const grItem of grLines) {\n      // Find matching PO line item\n      const poLineItem = findPoLineItem(grItem, poLineItemList);\n      const poData = findPOData(grItem, poList);\n\n      if (poLineItem) {\n        // Calculate amounts based on GR quantity\n        const grQuantity = parseFloat(grItem.received_qty) || 0;\n        const poQuantity = parseFloat(poLineItem.quantity);\n        const unitPrice = parseFloat(poLineItem.unit_price) || 0;\n        const discountAmount = parseFloat(poLineItem.discount_amount) || 0;\n        const taxAmount = parseFloat(poLineItem.tax_amount) || 0;\n        const totalAmount = parseFloat(poLineItem.po_amount) || 0;\n\n        const ratio = poQuantity > 0 ? grQuantity / poQuantity : 0;\n        const recalculatedGross = unitPrice * grQuantity;\n        const recalculatedDiscountAmount = discountAmount * ratio;\n        const recalculatedTaxAmount = taxAmount * ratio;\n        const recalculatedAmount = totalAmount * ratio;\n\n        const lineItem = mapLineItem(\n          grItem,\n          poLineItem,\n          gr,\n          lineCounter,\n          poData,\n          plantID,\n        );\n\n        // Store recalculated values for totals calculation\n        grItem.recalculated_gross = recalculatedGross;\n        grItem.recalculated_discount_amount = recalculatedDiscountAmount;\n        grItem.recalculated_tax_amount = recalculatedTaxAmount;\n        grItem.recalculated_amount = recalculatedAmount;\n        grItem.myr_amount =\n          recalculatedAmount * (parseFloat(poData.exchange_rate) || 1);\n\n        allGrLines.push(grItem);\n        piLineItems.push(lineItem);\n        lineCounter++;\n      }\n    }\n  }\n\n  return { piLineItems, allGrLines };\n};\n\nif (isMultiple === \"multiple\") {\n  for (const grData of grList) {\n    const { piLineItems, allGrLines } = processGrList([grData]);\n    const totals = calculateTotalsFromGrLines(allGrLines);\n    const poNoDisplay = grData.purchase_order_number;\n    const poID = grData.po_id;\n    const grNoDisplay = grData.gr_no;\n    const grID = [grData.id];\n    const mappedData = mapHeaderData(\n      grData,\n      piLineItems,\n      poNoDisplay,\n      poID,\n      grNoDisplay,\n      grID,\n      totals,\n    );\n    piList.push(mappedData);\n  }\n} else if (isMultiple === \"single\") {\n  const grData = grList[0];\n  const { piLineItems, allGrLines } = processGrList(grList);\n  const totals = calculateTotalsFromGrLines(allGrLines);\n  const poNoDisplay = grList\n    .map((item) => item.purchase_order_number)\n    .join(\", \");\n  const poID = grList.flatMap((gr) => gr.po_id || []);\n  const grNoDisplay = grList.map((item) => item.gr_no).join(\", \");\n  const grID = grList.map((item) => item.id);\n  const mappedData = mapHeaderData(\n    grData,\n    piLineItems,\n    poNoDisplay,\n    poID,\n    grNoDisplay,\n    grID,\n    totals,\n  );\n  piList.push(mappedData);\n}\n\nreturn { piList };\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "1585jxvs",
+                            "name": "piList",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_YRozjK8Z",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "6-1. Set Redis Name",
+                        "isValidator": true,
+                        "nodeName": "6-1. Set Redis Name",
+                        "name": "6-1. Set Redis Name",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const userID = {{system:uid}};\nconst now = new Date();\nconst date = now.toISOString().split('T')[0]; // YYYY-MM-DD\nconst time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS\n\nreturn {\n  redis_name: `GR_CONVERT_PI:${userID}:${date}:${time}`\n  // Example: \"GR_CONVERT_PI:12345:2024-02-24:143022\"\n};"
+                        },
+                        "response_json": [
+                          {
+                            "key": "21x9xe5u",
+                            "name": "redis_name",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "set_cache_node_LhSMNwfs",
+                      "type": "set-cache-node",
+                      "data": {
+                        "cache_key": "",
+                        "cache_value": "",
+                        "expire_time": 3600,
+                        "title": "6-2. Set Redis Cache",
+                        "isValidator": true,
+                        "nodeName": "6-2. Set Redis Cache",
+                        "name": "6-2. Set Redis Cache",
+                        "custom_wkbocgni": {
+                          "type": "javascript",
+                          "code": "0"
+                        },
+                        "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "loop_9Jv4BHg1",
+                      "type": "loop",
+                      "data": {
+                        "title": "Loop",
+                        "isValidator": true,
+                        "nodeName": "Loop",
+                        "name": "Loop",
+                        "loopType": "Var",
+                        "loopSeletVar": {
+                          "type": "markdown",
+                          "code": "{{node:code_node_sQX9tldw.data.piList}}"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "get_cache_node_l03kAFq7",
+                          "type": "get-cache-node",
+                          "data": {
+                            "cache_key": "",
+                            "title": "6-3. Get Redis Cache",
+                            "isValidator": true,
+                            "nodeName": "6-3. Get Redis Cache",
+                            "name": "6-3. Get Redis Cache",
+                            "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "code_node_9PRotptG",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "7. Current PI",
+                            "isValidator": true,
+                            "nodeName": "7. Current PI",
+                            "name": "7. Current PI",
+                            "script": {
+                              "type": "javascript",
+                              "code": "const currentIndexRaw = {{node:get_cache_node_l03kAFq7.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst piList = {{node:code_node_sQX9tldw.data.piList}}\nconst piData = piList[index];\n\nreturn {\n  piData,\n  nextIndex: index + 1\n}"
+                            },
+                            "response_json": [
+                              {
+                                "key": "2moxlweh",
+                                "name": "piData",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "fwepmsgw",
+                                "name": "nextIndex",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "int",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "workflow_node_gz6u8DqY",
+                          "type": "workflow-node",
+                          "data": {
+                            "workflow_id": "",
+                            "workflow_name": "",
+                            "input_params": {},
+                            "title": "8. Create SI ",
+                            "isValidator": true,
+                            "nodeName": "8. Create SI ",
+                            "name": "8. Create SI ",
+                            "workflow": {
+                              "source": "PI_SAVE:Workflow:2066342495378059266",
+                              "rules": {
+                                "collectionId": "2066342495378059266",
+                                "list": [
+                                  {
+                                    "id": 1782443309868,
+                                    "parentId": 1782443309867,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "body_params": {
+                              "list": [
+                                {
+                                  "prop": "data",
+                                  "propLabel": "Data",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "field",
+                                  "valueTypeLabel": "",
+                                  "value": "{{node:code_node_9PRotptG.data.piData}}",
+                                  "valueLabel": ""
+                                }
+                              ]
+                            },
+                            "remote": true,
+                            "remoteType": "innerdatasource"
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "set_cache_node_FdcwMlCb",
+                          "type": "set-cache-node",
+                          "data": {
+                            "cache_key": "",
+                            "cache_value": "",
+                            "expire_time": 3600,
+                            "title": "9. Set Redis Cache",
+                            "isValidator": true,
+                            "nodeName": "9. Set Redis Cache",
+                            "name": "9. Set Redis Cache",
+                            "custom_wkbocgni": {
+                              "type": "javascript",
+                              "code": "{{node:code_node_9PRotptG.data.nextIndex}}"
+                            },
+                            "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "qxwlvkle",
+      "name": "ids",
+      "title": "IDs",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "r8ipd0g8",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "isArrayItem": true
+        }
+      ]
+    },
+    {
+      "key": "dpc1gyhu",
+      "name": "convert_to",
+      "title": "Convert TO",
+      "description": "draft/completed",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "3z6ktgsh",
+      "name": "is_multiple",
+      "title": "Is Multiple",
+      "description": "multiple/single",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ygqkm1xq",
+      "name": "filter_draft",
+      "title": "Filter Draft",
+      "description": "yes/no",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}
