@@ -2,8 +2,16 @@
   // Excel -> JSON is handled by the platform (su-fm-excel-parse). The parsed
   // payload arrives as arguments[0].value; the split dialog context tells us
   // which GR line is being split.
+  //
+  // This import is SPLIT-PARENT only: it fills per-row batch/date/location,
+  // which the split dialog only honours when is_parent_split === 1. So we force
+  // is_parent_split = 1 (and lock it) while importing, and unlock it again if
+  // the import fails.
   const clearImport = () => {
     this.setData({ "split_dialog.import_data": "" });
+  };
+  const unlockParentSplit = async () => {
+    await this.disabled("split_dialog.is_parent_split", false);
   };
 
   try {
@@ -28,8 +36,37 @@
       return;
     }
 
-    // The workflow does all name->id resolution, validation, date formatting and
-    // batch handling, then returns a ready-to-use table_split (JSON string).
+    // If split rows already exist, confirm before replacing them so the user
+    // knows a new upload resets the current split rows and imported file.
+    const existingSplit =
+      dialogData && Array.isArray(dialogData.table_split)
+        ? dialogData.table_split
+        : [];
+    if (existingSplit.length > 0) {
+      try {
+        await this.$confirm(
+          "Uploading another file will reset the current split rows and the previously imported file. Do you want to continue?",
+          "Replace imported data?",
+          {
+            confirmButtonText: "Continue",
+            cancelButtonText: "Cancel",
+            type: "warning",
+          },
+        );
+      } catch (e) {
+        // Cancelled: discard this upload, keep the existing split rows.
+        clearImport();
+        return;
+      }
+    }
+
+    // Lock the dialog into split-parent mode for the imported data.
+    await this.setData({ "split_dialog.is_parent_split": 1 });
+    await this.disabled("split_dialog.is_parent_split", true);
+
+    // The workflow does all name->id resolution, validation, date formatting,
+    // UOM conversion and batch handling, then returns a ready-to-use
+    // table_split (JSON string).
     const payload = {
       excelData: JSON.stringify(excelData),
       item_id: grItem.item_id,
@@ -58,6 +95,7 @@
             } catch (e) {
               this.$message.error("Failed to read the imported split data.");
               clearImport();
+              await unlockParentSplit();
               return;
             }
 
@@ -73,6 +111,8 @@
               await this.disabled("split_dialog.table_split.batch_no", false);
             }
 
+            // is_parent_split intentionally stays locked (=1, disabled) on success.
+
             if (out.warning) {
               this.$message.warning(out.warning);
             } else {
@@ -81,27 +121,32 @@
               );
             }
           } else {
-            // Validation failure: surface the message and clear the upload so
-            // the user can correct the file and re-import.
+            // Validation failure: surface the message, clear the upload and
+            // unlock the mode so the user can correct and re-import (or split
+            // manually).
             this.$message.error(out.message || "Import validation failed.");
             clearImport();
+            await unlockParentSplit();
           }
         } catch (err) {
           this.$message.error(err.message || String(err));
           clearImport();
+          await unlockParentSplit();
         }
       },
-      (error) => {
+      async (error) => {
         this.$message.error(
           (error && error.data && error.data.msg) ||
             (error && error.message) ||
             String(error),
         );
         clearImport();
+        await unlockParentSplit();
       },
     );
   } catch (error) {
     this.$message.error(error.message || String(error));
     clearImport();
+    await unlockParentSplit();
   }
 })();
