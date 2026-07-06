@@ -250,36 +250,91 @@ const processData = async (tablePI, referenceType) => {
 
         const poLineItemData = await fetchPOLineItemData(poLineItemIDs);
         console.log("poLineItemData", poLineItemData);
-        for (const [index, grItem] of grLines.entries()) {
-          const newTablePIRecord = {
-            material_id: grItem.item_id || "",
-            material_name: grItem.item_name,
-            item_desc: grItem.item_desc || "",
-            more_desc: grItem.more_desc || "",
-            order_qty: grItem.ordered_qty,
-            received_qty: grItem.received_qty,
-            purchase_order_no: grItem.line_po_no,
-            goods_receiving_no: gr.goods_receiving_number,
-            line_remark_1: grItem.line_remark_1 || "",
-            line_remark_2: grItem.line_remark_2 || "",
-            invoice_qty: grItem.received_qty - (grItem.invoice_qty || 0),
-            quantity_uom: grItem.item_uom,
-            order_unit_price: grItem.unit_price,
-            order_discount: poLineItemData[index].discount,
-            discount_uom: poLineItemData[index].discount_uom,
-            tax_percent: poLineItemData[index].tax_percent,
-            tax_preference: poLineItemData[index].tax_preference,
-            tax_inclusive: poLineItemData[index].tax_inclusive,
-            gr_line_id: grItem.id,
-            po_line_id: grItem.po_line_item_id,
-            available_inv_qty: grItem.received_qty - (grItem.invoice_qty || 0),
-            line_po_id: grItem.line_po_id,
-            line_gr_id: gr.goods_receiving_id,
-            item_category_id: grItem.item_category_id,
-            tariff_id: grItem.tariff_id,
-          };
 
-          tablePI.push(newTablePIRecord);
+        // Consolidate is_parent_split=1 rows (parent_or_child === "Split-Parent")
+        // that share a po_line_item_id into ONE combined PI line. The combined
+        // line carries gr_line_id === "" (the save-back's "combined" signal) and
+        // sums received/remaining. The per-split breakdown is re-derived from the
+        // GR document at save time and invoiced qty distributed fill-order.
+        const splitGroups = new Map();
+        for (const [index, grItem] of grLines.entries()) {
+          const poLine = poLineItemData[index];
+          const remaining = parseFloat(
+            (grItem.received_qty - (grItem.invoice_qty || 0)).toFixed(3),
+          );
+
+          if (grItem.parent_or_child === "Split-Parent") {
+            const key = grItem.po_line_item_id;
+            const existing = splitGroups.get(key);
+            if (!existing) {
+              splitGroups.set(key, {
+                material_id: grItem.item_id || "",
+                material_name: grItem.item_name,
+                item_desc: grItem.item_desc || "",
+                more_desc: grItem.more_desc || "",
+                order_qty: grItem.ordered_qty,
+                received_qty: parseFloat((grItem.received_qty || 0).toFixed(3)),
+                purchase_order_no: grItem.line_po_no,
+                goods_receiving_no: gr.goods_receiving_number,
+                line_remark_1: grItem.line_remark_1 || "",
+                line_remark_2: grItem.line_remark_2 || "",
+                invoice_qty: remaining,
+                quantity_uom: grItem.item_uom,
+                order_unit_price: grItem.unit_price,
+                order_discount: poLine.discount,
+                discount_uom: poLine.discount_uom,
+                tax_percent: poLine.tax_percent,
+                tax_preference: poLine.tax_preference,
+                tax_inclusive: poLine.tax_inclusive,
+                gr_line_id: "",
+                po_line_id: grItem.po_line_item_id,
+                available_inv_qty: remaining,
+                line_po_id: grItem.line_po_id,
+                line_gr_id: gr.goods_receiving_id,
+                item_category_id: grItem.item_category_id,
+                tariff_id: grItem.tariff_id,
+              });
+            } else {
+              existing.received_qty = parseFloat(
+                (existing.received_qty + (grItem.received_qty || 0)).toFixed(3),
+              );
+              existing.invoice_qty = parseFloat(
+                (existing.invoice_qty + remaining).toFixed(3),
+              );
+              existing.available_inv_qty = existing.invoice_qty;
+            }
+          } else {
+            tablePI.push({
+              material_id: grItem.item_id || "",
+              material_name: grItem.item_name,
+              item_desc: grItem.item_desc || "",
+              more_desc: grItem.more_desc || "",
+              order_qty: grItem.ordered_qty,
+              received_qty: grItem.received_qty,
+              purchase_order_no: grItem.line_po_no,
+              goods_receiving_no: gr.goods_receiving_number,
+              line_remark_1: grItem.line_remark_1 || "",
+              line_remark_2: grItem.line_remark_2 || "",
+              invoice_qty: remaining,
+              quantity_uom: grItem.item_uom,
+              order_unit_price: grItem.unit_price,
+              order_discount: poLine.discount,
+              discount_uom: poLine.discount_uom,
+              tax_percent: poLine.tax_percent,
+              tax_preference: poLine.tax_preference,
+              tax_inclusive: poLine.tax_inclusive,
+              gr_line_id: grItem.id,
+              po_line_id: grItem.po_line_item_id,
+              available_inv_qty: remaining,
+              line_po_id: grItem.line_po_id,
+              line_gr_id: gr.goods_receiving_id,
+              item_category_id: grItem.item_category_id,
+              tariff_id: grItem.tariff_id,
+            });
+          }
+        }
+        for (const rec of splitGroups.values()) {
+          tablePI.push(rec);
         }
       }
       break;
@@ -317,47 +372,116 @@ const processData = async (tablePI, referenceType) => {
       }
       break;
 
-    case "Item - GR":
+    case "Item - GR": {
+      // Consolidate is_parent_split=1 rows (parent_or_child === "Split-Parent")
+      // sharing a po_line within the SAME GR into one combined PI line (gr_line_id
+      // === ""); non-split rows stay 1:1. Save-back re-derives the split breakdown.
+      const splitGroups = new Map();
       for (const grItem of currentItemArray.filter(
         (item) => item.parent_or_child !== "Child",
       )) {
-        const newTablePIRecord = {
-          material_id: grItem.item.id || "",
-          material_name: grItem.item.material_name,
-          item_desc: grItem.item_desc || "",
-          more_desc: grItem.more_desc || "",
-          order_qty: grItem.ordered_qty,
-          received_qty: grItem.received_qty,
-          purchase_order_no: grItem.line_po_no,
-          goods_receiving_no: grItem.goods_receiving_number,
-          line_remark_1: grItem.line_remark_1 || "",
-          line_remark_2: grItem.line_remark_2 || "",
-          invoice_qty: grItem.received_qty - (grItem.invoiced_qty || 0),
-          quantity_uom: grItem.uom,
-          order_unit_price: grItem.po_line_item.unit_price,
-          order_discount: grItem.po_line_item.discount,
-          discount_uom: grItem.po_line_item.discount_uom,
-          tax_percent: grItem.po_line_item.tax_percent,
-          tax_preference: grItem.po_line_item.tax_preference,
-          tax_inclusive: grItem.po_line_item.tax_inclusive,
-          gr_line_id: grItem.goods_receiving_line_id,
-          po_line_id: grItem.po_line_item.id,
-          available_inv_qty: grItem.received_qty - (grItem.invoiced_qty || 0),
-          line_po_id: grItem.line_po_id,
-          line_gr_id: grItem.goods_receiving_id,
-          item_category_id: grItem.item_category_id,
-          tariff_id: grItem.tariff_id,
-        };
+        // Persisted running total on the GR line is `invoice_qty` (written by
+        // the PI save-back). Fall back to the legacy `invoiced_qty` alias so
+        // this works regardless of which name the selection dialog passes.
+        const remaining = parseFloat(
+          (
+            grItem.received_qty -
+            (grItem.invoice_qty || grItem.invoiced_qty || 0)
+          ).toFixed(3),
+        );
 
-        tablePI.push(newTablePIRecord);
+        if (grItem.parent_or_child === "Split-Parent") {
+          const key = `${grItem.goods_receiving_id}::${grItem.po_line_item.id}`;
+          const existing = splitGroups.get(key);
+          if (!existing) {
+            splitGroups.set(key, {
+              material_id: grItem.item.id || "",
+              material_name: grItem.item.material_name,
+              item_desc: grItem.item_desc || "",
+              more_desc: grItem.more_desc || "",
+              order_qty: grItem.ordered_qty,
+              received_qty: parseFloat((grItem.received_qty || 0).toFixed(3)),
+              purchase_order_no: grItem.line_po_no,
+              goods_receiving_no: grItem.goods_receiving_number,
+              line_remark_1: grItem.line_remark_1 || "",
+              line_remark_2: grItem.line_remark_2 || "",
+              invoice_qty: remaining,
+              quantity_uom: grItem.uom,
+              order_unit_price: grItem.po_line_item.unit_price,
+              order_discount: grItem.po_line_item.discount,
+              discount_uom: grItem.po_line_item.discount_uom,
+              tax_percent: grItem.po_line_item.tax_percent,
+              tax_preference: grItem.po_line_item.tax_preference,
+              tax_inclusive: grItem.po_line_item.tax_inclusive,
+              gr_line_id: "",
+              po_line_id: grItem.po_line_item.id,
+              available_inv_qty: remaining,
+              line_po_id: grItem.line_po_id,
+              line_gr_id: grItem.goods_receiving_id,
+              item_category_id: grItem.item_category_id,
+              tariff_id: grItem.tariff_id,
+            });
+          } else {
+            existing.received_qty = parseFloat(
+              (existing.received_qty + (grItem.received_qty || 0)).toFixed(3),
+            );
+            existing.invoice_qty = parseFloat(
+              (existing.invoice_qty + remaining).toFixed(3),
+            );
+            existing.available_inv_qty = existing.invoice_qty;
+          }
+        } else {
+          tablePI.push({
+            material_id: grItem.item.id || "",
+            material_name: grItem.item.material_name,
+            item_desc: grItem.item_desc || "",
+            more_desc: grItem.more_desc || "",
+            order_qty: grItem.ordered_qty,
+            received_qty: grItem.received_qty,
+            purchase_order_no: grItem.line_po_no,
+            goods_receiving_no: grItem.goods_receiving_number,
+            line_remark_1: grItem.line_remark_1 || "",
+            line_remark_2: grItem.line_remark_2 || "",
+            invoice_qty: remaining,
+            quantity_uom: grItem.uom,
+            order_unit_price: grItem.po_line_item.unit_price,
+            order_discount: grItem.po_line_item.discount,
+            discount_uom: grItem.po_line_item.discount_uom,
+            tax_percent: grItem.po_line_item.tax_percent,
+            tax_preference: grItem.po_line_item.tax_preference,
+            tax_inclusive: grItem.po_line_item.tax_inclusive,
+            gr_line_id: grItem.goods_receiving_line_id,
+            po_line_id: grItem.po_line_item.id,
+            available_inv_qty: remaining,
+            line_po_id: grItem.line_po_id,
+            line_gr_id: grItem.goods_receiving_id,
+            item_category_id: grItem.item_category_id,
+            tariff_id: grItem.tariff_id,
+          });
+        }
       }
+      for (const rec of splitGroups.values()) {
+        tablePI.push(rec);
+      }
+    }
       break;
   }
 
+  // Dedup key:
+  // - GR-based single line -> gr:<gr_line_id> (unique per GR sub-row)
+  // - combined split-parent line (gr_line_id empty, has line_gr_id)
+  //   -> grc:<line_gr_id>:<po_line_id> (unique per GR + PO line)
+  // - PO-based line -> po:<po_line_id>
+  const dedupKey = (pi) => {
+    if (pi.gr_line_id && pi.gr_line_id !== "") return `gr:${pi.gr_line_id}`;
+    if (pi.line_gr_id && pi.line_gr_id !== "")
+      return `grc:${pi.line_gr_id}:${pi.po_line_id}`;
+    return `po:${pi.po_line_id}`;
+  };
+  const existingKeys = new Set(existingPI.map(dedupKey));
+
   tablePI = tablePI.filter(
-    (pi) =>
-      pi.invoice_qty !== 0 &&
-      !existingPI.find((piItem) => piItem.po_line_id === pi.po_line_id),
+    (pi) => pi.invoice_qty !== 0 && !existingKeys.has(dedupKey(pi)),
   );
 
   const latestTablePI = [...existingPI, ...tablePI];
