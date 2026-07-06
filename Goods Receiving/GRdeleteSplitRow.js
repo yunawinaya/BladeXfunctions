@@ -5,7 +5,7 @@ setTimeout(async () => {
   const rowIndex = data.rowIndex;
   const uom = this.getValue(`table_gr.${rowIndex}.item_uom`);
   const isSerializedItem = this.getValue(
-    `table_gr.${rowIndex}.is_serialized_item`
+    `table_gr.${rowIndex}.is_serialized_item`,
   );
 
   const splitData = data.table_split;
@@ -20,6 +20,7 @@ setTimeout(async () => {
 
   await this.setData({ [`split_dialog.no_of_split`]: noOfSplit });
   await this.setData({ [`split_dialog.table_split`]: splitData });
+  await this.disabled("split_dialog.is_parent_split", false);
 
   // Handle serialized items
   if (isSerializedItem === 1) {
@@ -27,12 +28,12 @@ setTimeout(async () => {
     await this.setData({ [`split_dialog.table_split.received_qty`]: 0 });
 
     const serialNumbers = this.getValue(
-      `table_gr.${rowIndex}.select_serial_number`
+      `table_gr.${rowIndex}.select_serial_number`,
     );
     for (let i = 0; i < noOfSplit; i++) {
       await this.setOptionData(
         `split_dialog.table_split.${i}.select_serial_number`,
-        serialNumbers
+        serialNumbers,
       );
     }
   }
