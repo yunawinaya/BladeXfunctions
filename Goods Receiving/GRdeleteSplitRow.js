@@ -11,9 +11,21 @@ setTimeout(async () => {
   const splitData = data.table_split;
   const qtyByRow = parseFloat((toReceivedQty / noOfSplit).toFixed(3));
 
-  // Recalculate and redistribute quantities
+  // Imported rows carry their own per-row quantities (and UOM conversions), so
+  // don't redistribute them evenly on delete — only renumber. Manual splits are
+  // still redistributed evenly. Import is detectable by a populated import_data.
+  const imp = data.import_data;
+  const isImported =
+    imp &&
+    (typeof imp === "object"
+      ? Object.keys(imp).length > 0
+      : String(imp).trim() !== "");
+
+  // Recalculate/redistribute quantities (skipped for imported rows)
   for (const [index, split] of splitData.entries()) {
-    split.received_qty = qtyByRow;
+    if (!isImported) {
+      split.received_qty = qtyByRow;
+    }
     split.item_uom = uom;
     split.sub_seq = index + 1;
   }
