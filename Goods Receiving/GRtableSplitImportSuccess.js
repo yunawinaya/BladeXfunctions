@@ -64,6 +64,10 @@
     await this.setData({ "split_dialog.is_parent_split": 1 });
     await this.disabled("split_dialog.is_parent_split", true);
 
+    // Block the UI while the workflow validates/fetches so the user can't edit
+    // the dialog mid-import.
+    this.showLoading();
+
     // The workflow does all name->id resolution, validation, date formatting,
     // UOM conversion and batch handling, then returns a ready-to-use
     // table_split (JSON string).
@@ -81,6 +85,7 @@
       "2074020700778831873",
       payload,
       async (res) => {
+        this.hideLoading();
         try {
           // Return keys may sit at res.data or res.data.data depending on the
           // platform envelope (see POsaveAsIssued.js).
@@ -135,6 +140,7 @@
         }
       },
       async (error) => {
+        this.hideLoading();
         this.$message.error(
           (error && error.data && error.data.msg) ||
             (error && error.message) ||
@@ -145,6 +151,7 @@
       },
     );
   } catch (error) {
+    this.hideLoading();
     this.$message.error(error.message || String(error));
     clearImport();
     await unlockParentSplit();
