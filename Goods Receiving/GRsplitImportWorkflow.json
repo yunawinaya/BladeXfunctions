@@ -1,0 +1,656 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "get_node_item",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Item:Table:1901546842240438273",
+          "rules": {
+            "collectionId": "1901546842240438273",
+            "list": [
+              {
+                "id": 1780000000001,
+                "parentId": 1780000000000,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:item_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Item",
+        "isValidator": true,
+        "nodeName": "Get Item",
+        "name": "Get Item"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_item_not_found",
+      "type": "if",
+      "data": {
+        "title": "IF Item Not Found",
+        "isValidator": true,
+        "nodeName": "IF Item Not Found",
+        "name": "IF Item Not Found",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 1780000000010,
+              "parentId": 1780000000009,
+              "isTop": true,
+              "prop": "node.get_node_item.data.count",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 0,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "结果条数",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_notfound_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_item_not_found",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Error",
+                "isValidator": true,
+                "nodeName": "Return Error",
+                "name": "Return Error",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "Item not found or has been deleted.",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "table_split",
+                      "propLabel": "table_split",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "[]",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "warning",
+                      "propLabel": "warning",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_notfound_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_item_serialized",
+      "type": "if",
+      "data": {
+        "title": "IF Serialized Item",
+        "isValidator": true,
+        "nodeName": "IF Serialized Item",
+        "name": "IF Serialized Item",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 1780000000020,
+              "parentId": 1780000000019,
+              "isTop": true,
+              "prop": "node.get_node_item.data.data.serial_number_management",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "Serial Number Management",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_serial_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_item_serialized",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Error",
+                "isValidator": true,
+                "nodeName": "Return Error",
+                "name": "Return Error",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "Serialized items cannot be imported via Excel. Please split serialized items manually.",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "table_split",
+                      "propLabel": "table_split",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "[]",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "warning",
+                      "propLabel": "warning",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_serial_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_extract",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Extract Location Names",
+        "isValidator": true,
+        "nodeName": "Extract Location Names",
+        "name": "Extract Location Names",
+        "script": {
+          "type": "javascript",
+          "code": "// Extract distinct Storage Location names and Bin Location combines from the\n// imported excel rows so the downstream search-nodes can resolve them to IDs.\nconst excelData = JSON.parse({{workflowparams:excelData}});\n\nconst storageNames = [];\nconst binCombines = [];\n\nObject.keys(excelData).forEach((k) => {\n  // numeric-keyed entries are the data rows; skip name/size/type meta keys\n  if (/^\\d+$/.test(k)) {\n    const row = excelData[k] || {};\n    const s = row[\"Storage Location\"] ? String(row[\"Storage Location\"]).trim() : \"\";\n    const b = row[\"Bin Location\"] ? String(row[\"Bin Location\"]).trim() : \"\";\n    if (s && storageNames.indexOf(s) === -1) storageNames.push(s);\n    if (b && binCombines.indexOf(b) === -1) binCombines.push(b);\n  }\n});\n\n// Never feed an empty array into an `in` filter; use a sentinel that is\n// extremely unlikely to match a real name so the build node can still report\n// the missing-location errors cleanly.\nif (storageNames.length === 0) storageNames.push(\"0\");\nif (binCombines.length === 0) binCombines.push(\"0\");\n\nreturn { storageNames: storageNames, binCombines: binCombines };\n"
+        },
+        "response_json": [
+          {
+            "key": "extstor01",
+            "name": "storageNames",
+            "title": "storageNames",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "extbin001",
+            "name": "binCombines",
+            "title": "binCombines",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_storage",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Storage Location:Table:1986694920453566466",
+          "rules": {
+            "collectionId": "1986694920453566466",
+            "list": [
+              {
+                "id": 1780000000030,
+                "parentId": 1780000000029,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1780000000031,
+                    "parentId": 1780000000030,
+                    "isTop": false,
+                    "prop": "storage_location_name",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_extract.data.storageNames}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Name",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  },
+                  {
+                    "id": 1780000000032,
+                    "parentId": 1780000000030,
+                    "isTop": false,
+                    "prop": "plant_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{workflowparams:plant_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Plant ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1780000000033,
+                    "parentId": 1780000000030,
+                    "isTop": false,
+                    "prop": "is_deleted",
+                    "operator": "numberEqual",
+                    "valueType": "value",
+                    "value": 0,
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Is Deleted",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 200,
+        "title": "Get Storage Locations",
+        "isValidator": true,
+        "nodeName": "Get Storage Locations",
+        "name": "Get Storage Locations"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_bin",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Bin Location:Table:1902282127538507778",
+          "rules": {
+            "collectionId": "1902282127538507778",
+            "list": [
+              {
+                "id": 1780000000040,
+                "parentId": 1780000000039,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1780000000041,
+                    "parentId": 1780000000040,
+                    "isTop": false,
+                    "prop": "bin_location_combine",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_extract.data.binCombines}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Bin Location Combine",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  },
+                  {
+                    "id": 1780000000042,
+                    "parentId": 1780000000040,
+                    "isTop": false,
+                    "prop": "plant_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{workflowparams:plant_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Plant ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1780000000043,
+                    "parentId": 1780000000040,
+                    "isTop": false,
+                    "prop": "is_deleted",
+                    "operator": "numberEqual",
+                    "valueType": "value",
+                    "value": 0,
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Is Deleted",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 200,
+        "title": "Get Bin Locations",
+        "isValidator": true,
+        "nodeName": "Get Bin Locations",
+        "name": "Get Bin Locations"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_build",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build Table Split",
+        "isValidator": true,
+        "nodeName": "Build Table Split",
+        "name": "Build Table Split",
+        "script": {
+          "type": "javascript",
+          "code": "// Validate the imported excel rows and build split_dialog.table_split.\n// All validations accumulate into `errors`; any error -> code 400.\nconst excelData = JSON.parse({{workflowparams:excelData}});\nconst item = {{node:get_node_item.data.data}};\nconst storageList = {{node:search_node_storage.data.data}} || [];\nconst binList = {{node:search_node_bin.data.data}} || [];\nconst itemUom = {{workflowparams:item_uom}} || \"\";\nconst orderedQty = parseFloat({{workflowparams:ordered_qty}}) || 0;\nconst initialReceivedQty = parseFloat({{workflowparams:initial_received_qty}}) || 0;\nconst orderedQtyUom = {{workflowparams:ordered_qty_uom}} || \"\";\n\n// Collect numeric-keyed rows only (skip name/size/type meta keys), in order.\nconst rows = [];\nObject.keys(excelData).forEach((k) => {\n  if (/^\\d+$/.test(k)) {\n    rows.push({ __idx: parseInt(k, 10), data: excelData[k] });\n  }\n});\nrows.sort((a, b) => a.__idx - b.__idx);\n\nconst errors = [];\nconst autoBatchWarnRows = [];\n\n// Batch mode is derived from the Item master, not the excel.\nconst isBatchItem = item.item_batch_management === 1;\nconst isAutoBatch =\n  isBatchItem && item.batch_number_genaration === \"According To System Settings\";\n\n// DD-MM-YYYY -> YYYY-MM-DD. Returns:\n//   null              -> empty/absent\n//   \"YYYY-MM-DD\"      -> valid\n//   {error:true,raw}  -> unparseable\nconst convertDate = (val) => {\n  if (val === undefined || val === null || String(val).trim() === \"\") return null;\n  const s = String(val).trim();\n  const m = s.match(/^(\\d{1,2})-(\\d{1,2})-(\\d{4})$/);\n  if (!m) return { error: true, raw: s };\n  const dd = m[1].padStart(2, \"0\");\n  const mm = m[2].padStart(2, \"0\");\n  const yyyy = m[3];\n  return yyyy + \"-\" + mm + \"-\" + dd;\n};\n\nconst str = (v) => (v === undefined || v === null ? \"\" : String(v));\n\nconst tableSplit = [];\nlet totalReceived = 0;\n\nrows.forEach((r, i) => {\n  const row = r.data || {};\n  const lineNo = i + 1;\n\n  // 1a. Item match (item_id is already known; confirm the excel refers to it)\n  const itemCode = str(row[\"Item Code\"]).trim();\n  if (itemCode !== str(item.material_code).trim()) {\n    errors.push(\n      \"Row \" + lineNo + ': Item Code \"' + itemCode +\n        '\" does not match the item on this line (' + str(item.material_code) + \").\");\n  }\n\n  // 3a. Quantity\n  const qty = parseFloat(row[\"Quantity\"]);\n  if (isNaN(qty) || qty <= 0) {\n    errors.push(\"Row \" + lineNo + \": Quantity must be greater than 0.\");\n  } else {\n    totalReceived += qty;\n  }\n\n  // 1b/2. Storage Location name -> id\n  const storageName = str(row[\"Storage Location\"]).trim();\n  const storageMatch = storageList.find(\n    (s) => str(s.storage_location_name).trim() === storageName);\n  let storageLocationId = \"\";\n  if (!storageName) {\n    errors.push(\"Row \" + lineNo + \": Storage Location is required.\");\n  } else if (!storageMatch) {\n    errors.push('Row ' + lineNo + ': Storage Location \"' + storageName + '\" not found.');\n  } else {\n    storageLocationId = storageMatch.id;\n  }\n\n  // 1b/2. Bin Location combine -> id, and it MUST sit under the storage above.\n  const binName = str(row[\"Bin Location\"]).trim();\n  let locationId = \"\";\n  if (!binName) {\n    errors.push(\"Row \" + lineNo + \": Bin Location is required.\");\n  } else {\n    const binMatch = binList.find(\n      (b) =>\n        str(b.bin_location_combine).trim() === binName &&\n        (!storageLocationId ||\n          String(b.storage_location_id) === String(storageLocationId)));\n    if (!binMatch) {\n      errors.push(\n        'Row ' + lineNo + ': Bin Location \"' + binName +\n          '\" not found under Storage Location \"' + storageName + '\".');\n    } else {\n      locationId = binMatch.id;\n    }\n  }\n\n  // 4. Batch handling\n  let batchNo = \"\";\n  const excelBatch = str(row[\"Batch Number\"]).trim();\n  if (!isBatchItem) {\n    batchNo = \"\"; // non-batch item: batch column ignored\n  } else if (isAutoBatch) {\n    batchNo = \"Auto-generated batch number\";\n    if (excelBatch !== \"\") autoBatchWarnRows.push(lineNo);\n  } else {\n    // manual-batch item: batch number is required\n    if (excelBatch === \"\") {\n      errors.push(\"Row \" + lineNo + \": Batch Number is required for this manual-batch item.\");\n    }\n    batchNo = excelBatch;\n  }\n\n  // 5. Dates (only meaningful for batch items; null for non-batch)\n  let manufacturingDate = null;\n  let expiredDate = null;\n  if (isBatchItem) {\n    const mfg = convertDate(row[\"Manufacturing Date\"]);\n    const exp = convertDate(row[\"Expired Date\"]);\n    if (mfg && mfg.error) {\n      errors.push('Row ' + lineNo + ': Manufacturing Date \"' + mfg.raw + '\" must be DD-MM-YYYY.');\n    } else {\n      manufacturingDate = mfg;\n    }\n    if (exp && exp.error) {\n      errors.push('Row ' + lineNo + ': Expired Date \"' + exp.raw + '\" must be DD-MM-YYYY.');\n    } else {\n      expiredDate = exp;\n    }\n  }\n\n  tableSplit.push({\n    sub_seq: lineNo,\n    received_qty: isNaN(qty) ? 0 : qty,\n    item_uom: itemUom,\n    storage_location_id: storageLocationId,\n    location_id: locationId,\n    line_remark_1: str(row[\"Remark\"]),\n    line_remark_2: str(row[\"Remark 2\"]),\n    line_remark_3: str(row[\"Remark 3\"]),\n    batch_no: batchNo,\n    manufacturing_date: manufacturingDate,\n    expired_date: expiredDate,\n  });\n});\n\nif (tableSplit.length === 0) {\n  return {\n    code: \"400\",\n    message: \"No rows found in the imported file.\",\n    table_split: \"[]\",\n    warning: \"\",\n  };\n}\n\n// 3b. Total quantity vs ordered qty + tolerance (mirrors GRconfirmSplitting.js)\nlet overReceiveTolerance = 0;\nif (Array.isArray(item.table_uom_conversion)) {\n  const conv = item.table_uom_conversion.find((c) => c.alt_uom_id === orderedQtyUom);\n  overReceiveTolerance = (conv && conv.over_receive_tolerance) || 0;\n}\nconst totalReceivedRounded = parseFloat(totalReceived.toFixed(3));\nconst maxAllowedTotalQty = parseFloat(\n  ((orderedQty * (100 + overReceiveTolerance)) / 100).toFixed(3));\n\nif (totalReceivedRounded <= 0) {\n  errors.push(\"Total split quantity must be greater than 0.\");\n} else if (totalReceivedRounded + initialReceivedQty > maxAllowedTotalQty) {\n  const maxAllowedQty = parseFloat((maxAllowedTotalQty - initialReceivedQty).toFixed(3));\n  errors.push(\n    \"Total split quantity (\" + totalReceivedRounded +\n      \") exceeds maximum allowed quantity (\" + maxAllowedQty + \") based on tolerance.\");\n}\n\nif (errors.length > 0) {\n  return { code: \"400\", message: errors.join(\"\\n\"), table_split: \"[]\", warning: \"\" };\n}\n\nlet warning = \"\";\nif (autoBatchWarnRows.length > 0) {\n  warning =\n    \"Batch numbers were provided for row(s) \" + autoBatchWarnRows.join(\", \") +\n    ', but this item uses auto-generated batch numbers. Those entries were ignored ' +\n    'and set to \"Auto-generated batch number\".';\n}\n\nreturn {\n  code: \"200\",\n  message: \"\",\n  table_split: JSON.stringify(tableSplit),\n  warning: warning,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "bldcode01",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "bldmsg001",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "bldtbl001",
+            "name": "table_split",
+            "title": "table_split",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "bldwarn01",
+            "name": "warning",
+            "title": "warning",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_main",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_build.data.code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "table_split",
+              "propLabel": "table_split",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.table_split}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "warning",
+              "propLabel": "warning",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.warning}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "reqexcel1",
+      "name": "excelData",
+      "title": "excelData",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqitem01",
+      "name": "item_id",
+      "title": "item_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqplant1",
+      "name": "plant_id",
+      "title": "plant_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqordq01",
+      "name": "ordered_qty",
+      "title": "ordered_qty",
+      "description": "",
+      "bsonType": "decimal",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "reqinit01",
+      "name": "initial_received_qty",
+      "title": "initial_received_qty",
+      "description": "",
+      "bsonType": "decimal",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "reqoruom1",
+      "name": "ordered_qty_uom",
+      "title": "ordered_qty_uom",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "requom001",
+      "name": "item_uom",
+      "title": "item_uom",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "rescode01",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "resmsg001",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "restbl001",
+      "name": "table_split",
+      "title": "table_split",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reswarn01",
+      "name": "warning",
+      "title": "warning",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}
