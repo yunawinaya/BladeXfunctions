@@ -6,6 +6,8 @@
   const isSerializedItem = this.getValue(
     `table_gr.${rowIndex}.is_serialized_item`,
   );
+  const isBatchItem =
+    this.getValue(`table_gr.${rowIndex}.item_batch_no`) === "-" ? 0 : 1;
   const grItem = data.table_gr[rowIndex];
 
   // Calculate to_received_qty as ordered_qty - initial_received_qty
@@ -27,7 +29,7 @@
       {
         confirmButtonText: "OK",
         type: "warning",
-      }
+      },
     );
 
     // Clear temp_hu_data and view_hu
@@ -49,6 +51,7 @@
       [`split_dialog.to_received_qty`]: toReceivedQty,
       [`split_dialog.rowIndex`]: rowIndex,
       [`split_dialog.is_parent_split`]: 0, // Default to hierarchy split (0), set to 1 for split-parent
+      [`split_dialog.is_batch_item`]: isBatchItem,
     });
   }
 

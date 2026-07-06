@@ -3681,8 +3681,9 @@
                         "name": "onTableGrSplit"
                       }
                     ],
-                    "hidden": "",
-                    "disabled": ""
+                    "hidden": "{{arguments[0].row.parent_or_child === 'Child'}}",
+                    "disabled": "",
+                    "ignoreFormDisabled": false
                   }
                 ],
                 "collapse_all": 1,
@@ -3691,8 +3692,6 @@
                 "resizable": 0,
                 "emptyTip": "",
                 "tableHeightMode": "fixed",
-                "tableFixedHeight": null,
-                "tableMaxHeight": null,
                 "rowHeightType": "auto",
                 "hideIndex": false,
                 "showTableBorder": 0,
@@ -3718,7 +3717,9 @@
                 "groupBy": "",
                 "highlightSelectedRow": false,
                 "highlightHoverRow": false,
-                "headerBgColor": "#FFFFFF"
+                "headerBgColor": "#FFFFFF",
+                "childRecordMode": false,
+                "inlineInsert": true
               },
               "events": {
                 "onChange": "",
@@ -16844,6 +16845,53 @@
                             "customClass": "",
                             "labelWidth": 100,
                             "isLabelWidth": false,
+                            "hidden": true,
+                            "dataBind": true,
+                            "width": "",
+                            "customProps": {},
+                            "tip": "",
+                            "booleanValueMode": false,
+                            "alignright": false,
+                            "checkboxMode": false,
+                            "remoteFunc": "func_9og0drpe",
+                            "remoteOption": "option_9og0drpe",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": ""
+                          },
+                          "name": "Is Batch Item",
+                          "novalid": {},
+                          "key": "cbuh0b1l",
+                          "model": "is_batch_item",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "switch",
+                          "mainIcon": "开关",
+                          "typeIcon": "开关",
+                          "icon": "icon-switch",
+                          "group": "Select",
+                          "groupSort": 8,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": 0,
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "disabled": false,
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
                             "hidden": false,
                             "dataBind": true,
                             "width": "",
@@ -16894,7 +16942,7 @@
                             "label": "解析Excel",
                             "width": null,
                             "height": null,
-                            "placeholder": "Import Excel",
+                            "placeholder": "Import Data",
                             "buttonSize": "default",
                             "buttonType": "primary",
                             "buttonPlain": false,
@@ -16923,7 +16971,7 @@
                             "desensitization_replace": ""
                           },
                           "events": {
-                            "onUploadSuccess": "",
+                            "onUploadSuccess": "a68ndwx4",
                             "onUploadError": "",
                             "onFocus": "",
                             "onBlur": "",
@@ -17093,7 +17141,9 @@
                             "pad": "*",
                             "desensitization_pattern": "",
                             "desensitization_replace": "",
-                            "dataBind": false
+                            "dataBind": false,
+                            "dynamicValueType": "fx",
+                            "isDynamicValue": false
                           },
                           "events": {
                             "onClick": "vqgha7yu"
@@ -17860,10 +17910,10 @@
                 "validator": "",
                 "placeholder": "",
                 "customClass": "",
-                "disabled": false,
+                "disabled": true,
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": true,
+                "hidden": "{{({{value:split_dialog.is_parent_split}} === 0 || {{value:split_dialog.is_parent_split}} === null || {{value:split_dialog.is_parent_split}} === undefined) || {{value:split_dialog.is_batch_item}} === 0}}",
                 "dataBind": true,
                 "showPassword": false,
                 "clearable": false,
@@ -17926,7 +17976,7 @@
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": true,
+                "hidden": "{{({{value:split_dialog.is_parent_split}} === 0 || {{value:split_dialog.is_parent_split}} === null || {{value:split_dialog.is_parent_split}} === undefined) || {{value:split_dialog.is_batch_item}} === 0}}",
                 "dataBind": true,
                 "customProps": {},
                 "tip": "",
@@ -17984,7 +18034,7 @@
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": true,
+                "hidden": "{{({{value:split_dialog.is_parent_split}} === 0 || {{value:split_dialog.is_parent_split}} === null || {{value:split_dialog.is_parent_split}} === undefined) || {{value:split_dialog.is_batch_item}} === 0}}",
                 "dataBind": true,
                 "customProps": {},
                 "tip": "",
@@ -23026,7 +23076,7 @@
       {
         "key": "vqgha7yu",
         "name": "onClick_confirm_split",
-        "func": "(async () => {\n  const data = this.getValue(\"split_dialog\");\n  const noOfSplit = data.no_of_split;\n  const toReceivedQty = data.to_received_qty;\n  const rowIndex = data.rowIndex;\n  const uom = this.getValue(`table_gr.${rowIndex}.item_uom`);\n  const isSerializedItem = this.getValue(\n    `table_gr.${rowIndex}.is_serialized_item`,\n  );\n  const storageLocationId = this.getValue(\n    `table_gr.${rowIndex}.storage_location_id`,\n  );\n  const locationId = this.getValue(`table_gr.${rowIndex}.location_id`);\n\n  // Validation for serialized items\n  if (isSerializedItem === 1 && noOfSplit > toReceivedQty) {\n    this.$message.error(\n      \"Number of split cannot be greater than quantity to receive for serialized item\",\n    );\n    return;\n  }\n\n  const splitData = [];\n  const qtyByRow = parseFloat((toReceivedQty / noOfSplit).toFixed(3));\n\n  for (let i = 0; i < noOfSplit; i++) {\n    const lineData = {\n      sub_seq: i + 1,\n      received_qty: qtyByRow,\n      item_uom: uom,\n      storage_location_id: storageLocationId,\n      location_id: locationId,\n      line_remark_1: \"\",\n      line_remark_2: \"\",\n      line_remark_3: \"\",\n    };\n    splitData.push(lineData);\n  }\n\n  await this.setData({ [`split_dialog.table_split`]: splitData });\n\n  // Handle serialized items\n  if (isSerializedItem === 1) {\n    await this.disabled(\"split_dialog.table_split.received_qty\", true);\n    await this.setData({ [`split_dialog.table_split.received_qty`]: 0 });\n\n    const serialNumbers = this.getValue(\n      `table_gr.${rowIndex}.select_serial_number`,\n    );\n    for (let i = 0; i < noOfSplit; i++) {\n      await this.setOptionData(\n        `split_dialog.table_split.${i}.select_serial_number`,\n        serialNumbers,\n      );\n    }\n  }\n})();\n",
+        "func": "(async () => {\n  const data = this.getValue(\"split_dialog\");\n  const noOfSplit = data.no_of_split;\n  const toReceivedQty = data.to_received_qty;\n  const rowIndex = data.rowIndex;\n  const uom = this.getValue(`table_gr.${rowIndex}.item_uom`);\n  const isSerializedItem = this.getValue(\n    `table_gr.${rowIndex}.is_serialized_item`,\n  );\n  const storageLocationId = this.getValue(\n    `table_gr.${rowIndex}.storage_location_id`,\n  );\n  const locationId = this.getValue(`table_gr.${rowIndex}.location_id`);\n  const isBatchItem = data.is_batch_item;\n  const batchNo = this.getValue(`table_gr.${rowIndex}.item_batch_no`);\n  const manufacturingDate = this.getValue(\n    `table_gr.${rowIndex}.manufacturing_date`,\n  );\n  const expiredDate = this.getValue(`table_gr.${rowIndex}.expired_date`);\n\n  // Validation for serialized items\n  if (isSerializedItem === 1 && noOfSplit > toReceivedQty) {\n    this.$message.error(\n      \"Number of split cannot be greater than quantity to receive for serialized item\",\n    );\n    return;\n  }\n\n  const splitData = [];\n  const qtyByRow = parseFloat((toReceivedQty / noOfSplit).toFixed(3));\n\n  for (let i = 0; i < noOfSplit; i++) {\n    const lineData = {\n      sub_seq: i + 1,\n      received_qty: qtyByRow,\n      item_uom: uom,\n      storage_location_id: storageLocationId,\n      location_id: locationId,\n      line_remark_1: \"\",\n      line_remark_2: \"\",\n      line_remark_3: \"\",\n      batch_no: isBatchItem === 1 ? batchNo : \"\",\n      manufacturing_date: isBatchItem === 1 ? manufacturingDate : \"\",\n      expired_date: isBatchItem === 1 ? expiredDate : \"\",\n    };\n    splitData.push(lineData);\n  }\n\n  await this.setData({ [`split_dialog.table_split`]: splitData });\n\n  if (batchNo === \"\") {\n    await this.disabled(\"split_dialog.table_split.batch_no\", false);\n  }\n\n  // Handle serialized items\n  if (isSerializedItem === 1) {\n    await this.disabled(\"split_dialog.table_split.received_qty\", true);\n    await this.setData({ [`split_dialog.table_split.received_qty`]: 0 });\n\n    const serialNumbers = this.getValue(\n      `table_gr.${rowIndex}.select_serial_number`,\n    );\n    for (let i = 0; i < noOfSplit; i++) {\n      await this.setOptionData(\n        `split_dialog.table_split.${i}.select_serial_number`,\n        serialNumbers,\n      );\n    }\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -23050,7 +23100,7 @@
       {
         "key": "wpk3szqd",
         "name": "onTableGrSplit",
-        "func": "(async () => {\n  const data = this.getValues();\n\n  const rowIndex = arguments[0].index;\n  const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);\n  const isSerializedItem = this.getValue(\n    `table_gr.${rowIndex}.is_serialized_item`,\n  );\n  const grItem = data.table_gr[rowIndex];\n\n  // Calculate to_received_qty as ordered_qty - initial_received_qty\n  const toReceivedQty =\n    (grItem.ordered_qty || 0) - (grItem.initial_received_qty || 0);\n\n  // Validate before allowing split\n  if (toReceivedQty <= 0) {\n    this.$message.error(\"Cannot split when quantity to receive is 0 or less.\");\n    return;\n  }\n\n  // Check if row has HU data - warn and reset before splitting\n  const tempHuDataStr = grItem.temp_hu_data;\n  if (tempHuDataStr && tempHuDataStr !== \"[]\") {\n    await this.$alert(\n      \"Splitting this row will reset the selected Handling Units.\",\n      \"Warning\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"warning\",\n      }\n    );\n\n    // Clear temp_hu_data and view_hu\n    await this.setData({\n      [`table_gr.${rowIndex}.temp_hu_data`]: \"[]\",\n      [`table_gr.${rowIndex}.view_hu`]: \"\",\n    });\n  }\n\n  if (isSplit && isSplit === \"Yes\") {\n    this.setData({ [`confirm_split_dialog.rowIndex`]: rowIndex });\n    await this.openDialog(\"confirm_split_dialog\");\n  } else {\n    await this.openDialog(\"split_dialog\");\n\n    this.setData({\n      [`split_dialog.item_id`]: grItem.item_id,\n      [`split_dialog.item_name`]: grItem.item_name,\n      [`split_dialog.to_received_qty`]: toReceivedQty,\n      [`split_dialog.rowIndex`]: rowIndex,\n      [`split_dialog.is_parent_split`]: 0, // Default to hierarchy split (0), set to 1 for split-parent\n    });\n  }\n\n  if (isSerializedItem === 1) {\n    await this.display(\"split_dialog.table_split.select_serial_number\");\n    await this.setData({\n      [`split_dialog.serial_number_data`]: grItem.serial_numbers,\n    });\n  } else {\n    await this.hide(\"split_dialog.table_split.select_serial_number\");\n  }\n})();\n",
+        "func": "(async () => {\n  const data = this.getValues();\n\n  const rowIndex = arguments[0].index;\n  const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);\n  const isSerializedItem = this.getValue(\n    `table_gr.${rowIndex}.is_serialized_item`,\n  );\n  const isBatchItem =\n    this.getValue(`table_gr.${rowIndex}.item_batch_no`) === \"-\" ? 0 : 1;\n  const grItem = data.table_gr[rowIndex];\n\n  // Calculate to_received_qty as ordered_qty - initial_received_qty\n  const toReceivedQty =\n    (grItem.ordered_qty || 0) - (grItem.initial_received_qty || 0);\n\n  // Validate before allowing split\n  if (toReceivedQty <= 0) {\n    this.$message.error(\"Cannot split when quantity to receive is 0 or less.\");\n    return;\n  }\n\n  // Check if row has HU data - warn and reset before splitting\n  const tempHuDataStr = grItem.temp_hu_data;\n  if (tempHuDataStr && tempHuDataStr !== \"[]\") {\n    await this.$alert(\n      \"Splitting this row will reset the selected Handling Units.\",\n      \"Warning\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"warning\",\n      },\n    );\n\n    // Clear temp_hu_data and view_hu\n    await this.setData({\n      [`table_gr.${rowIndex}.temp_hu_data`]: \"[]\",\n      [`table_gr.${rowIndex}.view_hu`]: \"\",\n    });\n  }\n\n  if (isSplit && isSplit === \"Yes\") {\n    this.setData({ [`confirm_split_dialog.rowIndex`]: rowIndex });\n    await this.openDialog(\"confirm_split_dialog\");\n  } else {\n    await this.openDialog(\"split_dialog\");\n\n    this.setData({\n      [`split_dialog.item_id`]: grItem.item_id,\n      [`split_dialog.item_name`]: grItem.item_name,\n      [`split_dialog.to_received_qty`]: toReceivedQty,\n      [`split_dialog.rowIndex`]: rowIndex,\n      [`split_dialog.is_parent_split`]: 0, // Default to hierarchy split (0), set to 1 for split-parent\n      [`split_dialog.is_batch_item`]: isBatchItem,\n    });\n  }\n\n  if (isSerializedItem === 1) {\n    await this.display(\"split_dialog.table_split.select_serial_number\");\n    await this.setData({\n      [`split_dialog.serial_number_data`]: grItem.serial_numbers,\n    });\n  } else {\n    await this.hide(\"split_dialog.table_split.select_serial_number\");\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -23218,6 +23268,12 @@
         "key": "h8fgooxc",
         "name": "onChange_h8fgooxc",
         "func": "// onChange handler for manufacturing_date field\n// When parent's manufacturing_date changes, auto-update all children\n\n(async () => {\n  try {\n    const manufacturingDate = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    if (rowIndex === undefined || rowIndex === null) {\n      return;\n    }\n\n    // Check if this is a split parent row\n    const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);\n    const parentOrChild = this.getValue(`table_gr.${rowIndex}.parent_or_child`);\n\n    // Only propagate to children if this is a split parent\n    if (isSplit === \"Yes\" && parentOrChild === \"Parent\") {\n      const parentIndex = this.getValue(`table_gr.${rowIndex}.parent_index`);\n      const tableGR = this.getValue(\"table_gr\");\n\n      // Find all children belonging to this parent\n      const updates = {};\n      tableGR.forEach((row, idx) => {\n        if (row.parent_or_child === \"Child\" && row.parent_index === parentIndex) {\n          updates[`table_gr.${idx}.manufacturing_date`] = manufacturingDate;\n        }\n      });\n\n      // Update all children's manufacturing_date\n      if (Object.keys(updates).length > 0) {\n        await this.setData(updates);\n      }\n    }\n  } catch (error) {\n    console.error(\"Error updating manufacturing date:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "a68ndwx4",
+        "name": "onImportDataUploadSuccess",
+        "func": "",
         "type": "js"
       }
     ],

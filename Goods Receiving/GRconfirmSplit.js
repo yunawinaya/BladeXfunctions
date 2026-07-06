@@ -23,6 +23,9 @@ const setGrItemData = async (
   parentIndex,
   selectSerialNumber = [],
   splitSourceIndex = null,
+  dialogBatchNo = undefined,
+  dialogManufacturingDate = undefined,
+  dialogExpiredDate = undefined,
 ) => {
   // For Split-Parent: treat like regular row (keeps ordered_qty, initial_received_qty, etc.)
   const isSplitParent = parentOrChild === "Split-Parent";
@@ -76,23 +79,27 @@ const setGrItemData = async (
     storage_location_id: storageLocationId,
     location_id: locationId,
 
-    // Batch and inspection - Split-Parent clears batch only for manual-entry
-    // batch items. "-" (non-batch) and "Auto-generated batch number" are
-    // sentinels that must be preserved.
+    // Batch and inspection - Split-Parent takes batch/date per-row from the
+    // split dialog. "-" (non-batch) stays "-"; batch items use the dialog value
+    // (a manual batch, "Auto-generated batch number", or "" for pending manual
+    // entry). Dates follow the same rule (null for non-batch items).
     item_batch_no: isSplitParent
-      ? itemData.item_batch_no === "-" ||
-        itemData.item_batch_no === "Auto-generated batch number"
-        ? itemData.item_batch_no
-        : ""
+      ? itemData.item_batch_no === "-"
+        ? "-"
+        : dialogBatchNo !== undefined && dialogBatchNo !== null
+          ? dialogBatchNo
+          : ""
       : itemData.item_batch_no,
-    manufacturing_date:
-      isSplitParent && itemData.item_batch_no !== "-"
+    manufacturing_date: isSplitParent
+      ? itemData.item_batch_no === "-"
         ? null
-        : itemData.manufacturing_date,
-    expired_date:
-      isSplitParent && itemData.item_batch_no !== "-"
+        : dialogManufacturingDate || null
+      : itemData.manufacturing_date,
+    expired_date: isSplitParent
+      ? itemData.item_batch_no === "-"
         ? null
-        : itemData.expired_date,
+        : dialogExpiredDate || null
+      : itemData.expired_date,
     inspection_required: itemData.inspection_required,
     inv_category: itemData.inv_category,
 
@@ -217,6 +224,9 @@ const setGrItemData = async (
               index, // parent_index (for tracking)
               dialogItem.select_serial_number || [],
               index, // split_source_index
+              dialogItem.batch_no,
+              dialogItem.manufacturing_date,
+              dialogItem.expired_date,
             );
             latestTableGR.push(splitParentItem);
           }
@@ -331,10 +341,13 @@ const setGrItemData = async (
           false,
         );
 
-        // Batch field: enabled only for manual-entry batch items (""). "-"
-        // (non-batch) and "Auto-generated batch number" stay disabled.
+        // Batch field: editable for manual-entry batch items whether empty or
+        // pre-filled from the split dialog. "-" (non-batch) and
+        // "Auto-generated batch number" stay disabled.
         const isManualBatch =
-          grItem.item_batch_no === "" && grItem.item_id;
+          grItem.item_id &&
+          grItem.item_batch_no !== "-" &&
+          grItem.item_batch_no !== "Auto-generated batch number";
         this.disabled(
           [`table_gr.${index}.item_batch_no`],
           !isManualBatch,

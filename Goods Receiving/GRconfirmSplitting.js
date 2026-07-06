@@ -11,6 +11,12 @@
     `table_gr.${rowIndex}.storage_location_id`,
   );
   const locationId = this.getValue(`table_gr.${rowIndex}.location_id`);
+  const isBatchItem = data.is_batch_item;
+  const batchNo = this.getValue(`table_gr.${rowIndex}.item_batch_no`);
+  const manufacturingDate = this.getValue(
+    `table_gr.${rowIndex}.manufacturing_date`,
+  );
+  const expiredDate = this.getValue(`table_gr.${rowIndex}.expired_date`);
 
   // Validation for serialized items
   if (isSerializedItem === 1 && noOfSplit > toReceivedQty) {
@@ -33,11 +39,18 @@
       line_remark_1: "",
       line_remark_2: "",
       line_remark_3: "",
+      batch_no: isBatchItem === 1 ? batchNo : "",
+      manufacturing_date: isBatchItem === 1 ? manufacturingDate : "",
+      expired_date: isBatchItem === 1 ? expiredDate : "",
     };
     splitData.push(lineData);
   }
 
   await this.setData({ [`split_dialog.table_split`]: splitData });
+
+  if (batchNo === "") {
+    await this.disabled("split_dialog.table_split.batch_no", false);
+  }
 
   // Handle serialized items
   if (isSerializedItem === 1) {
