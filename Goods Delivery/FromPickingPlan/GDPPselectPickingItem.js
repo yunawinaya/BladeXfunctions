@@ -1,7 +1,7 @@
 (async () => {
-  const currentPickingArray = this.getValue(`dialog_select_picking.item_array`);
+  const currentPickingArray = this.getValue(`item_array`);
   const selectedPickingItem = arguments[0].$eventArgs[0];
-  const referenceType = this.getValue(`dialog_select_picking.reference_type`);
+  const referenceType = this.getValue(`reference_type`);
 
   console.log("arguments[0].$eventArgs[0]", arguments[0].$eventArgs[0]);
   const index = currentPickingArray.findIndex(
@@ -14,8 +14,12 @@
       picking_record_id: selectedPickingItem.id,
       picking_data: selectedPickingItem.transfer_order_id,
       item: selectedPickingItem.item_code,
+      item_name: selectedPickingItem.item_name,
+      item_desc: selectedPickingItem.item_desc,
+      more_desc: selectedPickingItem.more_desc,
       store_out_qty: selectedPickingItem.store_out_qty,
       delivered_qty: selectedPickingItem.delivered_qty,
+      reserved_qty: selectedPickingItem.reserved_qty,
       uom_id: selectedPickingItem.item_uom.id,
       location_id: selectedPickingItem.target_location.id,
       pp_id: selectedPickingItem.to_id.id,
@@ -42,9 +46,9 @@
 
   this.setData({
     ...(!referenceType || referenceType === ""
-      ? { [`dialog_select_picking.reference_type`]: "Item" }
+      ? { [`reference_type`]: "Item" }
       : {}),
-    [`dialog_select_picking.to_number_array`]: updatedPickingNumber.join(`\n`),
-    [`dialog_select_picking.item_array`]: currentPickingArray,
+    [`to_number_array`]: updatedPickingNumber.join(`\n`),
+    [`item_array`]: currentPickingArray,
   });
 })();
