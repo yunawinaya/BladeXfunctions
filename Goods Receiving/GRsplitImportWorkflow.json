@@ -455,14 +455,14 @@
                             "parentId": 1780000000040,
                             "isTop": false,
                             "prop": "bin_location_combine",
-                            "operator": "in",
+                            "operator": "equalAny",
                             "valueType": "field",
                             "value": "{{node:code_extract.data.binCombines}}",
                             "type": "leaf",
                             "level": 2,
                             "propLabel": "Preview Bin Location Code",
                             "valueLabel": "",
-                            "operatorLabel": "In"
+                            "operatorLabel": "Equal Any"
                           },
                           {
                             "id": 1780000000042,
