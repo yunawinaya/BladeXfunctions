@@ -30,7 +30,7 @@
                 "value": "{{workflowparams:item_id}}",
                 "type": "leaf",
                 "level": 1,
-                "propLabel": "主键ID",
+                "propLabel": "Primary Key ID",
                 "valueLabel": "",
                 "operatorLabel": "In"
               }
@@ -54,10 +54,7 @@
         "nodeName": "IF Item Not Found",
         "name": "IF Item Not Found",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -81,9 +78,7 @@
         {
           "id": "if_block_notfound_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "return_item_not_found",
@@ -142,9 +137,7 @@
         {
           "id": "if_block_notfound_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -158,10 +151,7 @@
         "nodeName": "IF Serialized Item",
         "name": "IF Serialized Item",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -185,9 +175,7 @@
         {
           "id": "if_block_serial_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "return_item_serialized",
@@ -246,9 +234,7 @@
         {
           "id": "if_block_serial_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -305,12 +291,8 @@
       "type": "condition-all-node",
       "data": {
         "title": "Parallel Lookups",
-        "filter": {
-          "list": []
-        },
-        "expression": {
-          "code": ""
-        },
+        "filter": { "list": [] },
+        "expression": { "code": "" },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -334,9 +316,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Storage Locations",
@@ -369,14 +349,14 @@
                             "parentId": 1780000000030,
                             "isTop": false,
                             "prop": "storage_location_name",
-                            "operator": "in",
+                            "operator": "equalAny",
                             "valueType": "field",
                             "value": "{{node:code_extract.data.storageNames}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Name",
+                            "propLabel": "Storage Name",
                             "valueLabel": "",
-                            "operatorLabel": "In"
+                            "operatorLabel": "Equal Any"
                           },
                           {
                             "id": 1780000000032,
@@ -388,21 +368,7 @@
                             "value": "{{workflowparams:plant_id}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Plant ID",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1780000000033,
-                            "parentId": 1780000000030,
-                            "isTop": false,
-                            "prop": "is_deleted",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 0,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Is Deleted",
+                            "propLabel": "Plant",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -456,9 +422,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Bin Locations",
@@ -496,7 +460,7 @@
                             "value": "{{node:code_extract.data.binCombines}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Bin Location Combine",
+                            "propLabel": "Preview Bin Location Code",
                             "valueLabel": "",
                             "operatorLabel": "In"
                           },
@@ -510,21 +474,7 @@
                             "value": "{{workflowparams:plant_id}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Plant ID",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1780000000043,
-                            "parentId": 1780000000040,
-                            "isTop": false,
-                            "prop": "is_deleted",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 0,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Is Deleted",
+                            "propLabel": "Plant",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -578,9 +528,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "UOMs",
@@ -598,31 +546,18 @@
                     "collectionId": "1901805375573839874",
                     "list": [
                       {
-                        "id": 1780000000050,
-                        "parentId": 1780000000049,
+                        "id": 1783393363023,
+                        "parentId": 1783393363022,
                         "isTop": true,
-                        "prop": "",
-                        "operator": "all",
-                        "valueType": "",
-                        "value": "",
-                        "type": "branch",
+                        "prop": "uom_name",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_extract.data.uomNames}}",
+                        "type": "leaf",
                         "level": 1,
-                        "children": [
-                          {
-                            "id": 1780000000051,
-                            "parentId": 1780000000050,
-                            "isTop": false,
-                            "prop": "uom_name",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_extract.data.uomNames}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "UOM Name",
-                            "valueLabel": "",
-                            "operatorLabel": "In"
-                          }
-                        ]
+                        "propLabel": "UOM Name",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal Any"
                       }
                     ]
                   }
@@ -658,9 +593,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Default Bins",
@@ -698,7 +631,7 @@
                             "value": 1,
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Is Default",
+                            "propLabel": "Default Receiving Location",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -712,21 +645,7 @@
                             "value": "{{workflowparams:plant_id}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Plant ID",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1780000000063,
-                            "parentId": 1780000000060,
-                            "isTop": false,
-                            "prop": "is_deleted",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 0,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Is Deleted",
+                            "propLabel": "Plant",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -869,10 +788,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
