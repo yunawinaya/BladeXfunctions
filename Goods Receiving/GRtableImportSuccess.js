@@ -287,6 +287,22 @@
       );
     };
 
+    // Importing rebuilds matched lines — confirm before overwriting current details.
+    try {
+      await this.$confirm(
+        "Importing will replace the received details of matched item lines. Continue?",
+        "Import items",
+        {
+          confirmButtonText: "Continue",
+          cancelButtonText: "Cancel",
+          type: "warning",
+        },
+      );
+    } catch (e) {
+      clearImport();
+      return;
+    }
+
     await callWorkflow(false);
   } catch (error) {
     this.hideLoading();
