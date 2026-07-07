@@ -1,0 +1,787 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_extract",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Extract Keys",
+        "isValidator": true,
+        "nodeName": "Extract Keys",
+        "name": "Extract Keys",
+        "script": {
+          "type": "javascript",
+          "code": "// Extract the distinct lookup keys the parallel searches need:\n//  - itemIds     : item_id of every table_gr line (to fetch Item masters)\n//  - storageNames: distinct \"Storage Location\" names from the excel\n//  - binCombines : distinct \"Bin Location\" combines from the excel\n//  - uomNames    : distinct \"UOM\" names from the excel\nconst excelData = JSON.parse({{workflowparams:import_table_data}});\nconst tableGR = JSON.parse({{workflowparams:table_gr}});\n\nconst itemIds = [];\nconst storageNames = [];\nconst binCombines = [];\nconst uomNames = [];\n\n(Array.isArray(tableGR) ? tableGR : []).forEach((r) => {\n  const id = r && r.item_id ? String(r.item_id) : \"\";\n  if (id && itemIds.indexOf(id) === -1) itemIds.push(id);\n});\n\nObject.keys(excelData).forEach((k) => {\n  // numeric-keyed entries are data rows; skip name/size/type meta keys\n  if (/^\\d+$/.test(k)) {\n    const row = excelData[k] || {};\n    const s = row[\"Storage Location\"] ? String(row[\"Storage Location\"]).trim() : \"\";\n    const b = row[\"Bin Location\"] ? String(row[\"Bin Location\"]).trim() : \"\";\n    const u = row[\"UOM\"] ? String(row[\"UOM\"]).trim() : \"\";\n    if (s && storageNames.indexOf(s) === -1) storageNames.push(s);\n    if (b && binCombines.indexOf(b) === -1) binCombines.push(b);\n    if (u && uomNames.indexOf(u) === -1) uomNames.push(u);\n  }\n});\n\n// Never feed an empty array into an `in` filter; a \"0\" sentinel matches nothing.\nif (itemIds.length === 0) itemIds.push(\"0\");\nif (storageNames.length === 0) storageNames.push(\"0\");\nif (binCombines.length === 0) binCombines.push(\"0\");\nif (uomNames.length === 0) uomNames.push(\"0\");\n\nreturn {\n  itemIds: itemIds,\n  storageNames: storageNames,\n  binCombines: binCombines,\n  uomNames: uomNames,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "itemIdsk",
+            "name": "itemIds",
+            "title": "itemIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "storageNk",
+            "name": "storageNames",
+            "title": "storageNames",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "binCombik",
+            "name": "binCombines",
+            "title": "binCombines",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "uomNamesk",
+            "name": "uomNames",
+            "title": "uomNames",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_all_lookups",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Lookups",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cond_item_search_node_item",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Items",
+            "filter": {
+              "list": [
+                {
+                  "id": 1780000009000,
+                  "parentId": 1780000009001,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Items",
+            "name": "Items",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_node_item",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 1780000000100,
+                        "parentId": 1780000000099,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_extract.data.itemIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal Any"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 500,
+                "title": "Get Items",
+                "isValidator": true,
+                "nodeName": "Get Items",
+                "name": "Get Items"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cond_item_search_node_storage",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Storage Locations",
+            "filter": {
+              "list": [
+                {
+                  "id": 1780000009002,
+                  "parentId": 1780000009003,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Storage Locations",
+            "name": "Storage Locations",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_node_storage",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Storage Location:Table:1986694920453566466",
+                  "rules": {
+                    "collectionId": "1986694920453566466",
+                    "list": [
+                      {
+                        "id": 1780000000030,
+                        "parentId": 1780000000029,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1780000000031,
+                            "parentId": 1780000000030,
+                            "isTop": false,
+                            "prop": "storage_location_name",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_extract.data.storageNames}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Name",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal Any"
+                          },
+                          {
+                            "id": 1780000000032,
+                            "parentId": 1780000000030,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:plant_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1780000000034,
+                            "parentId": 1780000000030,
+                            "isTop": false,
+                            "prop": "storage_status",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Storage Locations",
+                "isValidator": true,
+                "nodeName": "Get Storage Locations",
+                "name": "Get Storage Locations"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cond_item_search_node_bin",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Bin Locations",
+            "filter": {
+              "list": [
+                {
+                  "id": 1780000009004,
+                  "parentId": 1780000009005,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Bin Locations",
+            "name": "Bin Locations",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_node_bin",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Bin Location:Table:1902282127538507778",
+                  "rules": {
+                    "collectionId": "1902282127538507778",
+                    "list": [
+                      {
+                        "id": 1780000000040,
+                        "parentId": 1780000000039,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1780000000041,
+                            "parentId": 1780000000040,
+                            "isTop": false,
+                            "prop": "bin_location_combine",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_extract.data.binCombines}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Bin Location Combine",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal Any"
+                          },
+                          {
+                            "id": 1780000000042,
+                            "parentId": 1780000000040,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:plant_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1780000000044,
+                            "parentId": 1780000000040,
+                            "isTop": false,
+                            "prop": "bin_status",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Bin Locations",
+                "isValidator": true,
+                "nodeName": "Get Bin Locations",
+                "name": "Get Bin Locations"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cond_item_search_node_uom",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "UOMs",
+            "filter": {
+              "list": [
+                {
+                  "id": 1780000009006,
+                  "parentId": 1780000009007,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "UOMs",
+            "name": "UOMs",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_node_uom",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "UOM:Table:1901805375573839874",
+                  "rules": {
+                    "collectionId": "1901805375573839874",
+                    "list": [
+                      {
+                        "id": 1780000000050,
+                        "parentId": 1780000000049,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1780000000051,
+                            "parentId": 1780000000050,
+                            "isTop": false,
+                            "prop": "uom_name",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_extract.data.uomNames}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "UOM Name",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal Any"
+                          },
+                          {
+                            "id": 1780000000052,
+                            "parentId": 1780000000050,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get UOMs",
+                "isValidator": true,
+                "nodeName": "Get UOMs",
+                "name": "Get UOMs"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cond_item_search_node_bin_default",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Default Bins",
+            "filter": {
+              "list": [
+                {
+                  "id": 1780000009008,
+                  "parentId": 1780000009009,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Default Bins",
+            "name": "Default Bins",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_node_bin_default",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Bin Location:Table:1902282127538507778",
+                  "rules": {
+                    "collectionId": "1902282127538507778",
+                    "list": [
+                      {
+                        "id": 1780000000060,
+                        "parentId": 1780000000059,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1780000000061,
+                            "parentId": 1780000000060,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Is Default",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1780000000062,
+                            "parentId": 1780000000060,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:plant_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1780000000064,
+                            "parentId": 1780000000060,
+                            "isTop": false,
+                            "prop": "bin_status",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Default Bins",
+                "isValidator": true,
+                "nodeName": "Get Default Bins",
+                "name": "Get Default Bins"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_build",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build Table GR",
+        "isValidator": true,
+        "nodeName": "Build Table GR",
+        "name": "Build Table GR",
+        "script": {
+          "type": "javascript",
+          "code": "// Match imported excel rows to table_gr lines (by Item.material_code) and\n// rebuild table_gr: fill a line in place (1 excel row) or replace it with\n// Split-Parent rows (N excel rows). Duplicates/unknowns/serialized are skipped;\n// hard validation problems accumulate into `errors` (any -> code 400).\nconst excelData = JSON.parse({{workflowparams:import_table_data}});\nconst tableGR = JSON.parse({{workflowparams:table_gr}});\nconst skipDuplicates = String({{workflowparams:skipDuplicates}} || \"\") === \"true\";\n\nconst itemList = {{node:search_node_item.data.data}} || [];\nconst storageList = {{node:search_node_storage.data.data}} || [];\nconst binList = {{node:search_node_bin.data.data}} || [];\nconst uomList = {{node:search_node_uom.data.data}} || [];\nconst binDefaultList = {{node:search_node_bin_default.data.data}} || [];\n\nconst str = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst round3 = (n) => Math.round(n * 1000) / 1000;\n\n// letter suffix A,B,...,Z,AA,... (ported from GRconfirmSplit.js)\nconst getLetterSuffix = (index) => {\n  let suffix = \"\";\n  let num = index;\n  while (num >= 0) {\n    suffix = String.fromCharCode(65 + (num % 26)) + suffix;\n    num = Math.floor(num / 26) - 1;\n  }\n  return suffix;\n};\n\n// date parser (ported from GRsplitImportWorkflow): accepts DD-MM-YYYY, DD/MM/YYYY,\n// YYYY-MM-DD, \"1 Jan 2026\"/\"1 January 2026\"/\"1-Feb-2026\"; year required; calendar-valid.\nconst MONTHS = {\n  jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,\n  may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8,\n  sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11,\n  dec: 12, december: 12,\n};\nconst convertDate = (val) => {\n  if (val === undefined || val === null || String(val).trim() === \"\") return null;\n  const s = String(val).trim();\n  let dNum, mNum, yNum, m;\n  if ((m = s.match(/^(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})$/))) {\n    yNum = parseInt(m[1], 10); mNum = parseInt(m[2], 10); dNum = parseInt(m[3], 10);\n  } else if ((m = s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})$/))) {\n    dNum = parseInt(m[1], 10); mNum = parseInt(m[2], 10); yNum = parseInt(m[3], 10);\n  } else if ((m = s.match(/^(\\d{1,2})[\\s\\-]+([A-Za-z]+)[\\s\\-]+(\\d{4})$/))) {\n    dNum = parseInt(m[1], 10); yNum = parseInt(m[3], 10); mNum = MONTHS[m[2].toLowerCase()];\n    if (!mNum) return { error: true, raw: s };\n  } else {\n    return { error: true, raw: s };\n  }\n  const isLeap = yNum % 4 === 0 && (yNum % 100 !== 0 || yNum % 400 === 0);\n  const dim = [31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];\n  if (mNum < 1 || mNum > 12 || dNum < 1 || dNum > dim[mNum - 1]) return { error: true, raw: s };\n  return yNum + \"-\" + String(mNum).padStart(2, \"0\") + \"-\" + String(dNum).padStart(2, \"0\");\n};\n\n// base_qty per 1 unit of uomId for an item (base UOM = 1 when it has no explicit row)\nconst baseQtyFor = (item, uomId) => {\n  const conv = item && Array.isArray(item.table_uom_conversion) ? item.table_uom_conversion : [];\n  const row = conv.find((c) => String(c.alt_uom_id) === String(uomId));\n  if (row && row.base_qty) return parseFloat(row.base_qty);\n  if (item && String(uomId) === String(item.based_uom)) return 1;\n  return null;\n};\n\n// --- item lookup maps ---\nconst itemById = {};\nconst codeToItemId = {};\nitemList.forEach((it) => {\n  itemById[String(it.id)] = it;\n  const code = str(it.material_code).trim();\n  if (code) codeToItemId[code] = String(it.id);\n});\n\n// --- table_gr lines grouped by item_id; duplicates = item on 2+ lines ---\nconst rowsByItem = {};\n(Array.isArray(tableGR) ? tableGR : []).forEach((line, idx) => {\n  const id = str(line.item_id);\n  if (!id) return;\n  if (!rowsByItem[id]) rowsByItem[id] = [];\n  rowsByItem[id].push(idx);\n});\nconst duplicatedItemIds = {};\nObject.keys(rowsByItem).forEach((id) => {\n  if (rowsByItem[id].length > 1) duplicatedItemIds[id] = true;\n});\n\n// --- excel rows grouped by resolved item_id ---\nconst excelRows = [];\nObject.keys(excelData).forEach((k) => {\n  if (/^\\d+$/.test(k)) excelRows.push({ __idx: parseInt(k, 10), data: excelData[k] || {} });\n});\nexcelRows.sort((a, b) => a.__idx - b.__idx);\n\nconst excelByItemId = {};\nconst unknownCodes = [];\nexcelRows.forEach((r) => {\n  const code = str(r.data[\"Item Code\"]).trim();\n  const itemId = codeToItemId[code];\n  if (!itemId) {\n    if (code && unknownCodes.indexOf(code) === -1) unknownCodes.push(code);\n    return;\n  }\n  if (!excelByItemId[itemId]) excelByItemId[itemId] = [];\n  excelByItemId[itemId].push(r.data);\n});\n\n// --- duplicate confirm gate ---\nconst dupHitCodes = [];\nObject.keys(excelByItemId).forEach((itemId) => {\n  if (duplicatedItemIds[itemId]) {\n    const code = str((itemById[itemId] || {}).material_code).trim();\n    if (code && dupHitCodes.indexOf(code) === -1) dupHitCodes.push(code);\n  }\n});\nif (dupHitCodes.length > 0 && !skipDuplicates) {\n  return {\n    code: \"409\",\n    message:\n      \"These item(s) appear on multiple GR lines and can't be matched from the file: \" +\n      dupHitCodes.join(\", \") + \". Continue and skip them?\",\n    table_gr: \"[]\",\n    warning: \"\",\n    duplicates: dupHitCodes.join(\", \"),\n  };\n}\n\n// --- build ---\nconst errors = [];\nconst unknownWarn = unknownCodes.slice();\nconst dupSkipped = [];\nconst serializedSkipped = [];\nconst autoBatchWarn = [];\nconst newTableGR = [];\n\n// validate one excel row for a matched item -> resolved sub-row (pushes to errors on problems)\nconst resolveRow = (row, item, code, lineUomFactor, seq) => {\n  const label = 'Item \"' + code + '\" row ' + seq;\n  // qty (+ optional UOM conversion to line UOM)\n  const rawQty = parseFloat(row[\"Quantity\"]);\n  let qty = NaN;\n  if (isNaN(rawQty) || rawQty <= 0) {\n    errors.push(label + \": Quantity must be greater than 0.\");\n  } else {\n    const uomName = str(row[\"UOM\"]).trim();\n    if (!uomName) {\n      qty = rawQty;\n    } else {\n      // UOM names (PCS/UNIT/...) are not org-unique in the global UOM table, so\n      // match the name AND require the id to be one of THIS item's UOMs\n      // (baseQtyFor returns null for ids not in its conversion table/base UOM).\n      const named = uomList.filter((u) => str(u.uom_name).trim() === uomName);\n      let f = null;\n      for (let n = 0; n < named.length; n++) {\n        const bq = baseQtyFor(item, named[n].id);\n        if (bq !== null) { f = bq; break; }\n      }\n      if (named.length === 0) {\n        errors.push(label + ': UOM \"' + uomName + '\" not found.');\n      } else if (f === null) {\n        errors.push(label + ': UOM \"' + uomName + '\" is not valid for this item.');\n      } else {\n        qty = parseFloat((round3((rawQty * f) / lineUomFactor)).toFixed(3));\n      }\n    }\n  }\n\n  // storage\n  const storageName = str(row[\"Storage Location\"]).trim();\n  const storageMatches = storageList.filter(\n    (s) => str(s.storage_location_name).trim() === storageName);\n  let storageId = \"\";\n  if (!storageName) errors.push(label + \": Storage Location is required.\");\n  else if (storageMatches.length === 0) errors.push(label + ': Storage Location \"' + storageName + '\" not found.');\n  else if (storageMatches.length > 1) errors.push(label + ': Storage Location \"' + storageName + '\" is ambiguous.');\n  else storageId = storageMatches[0].id;\n\n  // bin (blank -> storage default; else combine under that storage)\n  const binName = str(row[\"Bin Location\"]).trim();\n  let locationId = \"\";\n  if (!binName) {\n    if (storageId) {\n      const def = binDefaultList.find((b) => String(b.storage_location_id) === String(storageId));\n      if (def) locationId = def.id;\n      else errors.push(label + ': Bin Location is blank and Storage Location \"' + storageName + '\" has no default bin.');\n    }\n  } else if (storageId) {\n    const binMatches = binList.filter(\n      (b) => str(b.bin_location_combine).trim() === binName &&\n        String(b.storage_location_id) === String(storageId));\n    if (binMatches.length === 0) errors.push(label + ': Bin Location \"' + binName + '\" not found under Storage Location \"' + storageName + '\".');\n    else if (binMatches.length > 1) errors.push(label + ': Bin Location \"' + binName + '\" is ambiguous under Storage Location \"' + storageName + '\".');\n    else locationId = binMatches[0].id;\n  }\n\n  // batch (mode from item; non-batch stored as \"-\" in table_gr)\n  const isBatchItem = item ? item.item_batch_management === 1 : false;\n  const isAutoBatch = isBatchItem && item.batch_number_genaration === \"According To System Settings\";\n  let batchNo = \"-\";\n  const excelBatch = str(row[\"Batch Number\"]).trim();\n  if (!isBatchItem) {\n    batchNo = \"-\";\n  } else if (isAutoBatch) {\n    batchNo = \"Auto-generated batch number\";\n    if (excelBatch !== \"\" && autoBatchWarn.indexOf(code) === -1) autoBatchWarn.push(code);\n  } else {\n    if (excelBatch === \"\") errors.push(label + \": Batch Number is required for this manual-batch item.\");\n    batchNo = excelBatch;\n  }\n\n  // dates (batch only)\n  let mfg = null, exp = null;\n  if (isBatchItem) {\n    const m = convertDate(row[\"Manufacturing Date\"]);\n    const e = convertDate(row[\"Expired Date\"]);\n    if (m && m.error) errors.push(label + ': Manufacturing Date \"' + m.raw + '\" is not a valid date (use DD-MM-YYYY, DD/MM/YYYY or \"1 Jan 2026\").');\n    else mfg = m;\n    if (e && e.error) errors.push(label + ': Expired Date \"' + e.raw + '\" is not a valid date (use DD-MM-YYYY, DD/MM/YYYY or \"1 Jan 2026\").');\n    else exp = e;\n    if (typeof mfg === \"string\" && typeof exp === \"string\" && mfg > exp)\n      errors.push(label + \": Manufacturing Date must be on or before Expired Date.\");\n  }\n\n  return {\n    qty: isNaN(qty) ? 0 : qty,\n    storageId, locationId, batchNo, mfg, exp,\n    r1: str(row[\"Remark\"]), r2: str(row[\"Remark 2\"]), r3: str(row[\"Remark 3\"]),\n  };\n};\n\ntableGR.forEach((line, idx) => {\n  const itemId = str(line.item_id);\n  const item = itemById[itemId];\n  const rows = excelByItemId[itemId];\n  const code = item ? str(item.material_code).trim() : str(line.item_name).trim();\n\n  // no excel rows -> leave unchanged\n  if (!rows || rows.length === 0) {\n    newTableGR.push(line);\n    return;\n  }\n  // duplicated item (only reached when skipping) -> leave unchanged\n  if (duplicatedItemIds[itemId]) {\n    if (code && dupSkipped.indexOf(code) === -1) dupSkipped.push(code);\n    newTableGR.push(line);\n    return;\n  }\n  // serialized -> skip (no serial column)\n  if (item && item.serial_number_management === 1) {\n    if (code && serializedSkipped.indexOf(code) === -1) serializedSkipped.push(code);\n    newTableGR.push(line);\n    return;\n  }\n\n  const orderedQty = parseFloat(line.ordered_qty) || 0;\n  const initialReceivedQty = parseFloat(line.initial_received_qty) || 0;\n  const uomConversion = parseFloat(line.uom_conversion) || 0;\n  const unitPrice = parseFloat(line.unit_price) || 0;\n  const lineUomFactor = baseQtyFor(item, str(line.item_uom)) || 1;\n\n  // tolerance from item (by ordered UOM)\n  let tol = 0;\n  if (item && Array.isArray(item.table_uom_conversion)) {\n    const c = item.table_uom_conversion.find((x) => String(x.alt_uom_id) === String(line.ordered_qty_uom));\n    tol = (c && c.over_receive_tolerance) || 0;\n  }\n\n  const built = rows.map((row, i) => resolveRow(row, item, code, lineUomFactor, i + 1));\n  const totalLineQty = round3(built.reduce((s, b) => s + b.qty, 0));\n\n  // per-item tolerance (ordered-qty based, mirrors GRreceivedQty)\n  const maxAllowed = round3((orderedQty * (100 + tol)) / 100);\n  if (round3(totalLineQty + initialReceivedQty) > maxAllowed) {\n    const maxQty = round3(maxAllowed - initialReceivedQty);\n    errors.push('Item \"' + code + '\": total quantity (' + totalLineQty +\n      ') exceeds maximum allowed (' + maxQty + ') based on tolerance.');\n  }\n\n  const baseOf = (qty) => (uomConversion > 0 ? round3(qty * uomConversion) : qty);\n  const toRecv = (qty) => Math.max(0, round3(orderedQty - initialReceivedQty - qty));\n\n  if (built.length === 1) {\n    // fill the line in place (stays Parent / is_split \"No\")\n    const b = built[0];\n    const row = Object.assign({}, line);\n    delete row.fm_key;\n    row.received_qty = b.qty;\n    row.base_received_qty = baseOf(b.qty);\n    row.to_received_qty = toRecv(b.qty);\n    row.storage_location_id = b.storageId;\n    row.location_id = b.locationId;\n    row.item_batch_no = b.batchNo;\n    row.manufacturing_date = b.mfg;\n    row.expired_date = b.exp;\n    row.line_remark_1 = b.r1;\n    row.line_remark_2 = b.r2;\n    row.line_remark_3 = b.r3;\n    newTableGR.push(row);\n  } else {\n    // replace with Split-Parent rows\n    built.forEach((b, i) => {\n      const row = Object.assign({}, line);\n      delete row.fm_key;\n      row.line_index = (parseInt(line.parent_index, 10) || 0) + 1 + \"-\" + getLetterSuffix(i);\n      row.parent_or_child = \"Split-Parent\";\n      row.is_split = \"Yes\";\n      row.split_source_index = idx;\n      row.parent_index = idx;\n      row.received_qty = b.qty;\n      row.base_received_qty = baseOf(b.qty);\n      row.to_received_qty = toRecv(b.qty);\n      row.total_price = parseFloat((b.qty * unitPrice).toFixed(4));\n      row.storage_location_id = b.storageId;\n      row.location_id = b.locationId;\n      row.item_batch_no = b.batchNo;\n      row.manufacturing_date = b.mfg;\n      row.expired_date = b.exp;\n      row.line_remark_1 = b.r1;\n      row.line_remark_2 = b.r2;\n      row.line_remark_3 = b.r3;\n      newTableGR.push(row);\n    });\n  }\n});\n\nif (errors.length > 0) {\n  return { code: \"400\", message: errors.join(\"\\n\"), table_gr: \"[]\", warning: \"\", duplicates: \"\" };\n}\n\nconst warnings = [];\nif (unknownWarn.length) warnings.push(\"Skipped item(s) not on this GR: \" + unknownWarn.join(\", \") + \".\");\nif (dupSkipped.length) warnings.push(\"Skipped item(s) on multiple GR lines: \" + dupSkipped.join(\", \") + \".\");\nif (serializedSkipped.length) warnings.push(\"Skipped serialized item(s) (add serials manually): \" + serializedSkipped.join(\", \") + \".\");\nif (autoBatchWarn.length) warnings.push('Ignored batch numbers for auto-generated item(s): ' + autoBatchWarn.join(\", \") + \".\");\n\nreturn {\n  code: \"200\",\n  message: \"\",\n  table_gr: JSON.stringify(newTableGR),\n  warning: warnings.join(\"\\n\"),\n  duplicates: \"\",\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "codek",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "messagek",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "table_grk",
+            "name": "table_gr",
+            "title": "table_gr",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "warningk",
+            "name": "warning",
+            "title": "warning",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "duplicatk",
+            "name": "duplicates",
+            "title": "duplicates",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_main",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_build.data.code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "table_gr",
+              "propLabel": "table_gr",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.table_gr}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "warning",
+              "propLabel": "warning",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.warning}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "duplicates",
+              "propLabel": "duplicates",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.duplicates}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "reqimpt01",
+      "name": "import_table_data",
+      "title": "import_table_data",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqtgr001",
+      "name": "table_gr",
+      "title": "table_gr",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqplant1",
+      "name": "plant_id",
+      "title": "plant_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqorg001",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqskip01",
+      "name": "skipDuplicates",
+      "title": "skipDuplicates",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "rescode01",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "resmsg001",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "restgr001",
+      "name": "table_gr",
+      "title": "table_gr",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reswarn01",
+      "name": "warning",
+      "title": "warning",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "resdup001",
+      "name": "duplicates",
+      "title": "duplicates",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {}
+}

@@ -30,7 +30,7 @@
                 "value": "{{workflowparams:item_id}}",
                 "type": "leaf",
                 "level": 1,
-                "propLabel": "Primary Key ID",
+                "propLabel": "主键ID",
                 "valueLabel": "",
                 "operatorLabel": "In"
               }
@@ -54,7 +54,10 @@
         "nodeName": "IF Item Not Found",
         "name": "IF Item Not Found",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -78,7 +81,9 @@
         {
           "id": "if_block_notfound_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_item_not_found",
@@ -137,7 +142,9 @@
         {
           "id": "if_block_notfound_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -151,7 +158,10 @@
         "nodeName": "IF Serialized Item",
         "name": "IF Serialized Item",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -175,7 +185,9 @@
         {
           "id": "if_block_serial_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_item_serialized",
@@ -234,7 +246,9 @@
         {
           "id": "if_block_serial_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -291,8 +305,12 @@
       "type": "condition-all-node",
       "data": {
         "title": "Parallel Lookups",
-        "filter": { "list": [] },
-        "expression": { "code": "" },
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -316,7 +334,9 @@
                 }
               ]
             },
-            "expression": { "code": "" },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Storage Locations",
@@ -354,7 +374,7 @@
                             "value": "{{node:code_extract.data.storageNames}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Storage Name",
+                            "propLabel": "Name",
                             "valueLabel": "",
                             "operatorLabel": "Equal Any"
                           },
@@ -368,7 +388,7 @@
                             "value": "{{workflowparams:plant_id}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Plant",
+                            "propLabel": "Plant ID",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -422,7 +442,9 @@
                 }
               ]
             },
-            "expression": { "code": "" },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Bin Locations",
@@ -460,7 +482,7 @@
                             "value": "{{node:code_extract.data.binCombines}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Preview Bin Location Code",
+                            "propLabel": "Bin Location Combine",
                             "valueLabel": "",
                             "operatorLabel": "Equal Any"
                           },
@@ -474,7 +496,7 @@
                             "value": "{{workflowparams:plant_id}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Plant",
+                            "propLabel": "Plant ID",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -528,7 +550,9 @@
                 }
               ]
             },
-            "expression": { "code": "" },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "UOMs",
@@ -546,18 +570,45 @@
                     "collectionId": "1901805375573839874",
                     "list": [
                       {
-                        "id": 1783393363023,
-                        "parentId": 1783393363022,
+                        "id": 1780000000050,
+                        "parentId": 1780000000049,
                         "isTop": true,
-                        "prop": "uom_name",
-                        "operator": "equalAny",
-                        "valueType": "field",
-                        "value": "{{node:code_extract.data.uomNames}}",
-                        "type": "leaf",
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
                         "level": 1,
-                        "propLabel": "UOM Name",
-                        "valueLabel": "",
-                        "operatorLabel": "Equal Any"
+                        "children": [
+                          {
+                            "id": 1780000000051,
+                            "parentId": 1780000000050,
+                            "isTop": false,
+                            "prop": "uom_name",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_extract.data.uomNames}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "UOM Name",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal Any"
+                          },
+                          {
+                            "id": 1780000000052,
+                            "parentId": 1780000000050,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
                       }
                     ]
                   }
@@ -593,7 +644,9 @@
                 }
               ]
             },
-            "expression": { "code": "" },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Default Bins",
@@ -631,7 +684,7 @@
                             "value": 1,
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Default Receiving Location",
+                            "propLabel": "Is Default",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -645,7 +698,7 @@
                             "value": "{{workflowparams:plant_id}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Plant",
+                            "propLabel": "Plant ID",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -694,7 +747,7 @@
         "name": "Build Table Split",
         "script": {
           "type": "javascript",
-          "code": "// Validate the imported excel rows and build split_dialog.table_split.\n// All validations accumulate into `errors`; any error -> code 400.\nconst excelData = JSON.parse({{workflowparams:excelData}});\nconst item = {{node:get_node_item.data.data}};\nconst storageList = {{node:search_node_storage.data.data}} || [];\nconst binList = {{node:search_node_bin.data.data}} || [];\nconst uomList = {{node:search_node_uom.data.data}} || [];\nconst binDefaultList = {{node:search_node_bin_default.data.data}} || [];\nconst itemUom = {{workflowparams:item_uom}} || \"\";\nconst orderedQty = parseFloat({{workflowparams:ordered_qty}}) || 0;\nconst initialReceivedQty = parseFloat({{workflowparams:initial_received_qty}}) || 0;\nconst orderedQtyUom = {{workflowparams:ordered_qty_uom}} || \"\";\n\n// --- UOM conversion setup -------------------------------------------------\n// The split dialog stores received_qty in the GR line's UOM (itemUom). When a\n// row carries a \"UOM\" column we convert its Quantity into itemUom using the\n// item's conversion table, where base_qty = base units per 1 unit of that UOM:\n//   qty_in_line_uom = excelQty * base_qty[excelUom] / base_qty[itemUom]\nconst uomConv = Array.isArray(item.table_uom_conversion)\n  ? item.table_uom_conversion\n  : [];\n// base_qty factor for a given uom id (base UOM = 1 when it has no explicit row)\nconst baseQtyFor = (uomId) => {\n  const row = uomConv.find((c) => String(c.alt_uom_id) === String(uomId));\n  if (row && row.base_qty) return parseFloat(row.base_qty);\n  if (String(uomId) === String(item.based_uom)) return 1;\n  return null; // not a valid UOM for this item\n};\nconst itemUomFactor = baseQtyFor(itemUom) || 1;\n\n// Collect numeric-keyed rows only (skip name/size/type meta keys), in order.\nconst rows = [];\nObject.keys(excelData).forEach((k) => {\n  if (/^\\d+$/.test(k)) {\n    rows.push({ __idx: parseInt(k, 10), data: excelData[k] });\n  }\n});\nrows.sort((a, b) => a.__idx - b.__idx);\n\nconst errors = [];\nconst autoBatchWarnRows = [];\n\n// Batch mode is derived from the Item master, not the excel.\nconst isBatchItem = item.item_batch_management === 1;\nconst isAutoBatch =\n  isBatchItem && item.batch_number_genaration === \"According To System Settings\";\n\n// Parse a date to YYYY-MM-DD. A 4-digit year is always required. Accepts:\n//   DD-MM-YYYY / D-M-YYYY, DD/MM/YYYY        (numeric, DAY-first)\n//   YYYY-MM-DD / YYYY/MM/DD                  (ISO, year-first)\n//   \"1 Jan 2026\" / \"1 January 2026\" / \"1-Jan-2026\"  (day month-name year)\n// Returns: null (empty), \"YYYY-MM-DD\" (valid), or {error:true,raw} (bad/impossible).\n// Calendar validity is checked manually (no Date dependency in the sandbox).\nconst MONTHS = {\n  jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,\n  may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8,\n  sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11,\n  dec: 12, december: 12,\n};\nconst convertDate = (val) => {\n  if (val === undefined || val === null || String(val).trim() === \"\") return null;\n  const s = String(val).trim();\n  let dNum, mNum, yNum;\n  let m;\n  if ((m = s.match(/^(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})$/))) {\n    // ISO year-first\n    yNum = parseInt(m[1], 10); mNum = parseInt(m[2], 10); dNum = parseInt(m[3], 10);\n  } else if ((m = s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})$/))) {\n    // numeric day-first\n    dNum = parseInt(m[1], 10); mNum = parseInt(m[2], 10); yNum = parseInt(m[3], 10);\n  } else if ((m = s.match(/^(\\d{1,2})[\\s\\-]+([A-Za-z]+)[\\s\\-]+(\\d{4})$/))) {\n    // day month-name year\n    dNum = parseInt(m[1], 10); yNum = parseInt(m[3], 10);\n    mNum = MONTHS[m[2].toLowerCase()];\n    if (!mNum) return { error: true, raw: s };\n  } else {\n    return { error: true, raw: s };\n  }\n  const isLeap = yNum % 4 === 0 && (yNum % 100 !== 0 || yNum % 400 === 0);\n  const daysInMonth = [31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];\n  if (mNum < 1 || mNum > 12 || dNum < 1 || dNum > daysInMonth[mNum - 1]) {\n    return { error: true, raw: s };\n  }\n  const dd = String(dNum).padStart(2, \"0\");\n  const mm = String(mNum).padStart(2, \"0\");\n  return yNum + \"-\" + mm + \"-\" + dd;\n};\n\nconst str = (v) => (v === undefined || v === null ? \"\" : String(v));\n\nconst tableSplit = [];\nlet totalReceived = 0;\n\nrows.forEach((r, i) => {\n  const row = r.data || {};\n  const lineNo = i + 1;\n\n  // 1a. Item match (item_id is already known; confirm the excel refers to it)\n  const itemCode = str(row[\"Item Code\"]).trim();\n  if (itemCode !== str(item.material_code).trim()) {\n    errors.push(\n      \"Row \" + lineNo + ': Item Code \"' + itemCode +\n        '\" does not match the item on this line (' + str(item.material_code) + \").\");\n  }\n\n  // 3a. Quantity (+ optional UOM conversion to the GR line's UOM)\n  const rawQty = parseFloat(row[\"Quantity\"]);\n  let lineQty = NaN;\n  if (isNaN(rawQty) || rawQty <= 0) {\n    errors.push(\"Row \" + lineNo + \": Quantity must be greater than 0.\");\n  } else {\n    const excelUomName = str(row[\"UOM\"]).trim();\n    if (!excelUomName) {\n      // no UOM given -> Quantity is already in the GR line's UOM\n      lineQty = rawQty;\n    } else {\n      const uomMatch = uomList.find((u) => str(u.uom_name).trim() === excelUomName);\n      if (!uomMatch) {\n        errors.push('Row ' + lineNo + ': UOM \"' + excelUomName + '\" not found.');\n      } else {\n        const excelFactor = baseQtyFor(uomMatch.id);\n        if (excelFactor === null) {\n          errors.push(\n            'Row ' + lineNo + ': UOM \"' + excelUomName +\n              '\" is not a valid UOM for this item.');\n        } else {\n          // convert excel-UOM qty -> line-UOM qty\n          lineQty = parseFloat(((rawQty * excelFactor) / itemUomFactor).toFixed(3));\n        }\n      }\n    }\n    if (!isNaN(lineQty)) totalReceived += lineQty;\n  }\n\n  // 1b/2. Storage Location name -> id (error if the name is ambiguous)\n  const storageName = str(row[\"Storage Location\"]).trim();\n  const storageMatches = storageList.filter(\n    (s) => str(s.storage_location_name).trim() === storageName);\n  let storageLocationId = \"\";\n  if (!storageName) {\n    errors.push(\"Row \" + lineNo + \": Storage Location is required.\");\n  } else if (storageMatches.length === 0) {\n    errors.push('Row ' + lineNo + ': Storage Location \"' + storageName + '\" not found.');\n  } else if (storageMatches.length > 1) {\n    errors.push(\n      'Row ' + lineNo + ': Storage Location \"' + storageName +\n        '\" is ambiguous (matches ' + storageMatches.length + ' records in this plant).');\n  } else {\n    storageLocationId = storageMatches[0].id;\n  }\n\n  // 1b/2. Bin Location combine -> id, and it MUST sit under the storage above.\n  const binName = str(row[\"Bin Location\"]).trim();\n  let locationId = \"\";\n  if (!binName) {\n    // Blank bin -> auto-fill the storage's default bin (once storage resolved;\n    // if storage failed, its error already covers this row).\n    if (storageLocationId) {\n      const defBin = binDefaultList.find(\n        (b) => String(b.storage_location_id) === String(storageLocationId));\n      if (defBin) {\n        locationId = defBin.id;\n      } else {\n        errors.push(\n          'Row ' + lineNo + ': Bin Location is blank and Storage Location \"' +\n            storageName + '\" has no default bin.');\n      }\n    }\n  } else if (storageLocationId) {\n    // only resolvable once the parent storage is known and unambiguous\n    const binMatches = binList.filter(\n      (b) =>\n        str(b.bin_location_combine).trim() === binName &&\n        String(b.storage_location_id) === String(storageLocationId));\n    if (binMatches.length === 0) {\n      errors.push(\n        'Row ' + lineNo + ': Bin Location \"' + binName +\n          '\" not found under Storage Location \"' + storageName + '\".');\n    } else if (binMatches.length > 1) {\n      errors.push(\n        'Row ' + lineNo + ': Bin Location \"' + binName +\n          '\" is ambiguous under Storage Location \"' + storageName + '\".');\n    } else {\n      locationId = binMatches[0].id;\n    }\n  }\n\n  // 4. Batch handling\n  let batchNo = \"\";\n  const excelBatch = str(row[\"Batch Number\"]).trim();\n  if (!isBatchItem) {\n    batchNo = \"\"; // non-batch item: batch column ignored\n  } else if (isAutoBatch) {\n    batchNo = \"Auto-generated batch number\";\n    if (excelBatch !== \"\") autoBatchWarnRows.push(lineNo);\n  } else {\n    // manual-batch item: batch number is required\n    if (excelBatch === \"\") {\n      errors.push(\"Row \" + lineNo + \": Batch Number is required for this manual-batch item.\");\n    }\n    batchNo = excelBatch;\n  }\n\n  // 5. Dates (only meaningful for batch items; null for non-batch)\n  let manufacturingDate = null;\n  let expiredDate = null;\n  if (isBatchItem) {\n    const mfg = convertDate(row[\"Manufacturing Date\"]);\n    const exp = convertDate(row[\"Expired Date\"]);\n    if (mfg && mfg.error) {\n      errors.push(\n        'Row ' + lineNo + ': Manufacturing Date \"' + mfg.raw +\n          '\" is not a valid date (use DD-MM-YYYY, DD/MM/YYYY or \"1 Jan 2026\").');\n    } else {\n      manufacturingDate = mfg;\n    }\n    if (exp && exp.error) {\n      errors.push(\n        'Row ' + lineNo + ': Expired Date \"' + exp.raw +\n          '\" is not a valid date (use DD-MM-YYYY, DD/MM/YYYY or \"1 Jan 2026\").');\n    } else {\n      expiredDate = exp;\n    }\n    // F1: manufacturing must be on or before expiry (both zero-padded -> string compare ok)\n    if (\n      typeof manufacturingDate === \"string\" &&\n      typeof expiredDate === \"string\" &&\n      manufacturingDate > expiredDate\n    ) {\n      errors.push(\n        \"Row \" + lineNo + \": Manufacturing Date must be on or before Expired Date.\");\n    }\n  }\n\n  tableSplit.push({\n    sub_seq: lineNo,\n    received_qty: isNaN(lineQty) ? 0 : lineQty,\n    item_uom: itemUom,\n    storage_location_id: storageLocationId,\n    location_id: locationId,\n    line_remark_1: str(row[\"Remark\"]),\n    line_remark_2: str(row[\"Remark 2\"]),\n    line_remark_3: str(row[\"Remark 3\"]),\n    batch_no: batchNo,\n    manufacturing_date: manufacturingDate,\n    expired_date: expiredDate,\n  });\n});\n\nif (tableSplit.length === 0) {\n  return {\n    code: \"400\",\n    message: \"No rows found in the imported file.\",\n    table_split: \"[]\",\n    warning: \"\",\n  };\n}\n\n// 3b. Total quantity vs ordered qty + tolerance (mirrors GRconfirmSplitting.js)\nlet overReceiveTolerance = 0;\nif (Array.isArray(item.table_uom_conversion)) {\n  const conv = item.table_uom_conversion.find((c) => c.alt_uom_id === orderedQtyUom);\n  overReceiveTolerance = (conv && conv.over_receive_tolerance) || 0;\n}\nconst totalReceivedRounded = parseFloat(totalReceived.toFixed(3));\nconst maxAllowedTotalQty = parseFloat(\n  ((orderedQty * (100 + overReceiveTolerance)) / 100).toFixed(3));\n\nif (totalReceivedRounded <= 0) {\n  errors.push(\"Total split quantity must be greater than 0.\");\n} else if (totalReceivedRounded + initialReceivedQty > maxAllowedTotalQty) {\n  const maxAllowedQty = parseFloat((maxAllowedTotalQty - initialReceivedQty).toFixed(3));\n  errors.push(\n    \"Total split quantity (\" + totalReceivedRounded +\n      \") exceeds maximum allowed quantity (\" + maxAllowedQty + \") based on tolerance.\");\n}\n\nif (errors.length > 0) {\n  return { code: \"400\", message: errors.join(\"\\n\"), table_split: \"[]\", warning: \"\" };\n}\n\nlet warning = \"\";\nif (autoBatchWarnRows.length > 0) {\n  warning =\n    \"Batch numbers were provided for row(s) \" + autoBatchWarnRows.join(\", \") +\n    ', but this item uses auto-generated batch numbers. Those entries were ignored ' +\n    'and set to \"Auto-generated batch number\".';\n}\n\nreturn {\n  code: \"200\",\n  message: \"\",\n  table_split: JSON.stringify(tableSplit),\n  warning: warning,\n};\n"
+          "code": "// Validate the imported excel rows and build split_dialog.table_split.\n// All validations accumulate into `errors`; any error -> code 400.\nconst excelData = JSON.parse({{workflowparams:excelData}});\nconst item = {{node:get_node_item.data.data}};\nconst storageList = {{node:search_node_storage.data.data}} || [];\nconst binList = {{node:search_node_bin.data.data}} || [];\nconst uomList = {{node:search_node_uom.data.data}} || [];\nconst binDefaultList = {{node:search_node_bin_default.data.data}} || [];\nconst itemUom = {{workflowparams:item_uom}} || \"\";\nconst orderedQty = parseFloat({{workflowparams:ordered_qty}}) || 0;\nconst initialReceivedQty = parseFloat({{workflowparams:initial_received_qty}}) || 0;\nconst orderedQtyUom = {{workflowparams:ordered_qty_uom}} || \"\";\n\n// --- UOM conversion setup -------------------------------------------------\n// The split dialog stores received_qty in the GR line's UOM (itemUom). When a\n// row carries a \"UOM\" column we convert its Quantity into itemUom using the\n// item's conversion table, where base_qty = base units per 1 unit of that UOM:\n//   qty_in_line_uom = excelQty * base_qty[excelUom] / base_qty[itemUom]\nconst uomConv = Array.isArray(item.table_uom_conversion)\n  ? item.table_uom_conversion\n  : [];\n// base_qty factor for a given uom id (base UOM = 1 when it has no explicit row)\nconst baseQtyFor = (uomId) => {\n  const row = uomConv.find((c) => String(c.alt_uom_id) === String(uomId));\n  if (row && row.base_qty) return parseFloat(row.base_qty);\n  if (String(uomId) === String(item.based_uom)) return 1;\n  return null; // not a valid UOM for this item\n};\nconst itemUomFactor = baseQtyFor(itemUom) || 1;\n\n// Collect numeric-keyed rows only (skip name/size/type meta keys), in order.\nconst rows = [];\nObject.keys(excelData).forEach((k) => {\n  if (/^\\d+$/.test(k)) {\n    rows.push({ __idx: parseInt(k, 10), data: excelData[k] });\n  }\n});\nrows.sort((a, b) => a.__idx - b.__idx);\n\nconst errors = [];\nconst autoBatchWarnRows = [];\n\n// Batch mode is derived from the Item master, not the excel.\nconst isBatchItem = item.item_batch_management === 1;\nconst isAutoBatch =\n  isBatchItem && item.batch_number_genaration === \"According To System Settings\";\n\n// Parse a date to YYYY-MM-DD. A 4-digit year is always required. Accepts:\n//   DD-MM-YYYY / D-M-YYYY, DD/MM/YYYY        (numeric, DAY-first)\n//   YYYY-MM-DD / YYYY/MM/DD                  (ISO, year-first)\n//   \"1 Jan 2026\" / \"1 January 2026\" / \"1-Jan-2026\"  (day month-name year)\n// Returns: null (empty), \"YYYY-MM-DD\" (valid), or {error:true,raw} (bad/impossible).\n// Calendar validity is checked manually (no Date dependency in the sandbox).\nconst MONTHS = {\n  jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,\n  may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8,\n  sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11,\n  dec: 12, december: 12,\n};\nconst convertDate = (val) => {\n  if (val === undefined || val === null || String(val).trim() === \"\") return null;\n  const s = String(val).trim();\n  let dNum, mNum, yNum;\n  let m;\n  if ((m = s.match(/^(\\d{4})[\\/\\-](\\d{1,2})[\\/\\-](\\d{1,2})$/))) {\n    // ISO year-first\n    yNum = parseInt(m[1], 10); mNum = parseInt(m[2], 10); dNum = parseInt(m[3], 10);\n  } else if ((m = s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})$/))) {\n    // numeric day-first\n    dNum = parseInt(m[1], 10); mNum = parseInt(m[2], 10); yNum = parseInt(m[3], 10);\n  } else if ((m = s.match(/^(\\d{1,2})[\\s\\-]+([A-Za-z]+)[\\s\\-]+(\\d{4})$/))) {\n    // day month-name year\n    dNum = parseInt(m[1], 10); yNum = parseInt(m[3], 10);\n    mNum = MONTHS[m[2].toLowerCase()];\n    if (!mNum) return { error: true, raw: s };\n  } else {\n    return { error: true, raw: s };\n  }\n  const isLeap = yNum % 4 === 0 && (yNum % 100 !== 0 || yNum % 400 === 0);\n  const daysInMonth = [31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];\n  if (mNum < 1 || mNum > 12 || dNum < 1 || dNum > daysInMonth[mNum - 1]) {\n    return { error: true, raw: s };\n  }\n  const dd = String(dNum).padStart(2, \"0\");\n  const mm = String(mNum).padStart(2, \"0\");\n  return yNum + \"-\" + mm + \"-\" + dd;\n};\n\nconst str = (v) => (v === undefined || v === null ? \"\" : String(v));\n\nconst tableSplit = [];\nlet totalReceived = 0;\n\nrows.forEach((r, i) => {\n  const row = r.data || {};\n  const lineNo = i + 1;\n\n  // 1a. Item match (item_id is already known; confirm the excel refers to it)\n  const itemCode = str(row[\"Item Code\"]).trim();\n  if (itemCode !== str(item.material_code).trim()) {\n    errors.push(\n      \"Row \" + lineNo + ': Item Code \"' + itemCode +\n        '\" does not match the item on this line (' + str(item.material_code) + \").\");\n  }\n\n  // 3a. Quantity (+ optional UOM conversion to the GR line's UOM)\n  const rawQty = parseFloat(row[\"Quantity\"]);\n  let lineQty = NaN;\n  if (isNaN(rawQty) || rawQty <= 0) {\n    errors.push(\"Row \" + lineNo + \": Quantity must be greater than 0.\");\n  } else {\n    const excelUomName = str(row[\"UOM\"]).trim();\n    if (!excelUomName) {\n      // no UOM given -> Quantity is already in the GR line's UOM\n      lineQty = rawQty;\n    } else {\n      // UOM names (PCS/UNIT/...) are not org-unique in the global UOM table, so\n      // match the name AND require the id to be one of THIS item's UOMs\n      // (baseQtyFor returns null for ids not in its conversion table/base UOM).\n      const named = uomList.filter((u) => str(u.uom_name).trim() === excelUomName);\n      let excelFactor = null;\n      for (let n = 0; n < named.length; n++) {\n        const bq = baseQtyFor(named[n].id);\n        if (bq !== null) { excelFactor = bq; break; }\n      }\n      if (named.length === 0) {\n        errors.push('Row ' + lineNo + ': UOM \"' + excelUomName + '\" not found.');\n      } else if (excelFactor === null) {\n        errors.push(\n          'Row ' + lineNo + ': UOM \"' + excelUomName +\n            '\" is not a valid UOM for this item.');\n      } else {\n        // convert excel-UOM qty -> line-UOM qty\n        lineQty = parseFloat(((rawQty * excelFactor) / itemUomFactor).toFixed(3));\n      }\n    }\n    if (!isNaN(lineQty)) totalReceived += lineQty;\n  }\n\n  // 1b/2. Storage Location name -> id (error if the name is ambiguous)\n  const storageName = str(row[\"Storage Location\"]).trim();\n  const storageMatches = storageList.filter(\n    (s) => str(s.storage_location_name).trim() === storageName);\n  let storageLocationId = \"\";\n  if (!storageName) {\n    errors.push(\"Row \" + lineNo + \": Storage Location is required.\");\n  } else if (storageMatches.length === 0) {\n    errors.push('Row ' + lineNo + ': Storage Location \"' + storageName + '\" not found.');\n  } else if (storageMatches.length > 1) {\n    errors.push(\n      'Row ' + lineNo + ': Storage Location \"' + storageName +\n        '\" is ambiguous (matches ' + storageMatches.length + ' records in this plant).');\n  } else {\n    storageLocationId = storageMatches[0].id;\n  }\n\n  // 1b/2. Bin Location combine -> id, and it MUST sit under the storage above.\n  const binName = str(row[\"Bin Location\"]).trim();\n  let locationId = \"\";\n  if (!binName) {\n    // Blank bin -> auto-fill the storage's default bin (once storage resolved;\n    // if storage failed, its error already covers this row).\n    if (storageLocationId) {\n      const defBin = binDefaultList.find(\n        (b) => String(b.storage_location_id) === String(storageLocationId));\n      if (defBin) {\n        locationId = defBin.id;\n      } else {\n        errors.push(\n          'Row ' + lineNo + ': Bin Location is blank and Storage Location \"' +\n            storageName + '\" has no default bin.');\n      }\n    }\n  } else if (storageLocationId) {\n    // only resolvable once the parent storage is known and unambiguous\n    const binMatches = binList.filter(\n      (b) =>\n        str(b.bin_location_combine).trim() === binName &&\n        String(b.storage_location_id) === String(storageLocationId));\n    if (binMatches.length === 0) {\n      errors.push(\n        'Row ' + lineNo + ': Bin Location \"' + binName +\n          '\" not found under Storage Location \"' + storageName + '\".');\n    } else if (binMatches.length > 1) {\n      errors.push(\n        'Row ' + lineNo + ': Bin Location \"' + binName +\n          '\" is ambiguous under Storage Location \"' + storageName + '\".');\n    } else {\n      locationId = binMatches[0].id;\n    }\n  }\n\n  // 4. Batch handling\n  let batchNo = \"\";\n  const excelBatch = str(row[\"Batch Number\"]).trim();\n  if (!isBatchItem) {\n    batchNo = \"\"; // non-batch item: batch column ignored\n  } else if (isAutoBatch) {\n    batchNo = \"Auto-generated batch number\";\n    if (excelBatch !== \"\") autoBatchWarnRows.push(lineNo);\n  } else {\n    // manual-batch item: batch number is required\n    if (excelBatch === \"\") {\n      errors.push(\"Row \" + lineNo + \": Batch Number is required for this manual-batch item.\");\n    }\n    batchNo = excelBatch;\n  }\n\n  // 5. Dates (only meaningful for batch items; null for non-batch)\n  let manufacturingDate = null;\n  let expiredDate = null;\n  if (isBatchItem) {\n    const mfg = convertDate(row[\"Manufacturing Date\"]);\n    const exp = convertDate(row[\"Expired Date\"]);\n    if (mfg && mfg.error) {\n      errors.push(\n        'Row ' + lineNo + ': Manufacturing Date \"' + mfg.raw +\n          '\" is not a valid date (use DD-MM-YYYY, DD/MM/YYYY or \"1 Jan 2026\").');\n    } else {\n      manufacturingDate = mfg;\n    }\n    if (exp && exp.error) {\n      errors.push(\n        'Row ' + lineNo + ': Expired Date \"' + exp.raw +\n          '\" is not a valid date (use DD-MM-YYYY, DD/MM/YYYY or \"1 Jan 2026\").');\n    } else {\n      expiredDate = exp;\n    }\n    // F1: manufacturing must be on or before expiry (both zero-padded -> string compare ok)\n    if (\n      typeof manufacturingDate === \"string\" &&\n      typeof expiredDate === \"string\" &&\n      manufacturingDate > expiredDate\n    ) {\n      errors.push(\n        \"Row \" + lineNo + \": Manufacturing Date must be on or before Expired Date.\");\n    }\n  }\n\n  tableSplit.push({\n    sub_seq: lineNo,\n    received_qty: isNaN(lineQty) ? 0 : lineQty,\n    item_uom: itemUom,\n    storage_location_id: storageLocationId,\n    location_id: locationId,\n    line_remark_1: str(row[\"Remark\"]),\n    line_remark_2: str(row[\"Remark 2\"]),\n    line_remark_3: str(row[\"Remark 3\"]),\n    batch_no: batchNo,\n    manufacturing_date: manufacturingDate,\n    expired_date: expiredDate,\n  });\n});\n\nif (tableSplit.length === 0) {\n  return {\n    code: \"400\",\n    message: \"No rows found in the imported file.\",\n    table_split: \"[]\",\n    warning: \"\",\n  };\n}\n\n// 3b. Total quantity vs ordered qty + tolerance (mirrors GRconfirmSplitting.js)\nlet overReceiveTolerance = 0;\nif (Array.isArray(item.table_uom_conversion)) {\n  const conv = item.table_uom_conversion.find((c) => c.alt_uom_id === orderedQtyUom);\n  overReceiveTolerance = (conv && conv.over_receive_tolerance) || 0;\n}\nconst totalReceivedRounded = parseFloat(totalReceived.toFixed(3));\nconst maxAllowedTotalQty = parseFloat(\n  ((orderedQty * (100 + overReceiveTolerance)) / 100).toFixed(3));\n\nif (totalReceivedRounded <= 0) {\n  errors.push(\"Total split quantity must be greater than 0.\");\n} else if (totalReceivedRounded + initialReceivedQty > maxAllowedTotalQty) {\n  const maxAllowedQty = parseFloat((maxAllowedTotalQty - initialReceivedQty).toFixed(3));\n  errors.push(\n    \"Total split quantity (\" + totalReceivedRounded +\n      \") exceeds maximum allowed quantity (\" + maxAllowedQty + \") based on tolerance.\");\n}\n\nif (errors.length > 0) {\n  return { code: \"400\", message: errors.join(\"\\n\"), table_split: \"[]\", warning: \"\" };\n}\n\nlet warning = \"\";\nif (autoBatchWarnRows.length > 0) {\n  warning =\n    \"Batch numbers were provided for row(s) \" + autoBatchWarnRows.join(\", \") +\n    ', but this item uses auto-generated batch numbers. Those entries were ignored ' +\n    'and set to \"Auto-generated batch number\".';\n}\n\nreturn {\n  code: \"200\",\n  message: \"\",\n  table_split: JSON.stringify(tableSplit),\n  warning: warning,\n};\n"
         },
         "response_json": [
           {
@@ -788,7 +841,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
@@ -814,6 +870,14 @@
       "key": "reqplant1",
       "name": "plant_id",
       "title": "plant_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqorg001",
+      "name": "organization_id",
+      "title": "organization_id",
       "description": "",
       "bsonType": "string",
       "isExpand": false

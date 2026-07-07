@@ -21,6 +21,10 @@
     const tableGR = this.getValue("table_gr") || [];
     const grItem = rowIndex !== undefined ? tableGR[rowIndex] : undefined;
     const plantId = this.getValue("plant_id");
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
 
     if (!excelData) {
       this.$message.error("No data found in the imported file.");
@@ -75,6 +79,7 @@
       excelData: JSON.stringify(excelData),
       item_id: grItem.item_id,
       plant_id: plantId,
+      organization_id: organizationId,
       ordered_qty: grItem.ordered_qty,
       initial_received_qty: grItem.initial_received_qty,
       ordered_qty_uom: grItem.ordered_qty_uom,
