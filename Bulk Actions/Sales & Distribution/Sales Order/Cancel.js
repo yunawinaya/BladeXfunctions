@@ -3,7 +3,7 @@
     const unCompletedListID = "custom_odzyd6oo";
     const allListID = "custom_ysv40u3j";
     const tabUncompletedElement = document.getElementById(
-      "tab-tab_uncompleted"
+      "tab-tab_uncompleted",
     );
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
@@ -13,7 +13,7 @@
     let selectedRecords;
 
     selectedRecords = this.getComponent(
-      activeTab === "Uncompleted" ? unCompletedListID : allListID
+      activeTab === "Uncompleted" ? unCompletedListID : allListID,
     )?.$refs.crud.tableSelect;
 
     let organizationId = this.getVarGlobal("deptParentId");
@@ -35,7 +35,7 @@
 
     if (selectedRecords && selectedRecords.length > 0) {
       let salesOrderData = selectedRecords.filter(
-        (item) => item.so_status === "Issued"
+        (item) => item.so_status === "Issued",
       );
 
       if (salesOrderData.length === 0) {
@@ -97,21 +97,21 @@
 
         await this.$alert(
           `These sales orders have created ${documentType}. <br> <strong>Sales Order → ${documentTypeTitle}:</strong> <br>${createdGdOrPpInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Please cancel the ${documentType} first.`,
           `Sales Order with Created ${documentTypeTitle}`,
           {
             confirmButtonText: "OK",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         );
 
         const createdGdSOIds = salesOrderWithCreatedGDorPP.map(
-          (item) => item.id
+          (item) => item.id,
         );
         salesOrderData = salesOrderData.filter(
-          (item) => !createdGdSOIds.includes(item.id)
+          (item) => !createdGdSOIds.includes(item.id),
         );
 
         if (salesOrderData.length === 0) {
@@ -158,19 +158,19 @@
 
         await this.$alert(
           `These sales orders are already invoiced. <br> <strong>Sales Order → Sales Invoice:</strong> <br>${invoicedSiInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Cannot cancel invoiced sales orders.`,
           "Sales Order Already Invoiced",
           {
             confirmButtonText: "OK",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         );
 
         const invoicedSOIds = salesOrderWithInvoicing.map((item) => item.id);
         salesOrderData = salesOrderData.filter(
-          (item) => !invoicedSOIds.includes(item.id)
+          (item) => !invoicedSOIds.includes(item.id),
         );
 
         if (salesOrderData.length === 0) {
@@ -230,7 +230,7 @@
 
         const result = await this.$confirm(
           `These sales orders have draft ${documentType}. <br> <strong>Sales Order → ${documentTypeTitle}:</strong> <br>${soAndGdOrPpInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Do you wish to delete the ${documentType} first?`,
           `Sales Order with Draft ${documentTypeTitle}`,
           {
@@ -238,7 +238,7 @@
             cancelButtonText: "Cancel",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         ).catch(() => {
           return null;
         });
@@ -255,7 +255,7 @@
         } else {
           const draftDocIds = salesOrderwithDraftGDorPP.map((item) => item.id);
           salesOrderData = salesOrderData.filter(
-            (item) => !draftDocIds.includes(item.id)
+            (item) => !draftDocIds.includes(item.id),
           );
         }
 
@@ -310,7 +310,7 @@
 
         const result = await this.$confirm(
           `These sales orders have draft sales invoice. <br> <strong>Sales Order → Sales Invoice:</strong> <br>${soAndSiInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Do you wish to delete the sales invoice first?`,
           "Sales Order with Draft Sales Invoice",
           {
@@ -318,7 +318,7 @@
             cancelButtonText: "Cancel",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         ).catch(() => {
           return null;
         });
@@ -335,7 +335,7 @@
         } else {
           const draftSIIds = salesOrderwithDraftSI.map((item) => item.id);
           salesOrderData = salesOrderData.filter(
-            (item) => !draftSIIds.includes(item.id)
+            (item) => !draftSIIds.includes(item.id),
           );
         }
 
@@ -351,7 +351,7 @@
         `You've selected ${
           salesOrderNumbers.length
         } sales order(s) to cancel. <br> <strong>Sales Order Numbers:</strong> <br>${salesOrderNumbers.join(
-          ", "
+          ", ",
         )} <br>Do you want to proceed?`,
         "Sales Order Cancellation",
         {
@@ -359,7 +359,7 @@
           cancelButtonText: "Cancel",
           type: "warning",
           dangerouslyUseHTMLString: true,
-        }
+        },
       ).catch(() => {
         throw new Error();
       });
@@ -377,7 +377,7 @@
               .where({ sales_order_id: id })
               .update({
                 line_status: "Cancelled",
-              })
+              }),
           )
           .then(() => this.refresh())
           .catch((error) => {
