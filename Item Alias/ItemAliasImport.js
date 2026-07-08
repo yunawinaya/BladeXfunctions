@@ -3,15 +3,16 @@
 // The platform parses the uploaded spreadsheet into `dialog_import.import_data`
 // (numeric-keyed rows plus name/size/type meta keys). Unlike the Goods Receiving
 // import (which fills a form table via setData and defers the DB write to save),
-// Item Alias has no deferred save: the workflow resolves names -> ids, derives /
-// validates each buyer & seller UOM, enforces the same rules as ItemAliasSave.js
-// (buyer org != seller org, per-seller uniqueness), then inserts every valid row
-// straight into the item_alias collection.
+// Item Alias has no deferred save: the workflow resolves names -> ids (case-
+// insensitively, scoped to the buyer/seller org), derives/validates each buyer &
+// seller UOM, enforces the same rules as ItemAliasSave.js (buyer org != seller org,
+// per-seller uniqueness), then bulk-inserts the new rows into item_alias.
 //
-// Duplicates (a row matching an existing active alias, or two rows in the file
-// with the same buyer-org/seller-org/buyer-item/buyer-UOM key) are skipped-and-
-// warned: the first pass returns 409 with the list; on confirm we re-run with
-// skipDuplicates = "true" and insert the rest.
+// When a row matches an EXISTING active alias, the first pass returns 409 with the
+// list; the user confirms once (bulk), we re-run with updateExisting = "true", and
+// the existing rows are updated (seller item/UOM + conversion rate) while the new
+// rows are inserted. Rows duplicated WITHIN the file are skipped and reported.
+// organization_id is not sent: item_alias is tenant-level and the platform sets it.
 
 // Deployed workflow id for ItemAliasImportWorkflow.json.
 const ITEM_ALIAS_IMPORT_WORKFLOW_ID = "2074702385267085314";
@@ -41,17 +42,11 @@ const ITEM_ALIAS_IMPORT_WORKFLOW_ID = "2074702385267085314";
       return;
     }
 
-    let organizationId = this.getVarGlobal("deptParentId");
-    if (organizationId === "0") {
-      organizationId = this.getVarSystem("deptIds").split(",")[0];
-    }
-
-    // Run the workflow; skipDuplicates toggles the 409 confirm -> skip flow.
-    const runImport = async (skipDuplicates) => {
+    // updateExisting toggles the 409 confirm -> update-existing flow.
+    const runImport = async (updateExisting) => {
       const payload = {
         import_data: JSON.stringify(importData),
-        organization_id: organizationId,
-        skipDuplicates: skipDuplicates ? "true" : "false",
+        updateExisting: updateExisting ? "true" : "false",
       };
 
       this.showLoading("Importing Item Alias...");
@@ -70,30 +65,34 @@ const ITEM_ALIAS_IMPORT_WORKFLOW_ID = "2074702385267085314";
 
             if (code === "200") {
               const inserted = out.inserted || "0";
+              const updated = out.updated || "0";
               if (out.warning) {
                 this.$message.warning(out.warning);
               }
-              this.$message.success(`Imported ${inserted} item alias(es).`);
+              let summary = `Imported ${inserted} item alias(es)`;
+              if (Number(updated) > 0) summary += `, updated ${updated}`;
+              this.$message.success(summary + ".");
               closeAndRefresh();
             } else if (code === "409") {
-              // Duplicates need confirmation. On confirm, re-run skipping them.
+              // Existing aliases found: confirm once (bulk) to update them.
               try {
                 await this.$confirm(
-                  out.message || "Some rows are duplicates. Continue and skip them?",
-                  "Duplicate aliases found",
+                  out.message ||
+                    "Some aliases already exist. Update them and import the rest?",
+                  "Existing aliases found",
                   {
-                    confirmButtonText: "Continue",
+                    confirmButtonText: "Update & Import",
                     cancelButtonText: "Cancel",
                     type: "warning",
                   },
                 );
               } catch (e) {
-                // Cancelled: keep the upload so the user can fix the file.
+                // Cancelled: keep the upload so the user can adjust the file.
                 return;
               }
               await runImport(true);
             } else {
-              // 400 (or anything else): validation failure, nothing inserted.
+              // 400 (or anything else): validation failure, nothing written.
               this.$message.error(out.message || "Import validation failed.");
             }
           } catch (err) {
