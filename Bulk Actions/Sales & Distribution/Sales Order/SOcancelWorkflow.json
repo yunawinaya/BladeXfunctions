@@ -1,0 +1,913 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "if_is_delete",
+      "type": "if",
+      "data": {
+        "title": "Is Delete?",
+        "isValidator": true,
+        "nodeName": "Is Delete?",
+        "name": "Is Delete?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783100000201,
+              "parentId": 1783100000200,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:action}}' == 'delete'"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_delete",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Order:Table:1902773735979597826",
+                  "rules": {
+                    "collectionId": "1902773735979597826",
+                    "list": [
+                      {
+                        "id": 1783100000211,
+                        "parentId": 1783100000210,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:so_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete SO",
+                "isValidator": true,
+                "nodeName": "Delete SO",
+                "name": "Delete SO",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_deleted",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Deleted",
+                "isValidator": true,
+                "nodeName": "Return Deleted",
+                "name": "Return Deleted",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "200",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "Deleted",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "parallel_fetch",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Fetch",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_gd",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "GD List",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783100000301,
+                  "parentId": 1783100000300,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "GD List",
+            "name": "GD List",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_gd",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Delivery:Table:1902054888473481218",
+                  "rules": {
+                    "collectionId": "1902054888473481218",
+                    "list": [
+                      {
+                        "id": 1783100000311,
+                        "parentId": 1783100000310,
+                        "isTop": true,
+                        "prop": "so_id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:so_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "SO ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get GD List",
+                "isValidator": true,
+                "nodeName": "Get GD List",
+                "name": "Get GD List"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_pp",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "PP List",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783100000321,
+                  "parentId": 1783100000320,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "PP List",
+            "name": "PP List",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_pp",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Picking Plan:Table:1982744224777474050",
+                  "rules": {
+                    "collectionId": "1982744224777474050",
+                    "list": [
+                      {
+                        "id": 1783100000331,
+                        "parentId": 1783100000330,
+                        "isTop": true,
+                        "prop": "so_id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:so_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "SO ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get PP List",
+                "isValidator": true,
+                "nodeName": "Get PP List",
+                "name": "Get PP List"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_si",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "SI List",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783100000341,
+                  "parentId": 1783100000340,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "SI List",
+            "name": "SI List",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_si",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Invoice:Table:1902525285396496385",
+                  "rules": {
+                    "collectionId": "1902525285396496385",
+                    "list": [
+                      {
+                        "id": 1783100000351,
+                        "parentId": 1783100000350,
+                        "isTop": true,
+                        "prop": "so_id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:so_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "SO ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get SI List",
+                "isValidator": true,
+                "nodeName": "Get SI List",
+                "name": "Get SI List"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_classify",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Classify",
+        "isValidator": true,
+        "nodeName": "Classify",
+        "name": "Classify",
+        "script": {
+          "type": "javascript",
+          "code": "const gdList = {{node:search_gd.data.data}} || [];\nconst ppList = {{node:search_pp.data.data}} || [];\nconst siList = {{node:search_si.data.data}} || [];\n\nconst createdGd = gdList.filter((d) => d.gd_status === \"Created\");\nconst createdPp = ppList.filter((d) => d.to_status === \"Created\");\nconst draftGd = gdList.filter((d) => d.gd_status === \"Draft\");\nconst draftPp = ppList.filter((d) => d.to_status === \"Draft\");\nconst invoiced = siList.filter((s) => s.si_status !== \"Draft\" && s.si_status !== \"Cancelled\");\nconst draftSI = siList.filter((s) => s.si_status === \"Draft\");\n\nlet code = \"200\";\nlet message = \"\";\nif (createdGd.length > 0 || createdPp.length > 0) {\n  code = \"400\";\n  message = \"Has a created \" + (createdPp.length > 0 ? \"picking plan\" : \"goods delivery\") + \". Cancel it first.\";\n} else if (invoiced.length > 0) {\n  code = \"400\";\n  message = \"Sales order is already invoiced. Cannot cancel.\";\n}\n\nreturn {\n  code: code,\n  message: message,\n  deleteGD: (draftGd.length > 0 && code === \"200\") ? 1 : 0,\n  deletePP: (draftPp.length > 0 && code === \"200\") ? 1 : 0,\n  deleteSI: (draftSI.length > 0 && code === \"200\") ? 1 : 0,\n  draftGdIds: draftGd.map((d) => d.id),\n  draftPpIds: draftPp.map((d) => d.id),\n  draftSiIds: draftSI.map((s) => s.id)\n};"
+        },
+        "response_json": [
+          { "key": "wf_code", "name": "code", "title": "code", "description": "", "bsonType": "string", "isExpand": false },
+          { "key": "wf_message", "name": "message", "title": "message", "description": "", "bsonType": "string", "isExpand": false },
+          { "key": "wf_deletegd", "name": "deleteGD", "title": "deleteGD", "description": "", "bsonType": "number", "isExpand": false },
+          { "key": "wf_deletepp", "name": "deletePP", "title": "deletePP", "description": "", "bsonType": "number", "isExpand": false },
+          { "key": "wf_deletesi", "name": "deleteSI", "title": "deleteSI", "description": "", "bsonType": "number", "isExpand": false },
+          {
+            "key": "wf_draftgdids",
+            "name": "draftGdIds",
+            "title": "draftGdIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              { "key": "wf_draftgdids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+            ]
+          },
+          {
+            "key": "wf_draftppids",
+            "name": "draftPpIds",
+            "title": "draftPpIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              { "key": "wf_draftppids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+            ]
+          },
+          {
+            "key": "wf_draftsiids",
+            "name": "draftSiIds",
+            "title": "draftSiIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              { "key": "wf_draftsiids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_blocked",
+      "type": "if",
+      "data": {
+        "title": "Blocked?",
+        "isValidator": true,
+        "nodeName": "Blocked?",
+        "name": "Blocked?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783100000041,
+              "parentId": 1783100000040,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_classify.data.code}}' == '400'"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_blocked",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Blocked",
+                "isValidator": true,
+                "nodeName": "Return Blocked",
+                "name": "Return Blocked",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "value": "{{node:code_classify.data.code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "value": "{{node:code_classify.data.message}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_delete_pp",
+      "type": "if",
+      "data": {
+        "title": "Delete Draft PP?",
+        "isValidator": true,
+        "nodeName": "Delete Draft PP?",
+        "name": "Delete Draft PP?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783100000051,
+              "parentId": 1783100000050,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_classify.data.deletePP}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_pp",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Picking Plan:Table:1982744224777474050",
+                  "rules": {
+                    "collectionId": "1982744224777474050",
+                    "list": [
+                      {
+                        "id": 1783100000061,
+                        "parentId": 1783100000060,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_classify.data.draftPpIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete Draft PP",
+                "isValidator": true,
+                "nodeName": "Delete Draft PP",
+                "name": "Delete Draft PP",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_delete_gd",
+      "type": "if",
+      "data": {
+        "title": "Delete Draft GD?",
+        "isValidator": true,
+        "nodeName": "Delete Draft GD?",
+        "name": "Delete Draft GD?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783100000071,
+              "parentId": 1783100000070,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_classify.data.deleteGD}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_gd",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Delivery:Table:1902054888473481218",
+                  "rules": {
+                    "collectionId": "1902054888473481218",
+                    "list": [
+                      {
+                        "id": 1783100000081,
+                        "parentId": 1783100000080,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_classify.data.draftGdIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete Draft GD",
+                "isValidator": true,
+                "nodeName": "Delete Draft GD",
+                "name": "Delete Draft GD",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_delete_si",
+      "type": "if",
+      "data": {
+        "title": "Delete Draft SI?",
+        "isValidator": true,
+        "nodeName": "Delete Draft SI?",
+        "name": "Delete Draft SI?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783100000091,
+              "parentId": 1783100000090,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_classify.data.deleteSI}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_si",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Invoice:Table:1902525285396496385",
+                  "rules": {
+                    "collectionId": "1902525285396496385",
+                    "list": [
+                      {
+                        "id": 1783100000101,
+                        "parentId": 1783100000100,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_classify.data.draftSiIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete Draft SI",
+                "isValidator": true,
+                "nodeName": "Delete Draft SI",
+                "name": "Delete Draft SI",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_so",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Order:Table:1902773735979597826",
+          "rules": {
+            "collectionId": "1902773735979597826",
+            "list": [
+              {
+                "id": 1783100000111,
+                "parentId": 1783100000110,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:so_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cancel SO",
+        "isValidator": true,
+        "nodeName": "Cancel SO",
+        "name": "Cancel SO",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "so_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": "",
+              "propLabel": "SO Status"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_so_lines",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+          "rules": {
+            "collectionId": "1939903359943024642",
+            "list": [
+              {
+                "id": 1783100000121,
+                "parentId": 1783100000120,
+                "isTop": true,
+                "prop": "sales_order_id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{workflowparams:so_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Sales Order ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cancel SO Lines",
+        "isValidator": true,
+        "nodeName": "Cancel SO Lines",
+        "name": "Cancel SO Lines",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "line_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": "",
+              "propLabel": "Line Status"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_success",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Success",
+        "isValidator": true,
+        "nodeName": "Return Success",
+        "name": "Return Success",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "wf_req_action",
+      "name": "action",
+      "title": "Action",
+      "description": "cancel | delete",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_so_id",
+      "name": "so_id",
+      "title": "SO ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}
