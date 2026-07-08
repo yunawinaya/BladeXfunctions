@@ -1,10 +1,11 @@
-const runSQTCancelWorkflow = async (quotationId) => {
+const runSQTCancelWorkflow = async (quotationId, sqtNo) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
       "2074786136787058689",
       {
         action: "cancel",
         quotation_id: quotationId,
+        sqt_no: sqtNo,
       },
       (res) => {
         console.log("Quotation cancel workflow response:", res);
@@ -72,7 +73,10 @@ const runSQTCancelWorkflow = async (quotationId) => {
     const results = [];
     for (const sqtItem of quotationData) {
       try {
-        const workflowResult = await runSQTCancelWorkflow(sqtItem.id);
+        const workflowResult = await runSQTCancelWorkflow(
+          sqtItem.id,
+          sqtItem.sqt_no,
+        );
 
         const resultCode = workflowResult?.data?.code;
         if (resultCode === "200" || resultCode === 200) {

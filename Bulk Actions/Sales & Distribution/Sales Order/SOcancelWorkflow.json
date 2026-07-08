@@ -751,6 +751,27 @@
       ]
     },
     {
+      "id": "code_build_sono",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build SO No",
+        "isValidator": true,
+        "nodeName": "Build SO No",
+        "name": "Build SO No",
+        "script": {
+          "type": "javascript",
+          "code": "const soNo = {{workflowparams:so_no}} || \"\";\nreturn { soNo: soNo.endsWith(\"-Cancelled\") ? soNo : soNo + \"-Cancelled\" };"
+        },
+        "response_json": [
+          { "key": "wf_sono", "name": "soNo", "title": "soNo", "description": "", "bsonType": "string", "isExpand": false }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "update_node_so",
       "type": "update-node",
       "data": {
@@ -792,6 +813,14 @@
               "value": "Cancelled",
               "valueLabel": "",
               "propLabel": "SO Status"
+            },
+            {
+              "prop": "so_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build_sono.data.soNo}}",
+              "valueLabel": "",
+              "propLabel": "Sales Order Number"
             }
           ]
         }
@@ -903,6 +932,14 @@
       "key": "wf_req_so_id",
       "name": "so_id",
       "title": "SO ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_so_no",
+      "name": "so_no",
+      "title": "SO Number",
       "description": "",
       "bsonType": "string",
       "isExpand": false

@@ -1,10 +1,11 @@
-const runSOCancelWorkflow = async (soId) => {
+const runSOCancelWorkflow = async (soId, soNo) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
       "2074777638166659074",
       {
         action: "cancel",
         so_id: soId,
+        so_no: soNo,
       },
       (res) => {
         console.log("Sales Order cancel workflow response:", res);
@@ -72,7 +73,10 @@ const runSOCancelWorkflow = async (soId) => {
     const results = [];
     for (const soItem of salesOrderData) {
       try {
-        const workflowResult = await runSOCancelWorkflow(soItem.id);
+        const workflowResult = await runSOCancelWorkflow(
+          soItem.id,
+          soItem.so_no,
+        );
 
         const resultCode = workflowResult?.data?.code;
         if (resultCode === "200" || resultCode === 200) {

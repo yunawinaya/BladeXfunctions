@@ -134,6 +134,27 @@
       ]
     },
     {
+      "id": "code_build_sqtno",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build SQT No",
+        "isValidator": true,
+        "nodeName": "Build SQT No",
+        "name": "Build SQT No",
+        "script": {
+          "type": "javascript",
+          "code": "const sqtNo = {{workflowparams:sqt_no}} || \"\";\nreturn { sqtNo: sqtNo.endsWith(\"-Cancelled\") ? sqtNo : sqtNo + \"-Cancelled\" };"
+        },
+        "response_json": [
+          { "key": "wf_sqtno", "name": "sqtNo", "title": "sqtNo", "description": "", "bsonType": "string", "isExpand": false }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "update_node_cancel",
       "type": "update-node",
       "data": {
@@ -175,6 +196,14 @@
               "value": "Cancelled",
               "valueLabel": "",
               "propLabel": "Quotation Status"
+            },
+            {
+              "prop": "sqt_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build_sqtno.data.sqtNo}}",
+              "valueLabel": "",
+              "propLabel": "Quotation Number"
             }
           ]
         }
@@ -238,6 +267,14 @@
       "key": "wf_req_quotation_id",
       "name": "quotation_id",
       "title": "Quotation ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_sqt_no",
+      "name": "sqt_no",
+      "title": "Quotation Number",
       "description": "",
       "bsonType": "string",
       "isExpand": false
