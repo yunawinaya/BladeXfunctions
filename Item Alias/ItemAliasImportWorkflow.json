@@ -3,52 +3,775 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
       "blocks": []
     },
     {
-      "id": "search_node_7TfqpwIC",
+      "id": "code_extract",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Extract Keys",
+        "isValidator": true,
+        "nodeName": "Extract Keys",
+        "name": "Extract Keys",
+        "script": {
+          "type": "javascript",
+          "code": "// Collect the distinct lookup keys the parallel searches need:\n//  - orgNames : distinct Buyer + Seller organization names (dept_name)\n//  - itemCodes: distinct Buyer + Seller item codes (material_code)\n//  - uomNames : distinct Buyer + Seller UOM names (OPTIONAL columns; blank -> item base UOM)\n// The parsed excel arrives as import_data: numeric-keyed rows plus name/size/type meta keys.\nconst excelData = JSON.parse({{workflowparams:import_data}});\n\nconst orgNames = [];\nconst itemCodes = [];\nconst uomNames = [];\n\nconst push = (arr, v) => {\n  const s = v === undefined || v === null ? \"\" : String(v).trim();\n  if (s && arr.indexOf(s) === -1) arr.push(s);\n};\n\nObject.keys(excelData).forEach((k) => {\n  if (/^\\d+$/.test(k)) {\n    const row = excelData[k] || {};\n    push(orgNames, row[\"Buyer Organization\"]);\n    push(orgNames, row[\"Seller Organization\"]);\n    push(itemCodes, row[\"Buyer Item Code\"]);\n    push(itemCodes, row[\"Seller Item Code\"]);\n    push(uomNames, row[\"Buyer Item UOM\"]);\n    push(uomNames, row[\"Seller Item UOM\"]);\n  }\n});\n\n// Never feed an empty array into an `equalAny` filter; a \"0\" sentinel matches nothing.\nif (orgNames.length === 0) orgNames.push(\"0\");\nif (itemCodes.length === 0) itemCodes.push(\"0\");\nif (uomNames.length === 0) uomNames.push(\"0\");\n\nreturn { orgNames: orgNames, itemCodes: itemCodes, uomNames: uomNames };\n"
+        },
+        "response_json": [
+          {
+            "key": "orgNamesk",
+            "name": "orgNames",
+            "title": "orgNames",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          },
+          {
+            "key": "itemCodesk",
+            "name": "itemCodes",
+            "title": "itemCodes",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          },
+          {
+            "key": "uomNamesk",
+            "name": "uomNames",
+            "title": "uomNames",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_all_lookups",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Lookups",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cond_item_org",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Organizations",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790000009001,
+                  "parentId": 1790000009000,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "",
+                  "valueLabel": "",
+                  "operatorLabel": ""
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Organizations",
+            "name": "Organizations",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_org",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "组织机构(勿删勿改):Table:1789995126399348747",
+                  "rules": {
+                    "collectionId": "1789995126399348747",
+                    "list": [
+                      {
+                        "id": 1790000000001,
+                        "parentId": 1790000000000,
+                        "isTop": true,
+                        "prop": "dept_name",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_extract.data.orgNames}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Department Name",
+                        "valueLabel": "",
+                        "operatorLabel": "equalAny"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 500,
+                "title": "Get Organizations",
+                "isValidator": true,
+                "nodeName": "Get Organizations",
+                "name": "Get Organizations"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cond_item_item",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Items",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790000009003,
+                  "parentId": 1790000009002,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "",
+                  "valueLabel": "",
+                  "operatorLabel": ""
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Items",
+            "name": "Items",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_item",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 1790000000010,
+                        "parentId": 1790000000009,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1790000000011,
+                            "parentId": 1790000000010,
+                            "isTop": false,
+                            "prop": "material_code",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_extract.data.itemCodes}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Item Code",
+                            "valueLabel": "",
+                            "operatorLabel": "equalAny"
+                          },
+                          {
+                            "id": 1790000000012,
+                            "parentId": 1790000000010,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get Items",
+                "isValidator": true,
+                "nodeName": "Get Items",
+                "name": "Get Items"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cond_item_uom",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "UOMs",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790000009005,
+                  "parentId": 1790000009004,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "",
+                  "valueLabel": "",
+                  "operatorLabel": ""
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "UOMs",
+            "name": "UOMs",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_uom",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "UOM:Table:1901805375573839874",
+                  "rules": {
+                    "collectionId": "1901805375573839874",
+                    "list": [
+                      {
+                        "id": 1790000000041,
+                        "parentId": 1790000000040,
+                        "isTop": true,
+                        "prop": "uom_name",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_extract.data.uomNames}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "UOM Name",
+                        "valueLabel": "",
+                        "operatorLabel": "equalAny"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get UOMs",
+                "isValidator": true,
+                "nodeName": "Get UOMs",
+                "name": "Get UOMs"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_resolve",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Resolve & Validate",
+        "isValidator": true,
+        "nodeName": "Resolve & Validate",
+        "name": "Resolve & Validate",
+        "script": {
+          "type": "javascript",
+          "code": "// Resolve org names -> ids and item codes -> ids (scoped to the resolved org),\n// derive buyer/seller UOM from each item's based_uom, and validate every row.\n// Any hard problem accumulates into `errors` (-> code 400, insert nothing).\n// On success, de-duplicate rows WITHIN the file and hand the unique candidates on.\nconst excelData = JSON.parse({{workflowparams:import_data}});\nconst orgList = {{node:search_org.data.data}} || [];\nconst itemList = {{node:search_item.data.data}} || [];\nconst uomList = {{node:search_uom.data.data}} || [];\n\nconst str = (v) => (v === undefined || v === null ? \"\" : String(v).trim());\n\n// org name -> [ids]  (detect not-found / ambiguous)\nconst orgByName = {};\norgList.forEach((o) => {\n  const name = str(o.dept_name);\n  if (!name) return;\n  if (!orgByName[name]) orgByName[name] = [];\n  if (orgByName[name].indexOf(String(o.id)) === -1) orgByName[name].push(String(o.id));\n});\n\n// (material_code|organization_id) -> [{id, item}]  (detect ambiguous item within an org)\nconst itemByCodeOrg = {};\nitemList.forEach((it) => {\n  const code = str(it.material_code);\n  const org = String(it.organization_id);\n  if (!code || !org) return;\n  const key = code + \"|\" + org;\n  if (!itemByCodeOrg[key]) itemByCodeOrg[key] = [];\n  itemByCodeOrg[key].push({ id: String(it.id), item: it });\n});\n\nconst resolveOrg = (name, errors, label, role) => {\n  if (!name) { errors.push(label + \": \" + role + \" Organization is required.\"); return \"\"; }\n  const ids = orgByName[name];\n  if (!ids || ids.length === 0) { errors.push(label + ': ' + role + ' Organization \"' + name + '\" not found.'); return \"\"; }\n  if (ids.length > 1) { errors.push(label + ': ' + role + ' Organization \"' + name + '\" is ambiguous.'); return \"\"; }\n  return ids[0];\n};\n\nconst resolveItem = (code, orgId, errors, label, role) => {\n  if (!orgId) return { id: \"\", item: null }; // org already errored; skip a second complaint\n  if (!code) { errors.push(label + \": \" + role + \" Item Code is required.\"); return { id: \"\", item: null }; }\n  const matches = itemByCodeOrg[code + \"|\" + orgId];\n  if (!matches || matches.length === 0) { errors.push(label + ': ' + role + ' Item Code \"' + code + '\" not found in the ' + role + ' Organization.'); return { id: \"\", item: null }; }\n  if (matches.length > 1) { errors.push(label + ': ' + role + ' Item Code \"' + code + '\" is ambiguous in the ' + role + ' Organization.'); return { id: \"\", item: null }; }\n  return { id: matches[0].id, item: matches[0].item };\n};\n\n// Resolve the buyer/seller UOM. Blank column -> the item's base UOM. When a UOM\n// name IS supplied we still validate it: the name must resolve to a UOM id that is\n// valid for THIS item (its based_uom or one of its table_uom_conversion rows).\n// UOM names are not globally unique, so match by name AND require a valid-for-item id.\nconst resolveUom = (match, uomNameRaw, errors, label, role) => {\n  if (!match || !match.id) return \"\"; // item already errored\n  const item = match.item || {};\n  const based = str(item.based_uom);\n  const conv = Array.isArray(item.table_uom_conversion) ? item.table_uom_conversion : [];\n  const validIds = {};\n  conv.forEach((c) => { const a = str(c.alt_uom_id); if (a) validIds[a] = true; });\n  if (based) validIds[based] = true;\n\n  const name = str(uomNameRaw);\n  if (!name) {\n    if (!based) { errors.push(label + \": \" + role + \" Item has no base UOM; please provide a \" + role + \" Item UOM.\"); return \"\"; }\n    return based;\n  }\n  const named = uomList.filter((u) => str(u.uom_name) === name);\n  if (named.length === 0) { errors.push(label + ': ' + role + ' Item UOM \"' + name + '\" not found.'); return \"\"; }\n  let matched = \"\";\n  for (let n = 0; n < named.length; n++) {\n    const id = String(named[n].id);\n    if (validIds[id]) { matched = id; break; }\n  }\n  if (!matched) { errors.push(label + ': ' + role + ' Item UOM \"' + name + '\" is not a valid UOM for this item.'); return \"\"; }\n  return matched;\n};\n\nconst rows = [];\nObject.keys(excelData).forEach((k) => {\n  if (/^\\d+$/.test(k)) rows.push({ idx: parseInt(k, 10), data: excelData[k] || {} });\n});\nrows.sort((a, b) => a.idx - b.idx);\n\nconst errors = [];\nconst candidates = [];\n\nrows.forEach((r, i) => {\n  const row = r.data;\n  const label = \"Row \" + (i + 1);\n  const buyerOrgName = str(row[\"Buyer Organization\"]);\n  const sellerOrgName = str(row[\"Seller Organization\"]);\n  const buyerCode = str(row[\"Buyer Item Code\"]);\n  const sellerCode = str(row[\"Seller Item Code\"]);\n\n  const buyerOrgId = resolveOrg(buyerOrgName, errors, label, \"Buyer\");\n  const sellerOrgId = resolveOrg(sellerOrgName, errors, label, \"Seller\");\n\n  if (buyerOrgId && sellerOrgId && buyerOrgId === sellerOrgId) {\n    errors.push(label + \": Buyer Organization and Seller Organization cannot be the same.\");\n  }\n\n  const buyer = resolveItem(buyerCode, buyerOrgId, errors, label, \"Buyer\");\n  const seller = resolveItem(sellerCode, sellerOrgId, errors, label, \"Seller\");\n  const buyerUom = resolveUom(buyer, row[\"Buyer Item UOM\"], errors, label, \"Buyer\");\n  const sellerUom = resolveUom(seller, row[\"Seller Item UOM\"], errors, label, \"Seller\");\n\n  const rate = parseFloat(row[\"Conversion Rate\"]);\n  if (isNaN(rate) || rate <= 0) {\n    errors.push(label + \": Conversion Rate must be a number greater than 0.\");\n  }\n\n  if (buyerOrgId && sellerOrgId && buyerOrgId !== sellerOrgId &&\n      buyer.id && buyerUom && seller.id && sellerUom &&\n      !isNaN(rate) && rate > 0) {\n    candidates.push({\n      buyer_org_id: buyerOrgId,\n      buyer_item_id: buyer.id,\n      buyer_uom_id: buyerUom,\n      seller_org_id: sellerOrgId,\n      seller_item_id: seller.id,\n      seller_uom_id: sellerUom,\n      conversion_rate: Math.round(rate * 1000) / 1000,\n      is_active: 1,\n      _label: 'Buyer \"' + buyerCode + '\" → Seller \"' + sellerCode + '\"',\n    });\n  }\n});\n\nif (errors.length > 0) {\n  return { code: \"400\", message: errors.join(\"\\n\"), entries: \"[]\", buyerItemIds: [\"0\"], dupInFile: \"[]\" };\n}\n\n// de-duplicate WITHIN the file on the per-seller uniqueness key; keep the first.\nconst seen = {};\nconst unique = [];\nconst dupInFile = [];\ncandidates.forEach((c) => {\n  const key = c.buyer_org_id + \"|\" + c.seller_org_id + \"|\" + c.buyer_item_id + \"|\" + c.buyer_uom_id;\n  if (seen[key]) { dupInFile.push(c._label); return; }\n  seen[key] = true;\n  unique.push(c);\n});\n\nconst buyerItemIds = [];\nunique.forEach((c) => { if (buyerItemIds.indexOf(c.buyer_item_id) === -1) buyerItemIds.push(c.buyer_item_id); });\nif (buyerItemIds.length === 0) buyerItemIds.push(\"0\");\n\nreturn {\n  code: \"200\",\n  message: \"\",\n  entries: JSON.stringify(unique),\n  buyerItemIds: buyerItemIds,\n  dupInFile: JSON.stringify(dupInFile),\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "rescodek",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "resmsgk",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "resentk",
+            "name": "entries",
+            "title": "entries",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "resbidk",
+            "name": "buyerItemIds",
+            "title": "buyerItemIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          },
+          {
+            "key": "resdupfk",
+            "name": "dupInFile",
+            "title": "dupInFile",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_existing",
       "type": "search-node",
       "data": {
         "table_id": {
-          "source": "组织机构(勿删勿改):Table:1789995126399348747",
+          "source": "Item Alias:Table:2031551233157959682",
           "rules": {
-            "collectionId": "1789995126399348747",
+            "collectionId": "2031551233157959682",
             "list": [
               {
-                "id": 1783483797139,
-                "parentId": 1783483797138,
+                "id": 1790000000020,
+                "parentId": 1790000000019,
                 "isTop": true,
-                "prop": "dept_name",
-                "operator": "equal",
-                "valueType": "value",
-                "type": "leaf",
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
                 "level": 1,
-                "propLabel": "Department Name",
-                "valueLabel": "",
-                "operatorLabel": "Equal"
+                "children": [
+                  {
+                    "id": 1790000000021,
+                    "parentId": 1790000000020,
+                    "isTop": false,
+                    "prop": "buyer_item_id",
+                    "operator": "equalAny",
+                    "valueType": "field",
+                    "value": "{{node:code_resolve.data.buyerItemIds}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Buyer Item",
+                    "valueLabel": "",
+                    "operatorLabel": "equalAny"
+                  },
+                  {
+                    "id": 1790000000022,
+                    "parentId": 1790000000020,
+                    "isTop": false,
+                    "prop": "is_active",
+                    "operator": "numberEqual",
+                    "valueType": "value",
+                    "value": 1,
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Active",
+                    "valueLabel": "",
+                    "operatorLabel": "numberEqual"
+                  }
+                ]
               }
             ]
           }
         },
         "condition": {},
-        "limit": 100,
-        "title": "Get Organizations by Name",
+        "limit": 1000,
+        "title": "Get Existing Aliases",
         "isValidator": true,
-        "nodeName": "Get Organizations by Name",
-        "name": "Get Organizations by Name"
+        "nodeName": "Get Existing Aliases",
+        "name": "Get Existing Aliases"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_filter",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Filter Duplicates & Finalize",
+        "isValidator": true,
+        "nodeName": "Filter Duplicates & Finalize",
+        "name": "Filter Duplicates & Finalize",
+        "script": {
+          "type": "javascript",
+          "code": "// Compare the unique candidates against EXISTING active aliases (fetched by\n// buyer_item_id) and split into insertable rows vs duplicates. On the first pass\n// any duplicate (in-DB or in-file) returns 409 to ask the user to confirm skipping;\n// once confirmed (skipDuplicates=\"true\") the non-duplicate rows are handed to the\n// insert loop. A 400 from the resolve step is passed straight through (0 inserts).\nconst codeIn = {{node:code_resolve.data.code}};\nconst message = {{node:code_resolve.data.message}};\nconst entriesStr = {{node:code_resolve.data.entries}};\nconst dupInFileStr = {{node:code_resolve.data.dupInFile}};\nconst existing = {{node:search_existing.data.data}} || [];\nconst skipDuplicates = String({{workflowparams:skipDuplicates}} || \"\");\n\nif (String(codeIn) === \"400\") {\n  return { code: \"400\", message: message, toInsert: [], inserted: \"0\", warning: \"\", duplicates: \"\" };\n}\n\nlet candidates = [];\ntry { candidates = JSON.parse(entriesStr || \"[]\"); } catch (e) { candidates = []; }\nlet dupInFile = [];\ntry { dupInFile = JSON.parse(dupInFileStr || \"[]\"); } catch (e) { dupInFile = []; }\n\nconst existingKeys = {};\nexisting.forEach((r) => {\n  const key = String(r.buyer_org_id) + \"|\" + String(r.seller_org_id) + \"|\" + String(r.buyer_item_id) + \"|\" + String(r.buyer_uom_id);\n  existingKeys[key] = true;\n});\n\nconst toInsert = [];\nconst dbDup = [];\ncandidates.forEach((c) => {\n  const key = c.buyer_org_id + \"|\" + c.seller_org_id + \"|\" + c.buyer_item_id + \"|\" + c.buyer_uom_id;\n  if (existingKeys[key]) { dbDup.push(c._label || key); return; }\n  toInsert.push(c);\n});\n\nconst allDup = dbDup.concat(dupInFile);\n\nif (allDup.length > 0 && skipDuplicates !== \"true\") {\n  const parts = [];\n  if (dbDup.length > 0) parts.push(dbDup.length + \" already exist as active alias(es): \" + dbDup.join(\"; \"));\n  if (dupInFile.length > 0) parts.push(dupInFile.length + \" duplicated within the file: \" + dupInFile.join(\"; \"));\n  return {\n    code: \"409\",\n    message: parts.join(\"\\n\") + \"\\n\\nContinue and skip them?\",\n    toInsert: [],\n    inserted: \"0\",\n    warning: \"\",\n    duplicates: allDup.join(\"; \"),\n  };\n}\n\nconst warnings = [];\nif (dbDup.length > 0) warnings.push(\"Skipped \" + dbDup.length + \" row(s) that already exist: \" + dbDup.join(\"; \") + \".\");\nif (dupInFile.length > 0) warnings.push(\"Skipped \" + dupInFile.length + \" duplicate row(s) within the file.\");\nif (toInsert.length === 0) warnings.push(\"No new aliases to import.\");\n\nreturn {\n  code: \"200\",\n  message: \"\",\n  toInsert: toInsert,\n  inserted: String(toInsert.length),\n  warning: warnings.join(\"\\n\"),\n  duplicates: \"\",\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "fcodek",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "fmsgk",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "ftoik",
+            "name": "toInsert",
+            "title": "toInsert",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          },
+          {
+            "key": "finsk",
+            "name": "inserted",
+            "title": "inserted",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "fwarnk",
+            "name": "warning",
+            "title": "warning",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "fdupk",
+            "name": "duplicates",
+            "title": "duplicates",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "loop_insert",
+      "type": "loop",
+      "data": {
+        "title": "Insert Aliases",
+        "isValidator": true,
+        "nodeName": "Insert Aliases",
+        "name": "Insert Aliases",
+        "loopType": "Var",
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{node:code_filter.data.toInsert}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "add_alias",
+          "type": "add-node",
+          "data": {
+            "table_id": {
+              "source": "Item Alias:Table:2031551233157959682",
+              "rules": {
+                "collectionId": "2031551233157959682",
+                "list": [
+                  {
+                    "id": 1790000000031,
+                    "parentId": 1790000000030,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "",
+                    "valueLabel": "",
+                    "operatorLabel": ""
+                  }
+                ]
+              }
+            },
+            "fields": [],
+            "title": "Add Item Alias",
+            "isValidator": true,
+            "nodeName": "Add Item Alias",
+            "name": "Add Item Alias",
+            "props": {
+              "modelName": "",
+              "list": [
+                {
+                  "prop": "buyer_org_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_insert.buyer_org_id}}",
+                  "valueLabel": "",
+                  "propLabel": "Buyer Org"
+                },
+                {
+                  "prop": "buyer_item_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_insert.buyer_item_id}}",
+                  "valueLabel": "",
+                  "propLabel": "Buyer Item"
+                },
+                {
+                  "prop": "buyer_uom_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_insert.buyer_uom_id}}",
+                  "valueLabel": "",
+                  "propLabel": "Buyer UOM"
+                },
+                {
+                  "prop": "seller_org_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_insert.seller_org_id}}",
+                  "valueLabel": "",
+                  "propLabel": "Seller Org"
+                },
+                {
+                  "prop": "seller_item_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_insert.seller_item_id}}",
+                  "valueLabel": "",
+                  "propLabel": "Seller Item"
+                },
+                {
+                  "prop": "seller_uom_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_insert.seller_uom_id}}",
+                  "valueLabel": "",
+                  "propLabel": "Seller UOM"
+                },
+                {
+                  "prop": "conversion_rate",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_insert.conversion_rate}}",
+                  "valueLabel": "",
+                  "propLabel": "Conversion Rate"
+                },
+                {
+                  "prop": "is_active",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_insert.is_active}}",
+                  "valueLabel": "",
+                  "propLabel": "Active"
+                },
+                {
+                  "prop": "organization_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{workflowparams:organization_id}}",
+                  "valueLabel": "",
+                  "propLabel": "Organization"
+                }
+              ]
+            }
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "return_main",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_filter.data.code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_filter.data.message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "inserted",
+              "propLabel": "inserted",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_filter.data.inserted}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "warning",
+              "propLabel": "warning",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_filter.data.warning}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "duplicates",
+              "propLabel": "duplicates",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_filter.data.duplicates}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
       },
       "blocks": []
     },
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
   "edges": [],
-  "request_json": [],
-  "response_json": [],
+  "request_json": [
+    {
+      "key": "reqimpd01",
+      "name": "import_data",
+      "title": "import_data",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqorg001",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reqskip01",
+      "name": "skipDuplicates",
+      "title": "skipDuplicates",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "rescode01",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "resmsg001",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "resins001",
+      "name": "inserted",
+      "title": "inserted",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "reswarn01",
+      "name": "warning",
+      "title": "warning",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "resdup001",
+      "name": "duplicates",
+      "title": "duplicates",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
   "config": {}
 }
