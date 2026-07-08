@@ -47,7 +47,7 @@ const displayCurrency = async () => {
   });
 };
 
-const disabledField = async (status) => {
+const disabledField = async (status, fromSource) => {
   if (status === "Completed") {
     this.disabled(
       [
@@ -138,6 +138,10 @@ const disabledField = async (status) => {
   } else if (status === "Issued" || status === "Processing") {
     this.hide("button_save_as_draft");
     this.disabled(["so_type", "auto_si", "auto_gd"], true);
+  }
+
+  if (fromSource === "Cash Sales") {
+    this.display(["button_issue_and_post"]);
   }
 };
 
@@ -234,7 +238,6 @@ const disableLinkedSOFields = async () => {
     "more_desc",
     "so_quantity",
     "so_item_uom",
-    "so_item_price",
     "so_gross",
     "so_amount",
     "so_brand",
@@ -250,6 +253,7 @@ const disableLinkedSOFields = async () => {
     "weight_conversion",
   ];
   const lineColsToKeep = [
+    "so_item_price",
     "so_discount",
     "so_discount_amount",
     "so_discount_uom",
@@ -594,22 +598,27 @@ const fetchUnrestrictedQty = async () => {
       "total_amount_myr",
     ]);
 
+    const fromSource = this.getParamsVariables("sales_order_title");
+
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
+        await disabledField("Draft", fromSource);
+
         await checkAccIntegrationType(organizationId);
         await setPlant(organizationId, pageStatus);
         this.setData({
           created_source: "Web",
           so_date: new Date().toISOString().split("T")[0],
           so_created_by: this.getVarGlobal("nickname"),
-          ...(this.getParamsVariables("sales_order_title") === "Sales Invoice"
+          ...(fromSource === "Sales Invoice"
             ? { so_type: "Credit", auto_si: 1 }
-            : this.getParamsVariables("sales_order_title") === "Cash Sales"
+            : fromSource === "Cash Sales"
               ? { so_type: "Cash", auto_si: 1 }
               : { so_type: "Credit" }),
           create_si: "No",
         });
+
         if (this.getValue("so_no")) {
           this.display("so_no");
         }
@@ -626,10 +635,13 @@ const fetchUnrestrictedQty = async () => {
         await displayCurrency();
         await displayTax();
         await displayDeliveryMethod();
+
         //await fetchUnrestrictedQty();
         break;
 
       case "Edit":
+        await disabledField(status, fromSource);
+
         await setPlant(organizationId, pageStatus);
         if (this.getValue("so_no")) {
           this.display("so_no");
@@ -640,7 +652,6 @@ const fetchUnrestrictedQty = async () => {
           this.disabled(["so_no", "document_no_format"], true);
         }
         await checkAccIntegrationType(organizationId);
-        await disabledField(status);
         await showStatusHTML(status);
         await displayCurrency();
         await displayTax();
@@ -657,17 +668,20 @@ const fetchUnrestrictedQty = async () => {
         break;
 
       case "Clone":
-        this.display(["draft_status"]);
+        await disabledField("Draft", fromSource);
         this.setData({
           created_source: "Web",
           so_date: new Date().toISOString().split("T")[0],
+          so_created_by: this.getVarGlobal("nickname"),
+          ...(fromSource === "Sales Invoice"
+            ? { so_type: "Credit", auto_si: 1 }
+            : fromSource === "Cash Sales"
+              ? { so_type: "Cash", auto_si: 1 }
+              : { so_type: "Credit", auto_si: 0 }),
+          create_si: "No",
           so_no: null,
           so_status: null,
           gd_status: null,
-          so_type: "Credit",
-          auto_si: 0,
-          auto_gd: 0,
-          create_si: "No",
         });
         await setPlant(organizationId, pageStatus);
         if (this.getValue("so_no")) {
@@ -712,6 +726,7 @@ const fetchUnrestrictedQty = async () => {
 setTimeout(async () => {
   const maxRetries = 10;
   const interval = 500;
+
   for (let i = 0; i < maxRetries; i++) {
     const op = await this.onDropdownVisible("so_no_type", true);
     if (op != null) break;
@@ -722,7 +737,7 @@ setTimeout(async () => {
   }
   var params = this.getComponent("so_no");
   const { options } = params;
-
+  console.log("options", options);
   const optionsData = this.getOptionData("so_no_type") || [];
   const defaultData = getDefaultItem(optionsData);
   if (options?.canManualInput) {
@@ -730,13 +745,13 @@ setTimeout(async () => {
       { label: "Manual Input", value: -9999 },
       ...optionsData,
     ]);
-    if (this.isAdd) {
+    if (this.isAdd || this.isCopy) {
       this.setData({
         so_no_type: defaultData ? defaultData.value : -9999,
       });
     }
   } else if (defaultData) {
-    if (this.isAdd) {
+    if (this.isAdd || this.isCopy) {
       this.setData({ so_no_type: defaultData.value });
     }
   }
