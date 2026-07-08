@@ -1,0 +1,248 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "if_is_delete",
+      "type": "if",
+      "data": {
+        "title": "Is Delete?",
+        "isValidator": true,
+        "nodeName": "Is Delete?",
+        "name": "Is Delete?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783200000001,
+              "parentId": 1783200000000,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:action}}' == 'delete'"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_delete",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Quotation:Table:1902775274655825922",
+                  "rules": {
+                    "collectionId": "1902775274655825922",
+                    "list": [
+                      {
+                        "id": 1783200000011,
+                        "parentId": 1783200000010,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:quotation_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete Quotation",
+                "isValidator": true,
+                "nodeName": "Delete Quotation",
+                "name": "Delete Quotation",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_deleted",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Deleted",
+                "isValidator": true,
+                "nodeName": "Return Deleted",
+                "name": "Return Deleted",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "200",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "Deleted",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_cancel",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Quotation:Table:1902775274655825922",
+          "rules": {
+            "collectionId": "1902775274655825922",
+            "list": [
+              {
+                "id": 1783200000021,
+                "parentId": 1783200000020,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:quotation_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cancel Quotation",
+        "isValidator": true,
+        "nodeName": "Cancel Quotation",
+        "name": "Cancel Quotation",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "sqt_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": "",
+              "propLabel": "Quotation Status"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_success",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Success",
+        "isValidator": true,
+        "nodeName": "Return Success",
+        "name": "Return Success",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "wf_req_action",
+      "name": "action",
+      "title": "Action",
+      "description": "cancel | delete",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_quotation_id",
+      "name": "quotation_id",
+      "title": "Quotation ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}
