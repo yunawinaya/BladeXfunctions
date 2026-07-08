@@ -1,0 +1,54 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "search_node_7TfqpwIC",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "组织机构(勿删勿改):Table:1789995126399348747",
+          "rules": {
+            "collectionId": "1789995126399348747",
+            "list": [
+              {
+                "id": 1783483797139,
+                "parentId": 1783483797138,
+                "isTop": true,
+                "prop": "dept_name",
+                "operator": "equal",
+                "valueType": "value",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Department Name",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Organizations by Name",
+        "isValidator": true,
+        "nodeName": "Get Organizations by Name",
+        "name": "Get Organizations by Name"
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [],
+  "response_json": [],
+  "config": {}
+}

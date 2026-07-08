@@ -447,18 +447,45 @@
                     "collectionId": "1789995126399348747",
                     "list": [
                       {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
+                        "id": 1782276171812,
+                        "parentId": 1782276171813,
                         "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "formula",
-                        "value": "{{system:deptIdList}}.split(',')",
-                        "type": "leaf",
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
                         "level": 1,
-                        "propLabel": "Primary Key ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
+                        "children": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1782276171812,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "formula",
+                            "value": "{{global:deptIdList}}.split(',')",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          },
+                          {
+                            "id": 1782276171814,
+                            "parentId": 1782276171812,
+                            "isTop": false,
+                            "prop": "parent_id",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": "0",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Parent Primary Key",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
                       }
                     ]
                   },
@@ -833,7 +860,7 @@
               "options": {
                 "defaultValue": "",
                 "multiple": false,
-                "disabled": false,
+                "disabled": "{{{{value:buyer_org_id}} ===  ''}}",
                 "clearable": false,
                 "placeholder": "",
                 "required": false,
@@ -885,18 +912,59 @@
                     "collectionId": "1789995126399348747",
                     "list": [
                       {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
+                        "id": 1782276247000,
+                        "parentId": 1782276247001,
                         "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "formula",
-                        "value": "{{system:deptIdList}}.split(',')",
-                        "type": "leaf",
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
                         "level": 1,
-                        "propLabel": "Primary Key ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
+                        "children": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1782276247000,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "formula",
+                            "value": "{{global:deptIdList}}.split(',')",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          },
+                          {
+                            "id": 1782276247002,
+                            "parentId": 1782276247000,
+                            "isTop": false,
+                            "prop": "parent_id",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": "0",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Parent Primary Key",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1782276247003,
+                            "parentId": 1782276247000,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "numberNotEqual",
+                            "valueType": "field",
+                            "value": "{{value:buyer_org_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Not Equal"
+                          }
+                        ]
                       }
                     ]
                   },
@@ -940,7 +1008,7 @@
               "options": {
                 "defaultValue": "",
                 "multiple": false,
-                "disabled": "{{{{value:buyer_org_id}} === ''}}",
+                "disabled": "{{{{value:seller_org_id}} === ''}}",
                 "clearable": false,
                 "placeholder": "",
                 "required": false,
@@ -1487,7 +1555,7 @@
       {
         "key": "m52vcpap",
         "name": "onClick_save",
-        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (typeof value === \"number\") return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`,\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    // Check array elements\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    // Check all object properties\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\n(async () => {\n  try {\n    this.showLoading();\n\n    const data = this.getValues();\n\n    const page_status = data.page_status;\n    const item_alias_no = data.id;\n\n    // Define required fields\n    const requiredFields = [\n      { name: \"buyer_org_id\", label: \"Buyer Organization\" },\n      { name: \"buyer_item_id\", label: \"Buyer Item Code\" },\n      { name: \"buyer_uom_id\", label: \"Buyer Item UOM\" },\n      { name: \"seller_org_id\", label: \"Seller Organization\" },\n      { name: \"seller_item_id\", label: \"Seller Item Code\" },\n      { name: \"seller_uom_id\", label: \"Seller Item UOM\" },\n      { name: \"conversion_rate\", label: \"Conversion Rate\" },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    if (missingFields.length === 0) {\n      const entry = data;\n\n      // Buyer and seller organizations must be different\n      if (entry.buyer_org_id === entry.seller_org_id) {\n        this.hideLoading();\n        this.$message.error(\n          \"Buyer Organization and Seller Organization cannot be the same.\",\n        );\n        return;\n      }\n\n      console.log(\"entry\", entry);\n\n      // Add or update based on page status\n      if (page_status === \"Add\" || page_status === \"Clone\") {\n        try {\n          await db.collection(\"item_alias\").add(entry);\n          this.$message.success(\"Add successfully.\");\n          await closeDialog();\n        } catch (error) {\n          console.error(\"Error adding item alias:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message || \"An error occurred while adding the item alias.\",\n          );\n        }\n      } else if (page_status === \"Edit\") {\n        try {\n          // Update the existing item alias\n          if (!item_alias_no) {\n            throw new Error(\"Item Alias ID not found\");\n          }\n\n          await db.collection(\"item_alias\").doc(item_alias_no).update(entry);\n          this.$message.success(\"Update successfully.\");\n          // Close dialog after successful operation\n          closeDialog();\n        } catch (error) {\n          console.error(\"Error updating item alias:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message ||\n              \"An error occurred while updating the item alias.\",\n          );\n        }\n      } else {\n        this.hideLoading();\n        this.$message.error(\"Invalid page status\");\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Validation errors: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n\n    // Try to get message from standard locations first\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(error);\n  }\n})();\n",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (typeof value === \"number\") return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`,\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    // Check array elements\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    // Check all object properties\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\n(async () => {\n  try {\n    this.showLoading();\n\n    const data = this.getValues();\n\n    const page_status = data.page_status;\n    const item_alias_no = data.id;\n\n    // Define required fields\n    const requiredFields = [\n      { name: \"buyer_org_id\", label: \"Buyer Organization\" },\n      { name: \"buyer_item_id\", label: \"Buyer Item Code\" },\n      { name: \"buyer_uom_id\", label: \"Buyer Item UOM\" },\n      { name: \"seller_org_id\", label: \"Seller Organization\" },\n      { name: \"seller_item_id\", label: \"Seller Item Code\" },\n      { name: \"seller_uom_id\", label: \"Seller Item UOM\" },\n      { name: \"conversion_rate\", label: \"Conversion Rate\" },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    if (missingFields.length === 0) {\n      const entry = data;\n\n      // Buyer and seller organizations must be different\n      if (entry.buyer_org_id === entry.seller_org_id) {\n        this.hideLoading();\n        this.$message.error(\n          \"Buyer Organization and Seller Organization cannot be the same.\",\n        );\n        return;\n      }\n\n      // Per-seller alias uniqueness: at most ONE active row may map a given\n      // (buyer item + buyer UOM) for the same buyer/seller org pair. The PO -> SO\n      // workflow loads aliases filtered by seller_org_id and keys its lookup on\n      // buyer_item_id|buyer_uom_id, so a second active row with the same key would\n      // silently overwrite (last-wins) and pick the wrong seller item. Mapping the\n      // same buyer item to a DIFFERENT seller org is allowed (seller_org_id\n      // disambiguates), so the seller org is part of the key. Inactive rows are not\n      // loaded by the workflow, so only guard when this row will be active.\n      if (entry.is_active !== 0) {\n        const dupRes = await db\n          .collection(\"item_alias\")\n          .where({\n            buyer_org_id: entry.buyer_org_id,\n            seller_org_id: entry.seller_org_id,\n            buyer_item_id: entry.buyer_item_id,\n            buyer_uom_id: entry.buyer_uom_id,\n            is_active: 1,\n          })\n          .get();\n        const duplicate = (dupRes.data || []).find(\n          (r) => String(r.id) !== String(item_alias_no),\n        );\n        if (duplicate) {\n          this.hideLoading();\n          this.$message.error(\n            \"An active alias already exists for this buyer item, UOM, and seller organization. Please edit the existing alias instead of creating a duplicate.\",\n          );\n          return;\n        }\n      }\n\n      console.log(\"entry\", entry);\n\n      // Add or update based on page status\n      if (page_status === \"Add\" || page_status === \"Clone\") {\n        try {\n          await db.collection(\"item_alias\").add(entry);\n          this.$message.success(\"Add successfully.\");\n          await closeDialog();\n        } catch (error) {\n          console.error(\"Error adding item alias:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message || \"An error occurred while adding the item alias.\",\n          );\n        }\n      } else if (page_status === \"Edit\") {\n        try {\n          // Update the existing item alias\n          if (!item_alias_no) {\n            throw new Error(\"Item Alias ID not found\");\n          }\n\n          await db.collection(\"item_alias\").doc(item_alias_no).update(entry);\n          this.$message.success(\"Update successfully.\");\n          // Close dialog after successful operation\n          closeDialog();\n        } catch (error) {\n          console.error(\"Error updating item alias:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message ||\n              \"An error occurred while updating the item alias.\",\n          );\n        }\n      } else {\n        this.hideLoading();\n        this.$message.error(\"Invalid page status\");\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Validation errors: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n\n    // Try to get message from standard locations first\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(error);\n  }\n})();\n",
         "type": "js"
       },
       {
