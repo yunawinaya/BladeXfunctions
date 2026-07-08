@@ -35,10 +35,7 @@
         "nodeName": "IF Completed (GR Gate)",
         "name": "IF Completed (GR Gate)",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -89,9 +86,7 @@
         {
           "id": "if_gr_gate_completed_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_gr_soids",
@@ -304,82 +299,82 @@
                   "type": "ifBlock",
                   "data": { "title": "true" },
                   "blocks": [
-            {
-              "id": "search_gr_its",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "Internal Trading Setup:Table:2069278647482400769",
-                  "rules": {
-                    "collectionId": "2069278647482400769",
-                    "list": [
-                      {
-                        "id": 170000000007,
-                        "parentId": 170000000008,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 170000000009,
-                            "parentId": 170000000007,
-                            "isTop": false,
-                            "prop": "buyer_org_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{node:code_gr_link.data.buyerOrg}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "buyer_org_id",
-                            "valueLabel": "",
-                            "operatorLabel": "equal"
-                          },
-                          {
-                            "id": 170000000010,
-                            "parentId": 170000000007,
-                            "isTop": false,
-                            "prop": "seller_org_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{node:code_gr_link.data.sellerOrg}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "seller_org_id",
-                            "valueLabel": "",
-                            "operatorLabel": "equal"
-                          },
-                          {
-                            "id": 170000000011,
-                            "parentId": 170000000007,
-                            "isTop": false,
-                            "prop": "is_active",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 1,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "is_active",
-                            "valueLabel": "",
-                            "operatorLabel": "numberEqual"
+                    {
+                      "id": "search_gr_its",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Internal Trading Setup:Table:2069278647482400769",
+                          "rules": {
+                            "collectionId": "2069278647482400769",
+                            "list": [
+                              {
+                                "id": 170000000007,
+                                "parentId": 170000000008,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 170000000009,
+                                    "parentId": 170000000007,
+                                    "isTop": false,
+                                    "prop": "buyer_org_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{node:code_gr_link.data.buyerOrg}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "buyer_org_id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 170000000010,
+                                    "parentId": 170000000007,
+                                    "isTop": false,
+                                    "prop": "seller_org_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{node:code_gr_link.data.sellerOrg}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "seller_org_id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 170000000011,
+                                    "parentId": 170000000007,
+                                    "isTop": false,
+                                    "prop": "is_active",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "is_active",
+                                    "valueLabel": "",
+                                    "operatorLabel": "numberEqual"
+                                  }
+                                ]
+                              }
+                            ]
                           }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 1,
-                "title": "GR Gate - Internal Trading Setup",
-                "isValidator": true,
-                "nodeName": "GR Gate - Internal Trading Setup",
-                "name": "GR Gate - Internal Trading Setup"
-              },
-              "blocks": []
-            }
+                        },
+                        "condition": {},
+                        "limit": 1,
+                        "title": "GR Gate - Internal Trading Setup",
+                        "isValidator": true,
+                        "nodeName": "GR Gate - Internal Trading Setup",
+                        "name": "GR Gate - Internal Trading Setup"
+                      },
+                      "blocks": []
+                    }
                   ]
                 },
                 {
@@ -437,10 +432,7 @@
                 "nodeName": "IF Fetch SO (auto-GR confirmed)",
                 "name": "IF Fetch SO (auto-GR confirmed)",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -464,9 +456,7 @@
                 {
                   "id": "if_gr_fetch_so_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "search_gr_so",
@@ -521,9 +511,7 @@
                 {
                   "id": "if_gr_fetch_so_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -589,10 +577,7 @@
                 "nodeName": "IF GR Gate",
                 "name": "IF GR Gate",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -657,9 +642,7 @@
                 {
                   "id": "if_block_gr_true",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "return_gr_gate",
@@ -702,9 +685,7 @@
                 {
                   "id": "if_block_gr_false",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -714,9 +695,7 @@
         {
           "id": "if_gr_gate_completed_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -1743,7 +1722,7 @@
                             "name": "Global Allocation Params",
                             "script": {
                               "type": "javascript",
-                              "code": "// Global Allocation Params (code_node_Htpcyp8t)\n// This is the code for the backend workflow node that prepares params for GLOBAL_AUTO_ALLOCATION.\n// Copy this into the platform's code node editor.\n// CHANGES: Added splitPolicy, lineMaterials to the return object.\n//          For FULL_HU_PICK/NO_SPLIT, includes ALL items per HU (not just current material).\n\nconst currentRow = {{node:code_node_aay7z3VT.data.currentRow}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst rawTracker = {{node:get_cache_node_QGhmYUxQ.data}};\nconst allData = {{workflowparams:allData}};\nconst allHUData = {{node:search_node_l8oiJ60B.data.data}} || [];\nconst isGDPP = allData.is_select_picking || 0;\nconst gd_status = {{workflowparams:allData.gd_status}} || \"Draft\";\nconst rowsNeedingAllocation = {{node:code_node_kJx9p9Nh.data.rowsNeedingAllocation}};\n\n// Split policy from picking setup\nconst splitPolicy = pickingSetup.split_policy || \"ALLOW_SPLIT\";\nconst allowMixedItem = pickingSetup.allow_mixed_item ?? 1;\n\nlet allocationTracker = {};\nif (rawTracker) {\n  if (typeof rawTracker === \"string\") {\n    try {\n      allocationTracker = JSON.parse(rawTracker);\n    } catch (e) {\n      allocationTracker = {};\n    }\n  } else if (typeof rawTracker === \"object\") {\n    allocationTracker = rawTracker;\n  }\n}\n\n// Build existingAllocationData from tracker (cross-row deduction)\nconst existingAllocations = [];\nconst materialAllocations = allocationTracker[currentRow.materialId] || {};\n\nObject.entries(materialAllocations).forEach(([rIdx, rowAllocs]) => {\n  if (parseInt(rIdx) !== currentRow.rowIndex) {\n    Object.entries(rowAllocs).forEach(([locationKey, qty]) => {\n      const parts = locationKey.split(\"-\");\n      const locationId = parts[0];\n      let batchId = null;\n      let handlingUnitId = null;\n\n      if (parts.length > 1) {\n        if (parts[1] === \"hu\") {\n          handlingUnitId = parts[2] || null;\n        } else {\n          batchId = parts[1] !== \"no_batch\" ? parts[1] : null;\n        }\n      }\n\n      existingAllocations.push({\n        location_id: locationId,\n        batch_id: batchId,\n        handling_unit_id: handlingUnitId,\n        quantity: qty,\n      });\n    });\n  }\n});\n\n// Build HU data from pre-fetched allHUData\nconst huData = [];\nfor (const hu of allHUData) {\n  // For ALLOW_SPLIT: only include items matching current material\n  // For FULL_HU_PICK/NO_SPLIT: include ALL items in HUs that contain current material\n  const allActiveItems = (hu.table_hu_items || []).filter(\n    (item) => item.is_deleted !== 1,\n  );\n  const hasCurrentMaterial = allActiveItems.some(\n    (item) => item.material_id === currentRow.materialId,\n  );\n  if (!hasCurrentMaterial) continue;\n\n  // Skip packed HUs (committed to a Packing doc). Their qty lives in\n  // reserved_qty, not unrestricted, so they must not be injected as\n  // allocatable stock. Mirrors the dialog fetchHandlingUnits skip.\n  if (hu.packing_id) continue;\n\n  const itemsToInclude = splitPolicy === \"ALLOW_SPLIT\"\n    ? allActiveItems.filter((item) => item.material_id === currentRow.materialId)\n    : allActiveItems;\n\n  // Header row\n  huData.push({\n    row_type: \"header\",\n    handling_unit_id: hu.id,\n    handling_no: hu.handling_no,\n    material_id: \"\",\n    material_name: \"\",\n    storage_location_id: hu.storage_location_id,\n    location_id: hu.location_id,\n    batch_id: null,\n    item_quantity: parseFloat(hu.total_quantity) || 0,\n    deliver_quantity: 0,\n    remark: hu.remark || \"\",\n    balance_id: \"\",\n  });\n\n  // Item rows\n  for (const huItem of itemsToInclude) {\n    huData.push({\n      row_type: \"item\",\n      handling_unit_id: hu.id,\n      handling_no: \"\",\n      material_id: huItem.material_id,\n      material_name: huItem.material_name,\n      storage_location_id: hu.storage_location_id,\n      location_id: huItem.location_id || hu.location_id,\n      batch_id: huItem.batch_id || null,\n      item_quantity: parseFloat(huItem.quantity) || 0,\n      deliver_quantity: 0,\n      remark: \"\",\n      balance_id: huItem.balance_id || \"\",\n      expired_date: huItem.expired_date || null,\n      manufacturing_date: huItem.manufacturing_date || null,\n      create_time: huItem.create_time || hu.create_time,\n    });\n  }\n}\n\nreturn {\n  material_id: currentRow.materialId,\n  quantity: currentRow.quantity,\n  plant_id: currentRow.plantId,\n  organization_id: currentRow.organizationId,\n  allocationType: \"GD\",\n  allocationStrategy: pickingSetup.default_strategy_id || \"RANDOM\",\n  isPending: currentRow.soLineItemId ? 1 : 0,\n  parent_line_id: currentRow.soLineItemId || \"\",\n  existingAllocationData: existingAllocations,\n  huData: huData,\n  huPriority: pickingSetup.hu_priority || \"HU First\",\n  currentDocId: allData.id || \"\",\n  enforceStockCheck: 1,\n  includeReservedQty: (gd_status === \"Created\" || isGDPP === 1) ? 1 : 0,\n  orderUomId: currentRow.uomId || \"\",\n  splitPolicy: splitPolicy,\n  allowMixedItem: allowMixedItem,\n  lineMaterials: rowsNeedingAllocation.map((r) => r.materialId),\n};\n"
+                              "code": "// Global Allocation Params (code_node_Htpcyp8t)\n// This is the code for the backend workflow node that prepares params for GLOBAL_AUTO_ALLOCATION.\n// Copy this into the platform's code node editor.\n// CHANGES: Added splitPolicy, lineMaterials to the return object.\n//          For FULL_HU_PICK/NO_SPLIT, includes ALL items per HU (not just current material).\n\nconst currentRow = {{node:code_node_aay7z3VT.data.currentRow}};\nconst pickingSetup = {{node:get_node_iFPuvJX2.data.data}};\nconst rawTracker = {{node:get_cache_node_QGhmYUxQ.data}};\nconst allData = {{workflowparams:allData}};\nconst allHUData = {{node:search_node_l8oiJ60B.data.data}} || [];\nconst isGDPP = allData.is_select_picking || 0;\nconst gd_status = {{workflowparams:allData.gd_status}} || \"Draft\";\nconst rowsNeedingAllocation = {{node:code_node_kJx9p9Nh.data.rowsNeedingAllocation}};\n\n// Split policy from picking setup\nconst splitPolicy = pickingSetup.split_policy || \"ALLOW_SPLIT\";\nconst allowMixedItem = pickingSetup.allow_mixed_item ?? 1;\n\nlet allocationTracker = {};\nif (rawTracker) {\n  if (typeof rawTracker === \"string\") {\n    try {\n      allocationTracker = JSON.parse(rawTracker);\n    } catch (e) {\n      allocationTracker = {};\n    }\n  } else if (typeof rawTracker === \"object\") {\n    allocationTracker = rawTracker;\n  }\n}\n\n// Build existingAllocationData from tracker (cross-row deduction)\nconst existingAllocations = [];\nconst materialAllocations = allocationTracker[currentRow.materialId] || {};\n\nObject.entries(materialAllocations).forEach(([rIdx, rowAllocs]) => {\n  if (parseInt(rIdx) !== currentRow.rowIndex) {\n    Object.entries(rowAllocs).forEach(([locationKey, qty]) => {\n      const parts = locationKey.split(\"-\");\n      const locationId = parts[0];\n      let batchId = null;\n      let handlingUnitId = null;\n\n      if (parts.length > 1) {\n        if (parts[1] === \"hu\") {\n          handlingUnitId = parts[2] || null;\n        } else {\n          batchId = parts[1] !== \"no_batch\" ? parts[1] : null;\n        }\n      }\n\n      existingAllocations.push({\n        location_id: locationId,\n        batch_id: batchId,\n        handling_unit_id: handlingUnitId,\n        quantity: qty,\n      });\n    });\n  }\n});\n\n// Build HU data from pre-fetched allHUData\nconst huData = [];\nfor (const hu of allHUData) {\n  // For ALLOW_SPLIT: only include items matching current material\n  // For FULL_HU_PICK/NO_SPLIT: include ALL items in HUs that contain current material\n  const allActiveItems = (hu.table_hu_items || []).filter(\n    (item) => item.is_deleted !== 1,\n  );\n  const hasCurrentMaterial = allActiveItems.some(\n    (item) => item.material_id === currentRow.materialId,\n  );\n  if (!hasCurrentMaterial) continue;\n\n  // Skip packed HUs (committed to a Packing doc). Their qty lives in\n  // reserved_qty, not unrestricted, so they must not be injected as\n  // allocatable stock. Mirrors the dialog fetchHandlingUnits skip.\n  if (hu.packing_id) continue;\n\n  const itemsToInclude = splitPolicy === \"ALLOW_SPLIT\"\n    ? allActiveItems.filter((item) => item.material_id === currentRow.materialId)\n    : allActiveItems;\n\n  // Header row\n  huData.push({\n    row_type: \"header\",\n    handling_unit_id: hu.id,\n    handling_no: hu.handling_no,\n    material_id: \"\",\n    material_name: \"\",\n    storage_location_id: hu.storage_location_id,\n    location_id: hu.location_id,\n    batch_id: null,\n    item_quantity: parseFloat(hu.total_quantity) || 0,\n    deliver_quantity: 0,\n    remark: hu.remark || \"\",\n    balance_id: \"\",\n  });\n\n  // Item rows\n  for (const huItem of itemsToInclude) {\n    huData.push({\n      row_type: \"item\",\n      handling_unit_id: hu.id,\n      handling_no: \"\",\n      material_id: huItem.material_id,\n      material_name: huItem.material_name,\n      storage_location_id: hu.storage_location_id,\n      location_id: huItem.location_id || hu.location_id,\n      batch_id: huItem.batch_id || null,\n      item_quantity: parseFloat(huItem.quantity) || 0,\n      deliver_quantity: 0,\n      remark: \"\",\n      balance_id: huItem.balance_id || \"\",\n      expired_date: huItem.expired_date || null,\n      manufacturing_date: huItem.manufacturing_date || null,\n      create_time: huItem.create_time || hu.create_time,\n    });\n  }\n}\n\nreturn {\n  material_id: currentRow.materialId,\n  quantity: currentRow.quantity,\n  plant_id: currentRow.plantId,\n  organization_id: currentRow.organizationId,\n  allocationType: \"GD\",\n  allocationStrategy: pickingSetup.default_strategy_id || \"RANDOM\",\n  isPending: currentRow.soLineItemId ? 1 : 0,\n  parent_line_id: currentRow.soLineItemId || \"\",\n  existingAllocationData: existingAllocations,\n  huData: huData,\n  huPriority: pickingSetup.hu_priority || \"Loose First\",\n  currentDocId: allData.id || \"\",\n  enforceStockCheck: 1,\n  includeReservedQty: (gd_status === \"Created\" || isGDPP === 1) ? 1 : 0,\n  orderUomId: currentRow.uomId || \"\",\n  splitPolicy: splitPolicy,\n  allowMixedItem: allowMixedItem,\n  lineMaterials: rowsNeedingAllocation.map((r) => r.materialId),\n};\n"
                             },
                             "response_json": [
                               {
