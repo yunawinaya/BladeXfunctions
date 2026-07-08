@@ -3,7 +3,7 @@
     const unCompletedListID = "custom_kviatmto";
     const allListID = "custom_851imkgn";
     const tabUncompletedElement = document.getElementById(
-      "tab-tab_uncompleted"
+      "tab-tab_uncompleted",
     );
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
@@ -13,7 +13,7 @@
     let selectedRecords;
 
     selectedRecords = this.getComponent(
-      activeTab === "Uncompleted" ? unCompletedListID : allListID
+      activeTab === "Uncompleted" ? unCompletedListID : allListID,
     )?.$refs.crud.tableSelect;
 
     console.log("selectedRecords", selectedRecords);
@@ -38,7 +38,7 @@
         `You've selected ${
           quotationNumbers.length
         } quotation(s) to cancel. <br> <strong>Quotation Numbers:</strong> <br>${quotationNumbers.join(
-          ", "
+          ", ",
         )} <br>Do you want to proceed?`,
         "Quotation Cancellation",
         {
@@ -46,7 +46,7 @@
           cancelButtonText: "Cancel",
           type: "warning",
           dangerouslyUseHTMLString: true,
-        }
+        },
       ).catch(() => {
         console.log("User clicked Cancel or closed the dialog");
         throw new Error();

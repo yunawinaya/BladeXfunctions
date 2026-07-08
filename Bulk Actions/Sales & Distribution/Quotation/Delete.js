@@ -3,7 +3,7 @@
     const unCompletedListID = "custom_kviatmto";
     const allListID = "custom_851imkgn";
     const tabUncompletedElement = document.getElementById(
-      "tab-tab_uncompleted"
+      "tab-tab_uncompleted",
     );
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
@@ -13,7 +13,7 @@
     let selectedRecords;
 
     selectedRecords = this.getComponent(
-      activeTab === "Uncompleted" ? unCompletedListID : allListID
+      activeTab === "Uncompleted" ? unCompletedListID : allListID,
     )?.$refs.crud.tableSelect;
 
     console.log("selectedRecords", selectedRecords);
@@ -23,20 +23,20 @@
       const quotationIds = selectedRecords
         .filter(
           (item) =>
-            item.sqt_status === "Draft" || item.sqt_status === "Cancelled"
+            item.sqt_status === "Draft" || item.sqt_status === "Cancelled",
         )
         .map((item) => item.id);
       console.log("quotationIds", quotationIds);
       if (quotationIds.length === 0) {
         this.$message.error(
-          "Please select at least one draft or cancelled quotation."
+          "Please select at least one draft or cancelled quotation.",
         );
         return;
       }
       const quotationNumbers = selectedRecords
         .filter(
           (item) =>
-            item.sqt_status === "Draft" || item.sqt_status === "Cancelled"
+            item.sqt_status === "Draft" || item.sqt_status === "Cancelled",
         )
         .map((item) => item.sqt_no);
 
@@ -44,7 +44,7 @@
         `You've selected ${
           quotationNumbers.length
         } quotation(s) to delete. <br> <strong>Quotation Numbers:</strong> <br>${quotationNumbers.join(
-          ", "
+          ", ",
         )} <br>Do you want to proceed?`,
         "Quotation Deletion",
         {
@@ -52,7 +52,7 @@
           cancelButtonText: "Cancel",
           type: "warning",
           dangerouslyUseHTMLString: true,
-        }
+        },
       ).catch(() => {
         console.log("User clicked Cancel or closed the dialog");
         throw new Error();
