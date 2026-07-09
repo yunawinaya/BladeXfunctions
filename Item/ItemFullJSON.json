@@ -16877,15 +16877,25 @@
                 "childRecordMode": false,
                 "filters": [],
                 "filter_collapse": 0,
-                "rowActions": [],
+                "rowActions": [
+                  {
+                    "title": "Delete",
+                    "permission": "",
+                    "type": "delBtn",
+                    "styleType": "Link",
+                    "icon": "trash",
+                    "events": [],
+                    "hidden": "",
+                    "disabled": "",
+                    "ignoreFormDisabled": false
+                  }
+                ],
                 "collapse_all": 0,
                 "rowSelectionType": "None",
                 "batchOperate": [],
                 "resizable": 0,
                 "emptyTip": "",
                 "tableHeightMode": "fixed",
-                "tableFixedHeight": null,
-                "tableMaxHeight": null,
                 "rowHeightType": "auto",
                 "inlineInsert": true,
                 "hideIndex": false,
@@ -16913,13 +16923,25 @@
                       "events": [],
                       "hidden": false,
                       "disabled": false
+                    },
+                    {
+                      "title": "Add",
+                      "permission": "",
+                      "icon": "",
+                      "type": "addBtn",
+                      "events": [],
+                      "hidden": "",
+                      "disabled": "{{{{value:based_uom}} === \"\" || {{value:based_uom}} === null || {{value:based_uom}} === undefined}}",
+                      "ignoreFormDisabled": false
                     }
                   ]
-                }
+                },
+                "dynamicValueType": "fx",
+                "isDynamicValue": false
               },
               "events": {
                 "onChange": "",
-                "onRowAdd": "",
+                "onRowAdd": "zngm2gdo",
                 "onRowRemove": "",
                 "onPageChange": ""
               },
@@ -17272,7 +17294,7 @@
                   "options": {
                     "defaultValue": "",
                     "multiple": false,
-                    "disabled": true,
+                    "disabled": false,
                     "clearable": false,
                     "placeholder": "",
                     "required": false,
@@ -17329,44 +17351,18 @@
                         "collectionId": "1901805375573839874",
                         "list": [
                           {
-                            "id": 1746157561049,
-                            "isTop": true,
+                            "id": 1783581461604,
                             "parentId": 1746157561046,
-                            "type": "branch",
-                            "operator": "any",
+                            "isTop": true,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{value:table_uom_conversion.alt_uom_id}}",
+                            "type": "leaf",
                             "level": 1,
-                            "children": [
-                              {
-                                "id": 1746157561047,
-                                "parentId": 1746157561049,
-                                "isTop": false,
-                                "prop": "organization_id",
-                                "operator": "equal",
-                                "valueType": "field",
-                                "value": "{{system:deptIds}}",
-                                "type": "leaf",
-                                "level": 2,
-                                "propLabel": "Organization",
-                                "valueLabel": "",
-                                "operatorLabel": "等于",
-                                "valueTypeLabel": "字段"
-                              },
-                              {
-                                "id": 1746157561050,
-                                "parentId": 1746157561049,
-                                "isTop": false,
-                                "prop": "organization_id",
-                                "operator": "equal",
-                                "valueType": "field",
-                                "value": "{{global:deptParentId}}",
-                                "type": "leaf",
-                                "level": 2,
-                                "propLabel": "Organization",
-                                "valueLabel": "",
-                                "operatorLabel": "等于",
-                                "valueTypeLabel": "字段"
-                              }
-                            ]
+                            "propLabel": "Primary Key ID",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
                           }
                         ]
                       }
@@ -17418,7 +17414,10 @@
                     "desensitization_pattern": "",
                     "desensitization_replace": "",
                     "auto_refresh": 0,
-                    "auto_refresh_debounce": 100
+                    "auto_refresh_debounce": 100,
+                    "dynamicValueFx": "",
+                    "dynamicValueType": "fx",
+                    "isDynamicValue": false
                   },
                   "events": {
                     "onChange": "",
@@ -19203,7 +19202,7 @@
         "remoteOption": "option_tcwbhd4c",
         "tableColumn": false,
         "subform": false,
-        "elementFxCurrent": "tab_uom_conversion",
+        "elementFxCurrent": "tab_packing_detail",
         "defaultValue": "",
         "dataIdentifier": false
       },
@@ -20184,7 +20183,7 @@
             "key": "fdqwas5f",
             "action": "js",
             "options": {
-              "func": "(async () => {\n  try {\n    console.log(\"Trigger\");\n    const data = this.getValues();\n    const based_uom = data.based_uom;\n\n    if (based_uom !== data.previous_based_uom) {\n      const tableSupplierPrice = data.table_supplier_price;\n      let hasSupplierPriceUOM = false;\n      let hasCustomerPriceUOM = false;\n\n      if (tableSupplierPrice.length > 0) {\n        hasSupplierPriceUOM = tableSupplierPrice?.some(\n          (item) => item.sup_price_uom === data.previous_based_uom,\n        );\n      }\n\n      const tableCustomerPrice = data.table_customer_price;\n\n      if (tableCustomerPrice.length > 0) {\n        hasCustomerPriceUOM = tableCustomerPrice?.some(\n          (item) => item.cust_price_uom === data.previous_based_uom,\n        );\n      }\n\n      if (\n        (data.purchase_default_uom === data.previous_based_uom ||\n          data.sales_default_uom === data.previous_based_uom ||\n          hasCustomerPriceUOM ||\n          hasSupplierPriceUOM) &&\n        data.previous_based_uom &&\n        based_uom !== data.previous_based_uom\n      ) {\n        await this.$confirm(\n          \"The base UOM has been changed. It will reset the UOM in purchase and sales information. Are you sure you want to continue?\",\n          \"Confirmation\",\n          {\n            confirmButtonText: \"Yes\",\n            cancelButtonText: \"No\",\n            type: \"warning\",\n          },\n        ).catch(() => {\n          this.setData({\n            based_uom: data.previous_based_uom,\n          });\n          throw new Error(\"Base UOM not changed\");\n        });\n      }\n\n      await this.disabled(\n        [\n          \"table_uom_conversion\",\n          \"table_supplier_price\",\n          \"table_customer_price\",\n          \"purchase_default_uom\",\n          \"sales_default_uom\",\n        ],\n        false,\n      );\n\n      const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n      const tablePackingDetail = this.getValue(\"table_packing_detail\");\n      this.setData({\n        table_uom_conversion: [\n          {\n            alt_qty: 1,\n            alt_uom_id: based_uom,\n            base_qty: 1,\n            base_uom_id: based_uom,\n            text_b4j8h211: \"=\",\n          },\n          ...tableUOMConversion.slice(1),\n        ],\n        table_packing_detail:\n          tablePackingDetail.length > 0\n            ? tablePackingDetail\n            : [\n                {\n                  packing_qty: 1,\n                  packing_uom_id: based_uom,\n                  quantity: 1,\n                  uom_id: based_uom,\n                  text_b4j8h211: \"=\",\n                },\n              ],\n        previous_based_uom: based_uom,\n        ...(data.previous_based_uom === data.purchase_default_uom\n          ? { purchase_default_uom: \"\" }\n          : {}),\n        ...(data.previous_based_uom === data.sales_default_uom\n          ? { sales_default_uom: \"\" }\n          : {}),\n        table_supplier_price:\n          (tableSupplierPrice?.length && [\n            ...tableSupplierPrice.map((item) => ({\n              ...item,\n              sup_price_uom:\n                item.sup_price_uom === data.previous_based_uom\n                  ? based_uom\n                  : item.sup_price_uom,\n            })),\n          ]) ||\n          [],\n\n        table_customer_price:\n          (tableCustomerPrice?.length && [\n            ...tableCustomerPrice.map((item) => ({\n              ...item,\n              cust_price_uom:\n                item.cust_price_uom === data.previous_based_uom\n                  ? based_uom\n                  : item.cust_price_uom,\n            })),\n          ]) ||\n          [],\n      }).then(() => {\n        setTimeout(() => {\n          this.disabled(\n            [\n              `table_uom_conversion.0.base_qty`,\n              `table_uom_conversion.0.alt_uom_id`,\n            ],\n            true,\n          );\n        }, 50);\n      });\n\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: based_uom,\n        });\n      });\n\n      // uom_id mirrors alt_uom_id, so only row 0 follows based_uom;\n      // other rows keep their own uom_id.\n      if (data.table_packing_detail.length > 0) {\n        this.setData({\n          [`table_packing_detail.0.uom_id`]: based_uom,\n        });\n      }\n    } else if (based_uom === data.previous_based_uom) {\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: based_uom,\n        });\n      });\n\n      // uom_id mirrors alt_uom_id, so only row 0 follows based_uom.\n      if (data.table_packing_detail.length > 0) {\n        this.setData({\n          [`table_packing_detail.0.uom_id`]: based_uom,\n        });\n      }\n\n      // A uom_conversion row was added or removed (this handler fires on both\n      // onRowAdd and onRowRemove). Keep table_packing_detail in sync: same\n      // length as table_uom_conversion, in the same order, with uom_id\n      // mirroring each row's alt_uom_id. Matching by uom_id (not position)\n      // preserves existing packing rows even when a row is inserted/removed\n      // in the middle.\n      const tableUOMConversion = data.table_uom_conversion;\n      const tablePackingDetail = this.getValue(\"table_packing_detail\");\n\n      if (tablePackingDetail.length !== tableUOMConversion.length) {\n        const used = new Array(tablePackingDetail.length).fill(false);\n        const reconciled = tableUOMConversion.map((conv) => {\n          const matchIndex = tablePackingDetail.findIndex(\n            (packing, i) => !used[i] && packing.uom_id === conv.alt_uom_id,\n          );\n          if (matchIndex === -1) {\n            return {\n              packing_qty: 1,\n              packing_uom_id: conv.alt_uom_id,\n              quantity: 1,\n              uom_id: conv.alt_uom_id,\n              text_b4j8h211: \"=\",\n            };\n          }\n          used[matchIndex] = true;\n          return { ...tablePackingDetail[matchIndex] };\n        });\n        this.setData({ table_packing_detail: reconciled });\n      }\n    } else if (!based_uom) {\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: \"\",\n        });\n      });\n      // uom_id mirrors alt_uom_id; conversion rows keep their alt_uom_id, so\n      // only row 0 (the base row) is cleared here.\n      if (data.table_packing_detail.length > 0) {\n        this.setData({\n          [`table_packing_detail.0.uom_id`]: \"\",\n        });\n      }\n      this.disabled(\n        [\n          \"table_uom_conversion\",\n          \"table_packing_detail\",\n          \"table_supplier_price\",\n          \"table_customer_price\",\n          \"sales_default_uom\",\n          \"purchase_default_uom\",\n        ],\n        true,\n      );\n    }\n  } catch (error) {\n    console.error(\"Error in UOM processing:\", error);\n  }\n})();\n"
+              "func": "(async () => {\n  try {\n    console.log(\"Trigger\");\n    const data = this.getValues();\n    const based_uom = data.based_uom;\n\n    if (based_uom !== data.previous_based_uom) {\n      const tableSupplierPrice = data.table_supplier_price;\n      let hasSupplierPriceUOM = false;\n      let hasCustomerPriceUOM = false;\n\n      if (tableSupplierPrice.length > 0) {\n        hasSupplierPriceUOM = tableSupplierPrice?.some(\n          (item) => item.sup_price_uom === data.previous_based_uom,\n        );\n      }\n\n      const tableCustomerPrice = data.table_customer_price;\n\n      if (tableCustomerPrice.length > 0) {\n        hasCustomerPriceUOM = tableCustomerPrice?.some(\n          (item) => item.cust_price_uom === data.previous_based_uom,\n        );\n      }\n\n      if (\n        (data.purchase_default_uom === data.previous_based_uom ||\n          data.sales_default_uom === data.previous_based_uom ||\n          hasCustomerPriceUOM ||\n          hasSupplierPriceUOM) &&\n        data.previous_based_uom &&\n        based_uom !== data.previous_based_uom\n      ) {\n        await this.$confirm(\n          \"The base UOM has been changed. It will reset the UOM in purchase and sales information. Are you sure you want to continue?\",\n          \"Confirmation\",\n          {\n            confirmButtonText: \"Yes\",\n            cancelButtonText: \"No\",\n            type: \"warning\",\n          },\n        ).catch(() => {\n          this.setData({\n            based_uom: data.previous_based_uom,\n          });\n          throw new Error(\"Base UOM not changed\");\n        });\n      }\n\n      await this.disabled(\n        [\n          \"table_uom_conversion\",\n          \"table_supplier_price\",\n          \"table_customer_price\",\n          \"purchase_default_uom\",\n          \"sales_default_uom\",\n        ],\n        false,\n      );\n\n      const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n      this.setData({\n        table_uom_conversion: [\n          {\n            alt_qty: 1,\n            alt_uom_id: based_uom,\n            base_qty: 1,\n            base_uom_id: based_uom,\n            text_b4j8h211: \"=\",\n          },\n          ...tableUOMConversion.slice(1),\n        ],\n        previous_based_uom: based_uom,\n        ...(data.previous_based_uom === data.purchase_default_uom\n          ? { purchase_default_uom: \"\" }\n          : {}),\n        ...(data.previous_based_uom === data.sales_default_uom\n          ? { sales_default_uom: \"\" }\n          : {}),\n        table_supplier_price:\n          (tableSupplierPrice?.length && [\n            ...tableSupplierPrice.map((item) => ({\n              ...item,\n              sup_price_uom:\n                item.sup_price_uom === data.previous_based_uom\n                  ? based_uom\n                  : item.sup_price_uom,\n            })),\n          ]) ||\n          [],\n\n        table_customer_price:\n          (tableCustomerPrice?.length && [\n            ...tableCustomerPrice.map((item) => ({\n              ...item,\n              cust_price_uom:\n                item.cust_price_uom === data.previous_based_uom\n                  ? based_uom\n                  : item.cust_price_uom,\n            })),\n          ]) ||\n          [],\n      }).then(() => {\n        setTimeout(() => {\n          this.disabled(\n            [\n              `table_uom_conversion.0.base_qty`,\n              `table_uom_conversion.0.alt_uom_id`,\n            ],\n            true,\n          );\n        }, 50);\n      });\n\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: based_uom,\n        });\n      });\n    } else if (based_uom === data.previous_based_uom) {\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: based_uom,\n        });\n      });\n    } else if (!based_uom) {\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: \"\",\n        });\n      });\n      this.disabled(\n        [\n          \"table_uom_conversion\",\n          \"table_supplier_price\",\n          \"table_customer_price\",\n          \"sales_default_uom\",\n          \"purchase_default_uom\",\n        ],\n        true,\n      );\n    }\n  } catch (error) {\n    console.error(\"Error in UOM processing:\", error);\n  }\n})();\n"
             }
           }
         ]
@@ -20334,7 +20333,7 @@
       {
         "key": "f0dwxbs8",
         "name": "onChange_altUOM",
-        "func": "(async () => {\n  try {\n    const basedUOM = this.getValue(\"based_uom\");\n    const selectedUOM = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n    const tableSupplierPrice = this.getValue(\"table_supplier_price\");\n    const tableCustomerPrice = this.getValue(\"table_customer_price\");\n\n    const purchaseDefaultUOM = this.getValue(\"purchase_default_uom\");\n    const salesDefaultUOM = this.getValue(\"sales_default_uom\");\n\n    if (basedUOM === selectedUOM && rowIndex !== 0) {\n      await this.$alert(\"Based UOM and Selected UOM cannot be same\", \"Error\", {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      });\n      this.setData({\n        [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n      });\n      return;\n    }\n\n    if (\n      tableUOMConversion.filter((item) => item.alt_uom_id === selectedUOM)\n        .length > 1\n    ) {\n      console.log(\n        tableUOMConversion.filter((item) => item.alt_uom_id === selectedUOM),\n      );\n      await this.$alert(\"Alt UOM already been selected\", \"Error\", {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      });\n      this.setData({\n        [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n      });\n    }\n\n    const conversionUOMs = new Set(\n      tableUOMConversion.map((item) => item.alt_uom_id),\n    );\n    const supplierUOMs = tableSupplierPrice.map((item) => item.sup_price_uom);\n    const customerUOMs = tableCustomerPrice.map((item) => item.cust_price_uom);\n\n    const missingSupplierUOMs = supplierUOMs.filter(\n      (uom) => !conversionUOMs.has(uom),\n    );\n    const missingCustomerUOMs = customerUOMs.filter(\n      (uom) => !conversionUOMs.has(uom),\n    );\n    const missingPurchaseUOM =\n      purchaseDefaultUOM && !conversionUOMs.has(purchaseDefaultUOM);\n    const missingSalesUOM =\n      salesDefaultUOM && !conversionUOMs.has(salesDefaultUOM);\n\n    if (\n      selectedUOM &&\n      (missingSupplierUOMs.length > 0 ||\n        missingCustomerUOMs.length > 0 ||\n        missingPurchaseUOM ||\n        missingSalesUOM)\n    ) {\n      await this.$confirm(\n        \"The alt UOM has been changed. It will reset the UOM in purchase and sales information. Are you sure you want to continue?\",\n        \"Confirmation\",\n        {\n          confirmButtonText: \"Yes\",\n          cancelButtonText: \"No\",\n          type: \"warning\",\n        },\n      )\n        .then(() => {\n          this.setData({\n            ...(missingPurchaseUOM ? { purchase_default_uom: \"\" } : {}),\n            ...(missingSalesUOM ? { sales_default_uom: \"\" } : {}),\n            ...(missingSupplierUOMs.length > 0\n              ? {\n                  table_supplier_price: [\n                    ...tableSupplierPrice.map((item) => ({\n                      ...item,\n                      sup_price_uom: !conversionUOMs.has(item.sup_price_uom)\n                        ? \"\"\n                        : item.sup_price_uom,\n                    })),\n                  ],\n                }\n              : {}),\n            ...(missingCustomerUOMs.length > 0\n              ? {\n                  table_customer_price: [\n                    ...tableCustomerPrice.map((item) => ({\n                      ...item,\n                      cust_price_uom: !conversionUOMs.has(item.cust_price_uom)\n                        ? \"\"\n                        : item.cust_price_uom,\n                    })),\n                  ],\n                }\n              : {}),\n          });\n        })\n        .catch(() => {\n          this.setData({\n            [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n          });\n          throw new Error(\"Alt UOM clear\");\n        });\n    }\n\n    // Mirror table_packing_detail to table_uom_conversion:\n    // uom_id in table_packing_detail follows alt_uom_id in table_uom_conversion.\n    // If the packing row already exists, just update uom_id; otherwise add it.\n    const isDuplicateAlt =\n      tableUOMConversion.filter((item) => item.alt_uom_id === selectedUOM)\n        .length > 1;\n\n    if (selectedUOM && !isDuplicateAlt) {\n      const tablePackingDetail = this.getValue(\"table_packing_detail\");\n\n      if (tablePackingDetail.length >= tableUOMConversion.length) {\n        // Lengths already in sync: this row already has a packing counterpart,\n        // so just change its uom_id to follow alt_uom_id (in place). Also seed\n        // packing_uom_id with the same value when it has not been set yet, so a\n        // placeholder row gets a sensible initial value.\n        const currentPackingUOM =\n          tablePackingDetail[rowIndex]?.packing_uom_id;\n        this.setData({\n          [`table_packing_detail.${rowIndex}.uom_id`]: selectedUOM,\n          ...(currentPackingUOM\n            ? {}\n            : {\n                [`table_packing_detail.${rowIndex}.packing_uom_id`]:\n                  selectedUOM,\n              }),\n        });\n      } else {\n        // A conversion row was added (possibly in the middle) and the packing\n        // table is one short. Insert a mirroring packing row at the SAME\n        // position so the two tables stay aligned by index.\n        const newRows = [...tablePackingDetail];\n        newRows.splice(rowIndex, 0, {\n          packing_qty: 1,\n          packing_uom_id: selectedUOM,\n          quantity: 1,\n          uom_id: selectedUOM,\n          text_b4j8h211: \"=\",\n        });\n        this.setData({ table_packing_detail: newRows });\n      }\n    }\n  } catch (error) {\n    console.error(error);\n  }\n})();\n",
+        "func": "(async () => {\n  try {\n    const basedUOM = this.getValue(\"based_uom\");\n    const selectedUOM = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n    const tableSupplierPrice = this.getValue(\"table_supplier_price\");\n    const tableCustomerPrice = this.getValue(\"table_customer_price\");\n\n    const purchaseDefaultUOM = this.getValue(\"purchase_default_uom\");\n    const salesDefaultUOM = this.getValue(\"sales_default_uom\");\n\n    if (basedUOM === selectedUOM && rowIndex !== 0) {\n      await this.$alert(\"Based UOM and Selected UOM cannot be same\", \"Error\", {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      });\n      this.setData({\n        [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n      });\n      return;\n    }\n\n    if (\n      tableUOMConversion.filter((item) => item.alt_uom_id === selectedUOM)\n        .length > 1\n    ) {\n      console.log(\n        tableUOMConversion.filter((item) => item.alt_uom_id === selectedUOM),\n      );\n      await this.$alert(\"Alt UOM already been selected\", \"Error\", {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      });\n      this.setData({\n        [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n      });\n    }\n\n    const conversionUOMs = new Set(\n      tableUOMConversion.map((item) => item.alt_uom_id),\n    );\n    const supplierUOMs = tableSupplierPrice.map((item) => item.sup_price_uom);\n    const customerUOMs = tableCustomerPrice.map((item) => item.cust_price_uom);\n\n    const missingSupplierUOMs = supplierUOMs.filter(\n      (uom) => !conversionUOMs.has(uom),\n    );\n    const missingCustomerUOMs = customerUOMs.filter(\n      (uom) => !conversionUOMs.has(uom),\n    );\n    const missingPurchaseUOM =\n      purchaseDefaultUOM && !conversionUOMs.has(purchaseDefaultUOM);\n    const missingSalesUOM =\n      salesDefaultUOM && !conversionUOMs.has(salesDefaultUOM);\n\n    if (\n      selectedUOM &&\n      (missingSupplierUOMs.length > 0 ||\n        missingCustomerUOMs.length > 0 ||\n        missingPurchaseUOM ||\n        missingSalesUOM)\n    ) {\n      await this.$confirm(\n        \"The alt UOM has been changed. It will reset the UOM in purchase and sales information. Are you sure you want to continue?\",\n        \"Confirmation\",\n        {\n          confirmButtonText: \"Yes\",\n          cancelButtonText: \"No\",\n          type: \"warning\",\n        },\n      )\n        .then(() => {\n          this.setData({\n            ...(missingPurchaseUOM ? { purchase_default_uom: \"\" } : {}),\n            ...(missingSalesUOM ? { sales_default_uom: \"\" } : {}),\n            ...(missingSupplierUOMs.length > 0\n              ? {\n                  table_supplier_price: [\n                    ...tableSupplierPrice.map((item) => ({\n                      ...item,\n                      sup_price_uom: !conversionUOMs.has(item.sup_price_uom)\n                        ? \"\"\n                        : item.sup_price_uom,\n                    })),\n                  ],\n                }\n              : {}),\n            ...(missingCustomerUOMs.length > 0\n              ? {\n                  table_customer_price: [\n                    ...tableCustomerPrice.map((item) => ({\n                      ...item,\n                      cust_price_uom: !conversionUOMs.has(item.cust_price_uom)\n                        ? \"\"\n                        : item.cust_price_uom,\n                    })),\n                  ],\n                }\n              : {}),\n          });\n        })\n        .catch(() => {\n          this.setData({\n            [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n          });\n          throw new Error(\"Alt UOM clear\");\n        });\n    }\n  } catch (error) {\n    console.error(error);\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -20711,6 +20710,12 @@
         "key": "9ab8leiu",
         "name": "onTableUomConversionfunc_9ab8leiu",
         "func": "const viewOnly = this.isView;\n\nthis.toView({\n  target: \"2075040506015449089\",\n  targetType: \"Page\",\n  mode: \"dialog\",\n  type: viewOnly ? \"view\" : \"add\",\n  title: \"Multi UOM Details\",\n  data: {\n    ...arguments[0].row,\n  },\n});\n",
+        "type": "js"
+      },
+      {
+        "key": "zngm2gdo",
+        "name": "onTablePackingDetailRowAdd",
+        "func": "",
         "type": "js"
       }
     ],
