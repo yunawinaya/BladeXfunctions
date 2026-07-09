@@ -108,48 +108,6 @@
           throw new Error("Alt UOM clear");
         });
     }
-
-    // Mirror table_packing_detail to table_uom_conversion:
-    // uom_id in table_packing_detail follows alt_uom_id in table_uom_conversion.
-    // If the packing row already exists, just update uom_id; otherwise add it.
-    const isDuplicateAlt =
-      tableUOMConversion.filter((item) => item.alt_uom_id === selectedUOM)
-        .length > 1;
-
-    if (selectedUOM && !isDuplicateAlt) {
-      const tablePackingDetail = this.getValue("table_packing_detail");
-
-      if (tablePackingDetail.length >= tableUOMConversion.length) {
-        // Lengths already in sync: this row already has a packing counterpart,
-        // so just change its uom_id to follow alt_uom_id (in place). Also seed
-        // packing_uom_id with the same value when it has not been set yet, so a
-        // placeholder row gets a sensible initial value.
-        const currentPackingUOM =
-          tablePackingDetail[rowIndex]?.packing_uom_id;
-        this.setData({
-          [`table_packing_detail.${rowIndex}.uom_id`]: selectedUOM,
-          ...(currentPackingUOM
-            ? {}
-            : {
-                [`table_packing_detail.${rowIndex}.packing_uom_id`]:
-                  selectedUOM,
-              }),
-        });
-      } else {
-        // A conversion row was added (possibly in the middle) and the packing
-        // table is one short. Insert a mirroring packing row at the SAME
-        // position so the two tables stay aligned by index.
-        const newRows = [...tablePackingDetail];
-        newRows.splice(rowIndex, 0, {
-          packing_qty: 1,
-          packing_uom_id: selectedUOM,
-          quantity: 1,
-          uom_id: selectedUOM,
-          text_b4j8h211: "=",
-        });
-        this.setData({ table_packing_detail: newRows });
-      }
-    }
   } catch (error) {
     console.error(error);
   }

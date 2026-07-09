@@ -58,88 +58,6 @@ const validateField = (value, field) => {
   return !value;
 };
 
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Items",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-
-  const prefixData = (await prefixEntry?.data[0]) || {};
-
-  return prefixData;
-};
-
-const updatePrefix = async (organizationId, runningNumber) => {
-  try {
-    await db
-      .collection("prefix_configuration")
-      .where({
-        document_types: "Items",
-        is_deleted: 0,
-        organization_id: organizationId,
-        is_active: 1,
-      })
-      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });
-  } catch (error) {
-    this.$message.error(error);
-  }
-};
-
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0"),
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix) => {
-  const existingDoc = await db
-    .collection("Item")
-    .where({ material_code: generatedPrefix })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    this.$message.error(
-      "Could not generate a unique Item number after maximum attempts",
-    );
-  }
-
-  return { prefixToShow, runningNumber };
-};
-
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -166,28 +84,6 @@ const findFieldMessage = (obj) => {
     return obj.toString();
   }
   return null;
-};
-
-const validateFormula = async (entry) => {
-  const successFormula = await this.getValue("success_formula");
-  const formula = entry.formula;
-
-  if (formula) {
-    if (!successFormula || (successFormula && formula !== successFormula)) {
-      if (formula !== successFormula) {
-        await this.$alert(
-          `The entered formula is not validate yet. Please validate or clear the formula.`,
-          "Unvalidated Formula Detected",
-          {
-            confirmButtonText: "Ok",
-            type: "error",
-          },
-        );
-
-        throw new Error("Error processing formula.");
-      }
-    }
-  }
 };
 
 const validateUOMConversion = async (entry) => {
@@ -218,35 +114,6 @@ const validateUOMConversion = async (entry) => {
   entry.table_uom_conversion = latestConversion;
 
   return entry;
-};
-
-const validateUOMPackingMirror = async (entry) => {
-  // table_packing_detail must mirror table_uom_conversion: same number of
-  // (meaningful) rows, and each row's uom_id equals the matching alt_uom_id.
-  const uomConversion = (entry.table_uom_conversion || []).filter(
-    (item) => item.alt_uom_id && item.alt_uom_id !== "",
-  );
-  const packingDetail = (entry.table_packing_detail || []).filter(
-    (item) => item.uom_id && item.uom_id !== "",
-  );
-
-  const isMirrored =
-    uomConversion.length === packingDetail.length &&
-    uomConversion.every(
-      (item, index) => item.alt_uom_id === packingDetail[index].uom_id,
-    );
-
-  if (!isMirrored) {
-    await this.$alert(
-      "UOM Conversion and Packing Detail do not match. Each Alt UOM in UOM Conversion must mirror the UOM in Packing Detail.",
-      "Invalid Packing Detail",
-      {
-        confirmButtonText: "OK",
-        type: "error",
-      },
-    );
-    throw new Error("UOM Conversion and Packing Detail mismatch");
-  }
 };
 
 const findMissingPriceLine = async (table, name) => {
@@ -583,9 +450,18 @@ const validateBatch = async (entry) => {
       if (
         resDefaultBatchConfig.data[0].batch_level_selection === "Item Level"
       ) {
+        const itemBatchConfig = await db
+          .collection("batch_number_config")
+          .where({
+            organization_id: entry.organization_id,
+            item_id: entry.id,
+          })
+          .get();
+
         if (
-          !entry.batch_config ||
-          Object.keys(entry.batch_config).length === 0
+          (!entry.batch_config ||
+            Object.keys(entry.batch_config).length === 0) &&
+          (!itemBatchConfig || itemBatchConfig.data.length === 0)
         ) {
           await this.$alert("Please set batch configuration", "Invalid Data", {
             confirmButtonText: "OK",
@@ -641,11 +517,14 @@ const createBatch = async (itemId, batchNumberConfig, materialCode) => {
 
     const page_status = data.page_status;
     const item_no = data.id;
+    console.log("data", data);
 
     // Define required fields
     const requiredFields = [
       { name: "material_name", label: "Item Name" },
-      { name: "material_code", label: "Item Code" },
+      ...(data.material_code_type === -9999
+        ? [{ name: "material_code", label: "Item Code" }]
+        : []),
       { name: "item_category", label: "Item Category" },
       { name: "based_uom", label: "Based UOM" },
       { name: "item_properties", label: "Item Properties" },
@@ -653,7 +532,7 @@ const createBatch = async (itemId, batchNumberConfig, materialCode) => {
 
     const missingFields = await validateForm(data, requiredFields);
 
-    await this.validate("material_code");
+    await this.validate();
 
     if (missingFields.length === 0) {
       // Get organization ID
@@ -663,14 +542,16 @@ const createBatch = async (itemId, batchNumberConfig, materialCode) => {
       }
 
       let entry = data;
+      entry.material_code =
+        entry.material_code_type === -9999 || this.isEdit
+          ? entry.material_code
+          : "issued";
       entry.batch_number_genaration =
         entry.batch_number_genaration || "According To System Settings";
 
       console.log("JN", entry);
 
-      await validateFormula(entry);
       entry = await validateUOMConversion(entry);
-      // await validateUOMPackingMirror(entry);
       await validatePurchaseAndSalesInformation(entry);
       await validateBatch(entry);
       console.log("entry", entry);
@@ -678,19 +559,6 @@ const createBatch = async (itemId, batchNumberConfig, materialCode) => {
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {
         try {
-          if (entry.material_code === data.item_current_prefix) {
-            const prefixData = await getPrefixData(organizationId);
-
-            if (!prefixData || prefixData.length !== 0) {
-              const { prefixToShow, runningNumber } =
-                await findUniquePrefix(prefixData);
-
-              await updatePrefix(organizationId, runningNumber);
-
-              entry.material_code = prefixToShow;
-            }
-          }
-
           const resItem = await db.collection("Item").add(entry);
           await createBOM(resItem.data[0]);
           await createBatch(
@@ -703,9 +571,7 @@ const createBatch = async (itemId, batchNumberConfig, materialCode) => {
         } catch (error) {
           console.error("Error adding item:", error);
           this.hideLoading();
-          this.$message.error(
-            error.message || "An error occurred while adding the item.",
-          );
+          this.$message.error();
         }
       } else if (page_status === "Edit") {
         try {
