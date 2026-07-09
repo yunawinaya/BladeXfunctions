@@ -288,11 +288,14 @@
         "name": "Classify",
         "script": {
           "type": "javascript",
-          "code": "const grList = {{node:search_gr.data.data}} || [];\nconst piList = {{node:search_pi.data.data}} || [];\n\nconst createdGr = grList.filter((g) => g.gr_status === \"Created\");\nconst processedGr = grList.filter((g) => g.gr_status === \"Received\" || g.gr_status === \"Completed\");\nconst draftGr = grList.filter((g) => g.gr_status === \"Draft\");\nconst invoicedPi = piList.filter((p) => p.pi_status !== \"Draft\" && p.pi_status !== \"Cancelled\");\nconst draftPi = piList.filter((p) => p.pi_status === \"Draft\");\n\nlet code = \"200\";\nlet message = \"\";\nif (createdGr.length > 0) {\n  code = \"400\";\n  message = \"Has a created goods receiving. Cancel it first.\";\n} else if (processedGr.length > 0) {\n  code = \"400\";\n  message = \"Has received/completed goods receiving. Cannot cancel.\";\n} else if (invoicedPi.length > 0) {\n  code = \"400\";\n  message = \"Purchase order is already invoiced. Cannot cancel.\";\n}\n\nreturn {\n  code: code,\n  message: message,\n  deleteGR: (draftGr.length > 0 && code === \"200\") ? 1 : 0,\n  deletePI: (draftPi.length > 0 && code === \"200\") ? 1 : 0,\n  draftGrIds: draftGr.map((g) => g.id),\n  draftPiIds: draftPi.map((p) => p.id)\n};"
+          "code": "const grList = {{node:search_gr.data.data}} || [];\nconst piList = {{node:search_pi.data.data}} || [];\nconst cancelCreatedGR = {{workflowparams:cancelCreatedGR}};\n\nconst createdGr = grList.filter((g) => g.gr_status === \"Created\");\nconst processedGr = grList.filter((g) => g.gr_status === \"Received\" || g.gr_status === \"Completed\");\nconst draftGr = grList.filter((g) => g.gr_status === \"Draft\");\nconst invoicedPi = piList.filter((p) => p.pi_status !== \"Draft\" && p.pi_status !== \"Cancelled\");\nconst draftPi = piList.filter((p) => p.pi_status === \"Draft\");\n\nlet code = \"200\";\nlet message = \"\";\nif (processedGr.length > 0) {\n  // Hard block: stock already received.\n  code = \"400\";\n  message = \"Has received/completed goods receiving. Cannot cancel.\";\n} else if (invoicedPi.length > 0) {\n  code = \"400\";\n  message = \"Purchase order is already invoiced. Cannot cancel.\";\n} else if (createdGr.length > 0 && cancelCreatedGR != 1) {\n  // Soft block: caller must confirm cascading the GR cancellation.\n  code = \"409\";\n  message = \"Has created goods receiving.\";\n}\n\nconst proceed = code === \"200\";\n\nreturn {\n  code: code,\n  message: message,\n  blocked: proceed ? 0 : 1,\n  grNos: createdGr.map((g) => g.gr_no).join(\", \"),\n  createdGrList: proceed ? createdGr.map((g) => ({ gr_id: g.id, gr_no: g.gr_no, po_id: g.po_id })) : [],\n  deleteGR: (draftGr.length > 0 && proceed) ? 1 : 0,\n  deletePI: (draftPi.length > 0 && proceed) ? 1 : 0,\n  draftGrIds: draftGr.map((g) => g.id),\n  draftPiIds: draftPi.map((p) => p.id)\n};"
         },
         "response_json": [
           { "key": "wf_code", "name": "code", "title": "code", "description": "", "bsonType": "string", "isExpand": false },
           { "key": "wf_message", "name": "message", "title": "message", "description": "", "bsonType": "string", "isExpand": false },
+          { "key": "wf_blocked", "name": "blocked", "title": "blocked", "description": "", "bsonType": "number", "isExpand": false },
+          { "key": "wf_grnos", "name": "grNos", "title": "grNos", "description": "", "bsonType": "string", "isExpand": false },
+          { "key": "wf_createdgrlist", "name": "createdGrList", "title": "createdGrList", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
           { "key": "wf_deletegr", "name": "deleteGR", "title": "deleteGR", "description": "", "bsonType": "number", "isExpand": false },
           { "key": "wf_deletepi", "name": "deletePI", "title": "deletePI", "description": "", "bsonType": "number", "isExpand": false },
           {
@@ -347,7 +350,7 @@
         },
         "expression": {
           "type": "javascript",
-          "code": "'{{node:code_classify.data.code}}' == '400'"
+          "code": "{{node:code_classify.data.blocked}} == 1"
         }
       },
       "blocks": [
@@ -384,6 +387,15 @@
                       "valueType": "field",
                       "value": "{{node:code_classify.data.message}}",
                       "valueLabel": ""
+                    },
+                    {
+                      "prop": "grNos",
+                      "propLabel": "grNos",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "value": "{{node:code_classify.data.grNos}}",
+                      "valueLabel": ""
                     }
                   ]
                 },
@@ -396,6 +408,135 @@
         {
           "type": "ifBlock",
           "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "loop_created_gr",
+      "type": "loop",
+      "data": {
+        "title": "Cascade Cancel Created GR",
+        "isValidator": true,
+        "nodeName": "Cascade Cancel Created GR",
+        "name": "Cascade Cancel Created GR",
+        "loopType": "Var",
+        "loopSeletSource": {
+          "datasource": {
+            "rules": {
+              "collectionId": "",
+              "list": [
+                {
+                  "id": 1783300000401,
+                  "parentId": 1783300000400,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            }
+          },
+          "auto_refresh": 1,
+          "auto_refresh_debounce": 100,
+          "options": [],
+          "props": {
+            "value": "",
+            "label": "",
+            "image": "",
+            "icon": "",
+            "explain": ""
+          },
+          "remote": false,
+          "remoteType": "datasource",
+          "limit_count": ""
+        },
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{node:code_classify.data.createdGrList}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "workflow_node_cancel_gr",
+          "type": "workflow-node",
+          "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "Cancel Created GR",
+            "isValidator": true,
+            "nodeName": "Cancel Created GR",
+            "name": "Cancel Created GR",
+            "workflow": {
+              "source": "GR_CANCEL_CREATED:Workflow:2075037036529123329",
+              "rules": {
+                "collectionId": "2075037036529123329",
+                "list": [
+                  {
+                    "id": 1783300000411,
+                    "parentId": 1783300000410,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                  }
+                ]
+              }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+              "list": [
+                {
+                  "prop": "action",
+                  "propLabel": "action",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "value",
+                  "valueTypeLabel": "",
+                  "value": "cancel",
+                  "valueLabel": ""
+                },
+                {
+                  "prop": "gr_id",
+                  "propLabel": "gr_id",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "field",
+                  "valueTypeLabel": "",
+                  "value": "{{node:loop_created_gr.gr_id}}",
+                  "valueLabel": ""
+                },
+                {
+                  "prop": "gr_no",
+                  "propLabel": "gr_no",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "field",
+                  "valueTypeLabel": "",
+                  "value": "{{node:loop_created_gr.gr_no}}",
+                  "valueLabel": ""
+                },
+                {
+                  "prop": "po_id",
+                  "propLabel": "po_id",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "field",
+                  "valueTypeLabel": "",
+                  "value": "{{node:loop_created_gr.po_id}}",
+                  "valueLabel": ""
+                }
+              ]
+            }
+          },
           "blocks": []
         }
       ]
@@ -857,6 +998,14 @@
       "title": "PO Plant ID",
       "description": "",
       "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_cancel_created_gr",
+      "name": "cancelCreatedGR",
+      "title": "Cancel Created GR",
+      "description": "1 = user confirmed cascading the Created GR cancellation",
+      "bsonType": "number",
       "isExpand": false
     }
   ],

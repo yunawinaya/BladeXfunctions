@@ -1,12 +1,13 @@
-const runPOCancelWorkflow = async (poId, poNo, poPlantId) => {
+const runPOCancelWorkflow = async (poItem, cancelCreatedGR) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
       "2075034104886788098",
       {
         action: "cancel",
-        po_id: poId,
-        po_no: poNo,
-        po_plant_id: poPlantId,
+        po_id: poItem.id,
+        po_no: poItem.purchase_order_no,
+        po_plant_id: poItem.po_plant?.id,
+        cancelCreatedGR: cancelCreatedGR,
       },
       (res) => {
         console.log("Purchase Order cancel workflow response:", res);
@@ -19,6 +20,15 @@ const runPOCancelWorkflow = async (poId, poNo, poPlantId) => {
     );
   });
 };
+
+// Escape interpolated values; only literal <br>/<strong> stay as HTML.
+const esc = (s) =>
+  String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 (async () => {
   try {
@@ -71,29 +81,36 @@ const runPOCancelWorkflow = async (poId, poNo, poPlantId) => {
       throw new Error("User cancelled the operation");
     });
 
+    const results = [];
+    const pushResult = (poItem, res) => {
+      const code = res?.data?.code;
+      if (code === "200" || code === 200) {
+        results.push({ po_no: poItem.purchase_order_no, success: true });
+      } else {
+        results.push({
+          po_no: poItem.purchase_order_no,
+          success: false,
+          error:
+            res?.data?.message ||
+            res?.data?.msg ||
+            "Failed to cancel purchase order",
+        });
+      }
+    };
+
+    // Round 1: cancel what we can. POs with a Created GR come back as 409
+    // (nothing changed) so the user can confirm cascading that cancellation.
     this.showLoading("Cancelling Purchase Order...");
 
-    const results = [];
+    const needGrConfirm = [];
     for (const poItem of purchaseOrderData) {
       try {
-        const workflowResult = await runPOCancelWorkflow(
-          poItem.id,
-          poItem.purchase_order_no,
-          poItem.po_plant?.id,
-        );
-
-        const resultCode = workflowResult?.data?.code;
-        if (resultCode === "200" || resultCode === 200) {
-          results.push({ po_no: poItem.purchase_order_no, success: true });
+        const res = await runPOCancelWorkflow(poItem, 0);
+        const code = res?.data?.code;
+        if (code === "409" || code === 409) {
+          needGrConfirm.push({ poItem, grNos: res?.data?.grNos || "" });
         } else {
-          results.push({
-            po_no: poItem.purchase_order_no,
-            success: false,
-            error:
-              workflowResult?.data?.message ||
-              workflowResult?.data?.msg ||
-              "Failed to cancel purchase order",
-          });
+          pushResult(poItem, res);
         }
       } catch (error) {
         results.push({
@@ -106,18 +123,57 @@ const runPOCancelWorkflow = async (poId, poNo, poPlantId) => {
 
     this.hideLoading();
 
+    // Round 2: ask once about every PO that has a Created GR.
+    if (needGrConfirm.length > 0) {
+      const info = needGrConfirm
+        .map(
+          (x) =>
+            `PO: ${esc(x.poItem.purchase_order_no)} &rarr; GR: ${esc(x.grNos)}`,
+        )
+        .join("<br>");
+
+      const answer = await this.$confirm(
+        `These purchase orders have created goods receiving. <br> <strong>Purchase Order &rarr; Goods Receiving:</strong> <br>${info} <br><br>Do you wish to cancel the goods receiving as well?`,
+        "Purchase Order with Created Goods Receiving",
+        {
+          confirmButtonText: "Cancel GR & PO",
+          cancelButtonText: "Skip These",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        },
+      ).catch(() => null);
+
+      if (answer === "confirm") {
+        this.showLoading("Cancelling Goods Receiving and Purchase Order...");
+        for (const { poItem } of needGrConfirm) {
+          try {
+            const res = await runPOCancelWorkflow(poItem, 1);
+            pushResult(poItem, res);
+          } catch (error) {
+            results.push({
+              po_no: poItem.purchase_order_no,
+              success: false,
+              error: error.message || "Failed to cancel purchase order",
+            });
+          }
+        }
+        this.hideLoading();
+      } else {
+        // Refused: block cancellation for those POs.
+        for (const { poItem } of needGrConfirm) {
+          results.push({
+            po_no: poItem.purchase_order_no,
+            success: false,
+            error: "Skipped: has created goods receiving.",
+          });
+        }
+      }
+    }
+
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
 
     if (failCount > 0) {
-      // Escape interpolated values; only the literal <br> stays as HTML.
-      const esc = (s) =>
-        String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#39;");
       const failedItems = results
         .filter((r) => !r.success)
         .map((r) => `${esc(r.po_no)}: ${esc(r.error)}`)
