@@ -174,9 +174,7 @@
         {
           "id": "ifBlock_qd7BzOTN",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "return_node_kgW57gdG",
@@ -219,9 +217,7 @@
         {
           "id": "ifBlock_T6HP4qKq",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -235,10 +231,7 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -262,9 +255,7 @@
         {
           "id": "ifBlock_00XgkI6z",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_node_VXxweMiJ",
@@ -335,9 +326,7 @@
                 {
                   "id": "ifBlock_Ffg36Mwg",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "return_node_mIiCS5xi",
@@ -380,9 +369,7 @@
                 {
                   "id": "ifBlock_jMnPji2K",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -392,9 +379,7 @@
         {
           "id": "ifBlock_G4xNTWIB",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -408,10 +393,7 @@
         "nodeName": "IF Completed",
         "name": "IF Completed",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -435,9 +417,7 @@
         {
           "id": "ifBlock_DNEJ0kWM",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "loop_C4YuLV2v",
@@ -901,18 +881,13 @@
                             }
                           ]
                         },
-                        "expression": {
-                          "type": "javascript",
-                          "code": ""
-                        }
+                        "expression": { "type": "javascript", "code": "" }
                       },
                       "blocks": [
                         {
                           "id": "ifBlock_zHEPbzix",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "return_node_ljfQ70jk",
@@ -955,9 +930,7 @@
                         {
                           "id": "ifBlock_LoWlIKEq",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -971,9 +944,7 @@
         {
           "id": "ifBlock_bI0SzYgD",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -987,10 +958,7 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -1014,9 +982,7 @@
         {
           "id": "ifBlock_n0sNVTQ5",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "if_MjaGOn2O",
@@ -1027,10 +993,7 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -1054,9 +1017,7 @@
                 {
                   "id": "ifBlock_u4YMhvkT",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_node_SPHzcj8Y",
@@ -1841,9 +1802,7 @@
                 {
                   "id": "ifBlock_IrKHTJYF",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "add_node_1p1Kdkhz",
@@ -3195,9 +3154,7 @@
                         {
                           "id": "ifBlock_uG4Tvq0t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "return_node_uzDMH1yp",
@@ -3238,9 +3195,7 @@
                             {
                               "id": "breakLoop_Fj3EyGF5",
                               "type": "breakLoop",
-                              "data": {
-                                "title": "退出循环"
-                              },
+                              "data": { "title": "退出循环" },
                               "blocks": []
                             }
                           ]
@@ -3248,9 +3203,7 @@
                         {
                           "id": "ifBlock_zEqGosek",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -3541,10 +3494,7 @@
                     "nodeName": "IF Error",
                     "name": "IF Error",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -3568,9 +3518,7 @@
                     {
                       "id": "if_block_AZbIrDpl",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "return_node_f3qT9zy5",
@@ -3613,9 +3561,7 @@
                     {
                       "id": "if_block_hkGUcsoO",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -4059,9 +4005,7 @@
         {
           "id": "ifBlock_vL8tB4Ar",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "if_ylcfy6U6",
@@ -4072,10 +4016,7 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -4099,9 +4040,7 @@
                 {
                   "id": "ifBlock_hdIm5HUv",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_node_v5trWrpH",
@@ -4852,9 +4791,7 @@
                 {
                   "id": "ifBlock_zJhcREOu",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "add_node_4Ui4zxnU",
@@ -5739,10 +5676,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
