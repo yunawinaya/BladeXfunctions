@@ -1,0 +1,556 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "if_is_delete",
+      "type": "if",
+      "data": {
+        "title": "Is Delete?",
+        "isValidator": true,
+        "nodeName": "Is Delete?",
+        "name": "Is Delete?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783400000001,
+              "parentId": 1783400000000,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:action}}' == 'delete'"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_delete",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1783400000011,
+                        "parentId": 1783400000010,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:gr_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete GR",
+                "isValidator": true,
+                "nodeName": "Delete GR",
+                "name": "Delete GR",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_deleted",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Deleted",
+                "isValidator": true,
+                "nodeName": "Return Deleted",
+                "name": "Return Deleted",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "200",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "Deleted",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "parallel_fetch",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Fetch",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_gr",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "GR Data",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783400000101,
+                  "parentId": 1783400000100,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "GR Data",
+            "name": "GR Data",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "get_gr",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1783400000111,
+                        "parentId": 1783400000110,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:gr_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get GR Data",
+                "isValidator": true,
+                "nodeName": "Get GR Data",
+                "name": "Get GR Data"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_po",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "PO List",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783400000121,
+                  "parentId": 1783400000120,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "PO List",
+            "name": "PO List",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_po",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Order:Table:1902776039445217282",
+                  "rules": {
+                    "collectionId": "1902776039445217282",
+                    "list": [
+                      {
+                        "id": 1783400000131,
+                        "parentId": 1783400000130,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:po_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get PO List",
+                "isValidator": true,
+                "nodeName": "Get PO List",
+                "name": "Get PO List"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_reversals",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Compute PO Reversals",
+        "isValidator": true,
+        "nodeName": "Compute PO Reversals",
+        "name": "Compute PO Reversals",
+        "script": {
+          "type": "javascript",
+          "code": "const grRaw = {{node:get_gr.data.data}};\nconst gr = Array.isArray(grRaw) ? grRaw[0] : grRaw;\nconst poList = {{node:search_po.data.data}} || [];\nconst grLines = (gr && gr.table_gr) ? gr.table_gr : [];\nconst grNo = {{workflowparams:gr_no}} || \"\";\n\n// Total qty to reverse per PO line item.\nconst reversals = {};\nfor (const line of grLines) {\n  // Split-parent rows sum their children; counting them would double-reverse.\n  if (line.is_split === \"Yes\" && line.parent_or_child === \"Parent\") {\n    continue;\n  }\n  const lineId = line.po_line_item_id;\n  reversals[lineId] = (reversals[lineId] || 0) + parseFloat(line.received_qty || 0);\n}\n\nconst poUpdates = poList.map((po) => {\n  const items = (po.table_po || []).map((l) => {\n    const rev = reversals[l.id] || 0;\n    if (rev > 0) {\n      const cur = parseFloat(l.created_received_qty || 0);\n      // toFixed STRING: raw float output breaks the DB multipleOf check.\n      return Object.assign({}, l, { created_received_qty: Math.max(0, cur - rev).toFixed(3) });\n    }\n    return Object.assign({}, l);\n  });\n\n  const hasRemainingCreated = items.some((i) => (parseFloat(i.created_received_qty) || 0) > 0);\n  const allCompleted = items.every((i) => (parseFloat(i.received_qty) || 0) >= (parseFloat(i.quantity) || 0));\n  const anyProcessing = items.some((i) => (parseFloat(i.received_qty) || 0) > 0 && (parseFloat(i.received_qty) || 0) < (parseFloat(i.quantity) || 0));\n\n  let grStatus;\n  if (hasRemainingCreated) {\n    grStatus = \"Created\";\n  } else if (allCompleted) {\n    grStatus = \"Fully Received\";\n  } else if (anyProcessing) {\n    grStatus = \"Partially Received\";\n  } else {\n    grStatus = \"Cancelled\";\n  }\n\n  return { po_id: po.id, table_po: items, gr_status: grStatus };\n});\n\nreturn {\n  poUpdates: poUpdates,\n  cancelledGrNo: grNo.endsWith(\"-Cancelled\") ? grNo : grNo + \"-Cancelled\"\n};"
+        },
+        "response_json": [
+          {
+            "key": "wf_poupdates",
+            "name": "poUpdates",
+            "title": "poUpdates",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "wf_cancelledgrno",
+            "name": "cancelledGrNo",
+            "title": "cancelledGrNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "loop_po",
+      "type": "loop",
+      "data": {
+        "title": "Loop PO Updates",
+        "isValidator": true,
+        "nodeName": "Loop PO Updates",
+        "name": "Loop PO Updates",
+        "loopType": "Var",
+        "loopSeletSource": {
+          "datasource": {
+            "rules": {
+              "collectionId": "",
+              "list": [
+                {
+                  "id": 1783400000201,
+                  "parentId": 1783400000200,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            }
+          },
+          "auto_refresh": 1,
+          "auto_refresh_debounce": 100,
+          "options": [],
+          "props": {
+            "value": "",
+            "label": "",
+            "image": "",
+            "icon": "",
+            "explain": ""
+          },
+          "remote": false,
+          "remoteType": "datasource",
+          "limit_count": ""
+        },
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{node:code_reversals.data.poUpdates}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "update_node_po",
+          "type": "update-node",
+          "data": {
+            "table_id": {
+              "source": "Purchase Order:Table:1902776039445217282",
+              "rules": {
+                "collectionId": "1902776039445217282",
+                "list": [
+                  {
+                    "id": 1783400000211,
+                    "parentId": 1783400000210,
+                    "isTop": true,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:loop_po.po_id}}",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  }
+                ]
+              }
+            },
+            "fields": [],
+            "condition": {},
+            "title": "Reverse PO Quantities",
+            "isValidator": true,
+            "nodeName": "Reverse PO Quantities",
+            "name": "Reverse PO Quantities",
+            "props": {
+              "modelName": "",
+              "list": [
+                {
+                  "prop": "table_po",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_po.table_po}}",
+                  "valueLabel": "",
+                  "propLabel": "Purchase Order Table"
+                },
+                {
+                  "prop": "gr_status",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_po.gr_status}}",
+                  "valueLabel": "",
+                  "propLabel": "GR Status"
+                }
+              ]
+            }
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_gr",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Receiving:Table:1901845517592285186",
+          "rules": {
+            "collectionId": "1901845517592285186",
+            "list": [
+              {
+                "id": 1783400000301,
+                "parentId": 1783400000300,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:gr_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cancel GR",
+        "isValidator": true,
+        "nodeName": "Cancel GR",
+        "name": "Cancel GR",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "gr_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": "",
+              "propLabel": "GR Status"
+            },
+            {
+              "prop": "gr_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_reversals.data.cancelledGrNo}}",
+              "valueLabel": "",
+              "propLabel": "Goods Receiving Number"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_success",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Success",
+        "isValidator": true,
+        "nodeName": "Return Success",
+        "name": "Return Success",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "wf_req_action",
+      "name": "action",
+      "title": "Action",
+      "description": "cancel | delete",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_gr_id",
+      "name": "gr_id",
+      "title": "GR ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_gr_no",
+      "name": "gr_no",
+      "title": "GR Number",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_id",
+      "name": "po_id",
+      "title": "PO ID(s)",
+      "description": "single id or array of ids",
+      "bsonType": "any",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}
