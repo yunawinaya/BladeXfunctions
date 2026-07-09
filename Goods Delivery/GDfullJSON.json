@@ -9360,7 +9360,7 @@
                   "options": {
                     "defaultValue": "",
                     "multiple": false,
-                    "disabled": true,
+                    "disabled": "{{!arguments[0].row.material_id || !arguments[0].row.good_delivery_uom_id}}",
                     "clearable": false,
                     "placeholder": "",
                     "required": false,
@@ -9385,12 +9385,12 @@
                     "remote": true,
                     "remoteType": "innerdatasource",
                     "remoteOption": "option_zhg1uf0k",
-                    "filterable": false,
+                    "filterable": true,
                     "pagingEnabled": true,
                     "remoteOptions": [],
                     "props": {
-                      "value": "id",
-                      "label": "uom_name",
+                      "value": "packing_uom_id",
+                      "label": "packing_uom_id.uom_name",
                       "image": "",
                       "icon": "",
                       "explain": "",
@@ -9409,22 +9409,52 @@
                     "subform": false,
                     "datasource": {
                       "rules": {
-                        "collectionId": "1901805375573839874",
+                        "collectionId": "2062773123712987137",
                         "list": [
                           {
-                            "id": 1723795236686,
-                            "parentId": 1723795236685,
+                            "id": 1762242790410,
+                            "parentId": 1762242790409,
                             "isTop": true,
+                            "type": "branch",
+                            "operator": "all",
                             "prop": "",
-                            "operator": "",
                             "valueType": "",
                             "value": "",
-                            "type": "leaf",
-                            "level": 1
+                            "level": 1,
+                            "children": [
+                              {
+                                "id": 1762242790411,
+                                "parentId": 1762242790410,
+                                "isTop": false,
+                                "prop": "Item_id.id",
+                                "operator": "numberEqual",
+                                "valueType": "formula",
+                                "value": "{{value:table_gd}}.map(item => item.material_id)[arguments[0].rowIndex]",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              },
+                              {
+                                "id": 1762242790412,
+                                "parentId": 1762242790410,
+                                "isTop": false,
+                                "prop": "uom_id",
+                                "operator": "equal",
+                                "valueType": "formula",
+                                "value": "{{value:table_gd}}.map(item => item.good_delivery_uom_id)[arguments[0].rowIndex]",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "UOM",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
                           }
                         ]
                       },
-                      "source": "UOM:Table:1901805375573839874"
+                      "source": "Item_vabbbwt2_sub:Table:2062773123712987137"
                     },
                     "auto_refresh": 0,
                     "auto_refresh_debounce": 100,
@@ -9440,7 +9470,7 @@
                   },
                   "events": {
                     "onReady": "",
-                    "onChange": "",
+                    "onChange": "GD_PACKING_UOM_HANDLER_KEY",
                     "onFocus": "",
                     "onBlur": ""
                   },
