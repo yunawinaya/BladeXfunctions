@@ -110,5 +110,7 @@ const getBaseQty = (table_uom_conversion, uom) => {
         });
       }
     }
+
+    await this.triggerEvent("onBlur_quantity", arguments[0]);
   }
 })();
