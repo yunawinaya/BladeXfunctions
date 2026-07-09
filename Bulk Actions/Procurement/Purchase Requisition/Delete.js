@@ -3,7 +3,7 @@
     const unCompletedListID = "custom_6scpe4ng";
     const allListID = "custom_xa2fu9as";
     const tabUncompletedElement = document.getElementById(
-      "tab-tab_uncompleted"
+      "tab-tab_uncompleted",
     );
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
@@ -13,7 +13,7 @@
     let selectedRecords;
 
     selectedRecords = this.getComponent(
-      activeTab === "Uncompleted" ? unCompletedListID : allListID
+      activeTab === "Uncompleted" ? unCompletedListID : allListID,
     )?.$refs.crud.tableSelect;
 
     console.log("selectedRecords", selectedRecords);
@@ -23,20 +23,20 @@
       const purchaseRequisitionIds = selectedRecords
         .filter(
           (item) =>
-            item.preq_status === "Draft" || item.preq_status === "Cancelled"
+            item.preq_status === "Draft" || item.preq_status === "Cancelled",
         )
         .map((item) => item.id);
       console.log("purchaseRequisitionIds", purchaseRequisitionIds);
       if (purchaseRequisitionIds.length === 0) {
         this.$message.error(
-          "Please select at least one draft or cancelled purchase requisition."
+          "Please select at least one draft or cancelled purchase requisition.",
         );
         return;
       }
       const purchaseRequisitionNumbers = selectedRecords
         .filter(
           (item) =>
-            item.preq_status === "Draft" || item.preq_status === "Cancelled"
+            item.preq_status === "Draft" || item.preq_status === "Cancelled",
         )
         .map((item) => item.pr_no);
 
@@ -44,7 +44,7 @@
         `You've selected ${
           purchaseRequisitionNumbers.length
         } purchase requisition(s) to delete. <br> <strong>Purchase Requisition Numbers:</strong> <br>${purchaseRequisitionNumbers.join(
-          ", "
+          ", ",
         )} <br>Do you want to proceed?`,
         "Purchase Requisition Deletion",
         {
@@ -52,7 +52,7 @@
           cancelButtonText: "Cancel",
           type: "warning",
           dangerouslyUseHTMLString: true,
-        }
+        },
       ).catch(() => {
         console.log("User clicked Cancel or closed the dialog");
         throw new Error();
