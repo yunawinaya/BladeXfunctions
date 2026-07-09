@@ -144,7 +144,7 @@ const disabledField = async (status) => {
       "link_billing_address",
       "link_shipping_address",
       "button_save_as_draft",
-      "button_save_as_issue",
+      "button_save_as_created",
     ]);
   }
 };
@@ -211,7 +211,7 @@ const checkAccIntegrationType = async (organizationId) => {
           "link_billing_address",
           "link_shipping_address",
           "button_save_as_draft",
-          "button_save_as_issue",
+          "button_save_as_created",
         ]);
 
         break;
