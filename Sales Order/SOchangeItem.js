@@ -209,6 +209,18 @@ const fetchUnrestrictedQty = async (
 
   if (arguments[0].fieldModel && !soItem) {
     await resetData(rowIndex);
+    let defaultSalesDetail =
+      arguments[0].fieldModel.item.table_uom_conversion.find(
+        (uom) => uom.sales_default_uom === 1,
+      );
+
+    if (!defaultSalesDetail) {
+      defaultSalesDetail =
+        arguments[0].fieldModel.item.table_uom_conversion.find(
+          (uom) => uom.alt_uom_id === arguments[0].fieldModel.item.based_uom,
+        );
+    }
+
     await this.runWorkflow(
       "2067818102244966401",
       {
@@ -219,9 +231,7 @@ const fetchUnrestrictedQty = async (
           {
             item_id: arguments[0].value,
             line_index: rowIndex,
-            uom_id:
-              arguments[0].fieldModel.item.sales_default_uom ||
-              arguments[0].fieldModel.item.based_uom,
+            uom_id: defaultSalesDetail.alt_uom_id,
           },
         ],
       },
@@ -268,10 +278,7 @@ const fetchUnrestrictedQty = async (
       material_desc,
       material_name,
       based_uom,
-      sales_default_uom,
-      sales_unit_price,
       table_uom_conversion,
-      mat_sales_tax_id,
       item_batch_management,
       serial_number_management,
       stock_control,
@@ -293,46 +300,28 @@ const fetchUnrestrictedQty = async (
       organizationId,
     );
 
-    if (sales_default_uom) {
-      const finalQty = await convertBaseToAlt(
-        initialQty,
-        table_uom_conversion,
-        sales_default_uom,
-      );
+    const finalQty = await convertBaseToAlt(
+      initialQty,
+      table_uom_conversion,
+      defaultSalesDetail.alt_uom_id,
+    );
 
-      this.setData({
-        [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
-          finalQty.toFixed(4),
-        ),
-        [`table_so.${rowIndex}.base_unrestricted_qty`]: parseFloat(
-          initialQty.toFixed(4),
-        ),
-      });
-    } else {
-      const finalQty = await convertBaseToAlt(
-        initialQty,
-        table_uom_conversion,
-        based_uom,
-      );
-
-      this.setData({
-        [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
-          finalQty.toFixed(4),
-        ),
-        [`table_so.${rowIndex}.base_unrestricted_qty`]: parseFloat(
-          initialQty.toFixed(4),
-        ),
-      });
-    }
+    this.setData({
+      [`table_so.${rowIndex}.unrestricted_qty`]: parseFloat(
+        finalQty.toFixed(4),
+      ),
+      [`table_so.${rowIndex}.base_unrestricted_qty`]: parseFloat(
+        initialQty.toFixed(4),
+      ),
+    });
 
     // setData above does not trigger SOonChangeUOM, so seed the packing + net
     // weight fields for the chosen UOM here (so_quantity was reset to 0).
-    const chosenUom = sales_default_uom || based_uom;
     this.setData(
       buildPackingWeightData(
         rowIndex,
         arguments[0].fieldModel.item,
-        chosenUom,
+        defaultSalesDetail.alt_uom_id,
         0,
       ),
     );
