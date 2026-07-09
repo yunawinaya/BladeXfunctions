@@ -4445,16 +4445,30 @@
                     "hidden": "{{arguments[0].row.alt_uom_id === {{value:based_uom}}}}",
                     "disabled": false,
                     "ignoreFormDisabled": false
+                  },
+                  {
+                    "title": "Info",
+                    "permission": "",
+                    "type": "custom",
+                    "styleType": "Link",
+                    "icon": "info-circle",
+                    "events": [
+                      {
+                        "key": "9ab8leiu",
+                        "name": "onTableUomConversionfunc_9ab8leiu"
+                      }
+                    ],
+                    "hidden": "",
+                    "disabled": "",
+                    "ignoreFormDisabled": true
                   }
                 ],
-                "collapse_all": 0,
+                "collapse_all": 1,
                 "rowSelectionType": "None",
                 "batchOperate": [],
-                "resizable": 0,
+                "resizable": 1,
                 "emptyTip": "",
                 "tableHeightMode": "fixed",
-                "tableFixedHeight": null,
-                "tableMaxHeight": null,
                 "rowHeightType": "auto",
                 "inlineInsert": true,
                 "hideIndex": false,
@@ -4528,7 +4542,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "dataBind": true,
                     "precision": 6,
                     "customProps": {
@@ -4892,7 +4906,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "dataBind": true,
                     "customProps": {},
                     "tip": "",
@@ -5071,7 +5085,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -5140,7 +5154,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -5214,7 +5228,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -5288,7 +5302,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -5401,7 +5415,7 @@
                     "customClass": "",
                     "labelWidth": 70,
                     "isLabelWidth": true,
-                    "hidden": false,
+                    "hidden": true,
                     "dataBind": true,
                     "customProps": {},
                     "tip": "",
@@ -5625,7 +5639,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "dataBind": true,
                     "customProps": {},
                     "tip": "",
@@ -5732,7 +5746,7 @@
                     "customClass": "",
                     "labelWidth": 200,
                     "isLabelWidth": true,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -5845,7 +5859,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -5906,6 +5920,450 @@
                 },
                 {
                   "version": "1.0.0",
+                  "name": "Price 1",
+                  "el": "su-fm-enhanced-number-input",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 1,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "disabled": false,
+                    "dataBind": true,
+                    "required": false,
+                    "validator": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}",
+                    "hideLabel": false,
+                    "placeholder": "",
+                    "min": null,
+                    "max": null,
+                    "controls": false,
+                    "step": 1,
+                    "precision": 4,
+                    "clearable": true,
+                    "readonly": false,
+                    "customProps": {
+                      "valueType": "int",
+                      "numberType": "number",
+                      "showPrefix": false,
+                      "prefixText": "",
+                      "showSuffix": false,
+                      "suffixText": "",
+                      "percentageType": "percent",
+                      "showPercentSymbol": true,
+                      "currency": "CNY",
+                      "customCurrencySymbol": "",
+                      "showThousandSeparator": true,
+                      "showCurrencySymbol": true,
+                      "showThousandSeparatorForNumber": false,
+                      "allowNegative": false,
+                      "autoFormat": true
+                    },
+                    "remoteFunc": "func_dtfy5ddm",
+                    "remoteOption": "option_dtfy5ddm",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "validatorCheck": true
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "source": "system",
+                  "type": "custom",
+                  "novalid": {},
+                  "key": "9qf6kngy",
+                  "model": "sales_price_1",
+                  "rules": [
+                    {
+                      "func": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}"
+                    }
+                  ]
+                },
+                {
+                  "version": "1.0.0",
+                  "name": "Price 2",
+                  "el": "su-fm-enhanced-number-input",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 1,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "disabled": false,
+                    "dataBind": true,
+                    "required": false,
+                    "validator": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}",
+                    "hideLabel": false,
+                    "placeholder": "",
+                    "min": null,
+                    "max": null,
+                    "controls": false,
+                    "step": 1,
+                    "precision": 4,
+                    "clearable": true,
+                    "readonly": false,
+                    "customProps": {
+                      "valueType": "int",
+                      "numberType": "number",
+                      "showPrefix": false,
+                      "prefixText": "",
+                      "showSuffix": false,
+                      "suffixText": "",
+                      "percentageType": "percent",
+                      "showPercentSymbol": true,
+                      "currency": "CNY",
+                      "customCurrencySymbol": "",
+                      "showThousandSeparator": true,
+                      "showCurrencySymbol": true,
+                      "showThousandSeparatorForNumber": false,
+                      "allowNegative": false,
+                      "autoFormat": true
+                    },
+                    "remoteFunc": "func_dtfy5ddm",
+                    "remoteOption": "option_dtfy5ddm",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "validatorCheck": true
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "source": "system",
+                  "type": "custom",
+                  "novalid": {},
+                  "key": "bjd83eyr",
+                  "model": "sales_price_2",
+                  "rules": [
+                    {
+                      "func": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}"
+                    }
+                  ]
+                },
+                {
+                  "version": "1.0.0",
+                  "name": "Price 3",
+                  "el": "su-fm-enhanced-number-input",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 1,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "disabled": false,
+                    "dataBind": true,
+                    "required": false,
+                    "validator": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}",
+                    "hideLabel": false,
+                    "placeholder": "",
+                    "min": null,
+                    "max": null,
+                    "controls": false,
+                    "step": 1,
+                    "precision": 4,
+                    "clearable": true,
+                    "readonly": false,
+                    "customProps": {
+                      "valueType": "int",
+                      "numberType": "number",
+                      "showPrefix": false,
+                      "prefixText": "",
+                      "showSuffix": false,
+                      "suffixText": "",
+                      "percentageType": "percent",
+                      "showPercentSymbol": true,
+                      "currency": "CNY",
+                      "customCurrencySymbol": "",
+                      "showThousandSeparator": true,
+                      "showCurrencySymbol": true,
+                      "showThousandSeparatorForNumber": false,
+                      "allowNegative": false,
+                      "autoFormat": true
+                    },
+                    "remoteFunc": "func_dtfy5ddm",
+                    "remoteOption": "option_dtfy5ddm",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "validatorCheck": true
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "source": "system",
+                  "type": "custom",
+                  "novalid": {},
+                  "key": "5vozkm6h",
+                  "model": "sales_price_3",
+                  "rules": [
+                    {
+                      "func": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}"
+                    }
+                  ]
+                },
+                {
+                  "version": "1.0.0",
+                  "name": "Price 4",
+                  "el": "su-fm-enhanced-number-input",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 1,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "disabled": false,
+                    "dataBind": true,
+                    "required": false,
+                    "validator": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}",
+                    "hideLabel": false,
+                    "placeholder": "",
+                    "min": null,
+                    "max": null,
+                    "controls": false,
+                    "step": 1,
+                    "precision": 4,
+                    "clearable": true,
+                    "readonly": false,
+                    "customProps": {
+                      "valueType": "int",
+                      "numberType": "number",
+                      "showPrefix": false,
+                      "prefixText": "",
+                      "showSuffix": false,
+                      "suffixText": "",
+                      "percentageType": "percent",
+                      "showPercentSymbol": true,
+                      "currency": "CNY",
+                      "customCurrencySymbol": "",
+                      "showThousandSeparator": true,
+                      "showCurrencySymbol": true,
+                      "showThousandSeparatorForNumber": false,
+                      "allowNegative": false,
+                      "autoFormat": true
+                    },
+                    "remoteFunc": "func_dtfy5ddm",
+                    "remoteOption": "option_dtfy5ddm",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "validatorCheck": true
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "source": "system",
+                  "type": "custom",
+                  "novalid": {},
+                  "key": "1prwk7s9",
+                  "model": "sales_price_4",
+                  "rules": [
+                    {
+                      "func": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}"
+                    }
+                  ]
+                },
+                {
+                  "version": "1.0.0",
+                  "name": "Price 5",
+                  "el": "su-fm-enhanced-number-input",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 1,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "disabled": false,
+                    "dataBind": true,
+                    "required": false,
+                    "validator": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}",
+                    "hideLabel": false,
+                    "placeholder": "",
+                    "min": null,
+                    "max": null,
+                    "controls": false,
+                    "step": 1,
+                    "precision": 4,
+                    "clearable": true,
+                    "readonly": false,
+                    "customProps": {
+                      "valueType": "int",
+                      "numberType": "number",
+                      "showPrefix": false,
+                      "prefixText": "",
+                      "showSuffix": false,
+                      "suffixText": "",
+                      "percentageType": "percent",
+                      "showPercentSymbol": true,
+                      "currency": "CNY",
+                      "customCurrencySymbol": "",
+                      "showThousandSeparator": true,
+                      "showCurrencySymbol": true,
+                      "showThousandSeparatorForNumber": false,
+                      "allowNegative": false,
+                      "autoFormat": true
+                    },
+                    "remoteFunc": "func_dtfy5ddm",
+                    "remoteOption": "option_dtfy5ddm",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "validatorCheck": true
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "source": "system",
+                  "type": "custom",
+                  "novalid": {},
+                  "key": "229x05q5",
+                  "model": "sales_price_5",
+                  "rules": [
+                    {
+                      "func": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}"
+                    }
+                  ]
+                },
+                {
+                  "version": "1.0.0",
+                  "name": "Price 6",
+                  "el": "su-fm-enhanced-number-input",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 1,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "disabled": false,
+                    "dataBind": true,
+                    "required": false,
+                    "validator": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}",
+                    "hideLabel": false,
+                    "placeholder": "",
+                    "min": null,
+                    "max": null,
+                    "controls": false,
+                    "step": 1,
+                    "precision": 4,
+                    "clearable": true,
+                    "readonly": false,
+                    "customProps": {
+                      "valueType": "int",
+                      "numberType": "number",
+                      "showPrefix": false,
+                      "prefixText": "",
+                      "showSuffix": false,
+                      "suffixText": "",
+                      "percentageType": "percent",
+                      "showPercentSymbol": true,
+                      "currency": "CNY",
+                      "customCurrencySymbol": "",
+                      "showThousandSeparator": true,
+                      "showCurrencySymbol": true,
+                      "showThousandSeparatorForNumber": false,
+                      "allowNegative": false,
+                      "autoFormat": true
+                    },
+                    "remoteFunc": "func_dtfy5ddm",
+                    "remoteOption": "option_dtfy5ddm",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "validatorCheck": true
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "source": "system",
+                  "type": "custom",
+                  "novalid": {},
+                  "key": "g8xfpraa",
+                  "model": "sales_price_6",
+                  "rules": [
+                    {
+                      "func": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\nconst maxUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_max_price`),\n);\nconst minUnitPrice = parseFloat(\n  this.getValue(`${fieldPrefix}.sales_min_price`),\n);\nconst unitPrice = parseFloat(value);\n\nif (maxUnitPrice > 0 && unitPrice > maxUnitPrice) {\n  callback(\"Unit price cannot be greater than maximum unit price.\");\n} else if (minUnitPrice > 0 && unitPrice < minUnitPrice) {\n  callback(\"Unit price cannot be less than minimum unit price.\");\n} else {\n  callback();\n}"
+                    }
+                  ]
+                },
+                {
+                  "version": "1.0.0",
                   "name": "Sales Min Price",
                   "el": "su-fm-enhanced-number-input",
                   "mainIcon": "数字",
@@ -5919,7 +6377,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -5993,7 +6451,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -6106,7 +6564,7 @@
                     "customClass": "",
                     "labelWidth": 70,
                     "isLabelWidth": true,
-                    "hidden": false,
+                    "hidden": true,
                     "dataBind": true,
                     "customProps": {},
                     "tip": "",
@@ -6330,7 +6788,7 @@
                     "customClass": "",
                     "labelWidth": 100,
                     "isLabelWidth": false,
-                    "hidden": false,
+                    "hidden": true,
                     "dataBind": true,
                     "customProps": {},
                     "tip": "",
@@ -6437,7 +6895,7 @@
                     "customClass": "",
                     "labelWidth": 200,
                     "isLabelWidth": true,
-                    "hidden": false,
+                    "hidden": true,
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
@@ -6486,6 +6944,354 @@
                   "novalid": {},
                   "key": "eupyov9f",
                   "model": "over_delivery_tolerance",
+                  "rules": []
+                },
+                {
+                  "name": "Sales Tariff",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": false,
+                    "clearable": true,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_16wunqfb",
+                    "filterable": true,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "tariff_code",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remoteFunc": "func_16wunqfb",
+                    "customClass": "",
+                    "labelWidth": 80,
+                    "isLabelWidth": true,
+                    "hidden": true,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": false,
+                    "subform": false,
+                    "paging_enabled": 1,
+                    "paging_way": "Pagination",
+                    "page_size": 10,
+                    "more_fields": [],
+                    "datasource": {
+                      "source": "Tariff:Table:1902006834999447554",
+                      "rules": {
+                        "collectionId": "1902006834999447554",
+                        "list": [
+                          {
+                            "id": 1746168979552,
+                            "parentId": 1746168979553,
+                            "isTop": true,
+                            "type": "branch",
+                            "operator": "any",
+                            "prop": "",
+                            "valueType": "",
+                            "value": "",
+                            "level": 1,
+                            "children": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1746168979552,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{system:deptIds}}",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "字段"
+                              },
+                              {
+                                "id": 1746168979554,
+                                "parentId": 1746168979552,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{global:deptParentId}}",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "字段"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "url_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "request_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": []
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "8f0y96wa",
+                  "model": "sales_tariff_id",
+                  "rules": []
+                },
+                {
+                  "name": "Purchase Tariff",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": false,
+                    "clearable": true,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_16wunqfb",
+                    "filterable": true,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "tariff_code",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remoteFunc": "func_16wunqfb",
+                    "customClass": "",
+                    "labelWidth": 80,
+                    "isLabelWidth": true,
+                    "hidden": true,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": false,
+                    "subform": false,
+                    "paging_enabled": 1,
+                    "paging_way": "Pagination",
+                    "page_size": 10,
+                    "more_fields": [],
+                    "datasource": {
+                      "source": "Tariff:Table:1902006834999447554",
+                      "rules": {
+                        "collectionId": "1902006834999447554",
+                        "list": [
+                          {
+                            "id": 1746168979552,
+                            "parentId": 1746168979553,
+                            "isTop": true,
+                            "type": "branch",
+                            "operator": "any",
+                            "prop": "",
+                            "valueType": "",
+                            "value": "",
+                            "level": 1,
+                            "children": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1746168979552,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{system:deptIds}}",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "字段"
+                              },
+                              {
+                                "id": 1746168979554,
+                                "parentId": 1746168979552,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{global:deptParentId}}",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "字段"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "url_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "request_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": []
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "wwdyid4q",
+                  "model": "purchase_tariff_id",
                   "rules": []
                 }
               ],
@@ -8121,7 +8927,7 @@
                         "validatorCheck": false,
                         "validator": "",
                         "paging": true,
-                        "pageSize": 5,
+                        "pageSize": 10,
                         "autoPaging": false,
                         "autoPageSize": 10,
                         "autoLoadDelay": 500,
@@ -8130,7 +8936,7 @@
                         "generateSubTable": true,
                         "showControl": true,
                         "virtualTable": true,
-                        "sortable": true,
+                        "sortable": false,
                         "tip": "",
                         "remoteFunc": "func_f3puwdh7",
                         "remoteOption": "option_f3puwdh7",
@@ -8170,8 +8976,6 @@
                         "resizable": 0,
                         "emptyTip": "",
                         "tableHeightMode": "fixed",
-                        "tableFixedHeight": null,
-                        "tableMaxHeight": null,
                         "rowHeightType": "auto",
                         "inlineInsert": true,
                         "hideIndex": false,
@@ -8287,18 +9091,45 @@
                                 "collectionId": "1978306398108983298",
                                 "list": [
                                   {
-                                    "id": 1723795236686,
-                                    "parentId": 1723795236685,
+                                    "id": 1783421075572,
+                                    "parentId": 1783421075573,
                                     "isTop": true,
-                                    "prop": "price_tag_type",
-                                    "operator": "equal",
-                                    "valueType": "value",
-                                    "value": "Supplier",
-                                    "type": "leaf",
+                                    "prop": "",
+                                    "operator": "all",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "branch",
                                     "level": 1,
-                                    "propLabel": "Type",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
+                                    "children": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1783421075572,
+                                        "isTop": false,
+                                        "prop": "price_tag_type",
+                                        "operator": "equal",
+                                        "valueType": "value",
+                                        "value": "Supplier",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Type",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      },
+                                      {
+                                        "id": 1783421075574,
+                                        "parentId": 1783421075572,
+                                        "isTop": false,
+                                        "prop": "organization_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{global:firstLvDeptId}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Organization ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
                                   }
                                 ]
                               },
@@ -8716,7 +9547,7 @@
                         "validatorCheck": false,
                         "validator": "",
                         "paging": true,
-                        "pageSize": 5,
+                        "pageSize": 10,
                         "autoPaging": false,
                         "autoPageSize": 10,
                         "autoLoadDelay": 500,
@@ -8725,7 +9556,7 @@
                         "generateSubTable": true,
                         "showControl": true,
                         "virtualTable": true,
-                        "sortable": true,
+                        "sortable": false,
                         "tip": "",
                         "remoteFunc": "func_qd8nxw32",
                         "remoteOption": "option_qd8nxw32",
@@ -8765,8 +9596,6 @@
                         "resizable": 0,
                         "emptyTip": "",
                         "tableHeightMode": "fixed",
-                        "tableFixedHeight": null,
-                        "tableMaxHeight": null,
                         "rowHeightType": "auto",
                         "inlineInsert": true,
                         "hideIndex": false,
@@ -8887,18 +9716,45 @@
                                 "collectionId": "1978306398108983298",
                                 "list": [
                                   {
-                                    "id": 1723795236686,
-                                    "parentId": 1723795236685,
+                                    "id": 1783420702311,
+                                    "parentId": 1783420702312,
                                     "isTop": true,
-                                    "prop": "price_tag_type",
-                                    "operator": "equal",
-                                    "valueType": "value",
-                                    "value": "Supplier",
-                                    "type": "leaf",
+                                    "prop": "",
+                                    "operator": "all",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "branch",
                                     "level": 1,
-                                    "propLabel": "Type",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
+                                    "children": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1783420702311,
+                                        "isTop": false,
+                                        "prop": "price_tag_type",
+                                        "operator": "equal",
+                                        "valueType": "value",
+                                        "value": "Supplier",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Type",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      },
+                                      {
+                                        "id": 1783420702313,
+                                        "parentId": 1783420702311,
+                                        "isTop": false,
+                                        "prop": "organization_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{global:firstLvDeptId}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Organization ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
                                   }
                                 ]
                               },
@@ -10159,7 +11015,7 @@
                         "generateSubTable": true,
                         "showControl": true,
                         "virtualTable": false,
-                        "sortable": true,
+                        "sortable": false,
                         "useVTable": true,
                         "tip": "",
                         "remoteFunc": "func_xerztv0n",
@@ -10191,8 +11047,6 @@
                         "resizable": 0,
                         "emptyTip": "",
                         "tableHeightMode": "fixed",
-                        "tableFixedHeight": null,
-                        "tableMaxHeight": null,
                         "rowHeightType": "auto",
                         "inlineInsert": true,
                         "hideIndex": false,
@@ -12844,7 +13698,8 @@
                                       "cascade": "",
                                       "children": "",
                                       "image": "",
-                                      "icon": ""
+                                      "icon": "",
+                                      "explain": ""
                                     },
                                     "remoteFunc": "func_16wunqfb",
                                     "customClass": "",
@@ -12949,7 +13804,16 @@
                                           "valueLabel": ""
                                         }
                                       ]
-                                    }
+                                    },
+                                    "auto_refresh": 0,
+                                    "auto_refresh_debounce": 100,
+                                    "select-card_n7ge7fmb": [],
+                                    "left": 3,
+                                    "right": 4,
+                                    "pad": "*",
+                                    "desensitization_pattern": "",
+                                    "desensitization_replace": "",
+                                    "sorts": []
                                   },
                                   "events": {
                                     "onChange": "",
@@ -13145,18 +14009,45 @@
                                 "collectionId": "1978306398108983298",
                                 "list": [
                                   {
-                                    "id": 1723795236686,
-                                    "parentId": 1723795236685,
+                                    "id": 1783421105012,
+                                    "parentId": 1783421105013,
                                     "isTop": true,
-                                    "prop": "price_tag_type",
-                                    "operator": "equal",
-                                    "valueType": "value",
-                                    "value": "Customer",
-                                    "type": "leaf",
+                                    "prop": "",
+                                    "operator": "all",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "branch",
                                     "level": 1,
-                                    "propLabel": "Type",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
+                                    "children": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1783421105012,
+                                        "isTop": false,
+                                        "prop": "price_tag_type",
+                                        "operator": "equal",
+                                        "valueType": "value",
+                                        "value": "Customer",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Type",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      },
+                                      {
+                                        "id": 1783421105014,
+                                        "parentId": 1783421105012,
+                                        "isTop": false,
+                                        "prop": "organization_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{global:firstLvDeptId}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Organization ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
                                   }
                                 ]
                               },
@@ -13664,18 +14555,45 @@
                                 "collectionId": "1978306398108983298",
                                 "list": [
                                   {
-                                    "id": 1723795236686,
-                                    "parentId": 1723795236685,
+                                    "id": 1783421116012,
+                                    "parentId": 1783421116013,
                                     "isTop": true,
-                                    "prop": "price_tag_type",
-                                    "operator": "equal",
-                                    "valueType": "value",
-                                    "value": "Customer",
-                                    "type": "leaf",
+                                    "prop": "",
+                                    "operator": "all",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "branch",
                                     "level": 1,
-                                    "propLabel": "Type",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Equal"
+                                    "children": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1783421116012,
+                                        "isTop": false,
+                                        "prop": "price_tag_type",
+                                        "operator": "equal",
+                                        "valueType": "value",
+                                        "value": "Customer",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Type",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      },
+                                      {
+                                        "id": 1783421116014,
+                                        "parentId": 1783421116012,
+                                        "isTop": false,
+                                        "prop": "organization_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{global:firstLvDeptId}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Organization ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
                                   }
                                 ]
                               },
@@ -19780,13 +20698,19 @@
       {
         "key": "86ahyt28",
         "name": "onPurchaseDefaultUomChange_86ahyt28",
-        "func": "(async () => {\n  const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n\n  const defaultUOMIndex = tableUOMConversion.findIndex(\n    (uom, index) =>\n      uom.purchase_default_uom === 1 && index !== arguments[0].rowIndex,\n  );\n\n  if (defaultUOMIndex !== -1 && defaultUOMIndex !== arguments[0].rowIndex) {\n    await this.$confirm(\n      \"Are you sure you want to change the default UOM?\",\n      \"Confirmation\",\n      {\n        confirmButtonText: \"Yes\",\n        cancelButtonText: \"No\",\n        type: \"warning\",\n      },\n    ).catch(() => {\n      this.setData({\n        [`table_uom_conversion.${arguments[0].rowIndex}.purchase_default_uom`]: 0,\n      });\n      throw new Error(\"Default UOM not changed.\");\n    });\n\n    this.setData({\n      [`table_uom_conversion.${defaultUOMIndex}.purchase_default_uom`]: 0,\n    });\n  }\n})();\n",
+        "func": "(async () => {\n  const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n  const row = arguments[0].row;\n  const currentFmKey = row.fm_key;\n\n  // Find the item with purchase_default_uom = 1 that is NOT the current row\n  const defaultItem = tableUOMConversion.find(\n    (uom) => uom.purchase_default_uom === 1 && uom.fm_key !== currentFmKey,\n  );\n\n  if (defaultItem) {\n    await this.$confirm(\n      \"Are you sure you want to change the default UOM?\",\n      \"Confirmation\",\n      {\n        confirmButtonText: \"Yes\",\n        cancelButtonText: \"No\",\n        type: \"warning\",\n      },\n    ).catch(async () => {\n      // User cancelled - revert current row's default_uom to 0\n      await this.setData({\n        [`table_uom_conversion.${currentFmKey}.purchase_default_uom`]: 0,\n      });\n      throw new Error(\"Default UOM not changed.\");\n    });\n\n    // User confirmed - set old default to 0\n    console.log(\"defaultItem\", defaultItem);\n    await this.setData({\n      [`table_uom_conversion.${defaultItem.fm_key}.purchase_default_uom`]: 0,\n    });\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "idwskwe4",
         "name": "onSalesDefaultUomChange_idwskwe4",
         "func": "(async () => {\n  const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n\n  const defaultUOMIndex = tableUOMConversion.findIndex(\n    (uom, index) =>\n      uom.sales_default_uom === 1 && index !== arguments[0].rowIndex,\n  );\n\n  if (defaultUOMIndex !== -1 && defaultUOMIndex !== arguments[0].rowIndex) {\n    await this.$confirm(\n      \"Are you sure you want to change the default UOM?\",\n      \"Confirmation\",\n      {\n        confirmButtonText: \"Yes\",\n        cancelButtonText: \"No\",\n        type: \"warning\",\n      },\n    ).catch(() => {\n      this.setData({\n        [`table_uom_conversion.${arguments[0].rowIndex}.sales_default_uom`]: 0,\n      });\n      throw new Error(\"Default UOM not changed.\");\n    });\n\n    this.setData({\n      [`table_uom_conversion.${defaultUOMIndex}.sales_default_uom`]: 0,\n    });\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "9ab8leiu",
+        "name": "onTableUomConversionfunc_9ab8leiu",
+        "func": "const viewOnly = this.isView;\n\nthis.toView({\n  target: \"2075040506015449089\",\n  targetType: \"Page\",\n  mode: \"dialog\",\n  type: viewOnly ? \"view\" : \"add\",\n  title: \"Multi UOM Details\",\n  data: {\n    ...arguments[0].row,\n  },\n});\n",
         "type": "js"
       }
     ],
