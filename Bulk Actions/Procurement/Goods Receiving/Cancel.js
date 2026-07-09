@@ -15,14 +15,14 @@
 
     // 2. Filter for Created status only
     const createdGRs = selectedRecords.filter(
-      (item) => item.gr_status === "Created"
+      (item) => item.gr_status === "Created",
     );
 
     // 3. Validate selection
     if (createdGRs.length === 0) {
       this.hideLoading();
       this.$message.error(
-        "Please select at least one Created goods receiving."
+        "Please select at least one Created goods receiving.",
       );
       return;
     }
@@ -41,7 +41,7 @@
         cancelButtonText: "No, Go Back",
         type: "warning",
         dangerouslyUseHTMLString: true,
-      }
+      },
     ).catch(() => {
       this.hideLoading();
       console.log("User clicked Cancel");
@@ -70,7 +70,7 @@
     const grsByPO = groupGRsByPO(createdGRs);
 
     console.log(
-      `Processing ${createdGRs.length} Created GRs affecting ${grsByPO.size} PO(s)`
+      `Processing ${createdGRs.length} Created GRs affecting ${grsByPO.size} PO(s)`,
     );
 
     // 6. Reverse PO quantities
@@ -111,7 +111,7 @@
 
             quantityReversals.set(
               lineId,
-              (quantityReversals.get(lineId) || 0) + qty
+              (quantityReversals.get(lineId) || 0) + qty,
             );
           }
         }
@@ -123,7 +123,7 @@
 
           if (reversalQty > 0) {
             const currentCreatedQty = parseFloat(
-              poLine.created_received_qty || 0
+              poLine.created_received_qty || 0,
             );
             const newCreatedQty = Math.max(0, currentCreatedQty - reversalQty);
 
@@ -134,7 +134,7 @@
 
             console.log(
               `Reversed ${reversalQty} from PO line ${poLine.id}: ` +
-                `${currentCreatedQty} -> ${newCreatedQty}`
+                `${currentCreatedQty} -> ${newCreatedQty}`,
             );
           }
         }
@@ -143,17 +143,17 @@
         // After reversing quantities, check if any created_received_qty remains
         // If created_received_qty > 0, it means there are still other Created GRs
         const hasRemainingCreatedGRs = updatedPoItems.some(
-          (item) => (item.created_received_qty || 0) > 0
+          (item) => (item.created_received_qty || 0) > 0,
         );
 
         // Calculate new gr_status based on line items
         const allCompleted = updatedPoItems.every(
-          (item) => (item.received_qty || 0) >= (item.quantity || 0)
+          (item) => (item.received_qty || 0) >= (item.quantity || 0),
         );
         const anyProcessing = updatedPoItems.some(
           (item) =>
             (item.received_qty || 0) > 0 &&
-            (item.received_qty || 0) < (item.quantity || 0)
+            (item.received_qty || 0) < (item.quantity || 0),
         );
 
         let newGRStatus;
@@ -180,7 +180,7 @@
         if (newGRStatus !== poDoc.gr_status) {
           updateData.gr_status = newGRStatus;
           console.log(
-            `Updating PO ${poId} gr_status from "${poDoc.gr_status}" to "${newGRStatus}"`
+            `Updating PO ${poId} gr_status from "${poDoc.gr_status}" to "${newGRStatus}"`,
           );
         }
 
@@ -237,12 +237,12 @@
     if (failCount > 0) {
       this.$message.warning(
         `Cancelled ${successCount} GR(s). Failed: ${failCount} (${failedGRs.join(
-          ", "
-        )})`
+          ", ",
+        )})`,
       );
     } else {
       this.$message.success(
-        `Successfully cancelled ${successCount} goods receiving(s).`
+        `Successfully cancelled ${successCount} goods receiving(s).`,
       );
     }
   } catch (error) {

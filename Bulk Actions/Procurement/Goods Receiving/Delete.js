@@ -9,20 +9,22 @@
     if (selectedRecords && selectedRecords.length > 0) {
       const goodsReceivingIds = selectedRecords
         .filter(
-          (item) => item.gr_status === "Draft" || item.gr_status === "Cancelled"
+          (item) =>
+            item.gr_status === "Draft" || item.gr_status === "Cancelled",
         )
         .map((item) => item.id);
 
       if (goodsReceivingIds.length === 0) {
         this.$message.error(
-          "Please select at least one draft or cancelled goods receiving."
+          "Please select at least one draft or cancelled goods receiving.",
         );
         return;
       }
 
       const goodsReceivingNumbers = selectedRecords
         .filter(
-          (item) => item.gr_status === "Draft" || item.gr_status === "Cancelled"
+          (item) =>
+            item.gr_status === "Draft" || item.gr_status === "Cancelled",
         )
         .map((item) => item.gr_no);
 
@@ -30,7 +32,7 @@
         `You've selected ${
           goodsReceivingNumbers.length
         } goods receiving(s) to delete. <br> <strong>Goods Receiving Numbers:</strong> <br>${goodsReceivingNumbers.join(
-          ", "
+          ", ",
         )} <br>Do you want to proceed?`,
         "Goods Receiving Deletion",
         {
@@ -38,7 +40,7 @@
           cancelButtonText: "Cancel",
           type: "warning",
           dangerouslyUseHTMLString: true,
-        }
+        },
       ).catch(() => {
         console.log("User clicked Cancel or closed the dialog");
         throw new Error();

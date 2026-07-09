@@ -1,0 +1,865 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "if_is_delete",
+      "type": "if",
+      "data": {
+        "title": "Is Delete?",
+        "isValidator": true,
+        "nodeName": "Is Delete?",
+        "name": "Is Delete?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783300000001,
+              "parentId": 1783300000000,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:action}}' == 'delete'"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_delete",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Order:Table:1902776039445217282",
+                  "rules": {
+                    "collectionId": "1902776039445217282",
+                    "list": [
+                      {
+                        "id": 1783300000011,
+                        "parentId": 1783300000010,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:po_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete PO",
+                "isValidator": true,
+                "nodeName": "Delete PO",
+                "name": "Delete PO",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_deleted",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Deleted",
+                "isValidator": true,
+                "nodeName": "Return Deleted",
+                "name": "Return Deleted",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "200",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "Deleted",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "parallel_fetch",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Fetch",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_gr",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "GR List",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783300000101,
+                  "parentId": 1783300000100,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "GR List",
+            "name": "GR List",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_gr",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1783300000111,
+                        "parentId": 1783300000110,
+                        "isTop": true,
+                        "prop": "po_id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:po_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "PO ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get GR List",
+                "isValidator": true,
+                "nodeName": "Get GR List",
+                "name": "Get GR List"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_pi",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "PI List",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783300000121,
+                  "parentId": 1783300000120,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "PI List",
+            "name": "PI List",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_pi",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Invoice:Table:1902777443710779394",
+                  "rules": {
+                    "collectionId": "1902777443710779394",
+                    "list": [
+                      {
+                        "id": 1783300000131,
+                        "parentId": 1783300000130,
+                        "isTop": true,
+                        "prop": "po_id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:po_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "PO ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get PI List",
+                "isValidator": true,
+                "nodeName": "Get PI List",
+                "name": "Get PI List"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_classify",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Classify",
+        "isValidator": true,
+        "nodeName": "Classify",
+        "name": "Classify",
+        "script": {
+          "type": "javascript",
+          "code": "const grList = {{node:search_gr.data.data}} || [];\nconst piList = {{node:search_pi.data.data}} || [];\n\nconst createdGr = grList.filter((g) => g.gr_status === \"Created\");\nconst processedGr = grList.filter((g) => g.gr_status === \"Received\" || g.gr_status === \"Completed\");\nconst draftGr = grList.filter((g) => g.gr_status === \"Draft\");\nconst invoicedPi = piList.filter((p) => p.pi_status !== \"Draft\" && p.pi_status !== \"Cancelled\");\nconst draftPi = piList.filter((p) => p.pi_status === \"Draft\");\n\nlet code = \"200\";\nlet message = \"\";\nif (createdGr.length > 0) {\n  code = \"400\";\n  message = \"Has a created goods receiving. Cancel it first.\";\n} else if (processedGr.length > 0) {\n  code = \"400\";\n  message = \"Has received/completed goods receiving. Cannot cancel.\";\n} else if (invoicedPi.length > 0) {\n  code = \"400\";\n  message = \"Purchase order is already invoiced. Cannot cancel.\";\n}\n\nreturn {\n  code: code,\n  message: message,\n  deleteGR: (draftGr.length > 0 && code === \"200\") ? 1 : 0,\n  deletePI: (draftPi.length > 0 && code === \"200\") ? 1 : 0,\n  draftGrIds: draftGr.map((g) => g.id),\n  draftPiIds: draftPi.map((p) => p.id)\n};"
+        },
+        "response_json": [
+          { "key": "wf_code", "name": "code", "title": "code", "description": "", "bsonType": "string", "isExpand": false },
+          { "key": "wf_message", "name": "message", "title": "message", "description": "", "bsonType": "string", "isExpand": false },
+          { "key": "wf_deletegr", "name": "deleteGR", "title": "deleteGR", "description": "", "bsonType": "number", "isExpand": false },
+          { "key": "wf_deletepi", "name": "deletePI", "title": "deletePI", "description": "", "bsonType": "number", "isExpand": false },
+          {
+            "key": "wf_draftgrids",
+            "name": "draftGrIds",
+            "title": "draftGrIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              { "key": "wf_draftgrids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+            ]
+          },
+          {
+            "key": "wf_draftpiids",
+            "name": "draftPiIds",
+            "title": "draftPiIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              { "key": "wf_draftpiids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_blocked",
+      "type": "if",
+      "data": {
+        "title": "Blocked?",
+        "isValidator": true,
+        "nodeName": "Blocked?",
+        "name": "Blocked?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783300000201,
+              "parentId": 1783300000200,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_classify.data.code}}' == '400'"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_blocked",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Blocked",
+                "isValidator": true,
+                "nodeName": "Return Blocked",
+                "name": "Return Blocked",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "value": "{{node:code_classify.data.code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "value": "{{node:code_classify.data.message}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_delete_gr",
+      "type": "if",
+      "data": {
+        "title": "Delete Draft GR?",
+        "isValidator": true,
+        "nodeName": "Delete Draft GR?",
+        "name": "Delete Draft GR?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783300000211,
+              "parentId": 1783300000210,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_classify.data.deleteGR}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_gr",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1783300000221,
+                        "parentId": 1783300000220,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_classify.data.draftGrIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete Draft GR",
+                "isValidator": true,
+                "nodeName": "Delete Draft GR",
+                "name": "Delete Draft GR",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_delete_pi",
+      "type": "if",
+      "data": {
+        "title": "Delete Draft PI?",
+        "isValidator": true,
+        "nodeName": "Delete Draft PI?",
+        "name": "Delete Draft PI?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783300000231,
+              "parentId": 1783300000230,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_classify.data.deletePI}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_pi",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Invoice:Table:1902777443710779394",
+                  "rules": {
+                    "collectionId": "1902777443710779394",
+                    "list": [
+                      {
+                        "id": 1783300000241,
+                        "parentId": 1783300000240,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_classify.data.draftPiIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete Draft PI",
+                "isValidator": true,
+                "nodeName": "Delete Draft PI",
+                "name": "Delete Draft PI",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_on_order",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "On Order Purchase Order:Table:1902627276974047233",
+          "rules": {
+            "collectionId": "1902627276974047233",
+            "list": [
+              {
+                "id": 1783300000301,
+                "parentId": 1783300000300,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1783300000302,
+                    "parentId": 1783300000301,
+                    "isTop": false,
+                    "prop": "purchase_order_number",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{workflowparams:po_no}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Purchase Order Number",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1783300000303,
+                    "parentId": 1783300000301,
+                    "isTop": false,
+                    "prop": "plant_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{workflowparams:po_plant_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Plant ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cleanup On Order",
+        "isValidator": true,
+        "nodeName": "Cleanup On Order",
+        "name": "Cleanup On Order",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "is_deleted",
+              "operator": "",
+              "valueType": "value",
+              "value": 1,
+              "valueLabel": "",
+              "propLabel": "删除状态"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_build_pono",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build PO No",
+        "isValidator": true,
+        "nodeName": "Build PO No",
+        "name": "Build PO No",
+        "script": {
+          "type": "javascript",
+          "code": "const poNo = {{workflowparams:po_no}} || \"\";\nreturn { poNo: poNo.endsWith(\"-Cancelled\") ? poNo : poNo + \"-Cancelled\" };"
+        },
+        "response_json": [
+          { "key": "wf_pono", "name": "poNo", "title": "poNo", "description": "", "bsonType": "string", "isExpand": false }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_po",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Order:Table:1902776039445217282",
+          "rules": {
+            "collectionId": "1902776039445217282",
+            "list": [
+              {
+                "id": 1783300000311,
+                "parentId": 1783300000310,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:po_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cancel PO",
+        "isValidator": true,
+        "nodeName": "Cancel PO",
+        "name": "Cancel PO",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "po_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": "",
+              "propLabel": "PO Status"
+            },
+            {
+              "prop": "purchase_order_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build_pono.data.poNo}}",
+              "valueLabel": "",
+              "propLabel": "Purchase Order Number"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "update_node_po_lines",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "purchase_order_2ukyuanr_sub:Table:1939901372270747649",
+          "rules": {
+            "collectionId": "1939901372270747649",
+            "list": [
+              {
+                "id": 1783300000321,
+                "parentId": 1783300000320,
+                "isTop": true,
+                "prop": "purchase_order_id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{workflowparams:po_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Purchase Order ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cancel PO Lines",
+        "isValidator": true,
+        "nodeName": "Cancel PO Lines",
+        "name": "Cancel PO Lines",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "line_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": "",
+              "propLabel": "Line Status"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_success",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Success",
+        "isValidator": true,
+        "nodeName": "Return Success",
+        "name": "Return Success",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "wf_req_action",
+      "name": "action",
+      "title": "Action",
+      "description": "cancel | delete",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_id",
+      "name": "po_id",
+      "title": "PO ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_no",
+      "name": "po_no",
+      "title": "PO Number",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_plant_id",
+      "name": "po_plant_id",
+      "title": "PO Plant ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}
