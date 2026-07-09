@@ -18,17 +18,24 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
 };
 
-// Find the packing detail row whose uom_id matches the selected UOM.
-const getPackingDetail = (table_packing_detail, uom) => {
-  if (
-    !Array.isArray(table_packing_detail) ||
-    table_packing_detail.length === 0 ||
-    !uom
-  ) {
+// Find the packing detail row for a UOM. An item may define several packing rows
+// per uom_id, so when a packing UOM is supplied match on the (uom_id,
+// packing_uom_id) pair, which is unique. Otherwise fall back to the first row.
+const getPackingDetail = (table_packing_detail, uom, packingUom) => {
+  if (!Array.isArray(table_packing_detail) || !uom) {
     return null;
   }
 
-  return table_packing_detail.find((conv) => conv.uom_id === uom) || null;
+  const rows = table_packing_detail.filter((conv) => conv.uom_id === uom);
+  if (rows.length === 0) {
+    return null;
+  }
+
+  if (packingUom) {
+    return rows.find((conv) => conv.packing_uom_id === packingUom) || null;
+  }
+
+  return rows[0];
 };
 
 // How many base UOM units make up 1 unit of the selected UOM (1 if base UOM
@@ -108,6 +115,10 @@ const getBaseQty = (table_uom_conversion, uom) => {
           [`table_so.${rowIndex}.weight_conversion`]: weightConversion,
           [`table_so.${rowIndex}.net_weight`]: netWeight,
         });
+
+        // The packing UOM options are scoped to the line's UOM, so they must be
+        // requeried whenever that UOM changes.
+        this.refreshFieldOptionData([`table_so.${rowIndex}.packing_uom`]);
       }
     }
 

@@ -124,9 +124,27 @@ const validatePackingDetailUOM = async (entry) => {
   );
 
   const invalidLines = [];
+  // A UOM may have several packing rows, but each (UOM, Packing UOM) pair must
+  // be unique — documents identify a packing row by that pair.
+  const seenPairs = new Set();
+  const duplicateLines = [];
+
   (entry.table_packing_detail || []).forEach((item, index) => {
     if (item.uom_id && item.uom_id !== "" && !altUOMs.has(item.uom_id)) {
       invalidLines.push(index + 1);
+    }
+
+    if (
+      item.uom_id &&
+      item.uom_id !== "" &&
+      item.packing_uom_id &&
+      item.packing_uom_id !== ""
+    ) {
+      const pair = `${item.uom_id}|${item.packing_uom_id}`;
+      if (seenPairs.has(pair)) {
+        duplicateLines.push(index + 1);
+      }
+      seenPairs.add(pair);
     }
   });
 
@@ -143,34 +161,19 @@ const validatePackingDetailUOM = async (entry) => {
     );
     throw new Error("Invalid UOM in Packing Detail");
   }
-};
 
-const validateUOMPackingMirror = async (entry) => {
-  // table_packing_detail must mirror table_uom_conversion: same number of
-  // (meaningful) rows, and each row's uom_id equals the matching alt_uom_id.
-  const uomConversion = (entry.table_uom_conversion || []).filter(
-    (item) => item.alt_uom_id && item.alt_uom_id !== "",
-  );
-  const packingDetail = (entry.table_packing_detail || []).filter(
-    (item) => item.uom_id && item.uom_id !== "",
-  );
-
-  const isMirrored =
-    uomConversion.length === packingDetail.length &&
-    uomConversion.every(
-      (item, index) => item.alt_uom_id === packingDetail[index].uom_id,
-    );
-
-  if (!isMirrored) {
+  if (duplicateLines.length > 0) {
     await this.$alert(
-      "UOM Conversion and Packing Detail do not match. Each Alt UOM in UOM Conversion must mirror the UOM in Packing Detail.",
-      "Invalid Packing Detail",
+      `Duplicate Packing Detail in Line ${duplicateLines.join(
+        ", ",
+      )}. Each UOM can only have one row per Packing UOM.`,
+      "Duplicate Packing Detail",
       {
         confirmButtonText: "OK",
         type: "error",
       },
     );
-    throw new Error("UOM Conversion and Packing Detail mismatch");
+    throw new Error("Duplicate Packing Detail");
   }
 };
 

@@ -124,9 +124,27 @@ const validatePackingDetailUOM = async (entry) => {
   );
 
   const invalidLines = [];
+  // A UOM may have several packing rows, but each (UOM, Packing UOM) pair must
+  // be unique — documents identify a packing row by that pair.
+  const seenPairs = new Set();
+  const duplicateLines = [];
+
   (entry.table_packing_detail || []).forEach((item, index) => {
     if (item.uom_id && item.uom_id !== "" && !altUOMs.has(item.uom_id)) {
       invalidLines.push(index + 1);
+    }
+
+    if (
+      item.uom_id &&
+      item.uom_id !== "" &&
+      item.packing_uom_id &&
+      item.packing_uom_id !== ""
+    ) {
+      const pair = `${item.uom_id}|${item.packing_uom_id}`;
+      if (seenPairs.has(pair)) {
+        duplicateLines.push(index + 1);
+      }
+      seenPairs.add(pair);
     }
   });
 
@@ -142,6 +160,20 @@ const validatePackingDetailUOM = async (entry) => {
       },
     );
     throw new Error("Invalid UOM in Packing Detail");
+  }
+
+  if (duplicateLines.length > 0) {
+    await this.$alert(
+      `Duplicate Packing Detail in Line ${duplicateLines.join(
+        ", ",
+      )}. Each UOM can only have one row per Packing UOM.`,
+      "Duplicate Packing Detail",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      },
+    );
+    throw new Error("Duplicate Packing Detail");
   }
 };
 
