@@ -116,6 +116,35 @@ const validateUOMConversion = async (entry) => {
   return entry;
 };
 
+const validatePackingDetailUOM = async (entry) => {
+  const altUOMs = new Set(
+    (entry.table_uom_conversion || [])
+      .map((item) => item.alt_uom_id)
+      .filter((uom) => uom && uom !== ""),
+  );
+
+  const invalidLines = [];
+  (entry.table_packing_detail || []).forEach((item, index) => {
+    if (item.uom_id && item.uom_id !== "" && !altUOMs.has(item.uom_id)) {
+      invalidLines.push(index + 1);
+    }
+  });
+
+  if (invalidLines.length > 0) {
+    await this.$alert(
+      `Invalid UOM in Packing Detail Line ${invalidLines.join(
+        ", ",
+      )}. Each UOM in Packing Detail must exist as an Alt UOM in UOM Conversion.`,
+      "Invalid Packing Detail",
+      {
+        confirmButtonText: "OK",
+        type: "error",
+      },
+    );
+    throw new Error("Invalid UOM in Packing Detail");
+  }
+};
+
 const validateUOMPackingMirror = async (entry) => {
   // table_packing_detail must mirror table_uom_conversion: same number of
   // (meaningful) rows, and each row's uom_id equals the matching alt_uom_id.
@@ -580,7 +609,7 @@ const createBatch = async (itemId, batchNumberConfig, materialCode) => {
       entry.posted_status = "Pending Post";
 
       entry = await validateUOMConversion(entry);
-      // await validateUOMPackingMirror(entry);
+      await validatePackingDetailUOM(entry);
       await validatePurchaseAndSalesInformation(entry);
       await validateBatch(entry);
 
