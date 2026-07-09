@@ -1,86 +1,3 @@
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0"),
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0"),
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("Item")
-    .where({ material_code: generatedPrefix, organization_id: organizationId })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Item Code after maximum attempts",
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await getPrefixData(organizationId);
-  if (!prefixData || Object.keys(prefixData).length === 0) {
-    this.disabled(["material_code"], false);
-  } else {
-    const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-
-    if (prefixData.is_active === 0) {
-      this.disabled(["material_code"], false);
-      this.setData({ material_code: "", item_current_prefix: prefixToShow });
-    } else {
-      this.setData({
-        material_code: prefixToShow,
-        item_current_prefix: prefixToShow,
-      });
-    }
-  }
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Items",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-  const prefixData = prefixEntry?.data[0] || {};
-
-  return prefixData;
-};
-
 const showStatusHTML = async (status) => {
   switch (status) {
     case 1:
@@ -306,7 +223,6 @@ const generatePackingDetailIfMissing = async () => {
     switch (pageStatus) {
       case "Add":
         this.display(["active_status"]);
-        await setPrefix(organizationId);
         await checkAccIntegrationType(organizationId);
 
         setTimeout(() => {
@@ -360,7 +276,6 @@ const generatePackingDetailIfMissing = async () => {
 
       case "Clone":
         this.display(["active_status"]);
-        await setPrefix(organizationId);
         await generatePackingDetailIfMissing();
         break;
 
@@ -378,3 +293,36 @@ const generatePackingDetailIfMissing = async () => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("material_code_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("material_code");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("material_code_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("material_code_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        material_code_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ material_code_type: defaultData.value });
+    }
+  }
+}, 200);
