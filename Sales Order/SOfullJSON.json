@@ -13294,7 +13294,7 @@
                   },
                   "events": {
                     "onReady": "",
-                    "onChange": "PACKING_UOM_HANDLER_KEY",
+                    "onChange": "hm75wz6l",
                     "onFocus": "",
                     "onBlur": ""
                   },
@@ -20648,6 +20648,12 @@
         "key": "e62v491b",
         "name": "onWeightConversionBlur",
         "func": "(async () => {\n  const rowIndex = arguments[0].rowIndex;\n  const weightConversion = arguments[0].value;\n\n  // User manually edited the per-unit weight (weight_conversion). Recompute the\n  // line net weight from the current so_quantity: net_weight = so_quantity *\n  // weight_conversion.\n  if (\n    weightConversion !== undefined &&\n    weightConversion !== null &&\n    weightConversion !== \"\"\n  ) {\n    const soQuantity = this.getValue(`table_so.${rowIndex}.so_quantity`) || 0;\n    const netWeight =\n      Math.round(Number(soQuantity) * Number(weightConversion) * 1000) / 1000;\n    this.setData({ [`table_so.${rowIndex}.net_weight`]: netWeight });\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "hm75wz6l",
+        "name": "onChangePackingUOM",
+        "func": "// Find the packing detail row for a UOM. An item may define several packing rows\n// per uom_id, so when a packing UOM is supplied match on the (uom_id,\n// packing_uom_id) pair, which is unique. Otherwise fall back to the first row.\nconst getPackingDetail = (table_packing_detail, uom, packingUom) => {\n  if (!Array.isArray(table_packing_detail) || !uom) {\n    return null;\n  }\n\n  const rows = table_packing_detail.filter((conv) => conv.uom_id === uom);\n  if (rows.length === 0) {\n    return null;\n  }\n\n  if (packingUom) {\n    return rows.find((conv) => conv.packing_uom_id === packingUom) || null;\n  }\n\n  return rows[0];\n};\n\n// Resolve how many line-UOM units make up 1 packing UOM. The packing_uom select\n// is backed by the Item's table_packing_detail sub-collection, so the selected\n// option usually carries its own `quantity` — use it and skip the Item fetch.\nconst resolvePackingConversion = async (rowIndex, packingUom, fieldModel) => {\n  const fromOption = Number(fieldModel?.quantity);\n  if (Number.isFinite(fromOption) && fromOption > 0) {\n    return fromOption;\n  }\n\n  const itemId = this.getValue(`table_so.${rowIndex}.item_name`);\n  const uom = this.getValue(`table_so.${rowIndex}.so_item_uom`);\n  if (!itemId || !uom) {\n    return 1;\n  }\n\n  const resItem = await db.collection(\"Item\").where({ id: itemId }).get();\n  if (!resItem || resItem.data.length === 0) {\n    return 1;\n  }\n\n  const packingDetail = getPackingDetail(\n    resItem.data[0].table_packing_detail,\n    uom,\n    packingUom,\n  );\n\n  return packingDetail?.quantity || 1;\n};\n\n(async () => {\n  try {\n    const packingUom = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    console.log(\"SOonChangePackingUOM\", arguments[0]);\n\n    const soQuantity = this.getValue(`table_so.${rowIndex}.so_quantity`) || 0;\n\n    if (!packingUom) {\n      this.setData({\n        [`table_so.${rowIndex}.packing_conversion`]: 1,\n        [`table_so.${rowIndex}.packing_qty`]: Number(soQuantity) || 0,\n      });\n      return;\n    }\n\n    // packing_conversion is cached on the line so SOonBlurQty can recompute\n    // packing_qty on every quantity edit without re-fetching the Item. It must\n    // be rewritten here or the next blur reverts to the previous packing basis.\n    const packingConversion = await resolvePackingConversion(\n      rowIndex,\n      packingUom,\n      arguments[0].fieldModel,\n    );\n\n    const packingQty = packingConversion\n      ? Math.round((Number(soQuantity) / packingConversion) * 1000) / 1000\n      : 0;\n\n    this.setData({\n      [`table_so.${rowIndex}.packing_conversion`]: packingConversion,\n      [`table_so.${rowIndex}.packing_qty`]: packingQty,\n    });\n  } catch (error) {\n    console.error(\"Error in packing UOM change:\", error);\n  }\n})();\n",
         "type": "js"
       }
     ],
