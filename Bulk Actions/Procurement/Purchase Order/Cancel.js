@@ -3,7 +3,7 @@
     const unCompletedListID = "custom_y9e0c53q";
     const allListID = "custom_6f0yz6lm";
     const tabUncompletedElement = document.getElementById(
-      "tab-tab_uncompleted"
+      "tab-tab_uncompleted",
     );
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
@@ -13,17 +13,17 @@
     let selectedRecords;
 
     selectedRecords = this.getComponent(
-      activeTab === "Uncompleted" ? unCompletedListID : allListID
+      activeTab === "Uncompleted" ? unCompletedListID : allListID,
     )?.$refs.crud.tableSelect;
 
     if (selectedRecords && selectedRecords.length > 0) {
       let purchaseOrderData = selectedRecords.filter(
-        (item) => item.po_status === "Issued"
+        (item) => item.po_status === "Issued",
       );
 
       if (purchaseOrderData.length === 0) {
         this.$message.error(
-          "Please select at least one issued purchase order."
+          "Please select at least one issued purchase order.",
         );
         return;
       }
@@ -74,21 +74,21 @@
 
         await this.$alert(
           `These purchase orders have created goods receiving. <br> <strong>Purchase Order → Goods Receiving:</strong> <br>${createdGrInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Please cancel the goods receiving first.`,
           "Purchase Order with Created Goods Receiving",
           {
             confirmButtonText: "OK",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         );
 
         const createdGrPOIds = purchaseOrderWithCreatedGR.map(
-          (item) => item.id
+          (item) => item.id,
         );
         purchaseOrderData = purchaseOrderData.filter(
-          (item) => !createdGrPOIds.includes(item.id)
+          (item) => !createdGrPOIds.includes(item.id),
         );
 
         if (purchaseOrderData.length === 0) {
@@ -171,21 +171,21 @@
 
         await this.$alert(
           `These purchase orders have received/completed goods receiving. <br> <strong>Purchase Order → Goods Receiving:</strong> <br>${processedGrInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Cannot cancel purchase orders with processed goods receiving.`,
           "Purchase Order with Processed Goods Receiving",
           {
             confirmButtonText: "OK",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         );
 
         const processedGrPOIds = purchaseOrderWithProcessedGR.map(
-          (item) => item.id
+          (item) => item.id,
         );
         purchaseOrderData = purchaseOrderData.filter(
-          (item) => !processedGrPOIds.includes(item.id)
+          (item) => !processedGrPOIds.includes(item.id),
         );
 
         if (purchaseOrderData.length === 0) {
@@ -234,19 +234,19 @@
 
         await this.$alert(
           `These purchase orders are already invoiced. <br> <strong>Purchase Order → Purchase Invoice:</strong> <br>${invoicedPiInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Cannot cancel invoiced purchase orders.`,
           "Purchase Order Already Invoiced",
           {
             confirmButtonText: "OK",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         );
 
         const invoicedPOIds = purchaseOrderWithInvoicing.map((item) => item.id);
         purchaseOrderData = purchaseOrderData.filter(
-          (item) => !invoicedPOIds.includes(item.id)
+          (item) => !invoicedPOIds.includes(item.id),
         );
 
         if (purchaseOrderData.length === 0) {
@@ -299,7 +299,7 @@
 
         const result = await this.$confirm(
           `These purchase orders have draft goods receiving. <br> <strong>Purchase Order → Goods Receiving:</strong> <br>${poAndGrInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Do you wish to delete the goods receiving first?`,
           "Purchase Order with Draft Goods Receiving",
           {
@@ -307,7 +307,7 @@
             cancelButtonText: "Cancel",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         ).catch(() => {
           return null;
         });
@@ -324,7 +324,7 @@
         } else {
           const draftGRIds = purchaseOrderwithDraftGR.map((item) => item.id);
           purchaseOrderData = purchaseOrderData.filter(
-            (item) => !draftGRIds.includes(item.id)
+            (item) => !draftGRIds.includes(item.id),
           );
         }
 
@@ -381,7 +381,7 @@
 
         const result = await this.$confirm(
           `These purchase orders have draft purchase invoice. <br> <strong>Purchase Order → Purchase Invoice:</strong> <br>${poAndPiInfo.join(
-            "<br>"
+            "<br>",
           )} <br><br>Do you wish to delete the purchase invoice first?`,
           "Purchase Order with Draft Purchase Invoice",
           {
@@ -389,7 +389,7 @@
             cancelButtonText: "Cancel",
             type: "warning",
             dangerouslyUseHTMLString: true,
-          }
+          },
         ).catch(() => {
           return null;
         });
@@ -406,7 +406,7 @@
         } else {
           const draftPIIds = purchaseOrderwithDraftPI.map((item) => item.id);
           purchaseOrderData = purchaseOrderData.filter(
-            (item) => !draftPIIds.includes(item.id)
+            (item) => !draftPIIds.includes(item.id),
           );
         }
 
@@ -417,14 +417,14 @@
       }
 
       const purchaseOrderNumbers = purchaseOrderData.map(
-        (item) => item.purchase_order_no
+        (item) => item.purchase_order_no,
       );
 
       await this.$confirm(
         `You've selected ${
           purchaseOrderNumbers.length
         } purchase order(s) to cancel. <br> <strong>Purchase Order Numbers:</strong> <br>${purchaseOrderNumbers.join(
-          ", "
+          ", ",
         )} <br>Do you want to proceed?`,
         "Purchase Order Cancellation",
         {
@@ -432,7 +432,7 @@
           cancelButtonText: "Cancel",
           type: "warning",
           dangerouslyUseHTMLString: true,
-        }
+        },
       ).catch(() => {
         throw new Error();
       });
