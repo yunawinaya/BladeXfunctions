@@ -1969,7 +1969,9 @@
                           "primaryKey": false,
                           "title": "Goods Delivery Number",
                           "validator": "const page_status = this.getParamsVariables('page_status');\n\nif (page_status === 'View' || !value) {\n    callback();\n    return;\n}\nlet organizationId = this.getVarGlobal('deptParentId');\n        if(organizationId === '0'){\n            organizationId = this.getVarSystem('deptIds').split(',')[0];\n        }\ndb.collection(\"goods_delivery\")\n    .where({ delivery_no: value , organization_id: organizationId})\n    .get()\n    .then(response => {\n        const matchingGoodsDelivery = response.data || [];\n\n        if (matchingGoodsDelivery.length === 0) {\n            callback();\n            return;\n        }\n\n        if (page_status === 'Edit') {\n            const currentDeliveryNo = this.getParamsVariables('goods_delivery_no');\n            const isSameDelivery = matchingGoodsDelivery.some(goods_delivery => goods_delivery.id === currentDeliveryNo);\n            callback(isSameDelivery ? undefined : 'Good delivery number already exists.');\n        } else {\n            callback('Good delivery number already exists.');\n        }\n    })\n    .catch(error => {\n        console.error(\"Error checking good delivery:\", error);\n        callback(\"Error validating good delivery number.\");\n    });  "
-                        }
+                        },
+                        "width": "",
+                        "search_type": "SubstringMatch"
                       },
                       {
                         "value": "so_no",
@@ -1994,7 +1996,9 @@
                           "persistField": true,
                           "primaryKey": false,
                           "title": "Sales Order Number"
-                        }
+                        },
+                        "width": "",
+                        "search_type": "SubstringMatch"
                       }
                     ],
                     "pageId": "1924395633418506245",
@@ -2125,42 +2129,39 @@
                   "rules": []
                 },
                 {
-                  "type": "input",
-                  "mainIcon": "单行文本",
-                  "typeIcon": "单行文本",
-                  "icon": "icon-input",
+                  "version": "1.0.0",
+                  "type": "textarea",
+                  "mainIcon": "多行文本",
+                  "typeIcon": "多行文本",
+                  "icon": "icon-diy-com-textarea",
                   "group": "Text",
-                  "groupSort": 1,
+                  "groupSort": 2,
                   "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-input",
                   "options": {
                     "width": "",
                     "defaultValue": "",
                     "required": false,
                     "requiredMessage": "",
-                    "dataType": "",
-                    "dataTypeCheck": false,
-                    "dataTypeMessage": "",
+                    "disabled": true,
                     "pattern": "",
-                    "patternCheck": false,
                     "patternMessage": "",
                     "validatorCheck": false,
                     "validator": "",
                     "placeholder": "",
                     "customClass": "",
-                    "disabled": true,
                     "labelWidth": 100,
                     "isLabelWidth": false,
                     "hidden": true,
                     "dataBind": true,
-                    "showPassword": false,
                     "clearable": false,
                     "maxlength": "",
                     "showWordLimit": false,
+                    "rows": 1,
+                    "autosize": false,
                     "customProps": {},
                     "tip": "",
-                    "remoteFunc": "func_ud2u75hd",
-                    "remoteOption": "option_ud2u75hd",
+                    "remoteFunc": "func_ww4lyxqq",
+                    "remoteOption": "option_ww4lyxqq",
                     "tableColumn": false,
                     "subform": false,
                     "select-card_n7ge7fmb": [],
@@ -2168,7 +2169,8 @@
                     "right": 4,
                     "pad": "*",
                     "desensitization_pattern": "",
-                    "desensitization_replace": ""
+                    "desensitization_replace": "",
+                    "select-card_4c8m22dh": []
                   },
                   "events": {
                     "onChange": "",
@@ -2177,7 +2179,7 @@
                   },
                   "name": "Reference Doc No",
                   "novalid": {},
-                  "key": "ud2u75hd",
+                  "key": "lwjyxp7k",
                   "model": "delivery_no",
                   "rules": []
                 },
@@ -11129,7 +11131,7 @@
                     "tokenFunc": "funcGetToken",
                     "token": "",
                     "tokenType": "datasource",
-                    "disabled": true,
+                    "disabled": false,
                     "tip": "",
                     "action": "/blade-resource/oss/endpoint/put-file",
                     "customClass": "",
@@ -11234,16 +11236,129 @@
         "remoteFunc": "func_5q049kjc",
         "remoteOption": "option_5q049kjc",
         "tableColumn": false,
-        "subform": false
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "select-card_4c8m22dh": []
       },
       "events": {
         "onChange": "",
         "onFocus": "",
         "onBlur": ""
       },
-      "name": "Remarks",
+      "name": "Remark",
       "key": "5q049kjc",
       "model": "remarks",
+      "rules": []
+    },
+    {
+      "type": "textarea",
+      "mainIcon": "多行文本",
+      "typeIcon": "多行文本(1)",
+      "icon": "icon-diy-com-textarea",
+      "group": "Text",
+      "groupSort": 2,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "width": "",
+        "defaultValue": "",
+        "required": false,
+        "requiredMessage": "",
+        "disabled": false,
+        "pattern": "",
+        "patternMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "placeholder": "",
+        "customClass": "",
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "clearable": false,
+        "maxlength": "",
+        "showWordLimit": false,
+        "rows": 2,
+        "autosize": true,
+        "customProps": {},
+        "tip": "",
+        "remoteFunc": "func_5q049kjc",
+        "remoteOption": "option_5q049kjc",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "select-card_4c8m22dh": []
+      },
+      "events": {
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+      },
+      "name": "Remark 2",
+      "key": "5zkyxfff",
+      "model": "remarks_2",
+      "rules": []
+    },
+    {
+      "type": "textarea",
+      "mainIcon": "多行文本",
+      "typeIcon": "多行文本(1)",
+      "icon": "icon-diy-com-textarea",
+      "group": "Text",
+      "groupSort": 2,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "width": "",
+        "defaultValue": "",
+        "required": false,
+        "requiredMessage": "",
+        "disabled": false,
+        "pattern": "",
+        "patternMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "placeholder": "",
+        "customClass": "",
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "clearable": false,
+        "maxlength": "",
+        "showWordLimit": false,
+        "rows": 2,
+        "autosize": true,
+        "customProps": {},
+        "tip": "",
+        "remoteFunc": "func_5q049kjc",
+        "remoteOption": "option_5q049kjc",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "select-card_4c8m22dh": []
+      },
+      "events": {
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+      },
+      "name": "Remark 3",
+      "key": "6hd95grj",
+      "model": "remarks_3",
       "rules": []
     },
     {
@@ -11557,7 +11672,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "pp_save_as_created"
           },
           "events": {
             "onClick": "jl6p6ki9"
@@ -11600,7 +11716,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "pp_save_as_completed"
           },
           "events": {
             "onClick": "l16o826u"
@@ -11791,7 +11908,7 @@
       {
         "key": "sfapqmwb",
         "name": "onHuSelectChange",
-        "func": "// PickingOnChangeHuSelect.js\n// onChange handler for hu_select checkbox on HU header rows in table_picking_items.\n// When checked (1): sets picked_qty = pending_process_qty for every item row in this HU.\n// When unchecked (0): resets picked_qty to 0 for those item rows.\n// Only active when picking_setup.split_policy is FULL_HU_PICK or NO_SPLIT;\n// under ALLOW_SPLIT the hu_select column is hidden by applyHUVisibility anyway.\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const { rowIndex, value } = arguments[0];\n\n    const rows = data.table_picking_items || [];\n    const currentRow = rows[rowIndex];\n\n    // Only header rows respond\n    if (!currentRow || currentRow.row_type !== \"header\") return;\n\n    const handlingUnitId = currentRow.handling_unit_id;\n    if (!handlingUnitId) return;\n\n    const isSelected = value === 1 || value === true;\n\n    // picked_qty is expressed in the row's picking_uom, while pending_process_qty\n    // is canonical (order UOM = item_uom). For HU item rows picking_uom is forced\n    // to item_uom (atomic HU pick), so this is identity today; the conversion is\n    // kept for safety in case HU rows ever allow an alternate Pick UOM.\n    const convertBaseToAlt = (baseQty, conv, uom) => {\n      if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;\n      const c = conv.find((x) => x.alt_uom_id === uom);\n      if (!c || !c.base_qty) return baseQty;\n      return Math.round((baseQty / c.base_qty) * 1000) / 1000;\n    };\n    const convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {\n      if (!val || fromUOM === toUOM) return val;\n      let baseQty = val;\n      if (fromUOM !== baseUOM) {\n        const fromConv = (conv || []).find((x) => x.alt_uom_id === fromUOM);\n        if (fromConv && fromConv.base_qty) baseQty = val * fromConv.base_qty;\n      }\n      return convertBaseToAlt(baseQty, conv, toUOM);\n    };\n\n    const updates = {};\n    rows.forEach((row, idx) => {\n      if (\n        row.row_type === \"item\" &&\n        row.handling_unit_id === handlingUnitId\n      ) {\n        let pickedQty = 0;\n        if (isSelected) {\n          const pending = parseFloat(row.pending_process_qty) || 0;\n          const orderUom = String(row.item_uom);\n          const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;\n          const cache =\n            (window.pickingUOMCache &&\n              window.pickingUOMCache[String(row.item_code)]) ||\n            null;\n          pickedQty = convertQuantityFromTo(\n            pending,\n            cache ? cache.table_uom_conversion : [],\n            orderUom,\n            pickingUom,\n            cache ? cache.based_uom : orderUom,\n          );\n        }\n        updates[`table_picking_items.${idx}.picked_qty`] = pickedQty;\n\n        // Live packing qty + net weight from the picked qty (the workflow\n        // recomputes these authoritatively on save).\n        const packingConversion = parseFloat(row.packing_conversion) || 1;\n        const weightConversion = parseFloat(row.weight_conversion) || 0;\n        updates[`table_picking_items.${idx}.packing_qty`] =\n          Math.round((pickedQty / packingConversion) * 1000) / 1000;\n        updates[`table_picking_items.${idx}.net_weight`] =\n          Math.round((pickedQty * weightConversion) * 1000) / 1000;\n      }\n    });\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    console.error(\"PickingOnChangeHuSelect error:\", error);\n  }\n})();\n",
+        "func": "// PickingOnChangeHuSelect.js\n// onChange handler for hu_select checkbox on HU header rows in table_picking_items.\n// When checked (1): sets picked_qty = pending_process_qty for every item row in this HU.\n// When unchecked (0): resets picked_qty to 0 for those item rows.\n// Only active when picking_setup.split_policy is FULL_HU_PICK or NO_SPLIT;\n// under ALLOW_SPLIT the hu_select column is hidden by applyHUVisibility anyway.\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const { rowIndex, value } = arguments[0];\n\n    const rows = data.table_picking_items || [];\n    const currentRow = rows[rowIndex];\n\n    // Only header rows respond\n    if (!currentRow || currentRow.row_type !== \"header\") return;\n\n    const handlingUnitId = currentRow.handling_unit_id;\n    if (!handlingUnitId) return;\n\n    const isSelected = value === 1 || value === true;\n\n    // picked_qty is expressed in the row's picking_uom, while pending_process_qty\n    // is canonical (order UOM = item_uom). For HU item rows picking_uom is forced\n    // to item_uom (atomic HU pick), so this is identity today; the conversion is\n    // kept for safety in case HU rows ever allow an alternate Pick UOM.\n    const convertBaseToAlt = (baseQty, conv, uom) => {\n      if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;\n      const c = conv.find((x) => x.alt_uom_id === uom);\n      if (!c || !c.base_qty) return baseQty;\n      return Math.round((baseQty / c.base_qty) * 1000) / 1000;\n    };\n    const convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {\n      if (!val || fromUOM === toUOM) return val;\n      let baseQty = val;\n      if (fromUOM !== baseUOM) {\n        const fromConv = (conv || []).find((x) => x.alt_uom_id === fromUOM);\n        if (fromConv && fromConv.base_qty) baseQty = val * fromConv.base_qty;\n      }\n      return convertBaseToAlt(baseQty, conv, toUOM);\n    };\n\n    const updates = {};\n    rows.forEach((row, idx) => {\n      if (\n        row.row_type === \"item\" &&\n        row.handling_unit_id === handlingUnitId\n      ) {\n        let pickedQty = 0;\n        // Order-UOM (item_uom) quantity being picked — packing/weight factors\n        // are defined per item_uom, so they use this, not the picking_uom value.\n        let pickedQtyOrder = 0;\n        if (isSelected) {\n          const pending = parseFloat(row.pending_process_qty) || 0;\n          pickedQtyOrder = pending;\n          const orderUom = String(row.item_uom);\n          const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;\n          const cache =\n            (window.pickingUOMCache &&\n              window.pickingUOMCache[String(row.item_code)]) ||\n            null;\n          pickedQty = convertQuantityFromTo(\n            pending,\n            cache ? cache.table_uom_conversion : [],\n            orderUom,\n            pickingUom,\n            cache ? cache.based_uom : orderUom,\n          );\n        }\n        updates[`table_picking_items.${idx}.picked_qty`] = pickedQty;\n\n        // Live packing qty + net weight from the order-UOM picked qty (the\n        // workflow recomputes these authoritatively on save).\n        const packingConversion = parseFloat(row.packing_conversion) || 1;\n        const weightConversion = parseFloat(row.weight_conversion) || 0;\n        updates[`table_picking_items.${idx}.packing_qty`] =\n          Math.round((pickedQtyOrder / packingConversion) * 1000) / 1000;\n        updates[`table_picking_items.${idx}.net_weight`] =\n          Math.round((pickedQtyOrder * weightConversion) * 1000) / 1000;\n      }\n    });\n\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    console.error(\"PickingOnChangeHuSelect error:\", error);\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -11828,7 +11945,7 @@
       {
         "key": "l0jd1pu6",
         "name": "onPickedQtyChange",
-        "func": "// PickingOnChangePickedQty.js\n// onChange handler for the picked_qty field on item rows in table_picking_items.\n// Recomputes packing_qty + net_weight live from the entered picked qty, using\n// the line's stored packing_conversion / weight_conversion (seeded at creation).\n// PickingProcessWorkflow recomputes these authoritatively on save as well.\n\n(async () => {\n  try {\n    const { rowIndex, value } = arguments[0];\n    if (rowIndex === undefined || rowIndex === null) return;\n\n    const row = this.getValue(`table_picking_items.${rowIndex}`) || {};\n    if (row.row_type === \"header\") return;\n\n    const pickedQty = parseFloat(value) || 0;\n    const packingConversion = parseFloat(row.packing_conversion) || 1;\n    const weightConversion = parseFloat(row.weight_conversion) || 0;\n\n    await this.setData({\n      [`table_picking_items.${rowIndex}.packing_qty`]:\n        Math.round((pickedQty / packingConversion) * 1000) / 1000,\n      [`table_picking_items.${rowIndex}.net_weight`]:\n        Math.round((pickedQty * weightConversion) * 1000) / 1000,\n    });\n  } catch (error) {\n    console.error(\"PickingOnChangePickedQty error:\", error);\n  }\n})();\n",
+        "func": "// PickingOnChangePickedQty.js\n// onChange handler for the picked_qty field on item rows in table_picking_items.\n// Recomputes packing_qty + net_weight live from the entered picked qty.\n//\n// picked_qty is entered in the Pick UOM (picking_uom), but packing_conversion /\n// weight_conversion are defined per the order UOM (item_uom). So the picked qty\n// is converted back to item_uom before the factors are applied. Conversion data\n// is cached on window.pickingUOMCache by PickingOnMounted; we fall back to\n// identity (no conversion) when it is absent — correct when picking_uom ==\n// item_uom (the default).\n//\n// PickingProcessWorkflow recomputes these authoritatively on save (from\n// qty_to_pick, which is already in item_uom).\n\n(async () => {\n  try {\n    const { rowIndex, value } = arguments[0];\n    if (rowIndex === undefined || rowIndex === null) return;\n\n    const row = this.getValue(`table_picking_items.${rowIndex}`) || {};\n    if (row.row_type === \"header\") return;\n\n    const pickedQty = parseFloat(value) || 0;\n\n    const orderUom = String(row.item_uom);\n    const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;\n    const cache =\n      (window.pickingUOMCache &&\n        window.pickingUOMCache[String(row.item_code)]) ||\n      null;\n    const conv = cache ? cache.table_uom_conversion : [];\n    const baseUom = cache ? cache.based_uom : orderUom;\n\n    const convertBaseToAlt = (baseQty, c, uom) => {\n      if (!Array.isArray(c) || c.length === 0 || !uom) return baseQty;\n      const m = c.find((x) => x.alt_uom_id === uom);\n      if (!m || !m.base_qty) return baseQty;\n      return Math.round((baseQty / m.base_qty) * 1000) / 1000;\n    };\n    const convertQuantityFromTo = (val, c, fromUOM, toUOM, bUom) => {\n      if (!val || fromUOM === toUOM) return val;\n      let baseQty = val;\n      if (fromUOM !== bUom) {\n        const f = (c || []).find((x) => x.alt_uom_id === fromUOM);\n        if (f && f.base_qty) baseQty = val * f.base_qty;\n      }\n      return convertBaseToAlt(baseQty, c, toUOM);\n    };\n\n    // Pick UOM → order UOM (item_uom) so the per-item_uom factors apply.\n    const pickedQtyOrder = convertQuantityFromTo(\n      pickedQty,\n      conv,\n      pickingUom,\n      orderUom,\n      baseUom,\n    );\n\n    const packingConversion = parseFloat(row.packing_conversion) || 1;\n    const weightConversion = parseFloat(row.weight_conversion) || 0;\n\n    await this.setData({\n      [`table_picking_items.${rowIndex}.packing_qty`]:\n        Math.round((pickedQtyOrder / packingConversion) * 1000) / 1000,\n      [`table_picking_items.${rowIndex}.net_weight`]:\n        Math.round((pickedQtyOrder * weightConversion) * 1000) / 1000,\n    });\n  } catch (error) {\n    console.error(\"PickingOnChangePickedQty error:\", error);\n  }\n})();\n",
         "type": "js"
       }
     ],
