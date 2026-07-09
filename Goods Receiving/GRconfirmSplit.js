@@ -26,11 +26,39 @@ const setGrItemData = async (
   dialogBatchNo = undefined,
   dialogManufacturingDate = undefined,
   dialogExpiredDate = undefined,
+  options = {},
 ) => {
   // For Split-Parent: treat like regular row (keeps ordered_qty, initial_received_qty, etc.)
   const isSplitParent = parentOrChild === "Split-Parent";
 
-  return {
+  // isNewRow: this row did not exist before the split, so it must not reuse the
+  // source row's fm_key. resetSerials: the serial picks describe the pre-split
+  // quantity, so they no longer describe this row. fromDialog: the batch/date
+  // arguments carry real values from the split dialog, rather than being absent
+  // because the caller is merely passing an existing row through.
+  //
+  // Handling units are not cleared here: GRtableSplit already warns and clears
+  // temp_hu_data/view_hu on the source row before the dialog opens, and the
+  // spread carries that through.
+  const {
+    isNewRow = false,
+    resetSerials = false,
+    fromDialog = false,
+  } = options;
+
+  // Only a row being built from the split dialog takes its batch and dates from
+  // that dialog. A Split-Parent row that is merely preserved keeps its own,
+  // otherwise splitting an unrelated row blanks every existing Split-Parent's
+  // item_batch_no.
+  const takeBatchFromDialog = isSplitParent && fromDialog;
+
+  const row = {
+    // Spread first so fields this function does not enumerate (temp_hu_data,
+    // view_hu, serial_number_data, plant_id, organization_id, supplier_id,
+    // invoice_qty, return_quantity, ...) survive the rebuild. Every explicit key
+    // below overrides the spread.
+    ...itemData,
+
     // Line identification
     line_index: lineIndex,
 
@@ -83,19 +111,19 @@ const setGrItemData = async (
     // split dialog. "-" (non-batch) stays "-"; batch items use the dialog value
     // (a manual batch, "Auto-generated batch number", or "" for pending manual
     // entry). Dates follow the same rule (null for non-batch items).
-    item_batch_no: isSplitParent
+    item_batch_no: takeBatchFromDialog
       ? itemData.item_batch_no === "-"
         ? "-"
         : dialogBatchNo !== undefined && dialogBatchNo !== null
           ? dialogBatchNo
           : ""
       : itemData.item_batch_no,
-    manufacturing_date: isSplitParent
+    manufacturing_date: takeBatchFromDialog
       ? itemData.item_batch_no === "-"
         ? null
         : dialogManufacturingDate || null
       : itemData.manufacturing_date,
-    expired_date: isSplitParent
+    expired_date: takeBatchFromDialog
       ? itemData.item_batch_no === "-"
         ? null
         : dialogExpiredDate || null
@@ -139,6 +167,30 @@ const setGrItemData = async (
     // Split-Parent tracking: original row index before split
     split_source_index: splitSourceIndex,
   };
+
+  // Every row loses its DB sub-record id. On save the platform soft-deletes the
+  // existing lines and re-inserts the whole table in array order, so an id-less
+  // row is what keeps the saved order equal to the on-screen order. Leave an id
+  // on the untouched rows and the platform matches those in place and pushes the
+  // new split row to the end instead.
+  delete row.id;
+
+  // fm_key is the client-side render key. The spread copied the source row's,
+  // so a genuinely new row must drop it; the platform mints a replacement.
+  if (isNewRow) {
+    delete row.fm_key;
+  }
+
+  // The serial numbers were allocated against the pre-split quantity, so the
+  // stored allocation no longer describes this row. Each split row carries only
+  // the serials picked for it in the dialog.
+  if (resetSerials) {
+    row.serial_number_data = "";
+    row.is_serial_allocated =
+      selectSerialNumber && selectSerialNumber.length > 0 ? 1 : 0;
+  }
+
+  return row;
 };
 
 (async () => {
@@ -227,6 +279,12 @@ const setGrItemData = async (
               dialogItem.batch_no,
               dialogItem.manufacturing_date,
               dialogItem.expired_date,
+              // The first row succeeds the source row; the rest are new.
+              {
+                isNewRow: dialogLineIndex !== 0,
+                resetSerials: true,
+                fromDialog: true,
+              },
             );
             latestTableGR.push(splitParentItem);
           }
@@ -246,6 +304,12 @@ const setGrItemData = async (
             "Parent",
             index,
             grItem.select_serial_number,
+            null, // splitSourceIndex
+            undefined, // dialogBatchNo
+            undefined, // dialogManufacturingDate
+            undefined, // dialogExpiredDate
+            // Parent is the same logical line as the row being split.
+            { isNewRow: false, resetSerials: true },
           );
           latestTableGR.push(parentItem);
 
@@ -264,6 +328,11 @@ const setGrItemData = async (
               "Child",
               index,
               dialogItem.select_serial_number || [],
+              null, // splitSourceIndex
+              undefined, // dialogBatchNo
+              undefined, // dialogManufacturingDate
+              undefined, // dialogExpiredDate
+              { isNewRow: true, resetSerials: true },
             );
             latestTableGR.push(childItem);
           }
