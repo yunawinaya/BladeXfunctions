@@ -41,6 +41,8 @@ const disabledField = async (status) => {
         "table_picking_items",
         "table_picking_records",
         "remarks",
+        "remarks_2",
+        "remarks_3",
       ],
       true,
     );

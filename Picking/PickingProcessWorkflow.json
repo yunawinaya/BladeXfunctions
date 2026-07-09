@@ -877,6 +877,22 @@
                       "propLabel": "Remarks"
                     },
                     {
+                      "prop": "remarks_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:allData.remarks_2}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "remarks_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:allData.remarks_3}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
+                    },
+                    {
                       "prop": "delivery_method",
                       "operator": "",
                       "valueType": "field",
@@ -2392,6 +2408,22 @@
                       "value": "{{workflowparams:allData.remarks}}",
                       "valueLabel": "",
                       "propLabel": "Remarks"
+                    },
+                    {
+                      "prop": "remarks_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:allData.remarks_2}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "remarks_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:allData.remarks_3}}",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
                     },
                     {
                       "prop": "delivery_method",
