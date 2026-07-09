@@ -177,30 +177,6 @@ const rearrangeTableUOMConversion = async () => {
   }
 };
 
-// Legacy items created before the Packing Detail feature have no
-// table_packing_detail. Generate it from table_uom_conversion so it mirrors
-// (uom_id = alt_uom_id per row) — otherwise the save-time mirror validation
-// (validateUOMPackingMirror) blocks the save on a length mismatch.
-const generatePackingDetailIfMissing = async () => {
-  const tablePackingDetail = this.getValue("table_packing_detail");
-  const tableUOMConversion = this.getValue("table_uom_conversion");
-
-  if (
-    (!tablePackingDetail || tablePackingDetail.length === 0) &&
-    Array.isArray(tableUOMConversion) &&
-    tableUOMConversion.length > 0
-  ) {
-    const generated = tableUOMConversion.map((uom) => ({
-      packing_qty: 1,
-      packing_uom_id: uom.alt_uom_id,
-      quantity: 1,
-      uom_id: uom.alt_uom_id,
-      text_b4j8h211: "=",
-    }));
-    await this.setData({ table_packing_detail: generated });
-  }
-};
-
 (async () => {
   try {
     const activeStatus = await this.getValue("is_active");
@@ -251,7 +227,6 @@ const generatePackingDetailIfMissing = async () => {
       case "Edit":
         showStatusHTML(activeStatus);
         await rearrangeTableUOMConversion();
-        await generatePackingDetailIfMissing();
         await enabledBatchManagement();
         await enabledSerialNumberManagement();
         this.triggerEvent("onChange_batch_management");
@@ -276,7 +251,6 @@ const generatePackingDetailIfMissing = async () => {
 
       case "Clone":
         this.display(["active_status"]);
-        await generatePackingDetailIfMissing();
         break;
 
       case "View":
