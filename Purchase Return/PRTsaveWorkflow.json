@@ -1065,6 +1065,318 @@
               ]
             },
             {
+              "id": "code_node_syncIds",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Sync Target Ids",
+                "isValidator": true,
+                "nodeName": "Sync Target Ids",
+                "name": "Sync Target Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "const newLines = {{node:code_node_ISWz5KGY.data.allData.table_prt}} || [];\n\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\nconst origLines = origPRT && Array.isArray(origPRT.table_prt) ? origPRT.table_prt : [];\n\n// Union of the new and the pre-edit lines. A line that was deleted — or zeroed, and\n// so dropped by fillback — still holds a created_return_qty on its GR/PO, and those\n// rows have to be fetched or the reservation is stranded forever.\nconst all = newLines.concat(origLines);\nconst uniq = (key) => [...new Set(all.map((l) => l[key]).filter((x) => x))];\n\n// Sentinel keeps the equalAny filter well-formed when nothing is linked; it matches nothing.\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"__none__\"]);\n\nreturn {\n  grIds: orNone(uniq(\"gr_id\")),\n  poLineIds: orNone(uniq(\"po_line_id\")),\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "prtk0014",
+                    "name": "grIds",
+                    "title": "grIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "prtk0015",
+                    "name": "poLineIds",
+                    "title": "poLineIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "cond_all_PRTsync",
+              "type": "condition-all-node",
+              "data": {
+                "title": "Fetch Sync Targets",
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "cond_item_PRTpo",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 1",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1810000000121,
+                          "parentId": 1810000000122,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "true",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 1",
+                    "name": "Branch 1",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_poLines",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "purchase_order_2ukyuanr_sub:Table:1939901372270747649",
+                          "rules": {
+                            "collectionId": "1939901372270747649",
+                            "list": [
+                              {
+                                "id": 1810000000123,
+                                "parentId": 1810000000124,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "equalAny",
+                                "valueType": "field",
+                                "value": "{{node:code_node_syncIds.data.poLineIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal Any"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 200,
+                        "title": "Get PO Lines",
+                        "isValidator": true,
+                        "nodeName": "Get PO Lines",
+                        "name": "Get PO Lines"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "cond_item_PRTgr",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 2",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1810000000125,
+                          "parentId": 1810000000126,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "true",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 2",
+                    "name": "Branch 2",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_grHeads",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Goods Receiving:Table:1901845517592285186",
+                          "rules": {
+                            "collectionId": "1901845517592285186",
+                            "list": [
+                              {
+                                "id": 1810000000127,
+                                "parentId": 1810000000128,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "equalAny",
+                                "valueType": "field",
+                                "value": "{{node:code_node_syncIds.data.grIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal Any"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get GR Heads",
+                        "isValidator": true,
+                        "nodeName": "Get GR Heads",
+                        "name": "Get GR Heads"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_node_validateReturnable",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Validate Returnable Qty",
+                "isValidator": true,
+                "nodeName": "Validate Returnable Qty",
+                "name": "Validate Returnable Qty",
+                "script": {
+                  "type": "javascript",
+                  "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n\nconst allData = {{node:code_node_ISWz5KGY.data.allData}} || {};\nconst pageStatus = {{workflowparams:pageStatus}};\n\nlet grHeads = {{node:search_grHeads.data.data}} || [];\nif (!Array.isArray(grHeads)) grHeads = [grHeads];\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\n\n// Only a previously-Created document already holds a reservation on these GR lines.\nconst hadReservation =\n  pageStatus === \"Edit\" && origPRT && origPRT.purchase_return_status === \"Created\";\nconst origLines = hadReservation && Array.isArray(origPRT.table_prt) ? origPRT.table_prt : [];\n\nconst aggregate = (rows) => {\n  const m = {};\n  for (const r of rows || []) {\n    const k = r.gr_line_id;\n    if (!k) continue;\n    m[k] = roundQty((m[k] || 0) + parseFloat(r.return_quantity || 0));\n  }\n  return m;\n};\n\nconst requested = aggregate(allData.table_prt);\nconst ownOld = aggregate(origLines);\n\nconst grLineById = {};\nfor (const gr of grHeads) {\n  for (const it of gr.table_gr || []) grLineById[it.id] = it;\n}\n\n// received_qty is taken from the PRT row, not the GR line. For a serialized item the row\n// is converted to base UOM, and so are the quantities booked back onto the GR line, while\n// the GR line's own received_qty stays in the receiving UOM. Reading the row keeps both\n// sides of the subtraction in the same unit.\nconst receivedById = {};\nfor (const line of allData.table_prt || []) {\n  if (line.gr_line_id) receivedById[line.gr_line_id] = roundQty(line.received_qty);\n}\n\nconst offenders = [];\nfor (const grLineId of Object.keys(requested)) {\n  const grLine = grLineById[grLineId];\n  if (!grLine) continue; // line no longer on the goods receiving; nothing to check against\n\n  const received = receivedById[grLineId] || 0;\n  const returned = roundQty(grLine.return_quantity);\n  const reserved = roundQty(grLine.created_return_qty);\n\n  // This document's own reservation is about to be replaced, so it is still available to\n  // it. What any other document returned or reserved is not. The client-side dialog cap\n  // uses a returned_quantity snapshotted when the row was added, so it goes stale as soon\n  // as a sibling purchase return touches the same line — this is the authoritative check.\n  const available = roundQty(received - returned - reserved + (ownOld[grLineId] || 0));\n  const want = requested[grLineId];\n\n  if (want > available + 0.0005) {\n    const label = grLine.item_name || grLine.item_desc || grLineId;\n    offenders.push(\n      label + \": returning \" + want + \", only \" + Math.max(0, available) + \" still returnable\",\n    );\n  }\n}\n\nlet returnableFailed = 0;\nlet returnableMessage = \"\";\nif (offenders.length > 0) {\n  returnableFailed = 1;\n  returnableMessage =\n    \"Return quantity exceeds what is still returnable on the goods receiving:\\n\" +\n    offenders.join(\"\\n\");\n}\n\nreturn { returnableFailed: returnableFailed, returnableMessage: returnableMessage };"
+                },
+                "response_json": [
+                  {
+                    "key": "prtk0016",
+                    "name": "returnableFailed",
+                    "title": "returnableFailed",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "prtk0017",
+                    "name": "returnableMessage",
+                    "title": "returnableMessage",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_PRTreturnableFailed",
+              "type": "if",
+              "data": {
+                "title": "IF Returnable Exceeded",
+                "isValidator": true,
+                "nodeName": "IF Returnable Exceeded",
+                "name": "IF Returnable Exceeded",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1810000000161,
+                      "parentId": 1810000000162,
+                      "isTop": true,
+                      "prop": "node.code_node_validateReturnable.data.returnableFailed",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "returnableFailed",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_PRTreturnable_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "return_node_PRTreturnable",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_validateReturnable.data.returnableMessage}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_PRTreturnable_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "if_MjaGOn2O",
               "type": "if",
               "data": {
@@ -3690,194 +4002,6 @@
                   "type": "ifBlock",
                   "data": { "title": "false" },
                   "blocks": []
-                }
-              ]
-            },
-            {
-              "id": "code_node_syncIds",
-              "type": "code-node",
-              "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Sync Target Ids",
-                "isValidator": true,
-                "nodeName": "Sync Target Ids",
-                "name": "Sync Target Ids",
-                "script": {
-                  "type": "javascript",
-                  "code": "const newLines = {{node:code_node_ISWz5KGY.data.allData.table_prt}} || [];\n\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\nconst origLines = origPRT && Array.isArray(origPRT.table_prt) ? origPRT.table_prt : [];\n\n// Union of the new and the pre-edit lines. A line that was deleted — or zeroed, and\n// so dropped by fillback — still holds a created_return_qty on its GR/PO, and those\n// rows have to be fetched or the reservation is stranded forever.\nconst all = newLines.concat(origLines);\nconst uniq = (key) => [...new Set(all.map((l) => l[key]).filter((x) => x))];\n\n// Sentinel keeps the equalAny filter well-formed when nothing is linked; it matches nothing.\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"__none__\"]);\n\nreturn {\n  grIds: orNone(uniq(\"gr_id\")),\n  poLineIds: orNone(uniq(\"po_line_id\")),\n};"
-                },
-                "response_json": [
-                  {
-                    "key": "prtk0014",
-                    "name": "grIds",
-                    "title": "grIds",
-                    "description": "",
-                    "bsonType": "any",
-                    "isExpand": false
-                  },
-                  {
-                    "key": "prtk0015",
-                    "name": "poLineIds",
-                    "title": "poLineIds",
-                    "description": "",
-                    "bsonType": "any",
-                    "isExpand": false
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
-              "id": "cond_all_PRTsync",
-              "type": "condition-all-node",
-              "data": {
-                "title": "Fetch Sync Targets",
-                "filter": {
-                  "list": []
-                },
-                "expression": {
-                  "code": ""
-                },
-                "displayContent": "sdk.form.setCondition"
-              },
-              "blocks": [
-                {
-                  "id": "cond_item_PRTpo",
-                  "type": "condition-all-node-item",
-                  "data": {
-                    "title": "Branch 1",
-                    "filter": {
-                      "list": [
-                        {
-                          "id": 1810000000121,
-                          "parentId": 1810000000122,
-                          "isTop": true,
-                          "prop": "",
-                          "operator": "",
-                          "valueType": "",
-                          "value": "",
-                          "type": "leaf",
-                          "level": 1
-                        }
-                      ]
-                    },
-                    "expression": {
-                      "code": "true",
-                      "type": "javascript"
-                    },
-                    "displayContent": "sdk.form.setCondition",
-                    "isValidator": true,
-                    "nodeName": "Branch 1",
-                    "name": "Branch 1",
-                    "condition_type": "Expression"
-                  },
-                  "blocks": [
-                    {
-                      "id": "search_poLines",
-                      "type": "search-node",
-                      "data": {
-                        "table_id": {
-                          "source": "purchase_order_2ukyuanr_sub:Table:1939901372270747649",
-                          "rules": {
-                            "collectionId": "1939901372270747649",
-                            "list": [
-                              {
-                                "id": 1810000000123,
-                                "parentId": 1810000000124,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "equalAny",
-                                "valueType": "field",
-                                "value": "{{node:code_node_syncIds.data.poLineIds}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "Equal Any"
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "limit": 200,
-                        "title": "Get PO Lines",
-                        "isValidator": true,
-                        "nodeName": "Get PO Lines",
-                        "name": "Get PO Lines"
-                      },
-                      "blocks": []
-                    }
-                  ]
-                },
-                {
-                  "id": "cond_item_PRTgr",
-                  "type": "condition-all-node-item",
-                  "data": {
-                    "title": "Branch 2",
-                    "filter": {
-                      "list": [
-                        {
-                          "id": 1810000000125,
-                          "parentId": 1810000000126,
-                          "isTop": true,
-                          "prop": "",
-                          "operator": "",
-                          "valueType": "",
-                          "value": "",
-                          "type": "leaf",
-                          "level": 1
-                        }
-                      ]
-                    },
-                    "expression": {
-                      "code": "true",
-                      "type": "javascript"
-                    },
-                    "displayContent": "sdk.form.setCondition",
-                    "isValidator": true,
-                    "nodeName": "Branch 2",
-                    "name": "Branch 2",
-                    "condition_type": "Expression"
-                  },
-                  "blocks": [
-                    {
-                      "id": "search_grHeads",
-                      "type": "search-node",
-                      "data": {
-                        "table_id": {
-                          "source": "Goods Receiving:Table:1901845517592285186",
-                          "rules": {
-                            "collectionId": "1901845517592285186",
-                            "list": [
-                              {
-                                "id": 1810000000127,
-                                "parentId": 1810000000128,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "equalAny",
-                                "valueType": "field",
-                                "value": "{{node:code_node_syncIds.data.grIds}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "Equal Any"
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "limit": 100,
-                        "title": "Get GR Heads",
-                        "isValidator": true,
-                        "nodeName": "Get GR Heads",
-                        "name": "Get GR Heads"
-                      },
-                      "blocks": []
-                    }
-                  ]
                 }
               ]
             },

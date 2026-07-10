@@ -107,6 +107,7 @@ What `PRTsaveWorkflow` does per `saveAs`, so you know what mobile is **not** res
 | Persist header + lines | yes | yes | yes |
 | Generate document number | yes (`draft` token) | yes (`issued` token) | yes, or keeps the Created one |
 | Drop zero-return-qty lines | no | yes | yes |
+| Validate returnable quantity | no | yes (before persist) | yes (before persist) |
 | Validate `temp_qty_data` | no | **no** | yes |
 | Check inventory sufficiency | no | **no** | yes |
 | Reserve `created_return_qty` | no | yes | released |
@@ -458,6 +459,20 @@ tablePRT = tablePRT.filter(
 document carrying the `returned_quantity` snapshotted at creation time — so a Created return never
 nets out its own reservation against itself.
 
+**But that snapshot goes stale, and the server is the real gate.** It is frozen when the row is
+added. If a *sibling* purchase return returns or reserves against the same GR line afterwards, a
+reopened Created document's dialog cap will still offer the original amount. The save workflow
+therefore re-validates every line **before it writes anything**, and returns `400` with:
+
+```
+Return quantity exceeds what is still returnable on the goods receiving:
+Widget: returning 10, only 3 still returnable
+```
+
+Its arithmetic, per GR line: `available = received_qty − return_quantity − created_return_qty + (this document's own prior reservation)`.
+Treat that `400` as a normal validation failure and show the message; nothing has been persisted.
+Do not try to reproduce the check on the client — the server owns it.
+
 **Each PRT line must carry `gr_id`, `gr_line_id`, `po_id` and `po_line_id`.** These four are what
 the server aggregates the reservation by. A line missing them reserves nothing, silently — no error,
 no reservation. If mobile has any code path that rebuilds `table_prt` from a goods receiving without
@@ -724,6 +739,12 @@ arithmetic against fixtures. Run the equivalent on mobile.
 - [ ] With a Created return reserving 3 of 10 received, open a **new** purchase return and add the
       same GR line — the Select Stock dialog must cap at **7**.
 - [ ] Cancel that Created return, then repeat — the cap is back to **10**.
+- [ ] **Stale-snapshot over-return.** Create PRT-A reserving 3 of 10. Separately complete PRT-B
+      returning 7. Reopen PRT-A, raise its quantity to 10 (the dialog cap will *allow* it — the
+      snapshot is stale) and save. The server must reject with `400`
+      "…only 3 still returnable", and **nothing may be persisted**: PRT-A is still `Created` with
+      quantity 3, and the GR line still reads `return_quantity 7 / created_return_qty 3`.
+- [ ] Same setup, raise PRT-A to exactly **3** → accepted.
 - [ ] Cancel a `Draft` or a `Completed` return → `400` with a clear message.
 - [ ] Delete a `Created` return → `400`, "Cancel this purchase return before deleting it."
 - [ ] Delete a `Draft` or `Cancelled` return → `is_deleted = 1`.
