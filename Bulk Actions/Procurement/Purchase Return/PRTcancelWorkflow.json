@@ -1,0 +1,889 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "get_prt",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Return:Table:1901967357895626753",
+          "rules": {
+            "collectionId": "1901967357895626753",
+            "list": [
+              {
+                "id": 1783500000011,
+                "parentId": 1783500000010,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:prt_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get PRT Data",
+        "isValidator": true,
+        "nodeName": "Get PRT Data",
+        "name": "Get PRT Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_classify",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Classify",
+        "isValidator": true,
+        "nodeName": "Classify",
+        "name": "Classify",
+        "script": {
+          "type": "javascript",
+          "code": "const action = {{workflowparams:action}};\n\nlet raw = {{node:get_prt.data.data}};\nif (Array.isArray(raw)) raw = raw[0];\nconst prt = raw || null;\n\nconst isDelete = action === \"delete\" ? 1 : 0;\n\nlet blocked = 0;\nlet code = \"200\";\nlet message = \"\";\n\nconst status = prt ? prt.purchase_return_status : null;\n\nif (!prt) {\n  blocked = 1;\n  code = \"400\";\n  message = \"Purchase return not found.\";\n} else if (isDelete === 1) {\n  // A Created purchase return still holds a created_return_qty reservation on the\n  // GR and PO lines. Deleting it outright would strand that quantity, so it must\n  // be cancelled first.\n  if (status !== \"Draft\" && status !== \"Cancelled\") {\n    blocked = 1;\n    code = \"400\";\n    message =\n      status === \"Created\"\n        ? \"Cancel this purchase return before deleting it.\"\n        : \"Only draft or cancelled purchase returns can be deleted.\";\n  }\n} else if (status !== \"Created\") {\n  blocked = 1;\n  code = \"400\";\n  message =\n    status === \"Completed\"\n      ? \"A completed purchase return cannot be cancelled; its stock has already been returned.\"\n      : \"Only created purchase returns can be cancelled.\";\n}\n\nconst lines = prt && Array.isArray(prt.table_prt) ? prt.table_prt : [];\nconst uniq = (key) => [...new Set(lines.map((l) => l[key]).filter((x) => x))];\n\n// A sentinel keeps the equalAny filter well-formed when a purchase return has no\n// linked GR or PO lines; it matches nothing.\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"__none__\"]);\n\nconst prtNo = (prt && prt.purchase_return_no) || \"\";\n\nreturn {\n  blocked: blocked,\n  code: code,\n  message: message,\n  isDelete: isDelete,\n  prtLines: lines,\n  grIds: orNone(uniq(\"gr_id\")),\n  poLineIds: orNone(uniq(\"po_line_id\")),\n  cancelledPrtNo: prtNo.endsWith(\"-Cancelled\") ? prtNo : prtNo + \"-Cancelled\",\n};"
+        },
+        "response_json": [
+          {
+            "key": "prtc00",
+            "name": "blocked",
+            "title": "blocked",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc01",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc02",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc03",
+            "name": "isDelete",
+            "title": "isDelete",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc04",
+            "name": "prtLines",
+            "title": "prtLines",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc05",
+            "name": "grIds",
+            "title": "grIds",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc06",
+            "name": "poLineIds",
+            "title": "poLineIds",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc07",
+            "name": "cancelledPrtNo",
+            "title": "cancelledPrtNo",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_blocked",
+      "type": "if",
+      "data": {
+        "title": "Blocked?",
+        "isValidator": true,
+        "nodeName": "Blocked?",
+        "name": "Blocked?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783500000101,
+              "parentId": 1783500000100,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_classify.data.blocked}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_blocked",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Blocked",
+                "isValidator": true,
+                "nodeName": "Return Blocked",
+                "name": "Return Blocked",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "value": "{{node:code_classify.data.code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "value": "{{node:code_classify.data.message}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_is_delete",
+      "type": "if",
+      "data": {
+        "title": "Is Delete?",
+        "isValidator": true,
+        "nodeName": "Is Delete?",
+        "name": "Is Delete?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783500000121,
+              "parentId": 1783500000120,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:action}}' == 'delete'"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_prt_delete",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Return:Table:1901967357895626753",
+                  "rules": {
+                    "collectionId": "1901967357895626753",
+                    "list": [
+                      {
+                        "id": 1783500000111,
+                        "parentId": 1783500000110,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:prt_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete PRT",
+                "isValidator": true,
+                "nodeName": "Delete PRT",
+                "name": "Delete PRT",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "is_deleted"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_deleted",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Deleted",
+                "isValidator": true,
+                "nodeName": "Return Deleted",
+                "name": "Return Deleted",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "200",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "Deleted",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "cond_all_PRTcancel",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Fetch",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_gr",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "GR Heads",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783500000201,
+                  "parentId": 1783500000200,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "true",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "GR Heads",
+            "name": "GR Heads",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_grHeads",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1783500000211,
+                        "parentId": 1783500000210,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_classify.data.grIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal Any"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get GR Heads",
+                "isValidator": true,
+                "nodeName": "Get GR Heads",
+                "name": "Get GR Heads"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_po",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "PO Lines",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783500000221,
+                  "parentId": 1783500000220,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "true",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "PO Lines",
+            "name": "PO Lines",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_poLines",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "purchase_order_2ukyuanr_sub:Table:1939901372270747649",
+                  "rules": {
+                    "collectionId": "1939901372270747649",
+                    "list": [
+                      {
+                        "id": 1783500000231,
+                        "parentId": 1783500000230,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_classify.data.poLineIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal Any"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get PO Lines",
+                "isValidator": true,
+                "nodeName": "Get PO Lines",
+                "name": "Get PO Lines"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_reversals",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Compute Reversals",
+        "isValidator": true,
+        "nodeName": "Compute Reversals",
+        "name": "Compute Reversals",
+        "script": {
+          "type": "javascript",
+          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst asStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n\nconst prtLines = {{node:code_classify.data.prtLines}} || [];\n\nlet grHeads = {{node:search_grHeads.data.data}} || [];\nif (!Array.isArray(grHeads)) grHeads = [grHeads];\nlet poLines = {{node:search_poLines.data.data}} || [];\nif (!Array.isArray(poLines)) poLines = [poLines];\n\n// Only a Created purchase return reaches here, so everything it booked sits in\n// created_return_qty. return_quantity is never touched by a cancel.\nconst aggregate = (rows, key) => {\n  const m = {};\n  for (const r of rows || []) {\n    const k = r[key];\n    if (!k) continue;\n    m[k] = roundQty((m[k] || 0) + parseFloat(r.return_quantity || 0));\n  }\n  return m;\n};\n\nconst revByGrLine = aggregate(prtLines, \"gr_line_id\");\nconst revByPoLine = aggregate(prtLines, \"po_line_id\");\n\nconst poLineUpdates = [];\nfor (const line of poLines) {\n  const cur = roundQty(line.created_return_qty);\n  const next = Math.max(0, roundQty(cur - (revByPoLine[line.id] || 0)));\n  if (next === cur) continue;\n  poLineUpdates.push({ id: line.id, created_return_qty: asStr(next) });\n}\n\nconst grUpdates = [];\nfor (const gr of grHeads) {\n  const items = (gr.table_gr || []).map((it) => ({ ...it }));\n  let changed = false;\n  for (const it of items) {\n    const cur = roundQty(it.created_return_qty);\n    const next = Math.max(0, roundQty(cur - (revByGrLine[it.id] || 0)));\n    if (next !== cur) changed = true;\n    it.created_return_qty = asStr(next);\n  }\n\n  // Same idempotent rule as code_node_syncCalc in PRTsaveWorkflow.\n  // Split children are per-bin detail; only parent/regular rows are returnable, and\n  // PRT lines only ever target those. Counting children would make \"Fully Returned\"\n  // unreachable for any split goods receiving.\n  const returnable = items.filter((it) => it.parent_or_child !== \"Child\");\n\n  let fully = 0;\n  let partially = 0;\n  let reserved = 0;\n  for (const it of returnable) {\n    const rq = parseFloat(it.return_quantity || 0);\n    const cq = parseFloat(it.created_return_qty || 0);\n    if (rq > 0) {\n      partially++;\n      if (rq >= parseFloat(it.received_qty || 0)) fully++;\n    }\n    if (cq > 0) reserved++;\n  }\n  let status = \"\";\n  if (returnable.length > 0 && fully === returnable.length) status = \"Fully Returned\";\n  else if (partially > 0) status = \"Partially Returned\";\n  else if (reserved > 0) status = \"Created\";\n\n  if (!changed && status === (gr.return_status || \"\")) continue;\n  grUpdates.push({ id: gr.id, table_gr: items, return_status: status });\n}\n\nreturn {\n  poLineUpdates: poLineUpdates,\n  grUpdates: grUpdates,\n  hasPoUpdates: poLineUpdates.length > 0 ? 1 : 0,\n  hasGrUpdates: grUpdates.length > 0 ? 1 : 0,\n};"
+        },
+        "response_json": [
+          {
+            "key": "prtc00",
+            "name": "poLineUpdates",
+            "title": "poLineUpdates",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc01",
+            "name": "grUpdates",
+            "title": "grUpdates",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc02",
+            "name": "hasPoUpdates",
+            "title": "hasPoUpdates",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "prtc03",
+            "name": "hasGrUpdates",
+            "title": "hasGrUpdates",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_hasGrUpdates",
+      "type": "if",
+      "data": {
+        "title": "GR hasUpdates?",
+        "isValidator": true,
+        "nodeName": "GR hasUpdates?",
+        "name": "GR hasUpdates?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783500000301,
+              "parentId": 1783500000300,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_reversals.data.hasGrUpdates}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_grHeads",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1783500000311,
+                        "parentId": 1783500000310,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_reversals.data.grUpdates.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Release GR Reservation",
+                "isValidator": true,
+                "nodeName": "Release GR Reservation",
+                "name": "Release GR Reservation",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_reversals.data.grUpdates.id}}",
+                      "valueLabel": "",
+                      "propLabel": "id"
+                    },
+                    {
+                      "prop": "table_gr",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_reversals.data.grUpdates.table_gr}}",
+                      "valueLabel": "",
+                      "propLabel": "table_gr"
+                    },
+                    {
+                      "prop": "return_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_reversals.data.grUpdates.return_status}}",
+                      "valueLabel": "",
+                      "propLabel": "return_status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_hasPoUpdates",
+      "type": "if",
+      "data": {
+        "title": "PO hasUpdates?",
+        "isValidator": true,
+        "nodeName": "PO hasUpdates?",
+        "name": "PO hasUpdates?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783500000321,
+              "parentId": 1783500000320,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_reversals.data.hasPoUpdates}} == 1"
+        }
+      },
+      "blocks": [
+        {
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_poLines",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "purchase_order_2ukyuanr_sub:Table:1939901372270747649",
+                  "rules": {
+                    "collectionId": "1939901372270747649",
+                    "list": [
+                      {
+                        "id": 1783500000331,
+                        "parentId": 1783500000330,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_reversals.data.poLineUpdates.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Release PO Reservation",
+                "isValidator": true,
+                "nodeName": "Release PO Reservation",
+                "name": "Release PO Reservation",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_reversals.data.poLineUpdates.id}}",
+                      "valueLabel": "",
+                      "propLabel": "id"
+                    },
+                    {
+                      "prop": "created_return_qty",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_reversals.data.poLineUpdates.created_return_qty}}",
+                      "valueLabel": "",
+                      "propLabel": "created_return_qty"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_prt_cancel",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Purchase Return:Table:1901967357895626753",
+          "rules": {
+            "collectionId": "1901967357895626753",
+            "list": [
+              {
+                "id": 1783500000411,
+                "parentId": 1783500000410,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:prt_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cancel PRT",
+        "isValidator": true,
+        "nodeName": "Cancel PRT",
+        "name": "Cancel PRT",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "purchase_return_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": "",
+              "propLabel": "purchase_return_status"
+            },
+            {
+              "prop": "purchase_return_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_classify.data.cancelledPrtNo}}",
+              "valueLabel": "",
+              "propLabel": "purchase_return_no"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_success",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Success",
+        "isValidator": true,
+        "nodeName": "Return Success",
+        "name": "Return Success",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "prtcq001",
+      "name": "action",
+      "title": "action",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "prtcq002",
+      "name": "prt_id",
+      "title": "prt_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}

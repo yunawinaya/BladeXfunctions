@@ -32,6 +32,16 @@ const fetchBatchID = async (batchNo, grNumber, itemID) => {
   }
 };
 
+// Quantity of a GR line already spoken for: what previous purchase returns have
+// actually returned, plus what Created (not yet completed) returns have reserved.
+const consumedQty = (grItem) =>
+  parseFloat(
+    (
+      parseFloat(grItem.return_quantity || 0) +
+      parseFloat(grItem.created_return_qty || 0)
+    ).toFixed(3),
+  );
+
 const processData = async (existingPRT, tablePRT) => {
   for (const [rowIndex, prt] of tablePRT.entries()) {
     const index = existingPRT.length + rowIndex;
@@ -190,7 +200,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
             line_remark_1: grItem.line_remark_1,
             line_remark_2: grItem.line_remark_2,
             batch_no: grItem.item_batch_no,
-            returned_quantity: parseFloat(grItem.return_quantity.toFixed(3)),
+            returned_quantity: consumedQty(grItem),
             unit_price: grItem.unit_price,
             total_price: grItem.total_price,
             costing_method: itemData?.material_costing_method || null,
@@ -236,7 +246,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
           line_remark_1: grItem.line_remark_1,
           line_remark_2: grItem.line_remark_2,
           batch_no: grItem.item_batch_no,
-          returned_quantity: parseFloat(grItem.return_quantity.toFixed(3)),
+          returned_quantity: consumedQty(grItem),
           unit_price: grItem.unit_price,
           total_price: grItem.total_price,
           costing_method: grItem.item?.material_costing_method || null,
@@ -255,7 +265,7 @@ const convertToBaseUOM = (quantity, altUOM, itemData) => {
 
   tablePRT = tablePRT.filter(
     (prt) =>
-      prt.returned_quantity !== prt.received_qty &&
+      prt.returned_quantity < prt.received_qty &&
       !existingPRT.find((prtItem) => prtItem.gr_line_id === prt.gr_line_id),
   );
 

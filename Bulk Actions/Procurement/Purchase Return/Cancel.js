@@ -1,23 +1,23 @@
-// Bulk Delete Purchase Returns - soft-deletes via the server-side workflow, which
-// re-validates the status before writing. Zero client-side DB access.
+// Bulk Cancel Created Purchase Returns - releases the created_return_qty reserved
+// on the GR and PO lines (server-side workflow). Zero client-side DB access.
 // Replace PRT_CANCEL_WORKFLOW_ID with the runtime id assigned by the platform
-// after importing PRTcancelWorkflow.json (same workflow, action: "delete").
+// after importing PRTcancelWorkflow.json.
 const PRT_CANCEL_WORKFLOW_ID = "2075396495149031426";
 
-const runPRTDeleteWorkflow = async (prtId) => {
+const runPRTCancelWorkflow = async (prtId) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
       PRT_CANCEL_WORKFLOW_ID,
       {
-        action: "delete",
+        action: "cancel",
         prt_id: prtId,
       },
       (res) => {
-        console.log("Purchase Return delete workflow response:", res);
+        console.log("Purchase Return cancel workflow response:", res);
         resolve(res);
       },
       (err) => {
-        console.error("Failed to delete Purchase Return:", err);
+        console.error("Failed to cancel Purchase Return:", err);
         reject(err);
       },
     );
@@ -35,34 +35,30 @@ const runPRTDeleteWorkflow = async (prtId) => {
       return;
     }
 
-    // Only Draft or Cancelled purchase returns can be deleted. A Created one still
-    // holds a reservation on the goods receiving and purchase order lines, so it
-    // has to be cancelled first.
-    const purchaseReturnData = selectedRecords.filter(
-      (item) =>
-        item.purchase_return_status === "Draft" ||
-        item.purchase_return_status === "Cancelled",
+    // Only Created purchase returns can be cancelled. A Completed one has already
+    // moved stock; a Draft never reserved anything.
+    const createdPRTs = selectedRecords.filter(
+      (item) => item.purchase_return_status === "Created",
     );
 
-    if (purchaseReturnData.length === 0) {
+    if (createdPRTs.length === 0) {
       this.$message.error(
-        "Please select at least one draft or cancelled purchase return.",
+        "Please select at least one created purchase return.",
       );
       return;
     }
 
-    const prtNumbers = purchaseReturnData.map(
-      (item) => item.purchase_return_no,
-    );
+    const prtNumbers = createdPRTs.map((item) => item.purchase_return_no);
 
     await this.$confirm(
-      `You've selected ${prtNumbers.length} purchase return(s) to delete. <br> <strong>Purchase Return Numbers:</strong> <br>${prtNumbers.join(
-        ", ",
-      )} <br>Do you want to proceed?`,
-      "Purchase Return Deletion",
+      `You've selected ${prtNumbers.length} purchase return(s) to cancel.<br><br>` +
+        `<strong>Purchase Return Numbers:</strong><br>` +
+        `${prtNumbers.join(", ")}<br><br>` +
+        `This will release the reserved return quantities on the linked goods receiving and purchase orders. Do you want to proceed?`,
+      "Cancel Created Purchase Return",
       {
-        confirmButtonText: "Proceed",
-        cancelButtonText: "Cancel",
+        confirmButtonText: "Yes, Cancel Purchase Returns",
+        cancelButtonText: "No, Go Back",
         type: "warning",
         dangerouslyUseHTMLString: true,
       },
@@ -70,12 +66,12 @@ const runPRTDeleteWorkflow = async (prtId) => {
       throw new Error("User cancelled the operation");
     });
 
-    this.showLoading("Deleting Purchase Return...");
+    this.showLoading("Cancelling Purchase Return...");
 
     const results = [];
-    for (const prtItem of purchaseReturnData) {
+    for (const prtItem of createdPRTs) {
       try {
-        const workflowResult = await runPRTDeleteWorkflow(prtItem.id);
+        const workflowResult = await runPRTCancelWorkflow(prtItem.id);
 
         const resultCode = workflowResult?.data?.code;
         if (resultCode === "200" || resultCode === 200) {
@@ -87,14 +83,14 @@ const runPRTDeleteWorkflow = async (prtId) => {
             error:
               workflowResult?.data?.message ||
               workflowResult?.data?.msg ||
-              "Failed to delete purchase return",
+              "Failed to cancel purchase return",
           });
         }
       } catch (error) {
         results.push({
           prt_no: prtItem.purchase_return_no,
           success: false,
-          error: error.message || "Failed to delete purchase return",
+          error: error.message || "Failed to cancel purchase return",
         });
       }
     }
@@ -124,7 +120,7 @@ const runPRTDeleteWorkflow = async (prtId) => {
       });
     } else {
       this.$message.success(
-        `All ${successCount} purchase return(s) deleted successfully.`,
+        `Successfully cancelled ${successCount} purchase return(s).`,
       );
     }
 

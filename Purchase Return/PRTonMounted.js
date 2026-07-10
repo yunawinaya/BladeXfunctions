@@ -21,6 +21,13 @@ const showStatusHTML = async (status) => {
     case "Draft":
       this.display(["draft_status"]);
       break;
+    case "Created":
+      this.display(["created_status"]);
+      break;
+    case "Completed":
+      this.display(["completed_status"]);
+      break;
+    // Legacy: purchase returns saved before the Created/Completed split.
     case "Issued":
       this.display(["issued_status"]);
       break;
@@ -73,80 +80,102 @@ const displayAddress = async () => {
 };
 
 const disabledField = async (status) => {
-  if (status !== "Draft") {
+  if (status === "Draft") return;
+
+  // Created: the return quantity is reserved against the GR/PO lines but no
+  // stock has moved yet, so the document can still be corrected or completed.
+  // Only the identity fields are frozen.
+  if (status === "Created") {
     this.disabled(
       [
         "purchase_return_status",
         "purchase_return_no",
         "organization_id",
         "supplier_id",
-        "prt_billing_name",
-        "prt_billing_cp",
-        "prt_billing_address",
-        "prt_shipping_address",
-        "gr_date",
         "plant",
-        "purchase_return_date",
-        "input_hvxpruem",
-        "return_delivery_method",
-        "purchase_return_ref",
-        "shipping_details",
-        "reason_for_return",
-
-        "driver_name",
-        "vehicle_no",
-        "cp_ic_no",
-        "driver_contact",
-        "pickup_date",
-
-        "courier_company",
-        "shipping_date",
-        "estimated_arrival",
-        "shipping_method",
-        "freight_charge",
-
-        "driver_name2",
-        "ct_ic_no",
-        "driver_contact_no2",
-        "estimated_arrival2",
-        "vehicle_no2",
-        "delivery_cost",
-
-        "tpt_vehicle_number",
-        "tpt_transport_name",
-        "tpt_ic_no",
-        "tpt_driver_contact_no",
-
-        "table_prt.return_condition",
-        "confirm_inventory.table_item_balance",
-
-        "billing_address_line_1",
-        "billing_address_line_2",
-        "billing_address_line_3",
-        "billing_address_line_4",
-        "billing_address_city",
-        "billing_address_state",
-        "billing_address_country",
-        "billing_postal_code",
-        "shipping_address_line_1",
-        "shipping_address_line_2",
-        "shipping_address_line_3",
-        "shipping_address_line_4",
-        "shipping_address_city",
-        "shipping_address_state",
-        "shipping_address_country",
-        "shipping_postal_code",
       ],
       true,
     );
 
-    this.hide([
-      "link_billing_address",
-      "link_shipping_address",
-      "button_save_as_draft",
-      "button_save_as_created",
-    ]);
+    this.hide(["button_save_as_draft"]);
+    this.display(["button_save_as_created", "button_save_as_completed"]);
+    return;
   }
+
+  // Completed / Cancelled (and legacy Issued): fully read-only.
+  this.disabled(
+    [
+      "purchase_return_status",
+      "purchase_return_no",
+      "organization_id",
+      "supplier_id",
+      "prt_billing_name",
+      "prt_billing_cp",
+      "prt_billing_address",
+      "prt_shipping_address",
+      "gr_date",
+      "plant",
+      "purchase_return_date",
+      "input_hvxpruem",
+      "return_delivery_method",
+      "purchase_return_ref",
+      "shipping_details",
+      "reason_for_return",
+
+      "driver_name",
+      "vehicle_no",
+      "cp_ic_no",
+      "driver_contact",
+      "pickup_date",
+
+      "courier_company",
+      "shipping_date",
+      "estimated_arrival",
+      "shipping_method",
+      "freight_charge",
+
+      "driver_name2",
+      "ct_ic_no",
+      "driver_contact_no2",
+      "estimated_arrival2",
+      "vehicle_no2",
+      "delivery_cost",
+
+      "tpt_vehicle_number",
+      "tpt_transport_name",
+      "tpt_ic_no",
+      "tpt_driver_contact_no",
+
+      "table_prt.return_condition",
+      "confirm_inventory.table_item_balance",
+
+      "billing_address_line_1",
+      "billing_address_line_2",
+      "billing_address_line_3",
+      "billing_address_line_4",
+      "billing_address_city",
+      "billing_address_state",
+      "billing_address_country",
+      "billing_postal_code",
+      "shipping_address_line_1",
+      "shipping_address_line_2",
+      "shipping_address_line_3",
+      "shipping_address_line_4",
+      "shipping_address_city",
+      "shipping_address_state",
+      "shipping_address_country",
+      "shipping_postal_code",
+    ],
+    true,
+  );
+
+  this.hide([
+    "link_billing_address",
+    "link_shipping_address",
+    "button_save_as_draft",
+    "button_save_as_created",
+    "button_save_as_completed",
+  ]);
 };
 
 const checkAccIntegrationType = async (organizationId) => {
@@ -194,6 +223,26 @@ const checkAccIntegrationType = async (organizationId) => {
         await this.setData({ return_by: this.getVarGlobal("nickname") });
         break;
 
+      // A clone is a brand new draft. Without clearing the number and status it
+      // inherits the source document's purchase_return_no — the workflow only
+      // regenerates when the number is blank or the previous status was Draft —
+      // and would save under a duplicate number.
+      // Deliberately no setPlant() here: it disables table_prt at parent-org level,
+      // and processData() (which re-enables the per-row inputs) never runs on a
+      // clone, so the cloned lines would be uneditable.
+      case "Clone":
+        this.display(["draft_status"]);
+        this.setData({
+          purchase_return_no: null,
+          purchase_return_status: null,
+          previous_status: null,
+          return_by: this.getVarGlobal("nickname"),
+        });
+        await checkAccIntegrationType(organizationId);
+        await displayDeliveryMethod();
+        await displayAddress();
+        break;
+
       case "Edit":
         this.setData({ previous_status: status });
         await disabledField(status);
@@ -212,6 +261,7 @@ const checkAccIntegrationType = async (organizationId) => {
           "link_shipping_address",
           "button_save_as_draft",
           "button_save_as_created",
+          "button_save_as_completed",
         ]);
 
         break;
