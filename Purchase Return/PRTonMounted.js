@@ -79,6 +79,22 @@ const displayAddress = async () => {
   }
 };
 
+// Mirrors processData() in PRTbatchAddLineItem.js. A stock row's quantity comes from
+// the Select Stock dialog, which writes temp_qty_data and return_quantity together; a
+// description-only row is typed directly. processData only runs when rows are added,
+// so without replaying it on reopen a stock row's return_quantity stays editable and
+// can drift away from temp_qty_data — completion would then subtract one quantity from
+// inventory while booking a different one onto the goods receiving and purchase order.
+const disabledRowFields = async () => {
+  const data = this.getValues();
+
+  (data.table_prt || []).forEach((prt, index) => {
+    const isDescriptionRow = !prt.material_id && prt.material_desc !== "";
+    this.disabled(`table_prt.${index}.select_return_qty`, isDescriptionRow);
+    this.disabled(`table_prt.${index}.return_quantity`, !isDescriptionRow);
+  });
+};
+
 const disabledField = async (status) => {
   if (status === "Draft") return;
 
@@ -146,6 +162,7 @@ const disabledField = async (status) => {
       "tpt_ic_no",
       "tpt_driver_contact_no",
 
+      "table_prt",
       "table_prt.return_condition",
       "confirm_inventory.table_item_balance",
 
@@ -227,9 +244,8 @@ const checkAccIntegrationType = async (organizationId) => {
       // inherits the source document's purchase_return_no — the workflow only
       // regenerates when the number is blank or the previous status was Draft —
       // and would save under a duplicate number.
-      // Deliberately no setPlant() here: it disables table_prt at parent-org level,
-      // and processData() (which re-enables the per-row inputs) never runs on a
-      // clone, so the cloned lines would be uneditable.
+      // Deliberately no setPlant() here: at parent-org level it disables table_prt
+      // wholesale, which would lock the lines the clone exists to carry over.
       case "Clone":
         this.display(["draft_status"]);
         this.setData({
@@ -239,6 +255,7 @@ const checkAccIntegrationType = async (organizationId) => {
           return_by: this.getVarGlobal("nickname"),
         });
         await checkAccIntegrationType(organizationId);
+        await disabledRowFields();
         await displayDeliveryMethod();
         await displayAddress();
         break;
@@ -246,6 +263,11 @@ const checkAccIntegrationType = async (organizationId) => {
       case "Edit":
         this.setData({ previous_status: status });
         await disabledField(status);
+        // Only the two editable statuses need per-row state; the rest disable
+        // table_prt wholesale.
+        if (status === "Draft" || status === "Created") {
+          await disabledRowFields();
+        }
         await checkAccIntegrationType(organizationId);
         await showStatusHTML(status);
         await displayDeliveryMethod();
