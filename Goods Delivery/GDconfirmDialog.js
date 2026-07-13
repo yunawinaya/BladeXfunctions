@@ -1,6 +1,7 @@
 (async () => {
   // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
-  const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
+  const roundQty = (value) =>
+    Math.round((parseFloat(value) || 0) * 1000) / 1000;
 
   const data = this.getValues();
   const temporaryData = data.gd_item_balance.table_item_balance;
@@ -38,8 +39,10 @@
   // by alt_uom_id. Look it up by the GD line's order UOM (base UOM is guaranteed
   // to be row 0, so this resolves for both base and alternate UOMs).
   const getOverDeliveryTolerance = (item, uomId) =>
-    ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) || {})
-      .over_delivery_tolerance || 0;
+    (
+      (item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) ||
+      {}
+    ).over_delivery_tolerance || 0;
 
   // Helper function to convert quantity from alt UOM to base UOM
   const convertToBaseUOM = (quantity, altUOM) => {
@@ -81,7 +84,8 @@
 
   // Re-validate all rows with quantities > 0 before confirming
   const gdStatus = data.gd_status;
-  const currentDialogUOM = data.gd_item_balance.current_table_uom || selectedUOM;
+  const currentDialogUOM =
+    data.gd_item_balance.current_table_uom || selectedUOM;
 
   // Convert GD line quantities to current dialog UOM for accurate comparison
   const convertGdToDialogUOM = (qty) => {
@@ -102,8 +106,12 @@
     return qty;
   };
 
-  const rawOrderQty = parseFloat(data.table_gd[rowIndex].gd_order_quantity || 0);
-  const rawInitialDeliveredQty = parseFloat(data.table_gd[rowIndex].gd_initial_delivered_qty || 0);
+  const rawOrderQty = parseFloat(
+    data.table_gd[rowIndex].gd_order_quantity || 0,
+  );
+  const rawInitialDeliveredQty = parseFloat(
+    data.table_gd[rowIndex].gd_initial_delivered_qty || 0,
+  );
   const gd_order_quantity = convertGdToDialogUOM(rawOrderQty);
   const initialDeliveredQty = convertGdToDialogUOM(rawInitialDeliveredQty);
 
@@ -116,19 +124,25 @@
   }
 
   // Calculate total quantity from all rows with gd_quantity > 0
-  const balanceTotal = roundQty(temporaryData.reduce((sum, item) => {
-    return sum + (item.gd_quantity > 0 ? parseFloat(item.gd_quantity || 0) : 0);
-  }, 0));
+  const balanceTotal = roundQty(
+    temporaryData.reduce((sum, item) => {
+      return (
+        sum + (item.gd_quantity > 0 ? parseFloat(item.gd_quantity || 0) : 0)
+      );
+    }, 0),
+  );
 
   // Filter HU item rows with deliver_quantity > 0
   const filteredHuData = huData.filter(
     (item) => item.row_type === "item" && parseFloat(item.deliver_quantity) > 0,
   );
 
-  const totalHuQuantity = roundQty(filteredHuData.reduce(
-    (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
-    0,
-  ));
+  const totalHuQuantity = roundQty(
+    filteredHuData.reduce(
+      (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
+      0,
+    ),
+  );
 
   const totalDialogQuantity = roundQty(balanceTotal + totalHuQuantity);
   const totalDeliveredQty = roundQty(initialDeliveredQty + totalDialogQuantity);
@@ -303,7 +317,11 @@
   }
 
   // Check total delivery limit (skip for FULL_HU_PICK only — NO_SPLIT enforces tolerance)
-  if (splitPolicy !== "FULL_HU_PICK" && orderLimit > 0 && orderLimit < totalDeliveredQty) {
+  if (
+    splitPolicy !== "FULL_HU_PICK" &&
+    orderLimit > 0 &&
+    orderLimit < totalDeliveredQty
+  ) {
     console.log("Validation failed: Total quantity exceeds delivery limit");
     alert("Total quantity exceeds delivery limit");
     return;
@@ -472,10 +490,9 @@
       return map;
     }, {});
 
-    const totalQty = roundQty(filteredData.reduce(
-      (sum, item) => sum + (item.gd_quantity || 0),
-      0,
-    ));
+    const totalQty = roundQty(
+      filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0),
+    );
 
     const hasHuAllocation = filteredHuData && filteredHuData.length > 0;
     const sectionLabel = hasHuAllocation ? "LOOSE STOCK" : "DETAILS";
@@ -617,10 +634,7 @@
     const currentMaterialHuTotal = roundQty(
       filteredHuData
         .filter((item) => item.material_id === materialId)
-        .reduce(
-          (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
-          0,
-        ),
+        .reduce((sum, item) => sum + parseFloat(item.deliver_quantity || 0), 0),
     );
 
     if (currentMaterialHuTotal > gdQty && gdQty > 0) {
@@ -646,9 +660,7 @@
     // 2. Foreign item excess (FULL_HU_PICK only): items not in any GD line
     if (splitPolicy === "FULL_HU_PICK") {
       const gdMaterialIds = new Set(
-        (data.table_gd || [])
-          .map((line) => line.material_id)
-          .filter(Boolean),
+        (data.table_gd || []).map((line) => line.material_id).filter(Boolean),
       );
 
       filteredHuData
@@ -869,7 +881,9 @@
   this.setData({
     [`table_gd.${rowIndex}.gd_delivered_qty`]: deliveredQty,
     [`table_gd.${rowIndex}.gd_qty`]: totalGdQuantity,
-    [`table_gd.${rowIndex}.base_qty`]: totalGdQuantity,
+    [`table_gd.${rowIndex}.base_qty`]: roundQty(
+      convertToBaseUOM(totalGdQuantity, goodDeliveryUOM),
+    ),
     [`table_gd.${rowIndex}.gd_price`]: currentRowPrice,
     [`table_gd.${rowIndex}.price_per_item`]: pricePerItem,
     [`table_gd.${rowIndex}.packing_qty`]: packingConversion
