@@ -35,6 +35,7 @@
         require_hu_scan: 0,
         split_policy: "",
         full_cl_check: 0,
+        convert_gd_created: 0,
       });
       return;
     }
@@ -58,6 +59,7 @@
       require_hu_scan: resPickingSetup.data[0].require_hu_scan,
       split_policy: resPickingSetup.data[0].split_policy,
       full_cl_check: resPickingSetup.data[0].full_cl_check || 0,
+      convert_gd_created: resPickingSetup.data[0].convert_gd_created || 0,
     });
   } catch (error) {
     console.error(error);

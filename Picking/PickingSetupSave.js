@@ -29,6 +29,7 @@ const closeDialog = () => {
       organization_id,
       split_policy,
       full_cl_check,
+      convert_gd_created,
     } = data;
 
     const entry = {
@@ -50,6 +51,7 @@ const closeDialog = () => {
       organization_id,
       split_policy,
       full_cl_check: full_cl_check || 0,
+      convert_gd_created: convert_gd_created || 0,
     };
 
     if (picking_setup_id !== "") {
