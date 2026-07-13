@@ -1,6 +1,7 @@
-// picking_setup.convert_gd_created: 0 = Draft GDs (a single one opens the form),
-// 1 = Created GDs, saved server-side by SOconvertGDCreatedWorkflow. Gates for the Created
-// path (picking mode, shortfall, credit limit) live in that workflow.
+// picking_setup.convert_gd_created = 1 makes a Multiple-GDs conversion save straight to
+// Created, server-side, via SOconvertGDCreatedWorkflow (gates for that path -- picking mode,
+// shortfall, credit limit -- live in the workflow). A single GD always opens the form for
+// review instead, so the flag never applies to it.
 
 const CONVERT_GD_CREATED_WORKFLOW_ID = "2076557490389835777";
 const CONVERT_GD_DRAFT_WORKFLOW_ID = "1985267806223810561";
@@ -200,7 +201,10 @@ const handleConvertGD = async (
   convertAsCreated,
 ) => {
   try {
-    if (convertAsCreated) {
+    // One GD means the user gets to look at it: a single document (one SO, or several merged)
+    // always opens the form, whatever convert_gd_created says. Only a batch of one-GD-per-SO
+    // is worth saving headlessly.
+    if (convertAsCreated && convertType === "multiple") {
       await handleConvertGDCreated(
         selectedRecords,
         plantID,
