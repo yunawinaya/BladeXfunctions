@@ -1,0 +1,150 @@
+{
+  "request_json": [
+    {
+      "key": "xds7rgtl",
+      "name": "id",
+      "title": "ID",
+      "description": "",
+      "bsonType": "bigint",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "utuni3ml",
+      "name": "customer_code",
+      "title": "Customer Code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "hdjacr0n",
+      "name": "customer_name",
+      "title": "customer_name",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "ldpwzhjd",
+      "name": "",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "api_node_XnXyaz8h",
+      "type": "api-node",
+      "data": {
+        "url": "",
+        "method": "GET",
+        "headers": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "params": {},
+        "body": "",
+        "title": "Call API",
+        "isValidator": true,
+        "nodeName": "Call API",
+        "name": "Call API",
+        "api": {
+          "rules": {
+            "collectionId": "2075494421029707778",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          },
+          "source": "Upsert Customer:Api:2075494421029707778"
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+          "list": [
+            {
+              "prop": "id",
+              "propLabel": "ID",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{workflowparams:id}}"
+            },
+            {
+              "prop": "tenant_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{system:tenantId}}",
+              "valueLabel": "",
+              "propLabel": "Tenant ID"
+            },
+            {
+              "prop": "org_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{global:firstLvDeptId}}",
+              "valueLabel": "",
+              "propLabel": "Organization ID"
+            },
+            {
+              "prop": "customer_code",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{workflowparams:customer_code}}",
+              "valueLabel": "",
+              "propLabel": "Customer Code"
+            },
+            {
+              "prop": "customer_name",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{workflowparams:customer_name}}",
+              "valueLabel": "",
+              "propLabel": "Customer Name"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

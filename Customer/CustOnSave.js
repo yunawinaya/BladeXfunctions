@@ -90,10 +90,46 @@ const validateContactList = async (contactList, currentCustomerId) => {
   return { ok: true };
 };
 
+const AI_AGENT_UPSERT_WORKFLOW_ID = "2075496757336727553";
+
+// Pushes the customer to the AI agent's external directory. Never let a failure
+// here fail the save — the record is already committed at this point.
+const triggerAIAgentUpsert = async (customerId, customerCode, customerName) => {
+  if (!customerId) return;
+  try {
+    await this.runWorkflow(
+      AI_AGENT_UPSERT_WORKFLOW_ID,
+      {
+        id: customerId,
+        customer_code: customerCode || "",
+        customer_name: customerName || "",
+      },
+      () => {},
+      (error) => console.error("AI agent customer upsert failed", error),
+    );
+  } catch (error) {
+    console.error("AI agent customer upsert failed", error);
+  }
+};
+
 const addEntry = async (organizationId, entry) => {
   try {
-    db.collection("Customer").add(entry);
+    const res = await db.collection("Customer").add(entry);
+    const customerId = res?.data?.[0]?.id;
     this.$message.success("Add successfully");
+
+    let customerCode = entry.customer_id;
+    // Auto-numbered codes are assigned server-side, so read back the real one.
+    if (customerCode === "issued" && customerId) {
+      const resCustomer = await db.collection("Customer").doc(customerId).get();
+      customerCode = resCustomer?.data?.[0]?.customer_id || "";
+    }
+
+    await triggerAIAgentUpsert(
+      customerId,
+      customerCode,
+      entry.customer_com_name,
+    );
   } catch (error) {
     this.$message.error(error);
   }
@@ -101,8 +137,14 @@ const addEntry = async (organizationId, entry) => {
 
 const updateEntry = async (entry, customerId) => {
   try {
-    db.collection("Customer").doc(customerId).update(entry);
+    await db.collection("Customer").doc(customerId).update(entry);
     this.$message.success("Update successfully");
+
+    await triggerAIAgentUpsert(
+      customerId,
+      entry.customer_id,
+      entry.customer_com_name,
+    );
   } catch (error) {
     this.$message.error(error);
   }
