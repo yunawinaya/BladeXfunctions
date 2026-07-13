@@ -346,26 +346,6 @@ const getBaseQty = (itemData, uom) => {
   return uomConversion && uomConversion.base_qty ? uomConversion.base_qty : 1;
 };
 
-// Find the packing detail row for a UOM. An item may define several packing rows
-// per uom_id, so when a packing UOM is supplied match on the (uom_id,
-// packing_uom_id) pair, which is unique. Otherwise fall back to the first row.
-const getPackingDetail = (table_packing_detail, uom, packingUom) => {
-  if (!Array.isArray(table_packing_detail) || !uom) {
-    return null;
-  }
-
-  const rows = table_packing_detail.filter((conv) => conv.uom_id === uom);
-  if (rows.length === 0) {
-    return null;
-  }
-
-  if (packingUom) {
-    return rows.find((conv) => conv.packing_uom_id === packingUom) || null;
-  }
-
-  return rows[0];
-};
-
 // ============================================================================
 // OPTIMIZED MAIN INVENTORY CHECK FUNCTION
 // ============================================================================
@@ -964,15 +944,10 @@ const checkInventoryWithDuplicates = async (
       const uom = row.good_delivery_uom_id;
       const qty = parseFloat(row.gd_qty) || 0;
 
-      // packing_uom is taken from the SO line (the user can choose it there);
-      // fall back to first-match on the item when the source line carries none
-      // (older SOs / other flows) or when its choice does not exist for this
-      // GD's UOM, which happens when the GD delivers in a different UOM.
-      const soPackingUom = item.sourceItem?.packing_uom ?? item.packing_uom;
-      const tpd = rowItemData?.table_packing_detail;
       const packingDetail =
-        getPackingDetail(tpd, uom, soPackingUom || undefined) ||
-        getPackingDetail(tpd, uom);
+        (rowItemData?.table_packing_detail || []).find(
+          (p) => p.uom_id === uom,
+        ) || null;
       const packingConversion = packingDetail?.quantity || 1;
 
       // weight_conversion is taken from the SO line (the user can manually edit
@@ -1102,7 +1077,11 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
-        is_internal: !!(item.is_internal || item.source_po_id || item.source_po_line_item_id),
+        is_internal: !!(
+          item.is_internal ||
+          item.source_po_id ||
+          item.source_po_line_item_id
+        ),
         item_category_id: item.item_category_id,
         base_uom_id: itemData.based_uom,
         custom_fields: item.custom_fields || {},
@@ -1129,7 +1108,11 @@ const createTableGdWithBaseUOM = async (allItems) => {
         line_so_no: item.so_no,
         line_so_id: item.original_so_id,
         so_line_item_id: item.so_line_item_id,
-        is_internal: !!(item.is_internal || item.source_po_id || item.source_po_line_item_id),
+        is_internal: !!(
+          item.is_internal ||
+          item.source_po_id ||
+          item.source_po_line_item_id
+        ),
         item_category_id: item.item_category_id,
         custom_fields: item.custom_fields || {},
         tariff_id: item.tariff_id,
