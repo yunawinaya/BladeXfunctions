@@ -144,12 +144,20 @@ const handleConvertGDCreated = async (
       const created = result.created || [];
       const blocked = result.blocked || [];
 
-      // A setup gate fired, or every SO had nothing left to deliver.
+      // Per-SO reasons first: result.message is only a count when the loop ran, and carries
+      // the real text only when a setup gate fired before it.
       if (created.length === 0) {
         await this.$alert(
-          result.message ||
-            blocked.map((item) => escapeHTML(item.reason)).join("<br>") ||
-            "No goods deliveries were created.",
+          blocked.length > 0
+            ? blocked
+                .map(
+                  (item) =>
+                    `<strong>${escapeHTML(item.so_no)}</strong><br>${escapeHTML(
+                      item.reason,
+                    )}`,
+                )
+                .join("<br><br>")
+            : result.message || "No goods deliveries were created.",
           "Could Not Convert to Goods Delivery",
           {
             confirmButtonText: "OK",
