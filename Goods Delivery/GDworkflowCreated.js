@@ -5,7 +5,7 @@ const closeDialog = () => {
   }
 };
 
-const runGDWorkflow = async (data, continueZero) => {
+const runGDWorkflow = async (data, needCL, continueZero) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
       "2017151544868491265",
@@ -13,6 +13,7 @@ const runGDWorkflow = async (data, continueZero) => {
         allData: data,
         saveAs: "Created",
         pageStatus: data.page_status,
+        needCL: needCL,
         continueZero: continueZero,
         auto_gr_confirmed: data.auto_gr_confirmed || "",
         auto_gr_skip: data.auto_gr_skip || "",
@@ -61,7 +62,56 @@ const handleWorkflowResult = async (workflowResult, data) => {
 
       // User clicked Proceed - re-run workflow with continueZero = "Yes"
       this.showLoading("Saving Goods Delivery as Created...");
-      const retryResult = await runGDWorkflow(data, "Yes");
+      const retryResult = await runGDWorkflow(data, "required", "Yes");
+      await handleWorkflowResult(retryResult, data);
+    } catch (e) {
+      console.log("User clicked Cancel or closed the dialog");
+      this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
+      this.hideLoading();
+    }
+    return;
+  }
+
+  // Handle 402 - Credit limit block
+  // Only reachable when picking_setup.full_cl_check = 1 (defaults to 0, in which
+  // case the workflow reports needCL = "not required" for Created saves).
+  if (resultCode === "402" || resultCode === 402) {
+    this.hideLoading();
+    this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
+    const cleanMessage = (
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Credit limit exceeded"
+    ).replace(/^Block - /, "");
+
+    await this.$alert(`${cleanMessage}`, "", {
+      confirmButtonText: "OK",
+      type: "error",
+      dangerouslyUseHTMLString: true,
+    });
+    return;
+  }
+
+  // Handle 403 - Credit limit override
+  if (resultCode === "403" || resultCode === 403) {
+    this.hideLoading();
+    const cleanMessage = (
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Credit limit warning"
+    ).replace(/^Override - /, "");
+
+    try {
+      await this.$confirm(`${cleanMessage}`, "", {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      });
+
+      // User clicked Proceed - re-run workflow with needCL = "not required"
+      this.showLoading("Saving Goods Delivery as Created...");
+      const retryResult = await runGDWorkflow(data, "not required", "");
       await handleWorkflowResult(retryResult, data);
     } catch (e) {
       console.log("User clicked Cancel or closed the dialog");
@@ -100,7 +150,7 @@ const handleWorkflowResult = async (workflowResult, data) => {
     }
 
     this.showLoading("Saving Goods Delivery as Created...");
-    const retryResult = await runGDWorkflow(data, "");
+    const retryResult = await runGDWorkflow(data, "required", "");
     await handleWorkflowResult(retryResult, data);
     return;
   }
@@ -189,7 +239,7 @@ const handleWorkflowResult = async (workflowResult, data) => {
     this.showLoading("Saving Goods Delivery as Created...");
     console.log("data", data);
 
-    const workflowResult = await runGDWorkflow(data, "");
+    const workflowResult = await runGDWorkflow(data, "required", "");
     await handleWorkflowResult(workflowResult, data);
   } catch (error) {
     this.hideLoading();

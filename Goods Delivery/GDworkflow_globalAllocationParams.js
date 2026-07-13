@@ -5,7 +5,10 @@
 //          For FULL_HU_PICK/NO_SPLIT, includes ALL items per HU (not just current material).
 
 const currentRow = {{node:code_node_aay7z3VT.data.currentRow}};
-const pickingSetup = {{node:get_node_iFPuvJX2.data.data}};
+// Resolved setup (code_picking_defaults), NOT the raw get_node_iFPuvJX2 fetch:
+// that one is null when the org has no picking setup, which used to blow up on
+// pickingSetup.split_policy below.
+const pickingSetup = {{node:code_picking_defaults.data.effectiveSetup}} || {};
 const rawTracker = {{node:get_cache_node_QGhmYUxQ.data}};
 const allData = {{workflowparams:allData}};
 const allHUData = {{node:search_node_l8oiJ60B.data.data}} || [];

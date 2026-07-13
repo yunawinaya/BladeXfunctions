@@ -13,7 +13,7 @@ const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
         allData: data,
         saveAs: "Completed",
         pageStatus: data.page_status,
-        need_cl: needCL,
+        needCL: needCL,
         isForceComplete: isForceComplete,
         continueZero: continueZero,
         auto_gr_confirmed: data.auto_gr_confirmed || "",

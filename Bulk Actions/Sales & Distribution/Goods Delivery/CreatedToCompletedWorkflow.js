@@ -6,7 +6,7 @@ const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
         allData: data,
         saveAs: "Completed",
         pageStatus: "Edit",
-        need_cl: needCL,
+        needCL: needCL,
         isForceComplete: isForceComplete,
         continueZero: continueZero,
         // Auto-GR decision is carried on the data object so it persists across
@@ -28,7 +28,12 @@ const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
 
 // pendingGR: when provided (phase 1), a 408 (auto-GR eligible) is deferred into it
 // for a single batch prompt instead of being decided per-GD. Pass null in phase 2.
-const handleWorkflowResult = async (workflowResult, gdItem, gdData, pendingGR) => {
+const handleWorkflowResult = async (
+  workflowResult,
+  gdItem,
+  gdData,
+  pendingGR,
+) => {
   if (!workflowResult || !workflowResult.data) {
     return {
       delivery_no: gdItem.delivery_no,

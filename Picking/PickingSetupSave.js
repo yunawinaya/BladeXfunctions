@@ -28,6 +28,7 @@ const closeDialog = () => {
       require_hu_scan,
       organization_id,
       split_policy,
+      full_cl_check,
     } = data;
 
     const entry = {
@@ -48,6 +49,7 @@ const closeDialog = () => {
       require_hu_scan,
       organization_id,
       split_policy,
+      full_cl_check: full_cl_check || 0,
     };
 
     if (picking_setup_id !== "") {
