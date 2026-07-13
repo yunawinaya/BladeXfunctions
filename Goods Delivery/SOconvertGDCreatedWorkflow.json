@@ -1037,7 +1037,7 @@
             "name": "Collect GD Result",
             "script": {
               "type": "javascript",
-              "code": "// Accumulate one entry per GD attempt. GDheadWorkflow returns 200 on success and\n// 400 / 401 / 402 / 403 on failure -- and every one of those failure paths returns\n// BEFORE its add-node, so a non-200 code means nothing was written for this SO.\nconst raw = {{node:get_results.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst gdCode = {{node:wf_gd_head.data.code}};\nconst gdMessage = {{node:wf_gd_head.data.message}};\nconst gdId = {{node:wf_gd_head.data.gdId}};\nconst soNo = {{node:loop_payloads.so_no}};\n\nresults.push({\n  so_no: soNo || \"\",\n  code: gdCode ? String(gdCode) : \"\",\n  message: gdMessage || \"\",\n  gd_id: gdId ? String(gdId) : \"\",\n});\n\nreturn { results: results };\n"
+              "code": "// Accumulate one entry per GD attempt. GDheadWorkflow returns 200 on success and\n// 400 / 401 / 402 / 403 on failure -- and every one of those failure paths returns\n// BEFORE its add-node, so a non-200 code means nothing was written for this SO.\nconst raw = {{node:get_results.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst gdCode = {{node:wf_gd_head.data.code}};\nconst gdMessage = {{node:wf_gd_head.data.message}};\nconst gdId = {{node:wf_gd_head.data.gdId}};\nconst gdNo = {{node:wf_gd_head.data.gdNo}};\nconst soNo = {{node:loop_payloads.so_no}};\n\nresults.push({\n  so_no: soNo || \"\",\n  code: gdCode ? String(gdCode) : \"\",\n  message: gdMessage || \"\",\n  gd_id: gdId ? String(gdId) : \"\",\n  delivery_no: gdNo || \"\",\n});\n\nreturn { results: results };\n"
             },
             "response_json": [
               {
@@ -1088,70 +1088,6 @@
       "blocks": []
     },
     {
-      "id": "code_gd_ids",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Created GD Ids",
-        "isValidator": true,
-        "nodeName": "Created GD Ids",
-        "name": "Created GD Ids",
-        "script": {
-          "type": "javascript",
-          "code": "const raw = {{node:get_results_final.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst gdIds = results\n  .filter((r) => r && r.gd_id && r.code === \"200\")\n  .map((r) => String(r.gd_id));\n\n// The \"in\" filter downstream needs a non-empty list.\nif (gdIds.length === 0) gdIds.push(\"0\");\n\nreturn { gdIds: gdIds };\n"
-        },
-        "response_json": [
-          {
-            "key": "s2gc_gdids",
-            "name": "gdIds",
-            "title": "gdIds",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_gds",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Goods Delivery:Table:1902054888473481218",
-          "rules": {
-            "collectionId": "1902054888473481218",
-            "list": [
-              {
-                "id": 190000000110,
-                "parentId": 190000000111,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_gd_ids.data.gdIds}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "id",
-                "valueLabel": "",
-                "operatorLabel": "in"
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 100,
-        "title": "Get Created GDs",
-        "isValidator": true,
-        "nodeName": "Get Created GDs",
-        "name": "Get Created GDs"
-      },
-      "blocks": []
-    },
-    {
       "id": "code_summary",
       "type": "code-node",
       "data": {
@@ -1164,7 +1100,7 @@
         "name": "Build Summary",
         "script": {
           "type": "javascript",
-          "code": "// The real delivery_no is only known after the insert (the platform's number rule stamps\n// it), so it is read back here rather than guessed.\nconst raw = {{node:get_results_final.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst gdRaw = {{node:search_gds.data.data}} || [];\nconst gdList = Array.isArray(gdRaw) ? gdRaw : [gdRaw];\n\nconst deliveryNoById = {};\nfor (const gd of gdList) {\n  if (gd && gd.id) deliveryNoById[String(gd.id)] = gd.delivery_no || \"\";\n}\n\n// A combined GD is all-or-nothing: one short item anywhere in the merged lines blocks the\n// whole document, so none of the selected SOs convert. Say so, and point at the way out.\nconst gdType = {{workflowparams:gd_type}};\nconst soIds = {{workflowparams:so_ids}} || [];\nconst isCombined = gdType === \"single\" && soIds.length > 1;\n\nconst created = [];\nconst blocked = [];\n\nfor (const r of results) {\n  if (r.code === \"200\" && r.gd_id) {\n    created.push({\n      so_no: r.so_no,\n      delivery_no: deliveryNoById[r.gd_id] || \"\",\n    });\n  } else {\n    let reason = r.message || \"Failed to create the Goods Delivery.\";\n    if (isCombined) {\n      reason +=\n        \" No goods delivery was created for any of these sales orders. Retry as Multiple GDs to convert the ones that have enough stock.\";\n    }\n    blocked.push({ so_no: r.so_no, reason: reason });\n  }\n}\n\n// SOs dropped before we ever called GDheadWorkflow (nothing left to deliver).\nconst preBlocked = {{node:code_build.data.blocked}} || [];\nfor (const b of preBlocked) {\n  blocked.push(b);\n}\n\nreturn {\n  code: \"200\",\n  message:\n    \"Created \" +\n    created.length +\n    \" goods deliver\" +\n    (created.length === 1 ? \"y\" : \"ies\") +\n    (blocked.length > 0 ? \", \" + blocked.length + \" not converted.\" : \".\"),\n  created: created,\n  blocked: blocked,\n  createdCount: created.length,\n  blockedCount: blocked.length,\n};\n"
+          "code": "const raw = {{node:get_results_final.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// A combined GD is all-or-nothing: one short item anywhere in the merged lines blocks the\n// whole document, so none of the selected SOs convert. Say so, and point at the way out.\nconst gdType = {{workflowparams:gd_type}};\nconst soIds = {{workflowparams:so_ids}} || [];\nconst isCombined = gdType === \"single\" && soIds.length > 1;\n\nconst created = [];\nconst blocked = [];\n\nfor (const r of results) {\n  if (r.code === \"200\" && r.gd_id) {\n    created.push({ so_no: r.so_no, delivery_no: r.delivery_no || \"\" });\n  } else {\n    let reason = r.message || \"Failed to create the Goods Delivery.\";\n    if (isCombined) {\n      reason +=\n        \" No goods delivery was created for any of these sales orders. Retry as Multiple GDs to convert the ones that have enough stock.\";\n    }\n    blocked.push({ so_no: r.so_no, reason: reason });\n  }\n}\n\n// SOs dropped before we ever called GDheadWorkflow (nothing left to deliver).\nconst preBlocked = {{node:code_build.data.blocked}} || [];\nfor (const b of preBlocked) {\n  blocked.push(b);\n}\n\nreturn {\n  code: \"200\",\n  message:\n    \"Created \" +\n    created.length +\n    \" goods deliver\" +\n    (created.length === 1 ? \"y\" : \"ies\") +\n    (blocked.length > 0 ? \", \" + blocked.length + \" not converted.\" : \".\"),\n  created: created,\n  blocked: blocked,\n  createdCount: created.length,\n  blockedCount: blocked.length,\n};\n"
         },
         "response_json": [
           {

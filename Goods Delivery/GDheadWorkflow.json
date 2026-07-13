@@ -116,6 +116,14 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "gdhw_res_gdno",
+      "name": "gdNo",
+      "title": "gdNo",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "config": {},
@@ -13191,13 +13199,21 @@
         "name": "Get gdId",
         "script": {
           "type": "javascript",
-          "code": "const pageStatus = {{workflowparams:pageStatus}}\nconst saveAs = {{workflowparams:saveAs}}\n\nlet gdId = \"\"\nif (saveAs !== \"Draft\" && pageStatus === \"Add\") {\n  gdId = {{node:code_node_Pgtw6zFL.data.gdData.id}}\n}\n\nreturn {\n  gdId\n}"
+          "code": "const pageStatus = {{workflowparams:pageStatus}}\nconst saveAs = {{workflowparams:saveAs}}\n\nlet gdId = \"\"\nlet gdNo = \"\"\nif (saveAs !== \"Draft\" && pageStatus === \"Add\") {\n  gdId = {{node:code_node_Pgtw6zFL.data.gdData.id}}\n  // The real delivery_no only exists after the insert (the platform's number rule replaces the\n  // \"issued\" placeholder), so headless callers can only learn it from here.\n  gdNo = {{node:code_node_Pgtw6zFL.data.gdData.delivery_no}}\n}\n\nreturn {\n  gdId,\n  gdNo\n}"
         },
         "response_json": [
           {
             "key": "xvcd6nq6",
             "name": "gdId",
             "title": "gdId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "gdhw_gdno",
+            "name": "gdNo",
+            "title": "gdNo",
             "description": "",
             "bsonType": "string",
             "isExpand": false
@@ -13616,6 +13632,14 @@
               "value": "{{node:code_node_cv51vgiy.data.gdId}}",
               "valueLabel": "",
               "propLabel": "gdId"
+            },
+            {
+              "prop": "gdNo",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_cv51vgiy.data.gdNo}}",
+              "valueLabel": "",
+              "propLabel": "gdNo"
             }
           ]
         },
