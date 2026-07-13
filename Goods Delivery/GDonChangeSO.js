@@ -1,6 +1,8 @@
 (async () => {
   const soIDs = arguments[0].value;
 
+  console.log("JN Debug 2", soIDs);
+
   if (soIDs.length > 0) {
     const firstSO = soIDs[0];
 
@@ -35,6 +37,8 @@
       billing_address_phone: soData.billing_address_phone || "",
       billing_address_name: soData.billing_address_name || "",
       billing_attention: soData.billing_attention || "",
+      billing_address_fax: soData.billing_address_fax || "",
+      billing_address_code: soData.billing_address_code || "",
 
       // Detailed shipping address fields
       shipping_address_line_1: soData.shipping_address_line_1 || "",
@@ -48,6 +52,19 @@
       shipping_address_name: soData.shipping_address_name || "",
       shipping_address_phone: soData.shipping_address_phone || "",
       shipping_attention: soData.shipping_attention || "",
+      shipping_address_fax: soData.shipping_address_fax || "",
+      shipping_address_code: soData.shipping_address_code || "",
+
+      gd_area_id: soData.so_area_id || "",
+      order_tnc: soData.so_tnc || "",
+      order_payment_details: soData.so_payment_details || "",
+      order_delivery_term: soData.so_delivery_term || "",
+      order_remark: soData.so_remarks || "",
+      order_remark2: soData.so_remarks2 || "",
+      order_remark3: soData.so_remarks3 || "",
+      order_remark4: soData.so_remarks4 || "",
+      order_remark5: soData.so_remarks5 || "",
+      sales_person: soData.so_sales_person ? [soData.so_sales_person] : [],
     });
 
     const visibilityMap = {
@@ -78,7 +95,7 @@
             driver_name: soData.cp_driver_name,
             ic_no: soData.cp_ic_no,
             driver_contact_no: soData.cp_driver_contact_no,
-            vehicle_no: soData.cp_vehicle_number,
+            sp_vehicle_no: soData.cp_vehicle_number,
             pickup_date: soData.cp_pickup_date,
             validity_of_collection: soData.validity_of_collection,
           });
@@ -103,7 +120,7 @@
             driver_name: soData.ct_driver_name,
             driver_contact_no: soData.ct_driver_contact_no,
             ic_no: soData.ct_ic_no,
-            vehicle_no: soData.ct_vehicle_number,
+            sp_vehicle_no: soData.ct_vehicle_number,
             est_delivery_date: soData.ct_est_delivery_date,
             delivery_cost: soData.ct_delivery_cost,
           });
@@ -130,6 +147,7 @@
             tpt_transport_name: soData.tpt_transport_name,
             tpt_ic_no: soData.tpt_ic_no,
             tpt_driver_contact_no: soData.tpt_driver_contact_no,
+            tpt_driver_name: soData.tpt_driver_name,
           });
         }, 100);
         break;
@@ -164,6 +182,7 @@
       billing_address_phone: "",
       billing_address_name: "",
       billing_attention: "",
+      billing_address_fax: "",
 
       // Detailed shipping address fields
       shipping_address_line_1: "",
@@ -177,6 +196,18 @@
       shipping_address_name: "",
       shipping_address_phone: "",
       shipping_attention: "",
+      shipping_address_fax: "",
+
+      gd_area_id: "",
+      order_tnc: "",
+      order_payment_details: "",
+      order_delivery_term: "",
+      order_remark: "",
+      order_remark2: "",
+      order_remark3: "",
+      order_remark4: "",
+      order_remark5: "",
+      sales_person: [],
     });
   }
 })();
