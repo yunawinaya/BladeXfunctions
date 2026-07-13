@@ -98,6 +98,7 @@ const resetFormData = () => {
         "table_gd",
         "gd_delivery_method",
         "gd_area_id",
+        "sales_person",
         "select_vehicle_id",
         "select_driver_id",
         "document_description",
