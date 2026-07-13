@@ -1,4 +1,140 @@
 {
+  "request_json": [
+    {
+      "key": "s2gc_req_soids",
+      "name": "so_ids",
+      "title": "SO IDs",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "isParamsNode": true,
+      "value": "workflowparams.so_ids",
+      "label": "SO IDs",
+      "model": "0",
+      "valueCom": "itemInput",
+      "children": [
+        {
+          "key": "s2gc_req_soids_item",
+          "name": "items",
+          "title": "SO ID",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "isArrayItem": true,
+          "isParamsNode": true,
+          "value": "workflowparams.so_ids.items",
+          "label": "SO ID",
+          "model": "0",
+          "valueCom": "input"
+        }
+      ]
+    },
+    {
+      "key": "s2gc_req_gdtype",
+      "name": "gd_type",
+      "title": "GD Type",
+      "description": "single = one combined GD for all SOs, multiple = one GD per SO",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.gd_type",
+      "label": "GD Type",
+      "model": "1",
+      "valueCom": "input"
+    },
+    {
+      "key": "s2gc_req_plant",
+      "name": "plant_id",
+      "title": "Plant ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.plant_id",
+      "label": "Plant ID",
+      "model": "2",
+      "valueCom": "input"
+    },
+    {
+      "key": "s2gc_req_org",
+      "name": "organization_id",
+      "title": "Organization ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.organization_id",
+      "label": "Organization ID",
+      "model": "3",
+      "valueCom": "input"
+    },
+    {
+      "key": "s2gc_req_createdby",
+      "name": "created_by",
+      "title": "Created By",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.created_by",
+      "label": "Created By",
+      "model": "4",
+      "valueCom": "input"
+    }
+  ],
+  "response_json": [
+    {
+      "key": "s2gc_res_code",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "s2gc_res_message",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "s2gc_res_created",
+      "name": "created",
+      "title": "created",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "s2gc_res_blocked",
+      "name": "blocked",
+      "title": "blocked",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "s2gc_res_createdcount",
+      "name": "createdCount",
+      "title": "createdCount",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false
+    },
+    {
+      "key": "s2gc_res_blockedcount",
+      "name": "blockedCount",
+      "title": "blockedCount",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -734,10 +870,7 @@
         "isValidator": true,
         "nodeName": "Set gdResults",
         "name": "Set gdResults",
-        "custom_wkbocgni": {
-          "type": "javascript",
-          "code": "[]"
-        },
+        "custom_wkbocgni": { "type": "javascript", "code": "[]" },
         "redis_key": "s2gcResults_{{node:code_unique.data.unique}}"
       },
       "blocks": []
@@ -1178,141 +1311,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "s2gc_req_soids",
-      "name": "so_ids",
-      "title": "SO IDs",
-      "description": "",
-      "bsonType": "array",
-      "isExpand": true,
-      "isParamsNode": true,
-      "value": "workflowparams.so_ids",
-      "label": "SO IDs",
-      "model": "0",
-      "valueCom": "itemInput",
-      "children": [
-        {
-          "key": "s2gc_req_soids_item",
-          "name": "items",
-          "title": "SO ID",
-          "description": "",
-          "bsonType": "string",
-          "isExpand": false,
-          "isArrayItem": true,
-          "isParamsNode": true,
-          "value": "workflowparams.so_ids.items",
-          "label": "SO ID",
-          "model": "0",
-          "valueCom": "input"
-        }
-      ]
-    },
-    {
-      "key": "s2gc_req_gdtype",
-      "name": "gd_type",
-      "title": "GD Type",
-      "description": "single = one combined GD for all SOs, multiple = one GD per SO",
-      "bsonType": "string",
-      "isExpand": false,
-      "isParamsNode": true,
-      "value": "workflowparams.gd_type",
-      "label": "GD Type",
-      "model": "1",
-      "valueCom": "input"
-    },
-    {
-      "key": "s2gc_req_plant",
-      "name": "plant_id",
-      "title": "Plant ID",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "isParamsNode": true,
-      "value": "workflowparams.plant_id",
-      "label": "Plant ID",
-      "model": "2",
-      "valueCom": "input"
-    },
-    {
-      "key": "s2gc_req_org",
-      "name": "organization_id",
-      "title": "Organization ID",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "isParamsNode": true,
-      "value": "workflowparams.organization_id",
-      "label": "Organization ID",
-      "model": "3",
-      "valueCom": "input"
-    },
-    {
-      "key": "s2gc_req_createdby",
-      "name": "created_by",
-      "title": "Created By",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "isParamsNode": true,
-      "value": "workflowparams.created_by",
-      "label": "Created By",
-      "model": "4",
-      "valueCom": "input"
-    }
-  ],
-  "response_json": [
-    {
-      "key": "s2gc_res_code",
-      "name": "code",
-      "title": "code",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "s2gc_res_message",
-      "name": "message",
-      "title": "message",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "s2gc_res_created",
-      "name": "created",
-      "title": "created",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "s2gc_res_blocked",
-      "name": "blocked",
-      "title": "blocked",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "s2gc_res_createdcount",
-      "name": "createdCount",
-      "title": "createdCount",
-      "description": "",
-      "bsonType": "int",
-      "isExpand": false
-    },
-    {
-      "key": "s2gc_res_blockedcount",
-      "name": "blockedCount",
-      "title": "blockedCount",
-      "description": "",
-      "bsonType": "int",
-      "isExpand": false
-    }
-  ],
-  "config": {}
+  "edges": []
 }
