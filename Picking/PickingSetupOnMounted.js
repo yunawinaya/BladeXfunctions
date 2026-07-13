@@ -21,6 +21,9 @@
         picking_required: 0,
         picking_after: "",
         auto_trigger_to: 0,
+        is_loading_bay: 0,
+        is_loading_bay: 0,
+        allow_full_picking: 0,
         picking_mode: "",
         default_strategy_id: "",
         fallback_strategy_id: "",
@@ -28,6 +31,9 @@
         bin_validation_scope: "",
         require_bin_scan: 0,
         require_batch_scan: 0,
+        require_item_scan: 0,
+        require_hu_scan: 0,
+        split_policy: "",
       });
       return;
     }
@@ -38,6 +44,8 @@
       picking_required: resPickingSetup.data[0].picking_required,
       picking_after: resPickingSetup.data[0].picking_after,
       auto_trigger_to: resPickingSetup.data[0].auto_trigger_to,
+      is_loading_bay: resPickingSetup.data[0].is_loading_bay,
+      allow_full_picking: resPickingSetup.data[0].allow_full_picking,
       picking_mode: resPickingSetup.data[0].picking_mode,
       default_strategy_id: resPickingSetup.data[0].default_strategy_id,
       fallback_strategy_id: resPickingSetup.data[0].fallback_strategy_id,
@@ -45,6 +53,9 @@
       bin_validation_scope: resPickingSetup.data[0].bin_validation_scope,
       require_bin_scan: resPickingSetup.data[0].require_bin_scan,
       require_batch_scan: resPickingSetup.data[0].require_batch_scan,
+      require_item_scan: resPickingSetup.data[0].require_item_scan,
+      require_hu_scan: resPickingSetup.data[0].require_hu_scan,
+      split_policy: resPickingSetup.data[0].split_policy,
     });
   } catch (error) {
     console.error(error);
