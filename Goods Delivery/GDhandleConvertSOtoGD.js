@@ -277,8 +277,12 @@ const handleConvertGD = async (
     if (selectedRecords.length > 1) {
       await this.$confirm(
         `Would you like to convert these into a single goods delivery or into multiple goods deliveries?<br><br>
-          <strong>Single GD:</strong> All items combined into one document<br>
-          <strong>Multiple GDs:</strong> Separate deliveries for better tracking`,
+          <strong>Single GD:</strong> All items combined into one document, opened for review<br>
+          <strong>Multiple GDs:</strong> Separate deliveries for better tracking${
+            convertAsCreated
+              ? `<br><br>Multiple GDs will be saved as <strong>Created</strong> with stock allocated, without opening the form. Any sales order that cannot be covered is reported and left unconverted.`
+              : ""
+          }`,
         "Sales Order Conversion",
         {
           confirmButtonText: "Single GD",
