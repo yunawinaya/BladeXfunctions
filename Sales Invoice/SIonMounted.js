@@ -1,86 +1,3 @@
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("sales_invoice")
-    .where({
-      sales_invoice_no: generatedPrefix,
-      organization_id: organizationId,
-    })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = await generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Sales Invoices number after maximum attempts"
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await getPrefixData(organizationId);
-  let newPrefix = "";
-
-  if (prefixData.is_active === 1) {
-    const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-    newPrefix = prefixToShow;
-  }
-
-  this.setData({ sales_invoice_no: newPrefix });
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Sales Invoices",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-  const prefixData = await prefixEntry.data[0];
-
-  if (prefixData.is_active === 0) {
-    this.disabled(["sales_invoice_no"], false);
-  }
-
-  return prefixData;
-};
-
 const showStatusHTML = async (status) => {
   switch (status) {
     case "Draft":
@@ -97,19 +14,6 @@ const showStatusHTML = async (status) => {
 
 const displayCurrency = async () => {
   const currencyCode = this.getValue("currency_code");
-
-  if (
-    currencyCode ||
-    (currencyCode !== "----" && currencyCode !== "MYR" && currencyCode !== "")
-  ) {
-    this.display([
-      "exchange_rate",
-      "exchange_rate_myr",
-      "exchange_rate_currency",
-      "myr_total_amount",
-      "total_amount_myr",
-    ]);
-  }
 
   this.setData({
     total_gross_currency: currencyCode,
@@ -143,15 +47,21 @@ const disabledField = async (status) => {
         "posted_date",
         "posted_status",
         "plant_id",
+        "invoice_type",
         "organization_id",
         "fileupload_hmtcurne",
         "invoice_subtotal",
         "invoice_total_discount",
         "invoice_taxes_amount",
         "invoice_total",
+        "tnc",
+        "payment_term",
+        "delivery_term",
         "remarks",
         "remarks2",
         "remarks3",
+        "remarks4",
+        "remarks5",
         "si_billing_address",
         "si_shipping_address",
         "gd_no_display",
@@ -176,7 +86,7 @@ const disabledField = async (status) => {
         "myr_total_amount",
         "si_ref_doc",
       ],
-      true
+      true,
     );
   } else {
     this.disabled(
@@ -188,7 +98,7 @@ const disabledField = async (status) => {
         "remarks",
         "si_ref_doc",
       ],
-      false
+      false,
     );
   }
 };
@@ -223,6 +133,8 @@ const isViewMode = async (status) => {
       "button_completed",
       "button_posted",
       "button_completed_posted",
+      "button_update_completed",
+      "button_update_posted",
     ]);
   }
 };
@@ -259,6 +171,7 @@ const setPlant = async (organizationId) => {
     organization_id: organizationId,
     plant_id: plantId,
     sales_invoice_date: new Date().toISOString().split("T")[0],
+    si_description: "Sales",
   });
 };
 
@@ -274,7 +187,12 @@ const checkAccIntegrationType = async (organizationId) => {
 
       this.setData({ acc_integration_type: aiData.acc_integration_type });
       if (aiData.acc_integration_type === "No Accounting Integration") {
-        this.hide(["button_posted", "button_completed_posted"]);
+        this.hide([
+          "button_posted",
+          "button_completed_posted",
+          "button_update_completed",
+          "button_update_posted",
+        ]);
       }
     }
   }
@@ -287,14 +205,14 @@ const checkAccIntegrationType = async (organizationId) => {
     const pageStatus = this.isAdd
       ? "Add"
       : this.isEdit
-      ? "Edit"
-      : this.isView
-      ? "View"
-      : this.isCopy
-      ? "Clone"
-      : (() => {
-          this.$message.error("Invalid page status");
-        })();
+        ? "Edit"
+        : this.isView
+          ? "View"
+          : this.isCopy
+            ? "Clone"
+            : (() => {
+                this.$message.error("Invalid page status");
+              })();
 
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
@@ -313,14 +231,20 @@ const checkAccIntegrationType = async (organizationId) => {
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
-        this.hide("button_posted");
-        await setPrefix(organizationId);
+        this.hide([
+          "button_posted",
+          "button_update_completed",
+          "button_update_posted",
+        ]);
+        this.setData({
+          created_source: "Web",
+        });
         await setPlant(organizationId);
         await checkAccIntegrationType(organizationId);
+
         break;
 
       case "Edit":
-        await getPrefixData(organizationId);
         await checkAccIntegrationType(organizationId);
         await showStatusHTML(status);
         await displayCurrency();
@@ -328,19 +252,28 @@ const checkAccIntegrationType = async (organizationId) => {
         await displayTax();
         await displayGDNumber();
         await disabledField(status);
+        console.log("status", status);
+        this.setData({ previous_status: status });
+        console.log("data", this.getValues());
 
         if (status === "Draft") {
-          this.hide("button_posted");
+          this.hide([
+            "button_posted",
+            "button_update_completed",
+            "button_update_posted",
+          ]);
         } else if (status === "Completed") {
           this.hide([
             "link_shipping_address",
             "link_billing_address",
             "button_save_as_draft",
+            "button_completed",
+            "button_completed_posted",
           ]);
           this.display([
             "button_posted",
-            "button_completed",
-            "button_completed_posted",
+            "button_update_completed",
+            "button_update_posted",
           ]);
 
           this.disabled("table_si.invoice_qty", true);
@@ -348,7 +281,7 @@ const checkAccIntegrationType = async (organizationId) => {
           setTimeout(() => {
             document
               .querySelectorAll(
-                "#pane-tab_si button.el-button--danger.el-button--small"
+                "#pane-tab_si button.el-button--danger.el-button--small",
               )
               .forEach((button) => {
                 button.disabled = true;
@@ -374,3 +307,36 @@ const checkAccIntegrationType = async (organizationId) => {
     this.$message.error(error);
   }
 })();
+
+setTimeout(async () => {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("sales_invoice_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("sales_invoice_no");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("sales_invoice_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("sales_invoice_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        sales_invoice_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ sales_invoice_no_type: defaultData.value });
+    }
+  }
+}, 200);
