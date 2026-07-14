@@ -1463,8 +1463,9 @@
     }
 
     // Hide the loose tab when the loose table ended up empty after all filters
-    // (HU deduction, SO-line reserved overwrite + filter). If HU has data, switch
-    // active tab to handling_unit so the user doesn't land on a hidden tab.
+    // (HU deduction, SO-line reserved overwrite + filter). Loose is the default
+    // active tab whenever it has rows; handling_unit only takes over when loose
+    // is empty, so the user never lands on a hidden tab.
     {
       const finalState = this.getValues();
       const looseRowsFinal =
@@ -1475,6 +1476,8 @@
         if (huRowsFinal.length > 0) {
           activateTab("handling_unit");
         }
+      } else {
+        activateTab("loose");
       }
     }
 

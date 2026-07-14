@@ -156,6 +156,22 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "gdhw_res_sifailed",
+      "name": "siFailed",
+      "title": "siFailed",
+      "description": "1 = the GD completed but the auto Sales Invoice failed. Interactive callers get code 411 instead; headless ones (isPicking/isPacking) get 200 + this flag, because their caller treats any non-200 as fatal and would abort the picking run.",
+      "bsonType": "int",
+      "isExpand": false
+    },
+    {
+      "key": "gdhw_res_simessage",
+      "name": "siMessage",
+      "title": "siMessage",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "config": {},
@@ -5332,7 +5348,7 @@
         "name": "Auto SI Gate",
         "script": {
           "type": "javascript",
-          "code": "// Pre-flight gate for the auto Sales Invoice (picking_setup.auto_completed_si).\n//\n// It has to be a PRE-flight gate even though the SI is only created at the very end: a workflow\n// cannot prompt mid-run, so the confirmation has to be a return-then-recall, exactly like the\n// auto-GR 408 gate. Nothing is written before this point, so returning 412 here costs the user\n// only a re-run, never a partial save.\n//\n// It sits late on purpose (after credit limit, picking, packing and per-line qty validation) so we\n// only ask about a GD that is genuinely about to be saved -- unlike the GR gate, which sits at the\n// top and can prompt for a GD that later fails validation.\nconst saveAs = {{workflowparams:saveAs}};\nconst autoCompletedSi = Number({{node:code_picking_defaults.data.autoCompletedSi}}) || 0;\nconst autoSiConfirmed = {{workflowparams:auto_si_confirmed}};\nconst autoSiSkip = {{workflowparams:auto_si_skip}};\nconst isPicking = {{workflowparams:isPicking}};\nconst isPacking = {{workflowparams:isPacking}};\n\n// The client sends these as `data.auto_si_confirmed || \"\"`, so they arrive as true or \"\".\nconst truthy = (v) =>\n  v === true || v === 1 || v === \"true\" || v === \"1\" || v === \"Yes\";\n\nlet siConfirm = 0;\nlet doAutoSi = 0;\nlet msg = \"\";\n\n// null / undefined / 0 all mean off -- only an explicit 1 enables it.\nconst eligible = saveAs === \"Completed\" && autoCompletedSi === 1;\n\nif (!eligible || truthy(autoSiSkip)) {\n  // Not eligible, or the user chose to complete without an invoice.\n} else if (truthy(autoSiConfirmed)) {\n  doAutoSi = 1;\n} else if (isPicking === \"Yes\" || Number(isPacking) === 1) {\n  // Picking-/packing-driven completion is headless -- there is nobody to answer a prompt.\n  // Enabling auto_completed_si IS the org's consent, so honour it without asking.\n  doAutoSi = 1;\n} else {\n  siConfirm = 412;\n  msg =\n    \"This delivery will be invoiced automatically on completion.<br><br>Auto-create the Sales Invoice?\";\n}\n\nreturn { siConfirm: siConfirm, doAutoSi: doAutoSi, msg: msg };\n"
+          "code": "// Pre-flight gate for the auto Sales Invoice (picking_setup.auto_completed_si).\n//\n// It has to be a PRE-flight gate even though the SI is only created at the very end: a workflow\n// cannot prompt mid-run, so the confirmation has to be a return-then-recall, exactly like the\n// auto-GR 408 gate. Nothing is written before this point, so returning 412 here costs the user\n// only a re-run, never a partial save.\n//\n// It sits late on purpose (after credit limit, picking, packing and per-line qty validation) so we\n// only ask about a GD that is genuinely about to be saved -- unlike the GR gate, which sits at the\n// top and can prompt for a GD that later fails validation.\nconst saveAs = {{workflowparams:saveAs}};\nconst autoCompletedSi = Number({{node:code_picking_defaults.data.autoCompletedSi}}) || 0;\nconst autoSiConfirmed = {{workflowparams:auto_si_confirmed}};\nconst autoSiSkip = {{workflowparams:auto_si_skip}};\nconst isPicking = {{workflowparams:isPicking}};\nconst isPacking = {{workflowparams:isPacking}};\n\n// The client sends these as `data.auto_si_confirmed || \"\"`, so they arrive as true or \"\".\nconst truthy = (v) =>\n  v === true || v === 1 || v === \"true\" || v === \"1\" || v === \"Yes\";\n\n// Deliberately NOT gated on auto-GR. A picking-driven completion never confirms auto-GR\n// (code_gr_gate needs auto_gr_confirmed, which PickingProcessWorkflow does not send), so an\n// internal-trading GD completed through picking gets no Goods Receipt -- yet we still invoice it.\n// That is intentional and safe: SItoPIWorkflow drops any SI line whose GD has no linked GR\n// (\"GD has no linked GR -> drop this line\") and returns 200/skipped, so no Purchase Invoice is\n// ever created against a receipt that does not exist. The seller invoices; the buyer enters the\n// GR and PI manually. Do not \"fix\" this by suppressing the invoice -- it was a considered call.\n\nlet siConfirm = 0;\nlet doAutoSi = 0;\nlet msg = \"\";\n\n// null / undefined / 0 all mean off -- only an explicit 1 enables it.\nconst eligible = saveAs === \"Completed\" && autoCompletedSi === 1;\n\nif (!eligible || truthy(autoSiSkip)) {\n  // Not eligible, or the user chose to complete without an invoice.\n} else if (truthy(autoSiConfirmed)) {\n  doAutoSi = 1;\n} else if (isPicking === \"Yes\" || Number(isPacking) === 1) {\n  // Picking-/packing-driven completion is headless -- there is nobody to answer a prompt.\n  // Enabling auto_completed_si IS the org's consent, so honour it without asking.\n  doAutoSi = 1;\n} else {\n  siConfirm = 412;\n  msg =\n    \"This delivery will be invoiced automatically on completion.<br><br>Auto-create the Sales Invoice?\";\n}\n\nreturn { siConfirm: siConfirm, doAutoSi: doAutoSi, msg: msg };\n"
         },
         "response_json": [
           {
@@ -13977,27 +13993,68 @@
                       "id": "if_si_trigger_failed",
                       "type": "if",
                       "data": {
-                        "title": "IF Auto-SI Failed",
+                        "title": "IF Auto-SI Failed (interactive only)",
                         "isValidator": true,
-                        "nodeName": "IF Auto-SI Failed",
-                        "name": "IF Auto-SI Failed",
+                        "nodeName": "IF Auto-SI Failed (interactive only)",
+                        "name": "IF Auto-SI Failed (interactive only)",
                         "condition_type": "ConditionRule",
                         "expression": { "type": "javascript", "code": "" },
                         "filter": {
                           "list": [
                             {
-                              "id": 196000000040,
-                              "parentId": 196000000041,
+                              "id": 196000000041,
+                              "parentId": 196000000042,
                               "isTop": true,
-                              "prop": "node.code_si_trigger_result.data.siTriggerFailed",
-                              "operator": "numberEqual",
-                              "valueType": "value",
-                              "value": 1,
-                              "type": "leaf",
+                              "prop": "",
+                              "operator": "all",
+                              "valueType": "",
+                              "value": "",
+                              "type": "branch",
                               "level": 1,
-                              "propLabel": "siTriggerFailed",
-                              "valueLabel": "",
-                              "operatorLabel": "numberEqual"
+                              "children": [
+                                {
+                                  "id": 196000000040,
+                                  "parentId": 196000000041,
+                                  "isTop": false,
+                                  "prop": "node.code_si_trigger_result.data.siTriggerFailed",
+                                  "operator": "numberEqual",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "siTriggerFailed",
+                                  "valueLabel": "",
+                                  "operatorLabel": "numberEqual"
+                                },
+                                {
+                                  "id": 196000000043,
+                                  "parentId": 196000000041,
+                                  "isTop": false,
+                                  "prop": "workflowparams.isPicking",
+                                  "operator": "notEqual",
+                                  "valueType": "value",
+                                  "value": "Yes",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "isPicking",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Not Equal"
+                                },
+                                {
+                                  "id": 196000000044,
+                                  "parentId": 196000000041,
+                                  "isTop": false,
+                                  "prop": "workflowparams.isPacking",
+                                  "operator": "numberNotEqual",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "isPacking",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Not Equal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -14157,6 +14214,22 @@
               "value": "{{node:code_si_trigger_result.data.siNo}}",
               "valueLabel": "",
               "propLabel": "siNo"
+            },
+            {
+              "prop": "siFailed",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_si_trigger_result.data.siTriggerFailed}}",
+              "valueLabel": "",
+              "propLabel": "siFailed"
+            },
+            {
+              "prop": "siMessage",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_si_trigger_result.data.siMessage}}",
+              "valueLabel": "",
+              "propLabel": "siMessage"
             }
           ]
         },
