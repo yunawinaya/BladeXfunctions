@@ -1195,7 +1195,7 @@
                       "options": {
                         "defaultValue": "",
                         "multiple": false,
-                        "disabled": "{{this.isEdit}}",
+                        "disabled": "{{this.isEdit && this.getValue('repack_status') === 'Created'}}",
                         "clearable": false,
                         "placeholder": "",
                         "required": false,
@@ -1318,8 +1318,8 @@
                         "auto_refresh_debounce": 100
                       },
                       "events": {
-                        "onReady": "1ur4f56f",
-                        "onChange": "jmxcsvpu",
+                        "onReady": "bax78swc",
+                        "onChange": "chh8mb09",
                         "onFocus": "",
                         "onBlur": ""
                       },
@@ -2813,7 +2813,7 @@
                       },
                       "events": {
                         "onReady": "",
-                        "onChange": "",
+                        "onChange": "rp3mlt9y",
                         "onFocus": "",
                         "onBlur": ""
                       },
@@ -4034,7 +4034,7 @@
                     "required": false,
                     "validatorCheck": false,
                     "validator": "",
-                    "paging": true,
+                    "paging": false,
                     "pageSize": 10,
                     "autoPaging": false,
                     "autoPageSize": 10,
@@ -4060,7 +4060,55 @@
                     "useVTable": true,
                     "useTableV2": false,
                     "useTableV2Height": 1,
-                    "filters": [],
+                    "filters": [
+                      {
+                        "bsonType": "bigint",
+                        "component": {
+                          "name": "select",
+                          "rules": [
+                            {
+                              "id": 1723795236686,
+                              "parentId": 1723795236685,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "dataIdentifier": false,
+                        "defaultValue": "",
+                        "description": "Handling Unit No:关联handling_unit.id字段",
+                        "desensitization": false,
+                        "encryptedKey": false,
+                        "enum": {
+                          "cascade": "",
+                          "collection": "handling_unit",
+                          "dataSourceName": "master",
+                          "field": "id as value, handling_no as text",
+                          "pagingEnabled": 1
+                        },
+                        "errorMessage": {
+                          "required": ""
+                        },
+                        "foreignKey": "handling_unit.id",
+                        "historyKey": false,
+                        "immutableKey": false,
+                        "isRequired": false,
+                        "key": "dq0z7l84",
+                        "multiple": true,
+                        "name": "handling_unit_id",
+                        "persistField": true,
+                        "primaryKey": false,
+                        "title": "Handling Unit No",
+                        "matchMode": "looseMatch",
+                        "hideLabel": 1,
+                        "aggregate": 1
+                      }
+                    ],
                     "filter_collapse": 0,
                     "rowActions": [],
                     "collapse_all": 0,
@@ -6998,7 +7046,7 @@
                     "required": false,
                     "validatorCheck": false,
                     "validator": "",
-                    "paging": true,
+                    "paging": false,
                     "pageSize": 10,
                     "autoPaging": false,
                     "autoPageSize": 10,
@@ -7024,7 +7072,35 @@
                     "useVTable": true,
                     "useTableV2": false,
                     "useTableV2Height": 1,
-                    "filters": [],
+                    "filters": [
+                      {
+                        "bsonType": "string",
+                        "dataIdentifier": false,
+                        "defaultValue": "Auto-generated number",
+                        "description": "Handling Unit No",
+                        "desensitization": false,
+                        "encryptedKey": false,
+                        "errorMessage": {
+                          "format": "",
+                          "pattern": "",
+                          "required": ""
+                        },
+                        "format": "",
+                        "historyKey": false,
+                        "immutableKey": false,
+                        "isRequired": false,
+                        "key": "8hpyigd5",
+                        "name": "handling_no",
+                        "pattern": "",
+                        "persistField": true,
+                        "primaryKey": false,
+                        "title": "Handling Unit No",
+                        "matchMode": "looseMatch",
+                        "hideLabel": 1,
+                        "aggregate": 1,
+                        "multiple": false
+                      }
+                    ],
                     "filter_collapse": 0,
                     "rowActions": [
                       {
@@ -8040,7 +8116,7 @@
                       },
                       "events": {
                         "onReady": "",
-                        "onChange": "",
+                        "onChange": "ouhqffpk",
                         "onFocus": "",
                         "onBlur": ""
                       },
@@ -8766,7 +8842,7 @@
             "remoteOption": "option_ummk7z1m",
             "tableColumn": false,
             "subform": false,
-            "elementFxCurrent": "tab_items"
+            "elementFxCurrent": "tab_source_hu"
           },
           "events": {
             "onClick": ""
@@ -9167,7 +9243,7 @@
             "desensitization_replace": ""
           },
           "events": {
-            "onClick": ""
+            "onClick": "1heg1rk7"
           },
           "key": "e6sw0ffe",
           "model": "button_draft",
@@ -9210,7 +9286,7 @@
             "desensitization_replace": ""
           },
           "events": {
-            "onClick": ""
+            "onClick": "buuf2sdv"
           },
           "key": "4h8qo213",
           "model": "button_created",
@@ -9253,7 +9329,7 @@
             "desensitization_replace": ""
           },
           "events": {
-            "onClick": ""
+            "onClick": "bssnah9m"
           },
           "key": "fdevqgfp",
           "model": "button_completed",
@@ -9273,7 +9349,7 @@
             "labelWidth": 100,
             "isLabelWidth": false,
             "hideLabel": true,
-            "hidden": false,
+            "hidden": true,
             "buttonSize": "default",
             "buttonType": "",
             "buttonPlain": false,
@@ -9326,7 +9402,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "const applyRepackTypeVisibility = async (repackType) => {\n  const sourceHuCols = [\n    \"table_repack.button_source_hu\",\n    \"table_repack.handling_unit_id\",\n    \"table_repack.total_hu_item_quantity\",\n    \"table_repack.hu_storage_location\",\n    \"table_repack.hu_location\",\n  ];\n  const targetWarehouseCols = [\n    \"table_repack.target_storage_location\",\n    \"table_repack.target_location\",\n  ];\n  const targetHuCols = [\n    \"table_repack.button_target_hu\",\n    \"table_repack.target_hu_no\",\n    \"table_repack.target_hu_location\",\n  ];\n\n  switch (repackType) {\n    case \"Load\":\n      await this.hide([...sourceHuCols, ...targetWarehouseCols]);\n      await this.display(targetHuCols);\n      break;\n    case \"Unload\":\n      await this.display([...sourceHuCols, ...targetWarehouseCols]);\n      await this.hide(targetHuCols);\n      break;\n    case \"Transfer\":\n      await this.display([\n        ...sourceHuCols,\n        ...targetWarehouseCols,\n        ...targetHuCols,\n      ]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst showStatusHTML = (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\n        \"draft_status\",\n        \"button_draft\",\n        \"button_created\",\n        \"button_completed\",\n      ]);\n      break;\n    case \"Created\":\n      this.display([\"created_status\", \"button_created\", \"button_completed\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst setPlant = async (organizationId) => {\n  try {\n    const deptId = await this.getVarSystem(\"deptIds\").split(\",\")[0];\n    let plantId = \"\";\n\n    if (deptId === organizationId) {\n      plantId = \"\";\n    } else {\n      plantId = deptId;\n      await this.disabled(\"plant_id\", true);\n    }\n\n    await this.setData({\n      organization_id: organizationId,\n      plant_id: plantId,\n    });\n  } catch (error) {\n    console.error(\"Error setting plant:\", error);\n  }\n};\n\n(async () => {\n  let pageStatus = \"\";\n\n  if (this.isAdd) pageStatus = \"Add\";\n  else if (this.isEdit) pageStatus = \"Edit\";\n  else if (this.isView) pageStatus = \"View\";\n  else throw new Error(\"Invalid page state\");\n\n  this.setData({ page_status: pageStatus });\n\n  console.log(\"pageStatus\", pageStatus);\n\n  const roStatus = (await this.getValue(\"repack_status\")) || \"Draft\";\n  const roType = await this.getValue(\"repack_type\");\n\n  switch (pageStatus) {\n    case \"Add\":\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n      setPlant(organizationId);\n      showStatusHTML(roStatus);\n      break;\n    case \"Edit\":\n      await this.display([\"table_repack\"]);\n      await applyRepackTypeVisibility(roType);\n      showStatusHTML(roStatus);\n      break;\n    case \"View\":\n      await this.display([\"table_repack\"]);\n      await applyRepackTypeVisibility(roType);\n      showStatusHTML(roStatus);\n      break;\n  }\n})();\n\nsetTimeout(async () => {\n  if (!this.isAdd) return;\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"repack_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n\n  const optionsData = this.getOptionData(\"repack_no_type\") || [];\n  const data = getDefaultItem(optionsData);\n  if (data) {\n    this.setData({ repack_no_type: data.value });\n  }\n}, 500);\n",
+        "func": "const applyRepackTypeVisibility = async (repackType) => {\n  const sourceHuCols = [\n    \"table_repack.button_source_hu\",\n    \"table_repack.handling_unit_id\",\n    \"table_repack.total_hu_item_quantity\",\n    \"table_repack.hu_storage_location\",\n    \"table_repack.hu_location\",\n  ];\n  const targetWarehouseCols = [\n    \"table_repack.target_storage_location\",\n    \"table_repack.target_location\",\n  ];\n  const targetHuCols = [\n    \"table_repack.button_target_hu\",\n    \"table_repack.target_hu_no\",\n    \"table_repack.target_hu_location\",\n  ];\n\n  switch (repackType) {\n    case \"Load\":\n      await this.hide([...sourceHuCols, ...targetWarehouseCols]);\n      await this.display(targetHuCols);\n      break;\n    case \"Unload\":\n      await this.display([...sourceHuCols, ...targetWarehouseCols]);\n      await this.hide(targetHuCols);\n      break;\n    case \"Transfer\":\n      await this.hide(targetWarehouseCols);\n      await this.display([...sourceHuCols, ...targetHuCols]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst showStatusHTML = (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\n        \"draft_status\",\n        \"button_draft\",\n        \"button_created\",\n        \"button_completed\",\n      ]);\n      break;\n    case \"Created\":\n      this.display([\"created_status\", \"button_created\", \"button_completed\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst setPlant = async (organizationId) => {\n  try {\n    const deptId = await this.getVarSystem(\"deptIds\").split(\",\")[0];\n    let plantId = \"\";\n\n    if (deptId === organizationId) {\n      plantId = \"\";\n    } else {\n      plantId = deptId;\n      await this.disabled(\"plant_id\", true);\n    }\n\n    await this.setData({\n      organization_id: organizationId,\n      plant_id: plantId,\n    });\n  } catch (error) {\n    console.error(\"Error setting plant:\", error);\n  }\n};\n\n(async () => {\n  let pageStatus = \"\";\n\n  if (this.isAdd) pageStatus = \"Add\";\n  else if (this.isEdit) pageStatus = \"Edit\";\n  else if (this.isView) pageStatus = \"View\";\n  else throw new Error(\"Invalid page state\");\n\n  this.setData({ page_status: pageStatus });\n\n  console.log(\"pageStatus\", pageStatus);\n\n  const roStatus = (await this.getValue(\"repack_status\")) || \"Draft\";\n  const roType = await this.getValue(\"repack_type\");\n\n  switch (pageStatus) {\n    case \"Add\":\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n      setPlant(organizationId);\n      showStatusHTML(roStatus);\n      break;\n    case \"Edit\":\n      await this.display([\"table_repack\"]);\n      await applyRepackTypeVisibility(roType);\n      showStatusHTML(roStatus);\n      break;\n    case \"View\":\n      await this.display([\"table_repack\"]);\n      await applyRepackTypeVisibility(roType);\n      showStatusHTML(roStatus);\n      break;\n  }\n})();\n\nsetTimeout(async () => {\n  if (!this.isAdd) return;\n  var params = this.getComponent(\"repack_no\");\n  const { options } = params;\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"repack_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  const optionsData = this.getOptionData(\"repack_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"repack_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    this.setData({\n      repack_no_type: defaultData ? defaultData.value : -9999,\n    });\n  } else if (defaultData) {\n    this.setData({ repack_no_type: defaultData.value });\n  }\n}, 200);\n",
         "type": "js"
       },
       {
@@ -9379,7 +9455,7 @@
       {
         "key": "7hwic5ph",
         "name": "onAssigneesChange",
-        "func": "const specialInspector = this.getValue('special_inspector');\n\nif(specialInspector === \"User\"){\n  this.display('inspector_user');\n  this.hide('inspector_work_group');\n} else {\n  this.hide('inspector_user');\n  this.display('inspector_work_group');\n}",
+        "func": "const assignees = this.getValue('assignees');\n\nif(assignees === \"User\"){\n  this.display('user_assignees');\n  this.hide('work_group_assignees');\n} else {\n  this.hide('user_assignees');\n  this.display('work_group_assignees');\n}",
         "type": "js"
       },
       {
@@ -9432,7 +9508,7 @@
       {
         "key": "3og0losy",
         "name": "onRepackTypeChange",
-        "func": "(async () => {\n  const repackType = arguments[0]?.value ?? (await this.getValue(\"repack_type\"));\n\n  const existingRepack = this.getValue(\"table_repack\") || [];\n  const hasData = existingRepack.some(\n    (row) =>\n      row &&\n      (row.handling_unit_id ||\n        row.target_hu_id ||\n        row.target_hu_no ||\n        row.source_temp_data ||\n        row.target_temp_data ||\n        row.items_temp_data ||\n        row.item_details),\n  );\n\n  if (hasData) {\n    this.$alert(\n      \"Changing the repack type has <strong>reset all repack lines</strong>.\",\n      \"Repack Type Changed\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    );\n  }\n\n  await this.setData({ table_repack: [] });\n\n  const sourceHuCols = [\n    \"table_repack.button_source_hu\",\n    \"table_repack.handling_unit_id\",\n    \"table_repack.total_hu_item_quantity\",\n    \"table_repack.hu_storage_location\",\n    \"table_repack.hu_location\",\n  ];\n\n  const targetWarehouseCols = [\n    \"table_repack.target_storage_location\",\n    \"table_repack.target_location\",\n  ];\n\n  const targetHuCols = [\n    \"table_repack.button_target_hu\",\n    \"table_repack.target_hu_no\",\n    \"table_repack.target_hu_location\",\n  ];\n\n  switch (repackType) {\n    case \"Load\":\n      await this.hide([...sourceHuCols, ...targetWarehouseCols]);\n      await this.display(targetHuCols);\n      break;\n    case \"Unload\":\n      await this.display([...sourceHuCols, ...targetWarehouseCols]);\n      await this.hide(targetHuCols);\n      break;\n    case \"Transfer\":\n      await this.display([\n        ...sourceHuCols,\n        ...targetWarehouseCols,\n        ...targetHuCols,\n      ]);\n      break;\n    default:\n      break;\n  }\n})();\n",
+        "func": "(async () => {\n  const repackType = arguments[0]?.value ?? (await this.getValue(\"repack_type\"));\n\n  const existingRepack = this.getValue(\"table_repack\") || [];\n  const hasData = existingRepack.some(\n    (row) =>\n      row &&\n      (row.handling_unit_id ||\n        row.target_hu_id ||\n        row.target_hu_no ||\n        row.source_temp_data ||\n        row.target_temp_data ||\n        row.items_temp_data ||\n        row.item_details),\n  );\n\n  if (hasData) {\n    this.$alert(\n      \"Changing the repack type has <strong>reset all repack lines</strong>.\",\n      \"Repack Type Changed\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    );\n  }\n\n  await this.setData({ table_repack: [] });\n\n  const sourceHuCols = [\n    \"table_repack.button_source_hu\",\n    \"table_repack.handling_unit_id\",\n    \"table_repack.total_hu_item_quantity\",\n    \"table_repack.hu_storage_location\",\n    \"table_repack.hu_location\",\n  ];\n\n  const targetWarehouseCols = [\n    \"table_repack.target_storage_location\",\n    \"table_repack.target_location\",\n  ];\n\n  const targetHuCols = [\n    \"table_repack.button_target_hu\",\n    \"table_repack.target_hu_no\",\n    \"table_repack.target_hu_location\",\n  ];\n\n  switch (repackType) {\n    case \"Load\":\n      await this.hide([...sourceHuCols, ...targetWarehouseCols]);\n      await this.display(targetHuCols);\n      break;\n    case \"Unload\":\n      await this.display([...sourceHuCols, ...targetWarehouseCols]);\n      await this.hide(targetHuCols);\n      break;\n    case \"Transfer\":\n      await this.hide(targetWarehouseCols);\n      await this.display([...sourceHuCols, ...targetHuCols]);\n      break;\n    default:\n      break;\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -9550,6 +9626,54 @@
         "key": "8qre7cuf",
         "name": "onUnloadQuantityChange",
         "func": "(async () => {\n  try {\n    const rawValue = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    const tableItems = this.getValue(\"dialog_repack.table_items\") || [];\n    const row = tableItems[rowIndex];\n    if (!row) return;\n\n    const itemQuantity = parseFloat(row.item_quantity) || 0;\n    const value = parseFloat(rawValue);\n\n    if (Number.isNaN(value)) {\n      await this.setData({\n        [`dialog_repack.table_items.${rowIndex}.unload_quantity`]: 0,\n      });\n      return;\n    }\n\n    if (value < 0) {\n      await this.setData({\n        [`dialog_repack.table_items.${rowIndex}.unload_quantity`]: 0,\n      });\n      this.$message.warning(\"Quantity cannot be negative\");\n      return;\n    }\n\n    if (value > itemQuantity) {\n      await this.setData({\n        [`dialog_repack.table_items.${rowIndex}.unload_quantity`]: itemQuantity,\n      });\n      this.$message.warning(\n        `Quantity cannot exceed available ${itemQuantity}`,\n      );\n    }\n  } catch (error) {\n    this.$message.error(\"Error in ROonChangeUnloadQty: \" + error.message);\n    console.error(\"Error in ROonChangeUnloadQty:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "1heg1rk7",
+        "name": "onButtonDraftClick",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Saving Repack Order as draft...\");\n\n    const rawData = this.getValues();\n    const { dialog_repack, ...data } = rawData;\n    const pageStatus = data.page_status;\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      \"2043621631586209793\",\n      { allData: data, saveAs: \"Draft\", pageStatus },\n      (res) => {\n        console.log(\"Repack Order draft saved:\", res);\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to save Repack Order draft:\", err);\n        workflowResult = err;\n      },\n    );\n\n    if (workflowResult?.data?.code && workflowResult.data.code !== 200) {\n      this.hideLoading();\n      this.$message.error(\n        workflowResult.data.message || \"Failed to save Repack Order draft\",\n      );\n      return;\n    }\n\n    this.$message.success(\"Repack Order saved as draft\");\n    this.hideLoading();\n    closeDialog();\n  } catch (error) {\n    console.error(\"Error in ROsaveAsDraft:\", error);\n    this.hideLoading();\n    this.$message.error(error.message || \"Failed to save Repack Order draft\");\n    closeDialog();\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "buuf2sdv",
+        "name": "onButtonCreatedClick",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Creating Repack Order...\");\n\n    const rawData = this.getValues();\n    const { dialog_repack, ...data } = rawData;\n    const pageStatus = data.page_status;\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      \"2043621631586209793\",\n      { allData: data, saveAs: \"Created\", pageStatus },\n      (res) => {\n        console.log(\"Repack Order created:\", res);\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to create Repack Order:\", err);\n        workflowResult = err;\n      },\n    );\n\n    if (workflowResult?.data?.code && workflowResult.data.code !== 200) {\n      this.hideLoading();\n      this.$message.error(\n        workflowResult.data.message || \"Failed to create Repack Order\",\n      );\n      return;\n    }\n\n    this.$message.success(\"Repack Order created\");\n    this.hideLoading();\n    closeDialog();\n  } catch (error) {\n    console.error(\"Error in ROsaveAsCreated:\", error);\n    this.hideLoading();\n    this.$message.error(error.message || \"Failed to create Repack Order\");\n    closeDialog();\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "bssnah9m",
+        "name": "onButtonCompletedClick",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateCompletion = (data) => {\n  const errors = [];\n  const repackType = data.repack_type;\n  const rows = data.table_repack || [];\n\n  if (!repackType) {\n    errors.push(\"Repack Type is required\");\n    return errors;\n  }\n\n  const seenSourceHuIds = new Set();\n\n  rows.forEach((row, idx) => {\n    const rowNo = idx + 1;\n    const needsSource = repackType === \"Unload\" || repackType === \"Transfer\";\n    const needsTarget = repackType === \"Load\" || repackType === \"Transfer\";\n    const needsWarehouseLocation = repackType === \"Unload\";\n\n    let parsedItems = [];\n    try {\n      parsedItems = row.items_temp_data ? JSON.parse(row.items_temp_data) : [];\n    } catch (e) {\n      parsedItems = [];\n    }\n\n    if (!Array.isArray(parsedItems) || parsedItems.length === 0) {\n      errors.push(`Row ${rowNo}: no items selected`);\n    } else if (\n      !parsedItems.some((it) => (parseFloat(it.unload_quantity) || 0) > 0)\n    ) {\n      errors.push(`Row ${rowNo}: no item has a quantity`);\n    }\n\n    if (needsSource) {\n      if (!row.source_temp_data) {\n        errors.push(`Row ${rowNo}: source handling unit not selected`);\n      } else {\n        try {\n          const parsed = JSON.parse(row.source_temp_data);\n          const sourceId = parsed?.id || \"\";\n          if (sourceId) {\n            if (seenSourceHuIds.has(sourceId)) {\n              errors.push(\n                `Row ${rowNo}: source handling unit already used in another row`,\n              );\n            } else {\n              seenSourceHuIds.add(sourceId);\n            }\n          }\n        } catch (e) {\n          errors.push(`Row ${rowNo}: source handling unit data is invalid`);\n        }\n      }\n    }\n\n    if (needsTarget) {\n      const hasExistingTarget = row.target_hu_id || row.target_temp_data;\n      const hasNewTarget = row.target_hu_no === \"Auto-generated number\";\n      if (!hasExistingTarget && !hasNewTarget) {\n        errors.push(`Row ${rowNo}: target handling unit not selected`);\n      }\n    }\n\n    if (needsWarehouseLocation) {\n      if (!row.target_location || !row.target_storage_location) {\n        errors.push(\n          `Row ${rowNo}: target warehouse location not set`,\n        );\n      }\n    }\n\n    if (repackType === \"Transfer\" && row.source_temp_data && row.target_temp_data) {\n      try {\n        const src = JSON.parse(row.source_temp_data);\n        const tgt = JSON.parse(row.target_temp_data);\n        if (src?.id && tgt?.id && src.id === tgt.id) {\n          errors.push(\n            `Row ${rowNo}: source and target handling unit cannot be the same`,\n          );\n        }\n      } catch (e) {\n        // already reported above\n      }\n    }\n  });\n\n  return errors;\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Completing Repack Order...\");\n\n    const rawData = this.getValues();\n    const { dialog_repack, ...data } = rawData;\n    const pageStatus = data.page_status;\n\n    const validationErrors = validateCompletion(data);\n    if (validationErrors.length > 0) {\n      this.hideLoading();\n      this.$message.error(\n        `Cannot complete: ${validationErrors.join(\"; \")}`,\n      );\n      return;\n    }\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      \"2043621631586209793\",\n      { allData: data, saveAs: \"Completed\", pageStatus },\n      (res) => {\n        console.log(\"Repack Order completed:\", res);\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to complete Repack Order:\", err);\n        workflowResult = err;\n      },\n    );\n\n    if (workflowResult?.data?.code && workflowResult.data.code !== 200) {\n      this.hideLoading();\n      this.$message.error(\n        workflowResult.data.message || \"Failed to complete Repack Order\",\n      );\n      return;\n    }\n\n    this.$message.success(\"Repack Order completed\");\n    this.hideLoading();\n    closeDialog();\n  } catch (error) {\n    console.error(\"Error in ROsaveAsCompleted:\", error);\n    this.hideLoading();\n    this.$message.error(error.message || \"Failed to complete Repack Order\");\n    closeDialog();\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "ouhqffpk",
+        "name": "onStorageLocationIdChange",
+        "func": "(async () => {\n  try {\n    const value = arguments[0]?.value || \"\";\n    const rowIndex = arguments[0].rowIndex;\n    const plantId = this.getValue(\"plant_id\");\n\n    await this.setData({\n      [`dialog_repack.table_target_hu.${rowIndex}.location_id`]: \"\",\n    });\n\n    if (!value || !plantId) return;\n\n    const resBin = await db\n      .collection(\"bin_location\")\n      .where({\n        plant_id: plantId,\n        storage_location_id: value,\n        is_default: 1,\n        is_deleted: 0,\n      })\n      .get();\n\n    const defaultBin = resBin?.data?.[0];\n    if (defaultBin?.id) {\n      await this.setData({\n        [`dialog_repack.table_target_hu.${rowIndex}.location_id`]: defaultBin.id,\n      });\n    }\n  } catch (error) {\n    this.$message.error(\"Error in ROonChangeTargetHUStorageLocation: \" + error.message);\n    console.error(\"Error in ROonChangeTargetHUStorageLocation:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "rp3mlt9y",
+        "name": "onTargetStorageLocationChange",
+        "func": "(async () => {\n  try {\n    const value = arguments[0]?.value || \"\";\n    const rowIndex = arguments[0].rowIndex;\n    const plantId = this.getValue(\"plant_id\");\n\n    await this.setData({\n      [`table_repack.${rowIndex}.target_location`]: \"\",\n    });\n\n    if (!value || !plantId) return;\n\n    const resBin = await db\n      .collection(\"bin_location\")\n      .where({\n        plant_id: plantId,\n        storage_location_id: value,\n        is_default: 1,\n        is_deleted: 0,\n      })\n      .get();\n\n    const defaultBin = resBin?.data?.[0];\n    if (defaultBin?.id) {\n      await this.setData({\n        [`table_repack.${rowIndex}.target_location`]: defaultBin.id,\n      });\n    }\n  } catch (error) {\n    this.$message.error(\"Error in ROonChangeTargetStorageLocation: \" + error.message);\n    console.error(\"Error in ROonChangeTargetStorageLocation:\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "629tnlat",
+        "name": "onRepackNoTypeReady_629tnlat",
+        "func": "var params = this.getComponent('repack_no');\nconst { options } = params;\nif(options?.canManualInput) {\n  setTimeout(async()=> {\n    const getOpData = await this.onDropdownVisible('repack_no_type', true)||[];\n    const optionsData = this.getOptionData('repack_no_type') || [];\n    let newData = getOpData?.length> 0? getOpData:optionsData;\n      const newOptionsData = [{label: 'Manual Input', value: -9999}, ...newData];\n      this.setOptionData(\"repack_no_type\", newOptionsData);\n  }, 200)\n}\n",
+        "type": "js"
+      },
+      {
+        "key": "bax78swc",
+        "name": "onRepackNoTypeReady_bax78swc",
+        "func": "var params = this.getComponent('repack_no');\nconst { options } = params;\nif(options?.canManualInput && this.isEdit) {\n  setTimeout(async()=> {\n    const getOpData = await this.onDropdownVisible('repack_no_type', true)||[];\n    const optionsData = this.getOptionData('repack_no_type') || [];\n    let newData = getOpData?.length> 0? getOpData:optionsData;\n      const newOptionsData = [{label: 'Manual Input', value: -9999}, ...newData];\n      this.setOptionData(\"repack_no_type\", newOptionsData);\n  }, 200)\n}\n",
+        "type": "js"
+      },
+      {
+        "key": "chh8mb09",
+        "name": "onRepackNoTypeChange_chh8mb09",
+        "func": "const { value } = arguments[0];\nthis.setData({\n  repack_no: ''\n});\nif(value === -9999) {\n   this.disabled('repack_no', false)\n} else {\n   this.disabled('repack_no', true)\n}",
         "type": "js"
       }
     ],

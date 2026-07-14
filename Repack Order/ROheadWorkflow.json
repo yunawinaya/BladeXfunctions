@@ -890,7 +890,7 @@
                         "name": "RO Data",
                         "script": {
                           "type": "javascript",
-                          "code": "const repack_status = {{node:code_node_M3uhXobN.data.repack_status}} || \"Draft\";\nconst pageStatus = {{workflowparams:pageStatus}};\n\nlet roData = {{node:code_node_M3uhXobN.data.allData}} || {};\nif (pageStatus === \"Add\") {\n  const rawRoData = {{node:add_node_EA6zJ5gj.data}}\n  roData = rawRoData[0]\n  roData.table_repack = {{node:search_node_kL8C488c.data}}\n} else if (pageStatus === \"Edit\" && repack_status !== \"Draft\") {\n  roData = {{node:get_node_8Dk4sYit.data.data}}\n} else if (pageStatus === \"Edit\" && repack_status === \"Draft\") {\n  roData = {{node:get_node_UUNWojBU.data.data}}\n}\n\nreturn {\n  allData: roData,\n  tableData: roData.table_repack || [],\n  processType: roData.repack_type || \"\",\n}"
+                          "code": "const repack_status = {{node:code_node_M3uhXobN.data.repack_status}} || \"Draft\";\nconst pageStatus = {{workflowparams:pageStatus}};\n\nlet roData = {{node:code_node_M3uhXobN.data.allData}} || {};\nif (pageStatus === \"Add\") {\n  const rawRoData = {{node:add_node_EA6zJ5gj.data}}\n  roData = rawRoData[0]\n  roData.table_repack = {{node:search_node_kL8C488c.data.data}}\n} else if (pageStatus === \"Edit\" && repack_status !== \"Draft\") {\n  roData = {{node:get_node_8Dk4sYit.data.data}}\n} else if (pageStatus === \"Edit\" && repack_status === \"Draft\") {\n  roData = {{node:get_node_UUNWojBU.data.data}}\n}\n\nreturn {\n  allData: roData,\n  tableData: roData.table_repack || [],\n  processType: roData.repack_type || \"\",\n}"
                         },
                         "response_json": [
                           {
