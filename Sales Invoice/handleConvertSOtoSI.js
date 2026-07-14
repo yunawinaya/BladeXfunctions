@@ -1,16 +1,24 @@
+// autoPi: "" (not decided yet) | "confirmed" | "skip". Once decided it is threaded through the
+// 401/404/405 retries below so the user is never asked the same question twice.
 const handleConvertSI = async (
   selectedRecords,
   convertTo,
   isMultiple,
   plantID,
   filterDraft,
+  autoPi,
 ) => {
-  // Block combining internal-trading and non-internal Sales Orders into ONE
-  // Sales Invoice. Only relevant for single-SI conversion of 2+ SOs; "multiple"
-  // gives each SO its own SI (no mix). Internal = the SO is the target of a
-  // "Linked" PO->SO row in document_linkage.
-  if (isMultiple === "single" && selectedRecords.length > 1) {
-    const soIds = [...new Set(selectedRecords.map((r) => r.id))];
+  const soIds = [...new Set(selectedRecords.map((r) => r.id))];
+
+  // Internal trading = the SO is the target of a "Linked" PO->SO row in document_linkage.
+  // Two separate checks need that fact, so read it once:
+  //   - the mix guard, only when building ONE SI out of 2+ SOs
+  //   - the Purchase Invoice confirm, only when completing (see below)
+  const needsMixGuard = isMultiple === "single" && selectedRecords.length > 1;
+  const needsPiAnswer = convertTo === "completed" && !autoPi;
+
+  let internalCount = 0;
+  if (needsMixGuard || needsPiAnswer) {
     const linkRes = await db
       .collection("document_linkage")
       .filter([
@@ -33,15 +41,44 @@ const handleConvertSI = async (
     const internalSet = new Set(
       (linkRes?.data || []).map((r) => r.target_doc_id),
     );
-    const internalCount = soIds.filter((id) => internalSet.has(id)).length;
+    internalCount = soIds.filter((id) => internalSet.has(id)).length;
+  }
 
-    if (internalCount > 0 && internalCount < soIds.length) {
-      await this.$alert(
-        "Cannot combine internal trading and non-internal Sales Orders in the same Sales Invoice. Please select only one type, or convert to multiple Sales Invoices.",
-        "Error",
-        { confirmButtonText: "OK", type: "error" },
-      );
-      return;
+  // Block combining internal-trading and non-internal Sales Orders into ONE
+  // Sales Invoice. "multiple" gives each SO its own SI, so there is no mix to block.
+  if (needsMixGuard && internalCount > 0 && internalCount < soIds.length) {
+    await this.$alert(
+      "Cannot combine internal trading and non-internal Sales Orders in the same Sales Invoice. Please select only one type, or convert to multiple Sales Invoices.",
+      "Error",
+      { confirmButtonText: "OK", type: "error" },
+    );
+    return;
+  }
+
+  // SI_SAVE will not write an internal-trading COMPLETED invoice until it is told whether to also
+  // create the buyer organization's Purchase Invoice -- it returns pi_confirm 411 and saves
+  // nothing. The SI form answers that (SIsaveAsCompleted.js); this path never did, so completing
+  // an internal SO silently produced no invoice at all while still reporting success. Ask here and
+  // pass the answer through. (Draft never arms the gate, so it is only asked when completing.)
+  if (needsPiAnswer) {
+    if (internalCount > 0) {
+      const proceed = await this.$confirm(
+        `${internalCount} of the selected Sales Order(s) are linked to internal Purchase Orders.<br><br>Auto-create the Purchase Invoice in the buyer organization?`,
+        "Internal Trading – Auto-create Purchase Invoice",
+        {
+          confirmButtonText: "Yes, create PI",
+          cancelButtonText: "No, invoice only",
+          type: "info",
+          dangerouslyUseHTMLString: true,
+        },
+      )
+        .then(() => true)
+        .catch(() => false);
+
+      autoPi = proceed ? "confirmed" : "skip";
+    } else {
+      // Nothing internal — the gate never arms. Memoised so a retry does not re-query.
+      autoPi = "skip";
     }
   }
 
@@ -54,6 +91,7 @@ const handleConvertSI = async (
       is_multiple: isMultiple,
       plant_id: plantID,
       filter_draft: filterDraft,
+      auto_pi: autoPi || "",
     },
     async (res) => {
       console.log("SI Data", res.data);
@@ -85,6 +123,7 @@ const handleConvertSI = async (
           isMultiple,
           plantID,
           "yes",
+          autoPi,
         );
       } else if (err.data?.code === 402) {
         // Selected Sales Order(s) already has a related Sales Invoice and cannot be converted.
@@ -101,6 +140,9 @@ const handleConvertSI = async (
             is_multiple: isMultiple,
             plant_id: plantID,
             filter_draft: filterDraft,
+            // The plant-picker dialog re-runs the workflow from this object, so the
+            // Purchase Invoice answer has to ride along or it is lost on that path.
+            auto_pi: autoPi || "",
           },
           doc_type: "sales invoice",
         };
@@ -128,6 +170,7 @@ const handleConvertSI = async (
           "multiple",
           plantID,
           filterDraft,
+          autoPi,
         );
       }
     },

@@ -18,6 +18,10 @@ const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
         continueZero: continueZero,
         auto_gr_confirmed: data.auto_gr_confirmed || "",
         auto_gr_skip: data.auto_gr_skip || "",
+        // Kept on `data` (not as locals) so they survive the retry recursion below: a 401/403/406
+        // retry re-enters runGDWorkflow and would otherwise drop an answer already given.
+        auto_si_confirmed: data.auto_si_confirmed || "",
+        auto_si_skip: data.auto_si_skip || "",
       },
       (res) => {
         console.log("Goods Delivery workflow response:", res);
@@ -248,6 +252,59 @@ const handleWorkflowResult = async (workflowResult, data) => {
       dangerouslyUseHTMLString: true,
     });
     // GD itself completed successfully — close the dialog.
+    closeDialog();
+    return;
+  }
+
+  // Handle 412 - Auto-create Sales Invoice confirmation
+  // Returned BEFORE the goods delivery is written, so answering it re-runs the save from the top.
+  if (resultCode === "412" || resultCode === 412) {
+    this.hideLoading();
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "This delivery will be invoiced automatically on completion. Auto-create the Sales Invoice?";
+
+    const proceed = await this.$confirm(
+      message,
+      "Auto-create Sales Invoice",
+      {
+        confirmButtonText: "Yes, create invoice",
+        cancelButtonText: "No, complete only",
+        type: "info",
+        dangerouslyUseHTMLString: true,
+      },
+    )
+      .then(() => true)
+      .catch(() => false);
+
+    if (proceed) {
+      data.auto_si_confirmed = true;
+    } else {
+      data.auto_si_skip = true;
+    }
+
+    this.showLoading("Saving Goods Delivery as Completed...");
+    const retryResult = await runGDWorkflow(data, "required", "", "");
+    await handleWorkflowResult(retryResult, data);
+    return;
+  }
+
+  // Handle 411 - GD completed, but the auto Sales Invoice failed (non-blocking)
+  if (resultCode === "411" || resultCode === 411) {
+    this.hideLoading();
+    this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "The delivery was completed, but the Sales Invoice could not be created automatically. Please create it manually.";
+
+    await this.$alert(message, "Sales Invoice not created", {
+      confirmButtonText: "OK",
+      type: "warning",
+      dangerouslyUseHTMLString: true,
+    });
+    // The GD itself completed successfully — close the dialog.
     closeDialog();
     return;
   }

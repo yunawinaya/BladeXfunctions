@@ -90,6 +90,22 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "sip_auto_si_confirmed",
+      "name": "auto_si_confirmed",
+      "title": "auto_si_confirmed",
+      "description": "Answers the 412 auto-Sales-Invoice confirm: create the SI on completion.",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sip_auto_si_skip",
+      "name": "auto_si_skip",
+      "title": "auto_si_skip",
+      "description": "Answers the 412 auto-Sales-Invoice confirm: complete the GD without an SI.",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "response_json": [
@@ -121,6 +137,22 @@
       "key": "gdhw_res_gdno",
       "name": "gdNo",
       "title": "gdNo",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gdhw_res_siid",
+      "name": "siId",
+      "title": "siId",
+      "description": "Sales Invoice auto-created on completion, when picking_setup.auto_completed_si = 1.",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gdhw_res_sino",
+      "name": "siNo",
+      "title": "siNo",
       "description": "",
       "bsonType": "string",
       "isExpand": false
@@ -1245,7 +1277,7 @@
         "name": "Resolve Picking Setup",
         "script": {
           "type": "javascript",
-          "code": "// Single org-scoped picking_setup fetch.\n//\n// This node used to be filtered by picking_after = \"Goods Delivery\", which made it\n// come back empty for Picking-Plan orgs (picking_after = \"Sales Order\") and for orgs\n// with no setup at all. Neither fetch ever scoped by plant, and PickingSetupSave writes\n// the same config to every plant row, so one org row carries everything; the old filter\n// was just this row plus a string compare.\nconst raw = {{node:get_node_iFPuvJX2.data.data}};\nconst orgSetup = Array.isArray(raw) ? raw[0] : raw;\n\n// gdSetup: the setup ONLY when picking happens after Goods Delivery -- null for\n// Picking-Plan and no-setup orgs. Exactly what the old filtered fetch returned, so it\n// still drives the picking / auto-Transfer-Order gates unchanged.\nconst isGDFlow = !!(orgSetup && orgSetup.picking_after === \"Goods Delivery\");\nconst gdSetup = isGDFlow ? orgSetup : null;\n\n// Auto allocation must NOT be gated by whether a picking setup exists -- only by\n// picking_mode, which is a deliberate config choice. So allocation reads the org row,\n// or these defaults when there is no setup at all.\n// picking_required is intentionally absent: no setup means no picking and no auto\n// Transfer Order. Only stock allocation is defaulted on.\nconst DEFAULT_SETUP = {\n  picking_mode: \"Auto\",\n  default_strategy_id: \"RANDOM\",\n  fallback_strategy_id: \"FIXED BIN\",\n  split_policy: \"ALLOW_SPLIT\",\n};\n\nconst effectiveSetup = orgSetup || DEFAULT_SETUP;\n\nreturn {\n  orgSetup: orgSetup,\n  gdSetup: gdSetup,\n  effectiveSetup: effectiveSetup,\n  pickingMode: effectiveSetup.picking_mode || \"Manual\",\n  splitPolicy: effectiveSetup.split_policy || \"ALLOW_SPLIT\",\n  pickingRequired: gdSetup && Number(gdSetup.picking_required) === 1 ? 1 : 0,\n  autoTriggerTo: gdSetup && Number(gdSetup.auto_trigger_to) === 1 ? 1 : 0,\n  allowFullPicking: gdSetup && Number(gdSetup.allow_full_picking) === 1 ? 1 : 0,\n};\n"
+          "code": "// Single org-scoped picking_setup fetch.\n//\n// This node used to be filtered by picking_after = \"Goods Delivery\", which made it\n// come back empty for Picking-Plan orgs (picking_after = \"Sales Order\") and for orgs\n// with no setup at all. Neither fetch ever scoped by plant, and PickingSetupSave writes\n// the same config to every plant row, so one org row carries everything; the old filter\n// was just this row plus a string compare.\nconst raw = {{node:get_node_iFPuvJX2.data.data}};\nconst orgSetup = Array.isArray(raw) ? raw[0] : raw;\n\n// gdSetup: the setup ONLY when picking happens after Goods Delivery -- null for\n// Picking-Plan and no-setup orgs. Exactly what the old filtered fetch returned, so it\n// still drives the picking / auto-Transfer-Order gates unchanged.\nconst isGDFlow = !!(orgSetup && orgSetup.picking_after === \"Goods Delivery\");\nconst gdSetup = isGDFlow ? orgSetup : null;\n\n// Auto allocation must NOT be gated by whether a picking setup exists -- only by\n// picking_mode, which is a deliberate config choice. So allocation reads the org row,\n// or these defaults when there is no setup at all.\n// picking_required is intentionally absent: no setup means no picking and no auto\n// Transfer Order. Only stock allocation is defaulted on.\nconst DEFAULT_SETUP = {\n  picking_mode: \"Auto\",\n  default_strategy_id: \"RANDOM\",\n  fallback_strategy_id: \"FIXED BIN\",\n  split_policy: \"ALLOW_SPLIT\",\n};\n\nconst effectiveSetup = orgSetup || DEFAULT_SETUP;\n\nreturn {\n  orgSetup: orgSetup,\n  gdSetup: gdSetup,\n  effectiveSetup: effectiveSetup,\n  pickingMode: effectiveSetup.picking_mode || \"Manual\",\n  splitPolicy: effectiveSetup.split_policy || \"ALLOW_SPLIT\",\n  pickingRequired: gdSetup && Number(gdSetup.picking_required) === 1 ? 1 : 0,\n  autoTriggerTo: gdSetup && Number(gdSetup.auto_trigger_to) === 1 ? 1 : 0,\n  allowFullPicking: gdSetup && Number(gdSetup.allow_full_picking) === 1 ? 1 : 0,\n  // Auto Sales Invoice on completion. Read off the org row (like picking_mode), NOT gdSetup:\n  // it is not tied to picking_after, so Picking-Plan orgs must get it too. null/undefined/0 = off.\n  autoCompletedSi: orgSetup && Number(orgSetup.auto_completed_si) === 1 ? 1 : 0,\n};\n"
         },
         "response_json": [
           {
@@ -1309,6 +1341,14 @@
             "name": "allowFullPicking",
             "title": "allowFullPicking",
             "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "acsi0001",
+            "name": "autoCompletedSi",
+            "title": "autoCompletedSi",
+            "description": "picking_setup.auto_completed_si",
             "bsonType": "int",
             "isExpand": false
           }
@@ -5273,6 +5313,133 @@
         },
         {
           "id": "ifBlock_GV0DS9Ou",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_si_gate",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Auto SI Gate",
+        "isValidator": true,
+        "nodeName": "Auto SI Gate",
+        "name": "Auto SI Gate",
+        "script": {
+          "type": "javascript",
+          "code": "// Pre-flight gate for the auto Sales Invoice (picking_setup.auto_completed_si).\n//\n// It has to be a PRE-flight gate even though the SI is only created at the very end: a workflow\n// cannot prompt mid-run, so the confirmation has to be a return-then-recall, exactly like the\n// auto-GR 408 gate. Nothing is written before this point, so returning 412 here costs the user\n// only a re-run, never a partial save.\n//\n// It sits late on purpose (after credit limit, picking, packing and per-line qty validation) so we\n// only ask about a GD that is genuinely about to be saved -- unlike the GR gate, which sits at the\n// top and can prompt for a GD that later fails validation.\nconst saveAs = {{workflowparams:saveAs}};\nconst autoCompletedSi = Number({{node:code_picking_defaults.data.autoCompletedSi}}) || 0;\nconst autoSiConfirmed = {{workflowparams:auto_si_confirmed}};\nconst autoSiSkip = {{workflowparams:auto_si_skip}};\nconst isPicking = {{workflowparams:isPicking}};\nconst isPacking = {{workflowparams:isPacking}};\n\n// The client sends these as `data.auto_si_confirmed || \"\"`, so they arrive as true or \"\".\nconst truthy = (v) =>\n  v === true || v === 1 || v === \"true\" || v === \"1\" || v === \"Yes\";\n\nlet siConfirm = 0;\nlet doAutoSi = 0;\nlet msg = \"\";\n\n// null / undefined / 0 all mean off -- only an explicit 1 enables it.\nconst eligible = saveAs === \"Completed\" && autoCompletedSi === 1;\n\nif (!eligible || truthy(autoSiSkip)) {\n  // Not eligible, or the user chose to complete without an invoice.\n} else if (truthy(autoSiConfirmed)) {\n  doAutoSi = 1;\n} else if (isPicking === \"Yes\" || Number(isPacking) === 1) {\n  // Picking-/packing-driven completion is headless -- there is nobody to answer a prompt.\n  // Enabling auto_completed_si IS the org's consent, so honour it without asking.\n  doAutoSi = 1;\n} else {\n  siConfirm = 412;\n  msg =\n    \"This delivery will be invoiced automatically on completion.<br><br>Auto-create the Sales Invoice?\";\n}\n\nreturn { siConfirm: siConfirm, doAutoSi: doAutoSi, msg: msg };\n"
+        },
+        "response_json": [
+          {
+            "key": "sigate01",
+            "name": "siConfirm",
+            "title": "siConfirm",
+            "description": "412 = ask the user, 0 = nothing to ask",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sigate02",
+            "name": "doAutoSi",
+            "title": "doAutoSi",
+            "description": "1 = create the SI after the GD is saved",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sigate03",
+            "name": "msg",
+            "title": "msg",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_si_gate",
+      "type": "if",
+      "data": {
+        "title": "IF Auto SI Confirm",
+        "isValidator": true,
+        "nodeName": "IF Auto SI Confirm",
+        "name": "IF Auto SI Confirm",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 196000000010,
+              "parentId": 196000000011,
+              "isTop": true,
+              "prop": "node.code_si_gate.data.siConfirm",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 412,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "siConfirm",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_si_gate_t",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_si_gate",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Auto SI Confirm",
+                "isValidator": true,
+                "nodeName": "Return Auto SI Confirm",
+                "name": "Return Auto SI Confirm",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "412",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_si_gate.data.msg}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_si_gate_f",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -13584,6 +13751,340 @@
                   "blocks": []
                 }
               ]
+            },
+            {
+              "id": "if_trigger_si",
+              "type": "if",
+              "data": {
+                "title": "IF Do Auto-SI",
+                "isValidator": true,
+                "nodeName": "IF Do Auto-SI",
+                "name": "IF Do Auto-SI",
+                "condition_type": "ConditionRule",
+                "expression": { "type": "javascript", "code": "" },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 196000000020,
+                      "parentId": 196000000021,
+                      "isTop": true,
+                      "prop": "node.code_si_gate.data.doAutoSi",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "doAutoSi",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_trigger_si_t",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "code_si_trigger_prep",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Auto-SI Prep",
+                        "isValidator": true,
+                        "nodeName": "Auto-SI Prep",
+                        "name": "Auto-SI Prep",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// The GD row is already committed at this point, so the SI workflow re-reads it from the DB\n// rather than being handed allData -- that way it sees the platform-generated delivery_no and\n// the final table_gd, exactly like the list-page convert does.\nconst gdId = {{node:code_node_cv51vgiy.data.gdId}};\nconst gdNo = {{node:code_node_cv51vgiy.data.gdNo}};\n\n// GD_CONVERT_SI takes an ARRAY of ids.\nreturn {\n  gdIds: gdId ? [String(gdId)] : [],\n  gdId: gdId ? String(gdId) : \"\",\n  gdNo: gdNo ? String(gdNo) : \"\",\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "siprep01",
+                            "name": "gdIds",
+                            "title": "gdIds",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "siprep02",
+                            "name": "gdId",
+                            "title": "gdId",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "siprep03",
+                            "name": "gdNo",
+                            "title": "gdNo",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "wf_auto_si",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Auto-create Sales Invoice",
+                        "isValidator": true,
+                        "nodeName": "Auto-create Sales Invoice",
+                        "name": "Auto-create Sales Invoice",
+                        "workflow": {
+                          "source": "GD_CONVERT_SI:Workflow:2070069049332416514",
+                          "rules": {
+                            "collectionId": "2070069049332416514",
+                            "list": [
+                              {
+                                "id": 196000000030,
+                                "parentId": 196000000031,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "ids",
+                              "propLabel": "ids",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_si_trigger_prep.data.gdIds}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "convert_to",
+                              "propLabel": "convert_to",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "completed",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "is_multiple",
+                              "propLabel": "is_multiple",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "multiple",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "filter_draft",
+                              "propLabel": "filter_draft",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "no",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "source",
+                              "propLabel": "source",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "auto",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_si_trigger_result",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Auto-SI Result",
+                        "isValidator": true,
+                        "nodeName": "Auto-SI Result",
+                        "name": "Auto-SI Result",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const code = {{node:wf_auto_si.data.code}};\nconst message = {{node:wf_auto_si.data.message}};\nconst skipped = {{node:wf_auto_si.data.skipped}};\nconst siId = {{node:wf_auto_si.data.si_id}};\nconst siNo = {{node:wf_auto_si.data.si_no}};\n\n// skipped = there was nothing to invoice (this GD already has an SI, or no line is billable).\n// That is a no-op, not a failure: the GD completed cleanly and no warning should be shown.\nconst isSkipped = Number(skipped) === 1;\nconst siTriggerFailed = String(code) === \"200\" || isSkipped ? 0 : 1;\n\nconst siMessage =\n  \"The delivery was completed, but the Sales Invoice could not be created automatically.<br><br>\" +\n  (message || \"\");\n\nreturn {\n  siTriggerFailed: siTriggerFailed,\n  siMessage: siMessage,\n  siId: siId ? String(siId) : \"\",\n  siNo: siNo ? String(siNo) : \"\",\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "sires001",
+                            "name": "siTriggerFailed",
+                            "title": "siTriggerFailed",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "sires002",
+                            "name": "siMessage",
+                            "title": "siMessage",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "sires003",
+                            "name": "siId",
+                            "title": "siId",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "sires004",
+                            "name": "siNo",
+                            "title": "siNo",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_si_trigger_failed",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Auto-SI Failed",
+                        "isValidator": true,
+                        "nodeName": "IF Auto-SI Failed",
+                        "name": "IF Auto-SI Failed",
+                        "condition_type": "ConditionRule",
+                        "expression": { "type": "javascript", "code": "" },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 196000000040,
+                              "parentId": 196000000041,
+                              "isTop": true,
+                              "prop": "node.code_si_trigger_result.data.siTriggerFailed",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "siTriggerFailed",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_si_trigger_failed_t",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "return_si_trigger_failed",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return SI Trigger Failed",
+                                "isValidator": true,
+                                "nodeName": "Return SI Trigger Failed",
+                                "name": "Return SI Trigger Failed",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "propLabel": "code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "411",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "propLabel": "message",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_si_trigger_result.data.siMessage}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "gdId",
+                                      "propLabel": "gdId",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_si_trigger_prep.data.gdId}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "gdNo",
+                                      "propLabel": "gdNo",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_si_trigger_prep.data.gdNo}}",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_si_trigger_failed_f",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_trigger_si_f",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
             }
           ]
         },
@@ -13640,6 +14141,22 @@
               "value": "{{node:code_node_cv51vgiy.data.gdNo}}",
               "valueLabel": "",
               "propLabel": "gdNo"
+            },
+            {
+              "prop": "siId",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_si_trigger_result.data.siId}}",
+              "valueLabel": "",
+              "propLabel": "siId"
+            },
+            {
+              "prop": "siNo",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_si_trigger_result.data.siNo}}",
+              "valueLabel": "",
+              "propLabel": "siNo"
             }
           ]
         },

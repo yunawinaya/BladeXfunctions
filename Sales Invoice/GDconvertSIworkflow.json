@@ -42,9 +42,66 @@
       "description": "yes/no",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "gcsi_req_source",
+      "name": "source",
+      "title": "Source",
+      "description": "convert (user pressed Convert to SI) / auto (GD completion auto-created it). auto never returns an error code, so it can never abort the GD workflow that called it.",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gcsi_req_autopi",
+      "name": "auto_pi",
+      "title": "Auto PI",
+      "description": "Answers SI_SAVE's internal-trading pi_confirm 411 gate: confirmed = also create the buyer's Purchase Invoice, skip = invoice only. Empty on the auto path, which always confirms.",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
-  "response_json": [],
+  "response_json": [
+    {
+      "key": "gcsi_res_code",
+      "name": "code",
+      "title": "code",
+      "description": "200 = ok or skipped, 400 = failed",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gcsi_res_message",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gcsi_res_siid",
+      "name": "si_id",
+      "title": "si_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gcsi_res_sino",
+      "name": "si_no",
+      "title": "si_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gcsi_res_skipped",
+      "name": "skipped",
+      "title": "skipped",
+      "description": "1 = nothing to invoice / already invoiced. NOT a failure.",
+      "bsonType": "int",
+      "isExpand": false
+    }
+  ],
   "config": {},
   "nodes": [
     {
@@ -101,7 +158,7 @@
         "name": "2-1. Check GD Status",
         "script": {
           "type": "javascript",
-          "code": "const gdList = {{node:search_node_AHtHRmqi.data.data}};\nconst filterDraft = {{workflowparams:filter_draft}};\nconst unCompletedGD = gdList.filter((gd) => gd.gd_status !== 'Completed');\n\nif(unCompletedGD.length > 0 && filterDraft == 'no') {\n  return {\n    status: 'Failed',\n    message: 'Selected Goods Deliveries with Draft/Created status cannot be converted.<br><br> If proceed, it will filter out the draft/created GD.'\n  }\n} else {\n  return {\n    status: 'Success',\n    message: ''\n  }\n}"
+          "code": "const gdList = {{node:search_node_AHtHRmqi.data.data}};\nconst filterDraft = {{workflowparams:filter_draft}};\nconst source = {{workflowparams:source}};\nconst unCompletedGD = gdList.filter((gd) => gd.gd_status !== 'Completed');\n\n// source = 'auto' is GDheadWorkflow calling us right after it saved the GD as Completed, so\n// there is no user to answer a prompt. It must never take an error end-node either: this runs\n// nested inside the GD workflow, and a thrown 401 there would surface as a failed GD save even\n// though the GD is already committed. A non-Completed GD is simply filtered out downstream\n// (search_node_bOF3TVA2) and reported as 'skipped'.\nif (unCompletedGD.length > 0 && filterDraft == 'no' && source !== 'auto') {\n  return {\n    status: 'Failed',\n    message: 'Selected Goods Deliveries with Draft/Created status cannot be converted.<br><br> If proceed, it will filter out the draft/created GD.'\n  }\n} else {\n  return {\n    status: 'Success',\n    message: ''\n  }\n}"
         },
         "response_json": [
           {
@@ -214,18 +271,45 @@
             "collectionId": "1902525285396496385",
             "list": [
               {
-                "id": 1772587858258,
+                "id": 1782443367954,
                 "parentId": 1782443367953,
                 "isTop": true,
-                "prop": "so_id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_node_42o2wYvS.data.uniqueSoIDs}}",
-                "type": "leaf",
+                "type": "branch",
+                "operator": "all",
+                "prop": "",
+                "valueType": "",
+                "value": "",
                 "level": 1,
-                "propLabel": "SO ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
+                "children": [
+                  {
+                    "id": 1772587858258,
+                    "parentId": 1782443367954,
+                    "isTop": false,
+                    "prop": "gd_id",
+                    "operator": "equalAny",
+                    "valueType": "field",
+                    "value": "{{workflowparams:ids}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "GD ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal Any"
+                  },
+                  {
+                    "id": 1772587858259,
+                    "parentId": 1782443367954,
+                    "isTop": false,
+                    "prop": "si_status",
+                    "operator": "notEqual",
+                    "valueType": "value",
+                    "value": "Cancelled",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "SI Status",
+                    "valueLabel": "",
+                    "operatorLabel": "Not Equal"
+                  }
+                ]
               }
             ]
           }
@@ -288,25 +372,103 @@
               "blocks": []
             },
             {
-              "id": "end_EKbfI_dO",
-              "type": "end-node",
+              "id": "if_dup_auto",
+              "type": "if",
               "data": {
-                "title": "结束节点",
-                "outputs": {
-                  "type": "object",
-                  "properties": { "result": { "type": "string" } }
-                },
+                "title": "IF auto?",
                 "isValidator": true,
-                "nodeName": "结束节点",
-                "name": "结束节点",
-                "back_data_type": "Default",
-                "code": 402,
-                "msg": {
+                "nodeName": "IF auto?",
+                "name": "IF auto?",
+                "condition_type": "Expression",
+                "expression": {
                   "type": "javascript",
-                  "code": "{{node:code_node_6JxbETDC.data.message}}"
+                  "code": "'{{workflowparams:source}}' == 'auto'"
                 }
               },
-              "blocks": []
+              "blocks": [
+                {
+                  "id": "if_dup_auto_t",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_dup_skip",
+                      "type": "end-node",
+                      "data": {
+                        "isValidator": true,
+                        "title": "结束节点",
+                        "nodeName": "Return Already Invoiced",
+                        "name": "Return Already Invoiced",
+                        "back_data_type": "OutputParams",
+                        "msg": { "type": "javascript", "code": "" },
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "200",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "propLabel": "message",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "This Goods Delivery already has a Sales Invoice.",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "skipped",
+                              "propLabel": "skipped",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": 1,
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_dup_auto_f",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "end_EKbfI_dO",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 402,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_6JxbETDC.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -390,14 +552,14 @@
                 "name": "2-4. Check Customer",
                 "script": {
                   "type": "javascript",
-                  "code": "const gdList = {{node:search_node_bOF3TVA2.data.data}}\nconst isMultiple = {{workflowparams:is_multiple}}\nlet customers = new Set(gdList.map((gd) => gd.customer_name));\nlet plants = new Set(gdList.map((gd) => gd.plant_id));\nif (customers.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Delivery(s) must be from the same customer to create a single Sales Invoice.\",\n  };\n} else if (plants.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Delivery(s) must be from the same plant to create a single Sales Invoice.\",\n  };\n} else {\n  return {\n    status: \"Success\",\n    code: 200,\n    message: \"\",\n  };\n}\n"
+                  "code": "const gdRaw = {{node:search_node_bOF3TVA2.data.data}} || [];\nconst gdList = Array.isArray(gdRaw) ? gdRaw : [gdRaw];\nconst isMultiple = {{workflowparams:is_multiple}}\n\n// organizationId scopes the SI number-rule lookup (get_node_yDMG0Sab). It used to read the\n// {{global:firstLvDeptId}} session global, which is not reliable when this workflow runs nested\n// under GDheadWorkflow (itself possibly driven by PickingProcessWorkflow). The GD row is the\n// authoritative source of the org, so derive it from there.\nconst organizationId = gdList.length > 0 ? gdList[0].organization_id : \"0\";\n\n// No Completed GD survived the filter -- nothing to invoice. Not an error: the empty siList is\n// caught by if_no_si downstream, which reports it as 'skipped' rather than taking an error node.\nif (gdList.length === 0) {\n  return { status: \"Empty\", code: 200, message: \"\", organizationId: organizationId };\n}\n\nlet customers = new Set(gdList.map((gd) => gd.customer_name));\nlet plants = new Set(gdList.map((gd) => gd.plant_id));\nif (customers.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Delivery(s) must be from the same customer to create a single Sales Invoice.\",\n    organizationId: organizationId,\n  };\n} else if (plants.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Delivery(s) must be from the same plant to create a single Sales Invoice.\",\n    organizationId: organizationId,\n  };\n} else {\n  return {\n    status: \"Success\",\n    code: 200,\n    message: \"\",\n    organizationId: organizationId,\n  };\n}\n"
                 },
                 "response_json": [
                   {
                     "key": "vtvx9mnm",
                     "name": "status",
                     "title": "Status",
-                    "description": "Success/Failed",
+                    "description": "Success/Failed/Empty",
                     "bsonType": "string",
                     "isExpand": false
                   },
@@ -415,6 +577,14 @@
                     "name": "message",
                     "title": "Message",
                     "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "gcsi_orgid",
+                    "name": "organizationId",
+                    "title": "Organization ID",
+                    "description": "Scopes the SI number-rule lookup",
                     "bsonType": "string",
                     "isExpand": false
                   }
@@ -497,7 +667,7 @@
                                     "prop": "department_id",
                                     "operator": "numberEqual",
                                     "valueType": "field",
-                                    "value": "{{global:firstLvDeptId}}",
+                                    "value": "{{node:code_node_LqEGUXmi.data.organizationId}}",
                                     "type": "leaf",
                                     "level": 2,
                                     "propLabel": "Organization ID",
@@ -657,7 +827,7 @@
                         "name": "5. Map SI Data",
                         "script": {
                           "type": "javascript",
-                          "code": "const gdList = {{node:search_node_bOF3TVA2.data.data}};\nconst isMultiple = {{workflowparams:is_multiple}};\nconst convertTo = {{workflowparams:convert_to}};\nconst docFormat = {{node:get_node_yDMG0Sab.data.data}};\nconst soLineItemList = {{node:search_node_r3bnMaWy.data.data}};\nconst soList = {{node:search_node_Ivek0yYx.data.data}};\nlet siList = [];\n\nconst mapLineItem = (gdItem, soLineItem, record, index, soData, plantID) => {\n  // Calculate based on GD quantity\n  const gdQuantity = parseFloat(gdItem.gd_qty) || 0;\n  const soQuantity = parseFloat(soLineItem.so_quantity) || 1;\n  const unitPrice = parseFloat(soLineItem.so_item_price) || 0;\n  let discount = parseFloat(soLineItem.so_discount) || 0;\n  const discountAmount = parseFloat(soLineItem.so_discount_amount) || 0;\n  const taxAmount = parseFloat(soLineItem.so_tax_amount) || 0;\n  const totalAmount = parseFloat(soLineItem.so_amount) || 0;\n\n  // Recalculate amounts based on GD quantity\n  const ratio = soQuantity > 0 ? gdQuantity / soQuantity : 0;\n  const recalculatedGross = unitPrice * gdQuantity;\n  const recalculatedDiscountAmount = discountAmount * ratio;\n  const recalculatedTaxAmount = taxAmount * ratio;\n  const recalculatedAmount = totalAmount * ratio;\n\n  if (soLineItem.so_discount_uom && soLineItem.so_discount_uom === \"Amount\") {\n    discount = discount * ratio;\n  }\n\n  const lineItemPromise = {\n    tax_amount: recalculatedTaxAmount.toFixed(4),\n    so_order_quantity: soQuantity.toFixed(3),\n    plant_id: plantID,\n    si_discount: discount.toFixed(4),\n    available_inv_qty: (\n      parseFloat(soLineItem.so_quantity || 0) -\n      parseFloat(soLineItem.invoice_qty || 0)\n    ).toFixed(3),\n    agent_id: soLineItem.sales_person_id,\n    discount_amount: recalculatedDiscountAmount.toFixed(4),\n    invoice_qty: gdQuantity.toFixed(3),\n    invoice_qty_uom_id: gdItem.good_delivery_uom_id || soLineItem.so_item_uom,\n    so_order_uom_id: soLineItem.so_item_uom,\n    material_desc: soLineItem.so_desc,\n    more_desc: gdItem.more_desc,\n    si_discount_uom_id: soLineItem.so_discount_uom,\n    item_category_id: gdItem.item_category_id,\n    payment_term_id: soLineItem.payment_term_id,\n    line_so_id: soData.id,\n    material_name: gdItem.material_name,\n    si_amount: recalculatedAmount.toFixed(4),\n    gross: recalculatedGross.toFixed(4),\n    so_line_id: soLineItem.id,\n    si_tax_inclusive: soLineItem.so_tax_inclusive,\n    si_tax_rate_id: soLineItem.so_tax_preference,\n    tax_percent: soLineItem.so_tax_percentage,\n    unit_price: unitPrice.toFixed(4),\n    good_delivery_quantity: gdQuantity.toFixed(3),\n    line_so_no: soData.so_no,\n    material_id: gdItem.material_id,\n    customer_id: gdItem.customer_id,\n    line_index: index + 1,\n    area_id: gdItem.area_id,\n    line_remark_3: gdItem.line_remark_3,\n    line_remark_2: gdItem.line_remark_2,\n    line_remark_1: gdItem.line_remark_1,\n    tariff_id: gdItem.tariff_id,\n    // Add GD reference\n    line_gd_no: record.delivery_no,\n    gd_line_id: gdItem.id,\n    line_gd_id: record.id,\n    exchange_rate:\n      parseFloat(soData.exchange_rate) === 0\n        ? 1\n        : parseFloat(soData.exchange_rate),\n    exchange_rate_currency: soData.exchange_rate_currency,\n    custom_fields: gdItem.custom_fields,\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (\n  record,\n  lineItemPromise,\n  soNoDisplay,\n  soID,\n  gdNoDisplay,\n  gdID,\n  totals,\n) => {\n  const data = {\n    page_status: \"Convert\",\n    si_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    invoice_type: \"Credit\",\n    plant_id: record.plant_id,\n    so_no_display: soNoDisplay,\n    gd_no_display: gdNoDisplay,\n    so_id: soID,\n    gd_id: gdID,\n    customer_id: record.customer_name,\n    currency_code: record.currency_code,\n    si_billing_address: record.gd_billing_address,\n    si_shipping_address: record.gd_shipping_address,\n    sales_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    sales_invoice_no_type: docFormat.id,\n    sales_invoice_date: new Date().toISOString().split(\"T\")[0],\n    sales_person_id: record.sales_person[0],\n    si_payment_term_id: lineItemPromise[0].payment_term_id,\n    exchange_rate_currency: lineItemPromise[0].exchange_rate_currency,\n    exchange_rate: lineItemPromise[0].exchange_rate,\n    exchange_rate_myr: \"MYR\",\n    si_description: \"Sales\",\n    posted_date: \"\",\n    si_area_id: record.gd_area_id || \"\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    organization_id: record.organization_id,\n    acc_integration_type: record.acc_integration_type,\n    previous_status: \"\",\n    customer_credit_limit: record.customer_credit_limit,\n    overdue_limit: record.overdue_limit,\n    outstanding_balance: record.outstanding_balance,\n    overdue_inv_total_amount: record.overdue_inv_total_amount,\n    is_accurate: record.is_accurate,\n    table_si: lineItemPromise,\n    total_gross_currency: record.currency_code,\n    total_discount_currency: record.currency_code,\n    total_tax_currency: record.currency_code,\n    total_amount_currency: record.currency_code,\n    total_amount_myr: \"MYR\",\n    invoice_subtotal: totals.invoice_subtotal,\n    invoice_total_discount: totals.invoice_total_discount,\n    invoice_taxes_amount: totals.invoice_taxes_amount,\n    invoice_total: totals.invoice_total,\n    myr_total_amount: totals.myr_total_amount,\n    tnc: record.order_tnc,\n    payment_term: record.order_payment_details,\n    delivery_term: record.order_delivery_term,\n    remarks: record.order_remark,\n    remarks2: record.order_remark2,\n    remarks3: record.order_remark3,\n    remarks4: record.order_remark4,\n    remarks5: record.order_remark5,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n  };\n\n  return data;\n};\n\n// Helper function to calculate totals from GD lines\nconst calculateTotalsFromGdLines = (gdLines) => {\n  let totals = {\n    invoice_subtotal: 0,\n    invoice_total_discount: 0,\n    invoice_taxes_amount: 0,\n    invoice_total: 0,\n    myr_total_amount: 0,\n  };\n\n  for (const gdLine of gdLines) {\n    totals.invoice_subtotal += parseFloat(gdLine.recalculated_gross) || 0;\n    totals.invoice_total_discount +=\n      parseFloat(gdLine.recalculated_discount_amount) || 0;\n    totals.invoice_taxes_amount +=\n      parseFloat(gdLine.recalculated_tax_amount) || 0;\n    totals.invoice_total += parseFloat(gdLine.recalculated_amount) || 0;\n    totals.myr_total_amount += parseFloat(gdLine.myr_amount) || 0;\n  }\n\n  totals.invoice_subtotal = totals.invoice_subtotal.toFixed(4);\n  totals.invoice_total_discount = totals.invoice_total_discount.toFixed(4);\n  totals.invoice_taxes_amount = totals.invoice_taxes_amount.toFixed(4);\n  totals.invoice_total = totals.invoice_total.toFixed(4);\n  totals.myr_total_amount = totals.myr_total_amount.toFixed(4);\n\n  return totals;\n};\n\n// Helper function to find matching SO line item\nconst findSoLineItem = (gdItem, soLineItemList) => {\n  return soLineItemList.find((item) => item.id === gdItem.so_line_item_id);\n};\n\nconst findSOData = (gdItem, soList) => {\n  return soList.find((item) => item.id === gdItem.line_so_id);\n};\n\n// Process GD list and create SI\nconst processGdList = (gdListData) => {\n  const siLineItems = [];\n  let lineCounter = 0;\n  let allGdLines = [];\n  const plantID = gdListData[0].plant_id;\n\n  for (const gd of gdListData) {\n    // Get GD lines\n    const gdLines = gd.table_gd || [];\n\n    for (const gdItem of gdLines) {\n      // Find matching SO line item\n      const soLineItem = findSoLineItem(gdItem, soLineItemList);\n      const soData = findSOData(gdItem, soList);\n\n      if (soLineItem) {\n        // Calculate amounts based on GD quantity\n        const gdQuantity = parseFloat(gdItem.gd_qty) || 0;\n        const soQuantity = parseFloat(soLineItem.so_quantity);\n        const unitPrice = parseFloat(soLineItem.so_item_price) || 0;\n        const discountAmount = parseFloat(soLineItem.so_discount_amount) || 0;\n        const taxAmount = parseFloat(soLineItem.so_tax_amount) || 0;\n        const totalAmount = parseFloat(soLineItem.so_amount) || 0;\n\n        const ratio = soQuantity > 0 ? gdQuantity / soQuantity : 0;\n        const recalculatedGross = unitPrice * gdQuantity;\n        const recalculatedDiscountAmount = discountAmount * ratio;\n        const recalculatedTaxAmount = taxAmount * ratio;\n        const recalculatedAmount = totalAmount * ratio;\n\n        const lineItem = mapLineItem(\n          gdItem,\n          soLineItem,\n          gd,\n          lineCounter,\n          soData,\n          plantID,\n        );\n\n        // Store recalculated values for totals calculation\n        gdItem.recalculated_gross = recalculatedGross;\n        gdItem.recalculated_discount_amount = recalculatedDiscountAmount;\n        gdItem.recalculated_tax_amount = recalculatedTaxAmount;\n        gdItem.recalculated_amount = recalculatedAmount;\n        gdItem.myr_amount =\n          recalculatedAmount * (parseFloat(soData.exchange_rate) || 1);\n\n        allGdLines.push(gdItem);\n        siLineItems.push(lineItem);\n        lineCounter++;\n      }\n    }\n  }\n\n  return { siLineItems, allGdLines };\n};\n\nif (isMultiple === \"multiple\") {\n  for (const gdData of gdList) {\n    const { siLineItems, allGdLines } = processGdList([gdData]);\n    const totals = calculateTotalsFromGdLines(allGdLines);\n    const soNoDisplay = gdData.so_no;\n    const soID = gdData.so_id;\n    const gdNoDisplay = gdData.delivery_no;\n    const gdID = [gdData.id];\n    const mappedData = mapHeaderData(\n      gdData,\n      siLineItems,\n      soNoDisplay,\n      soID,\n      gdNoDisplay,\n      gdID,\n      totals,\n    );\n    siList.push(mappedData);\n  }\n} else if (isMultiple === \"single\") {\n  const gdData = gdList[0];\n  const { siLineItems, allGdLines } = processGdList(gdList);\n  const totals = calculateTotalsFromGdLines(allGdLines);\n  const soNoDisplay = gdList.map((item) => item.so_no).join(\", \");\n  const soID = gdList.flatMap((gd) => gd.so_id || []);\n  const gdNoDisplay = gdList.map((item) => item.delivery_no).join(\", \");\n  const gdID = gdList.map((item) => item.id);\n  const mappedData = mapHeaderData(\n    gdData,\n    siLineItems,\n    soNoDisplay,\n    soID,\n    gdNoDisplay,\n    gdID,\n    totals,\n  );\n  siList.push(mappedData);\n}\n\nreturn { siList };\n"
+                          "code": "const gdRaw = {{node:search_node_bOF3TVA2.data.data}} || [];\nconst gdList = Array.isArray(gdRaw) ? gdRaw : [gdRaw];\nconst isMultiple = {{workflowparams:is_multiple}};\nconst convertTo = {{workflowparams:convert_to}};\nconst source = {{workflowparams:source}};\nconst autoPi = {{workflowparams:auto_pi}};\nconst docFormatRaw = {{node:get_node_yDMG0Sab.data.data}};\nconst soLineItemList = {{node:search_node_r3bnMaWy.data.data}} || [];\nconst soList = {{node:search_node_Ivek0yYx.data.data}} || [];\nlet siList = [];\n\n// 'auto' = GDheadWorkflow created this SI itself right after completing the GD.\n// It runs nested inside the GD workflow, so SI_SAVE must never take one of its ERROR end-nodes\n// (406 required / 407 zero qty / 410 qty exceeds available): those throw, and the throw would\n// surface as a failed GD save even though the GD is already committed. page_status \"Convert\"\n// already makes the credit-limit codes (408/409) unreachable -- SI_SAVE downgrades to Draft\n// instead -- so the remaining job here is to guarantee we never hand it an invalid payload:\n//   - skip SO lines with nothing left to invoice   -> cannot trigger 407\n//   - never invoice more than the SO line has left -> cannot trigger 410\nconst isAuto = source === \"auto\";\n\nconst docFormat = Array.isArray(docFormatRaw) ? docFormatRaw[0] : docFormatRaw;\nconst roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\nconst scalar = (v) => (Array.isArray(v) ? v[0] : v);\n\nconst mapLineItem = (\n  gdItem,\n  soLineItem,\n  record,\n  index,\n  soData,\n  plantID,\n  invoiceQty,\n) => {\n  // invoiceQty is what we actually bill: gd_qty for a normal convert, and gd_qty capped to the\n  // SO line's remaining invoiceable quantity on the auto path.\n  const gdQuantity = invoiceQty;\n  const soQuantity = parseFloat(soLineItem.so_quantity) || 1;\n  const unitPrice = parseFloat(soLineItem.so_item_price) || 0;\n  let discount = parseFloat(soLineItem.so_discount) || 0;\n  const discountAmount = parseFloat(soLineItem.so_discount_amount) || 0;\n  const taxAmount = parseFloat(soLineItem.so_tax_amount) || 0;\n  const totalAmount = parseFloat(soLineItem.so_amount) || 0;\n\n  // Recalculate amounts based on the invoiced quantity\n  const ratio = soQuantity > 0 ? gdQuantity / soQuantity : 0;\n  const recalculatedGross = unitPrice * gdQuantity;\n  const recalculatedDiscountAmount = discountAmount * ratio;\n  const recalculatedTaxAmount = taxAmount * ratio;\n  const recalculatedAmount = totalAmount * ratio;\n\n  if (soLineItem.so_discount_uom && soLineItem.so_discount_uom === \"Amount\") {\n    discount = discount * ratio;\n  }\n\n  const lineItemPromise = {\n    tax_amount: recalculatedTaxAmount.toFixed(4),\n    so_order_quantity: soQuantity.toFixed(3),\n    plant_id: plantID,\n    si_discount: discount.toFixed(4),\n    available_inv_qty: (\n      parseFloat(soLineItem.so_quantity || 0) -\n      parseFloat(soLineItem.invoice_qty || 0)\n    ).toFixed(3),\n    agent_id: soLineItem.sales_person_id,\n    discount_amount: recalculatedDiscountAmount.toFixed(4),\n    invoice_qty: gdQuantity.toFixed(3),\n    invoice_qty_uom_id: gdItem.good_delivery_uom_id || soLineItem.so_item_uom,\n    so_order_uom_id: soLineItem.so_item_uom,\n    material_desc: soLineItem.so_desc,\n    more_desc: gdItem.more_desc,\n    si_discount_uom_id: soLineItem.so_discount_uom,\n    item_category_id: gdItem.item_category_id,\n    payment_term_id: soLineItem.payment_term_id,\n    line_so_id: soData.id,\n    material_name: gdItem.material_name,\n    si_amount: recalculatedAmount.toFixed(4),\n    gross: recalculatedGross.toFixed(4),\n    so_line_id: soLineItem.id,\n    si_tax_inclusive: soLineItem.so_tax_inclusive,\n    si_tax_rate_id: soLineItem.so_tax_preference,\n    tax_percent: soLineItem.so_tax_percentage,\n    unit_price: unitPrice.toFixed(4),\n    good_delivery_quantity: gdQuantity.toFixed(3),\n    line_so_no: soData.so_no,\n    material_id: gdItem.material_id,\n    customer_id: gdItem.customer_id,\n    line_index: index + 1,\n    area_id: gdItem.area_id,\n    line_remark_3: gdItem.line_remark_3,\n    line_remark_2: gdItem.line_remark_2,\n    line_remark_1: gdItem.line_remark_1,\n    tariff_id: gdItem.tariff_id,\n    // Add GD reference\n    line_gd_no: record.delivery_no,\n    gd_line_id: gdItem.id,\n    line_gd_id: record.id,\n    exchange_rate:\n      parseFloat(soData.exchange_rate) === 0\n        ? 1\n        : parseFloat(soData.exchange_rate),\n    exchange_rate_currency: soData.exchange_rate_currency,\n    custom_fields: gdItem.custom_fields,\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (\n  record,\n  lineItemPromise,\n  soNoDisplay,\n  soID,\n  gdNoDisplay,\n  gdID,\n  totals,\n) => {\n  const data = {\n    page_status: \"Convert\",\n    si_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    invoice_type: \"Credit\",\n    plant_id: record.plant_id,\n    so_no_display: soNoDisplay,\n    gd_no_display: gdNoDisplay,\n    so_id: soID,\n    gd_id: gdID,\n    customer_id: record.customer_name,\n    currency_code: record.currency_code,\n    si_billing_address: record.gd_billing_address,\n    si_shipping_address: record.gd_shipping_address,\n    sales_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    sales_invoice_no_type: docFormat ? docFormat.id : -9999,\n    sales_invoice_date: new Date().toISOString().split(\"T\")[0],\n    sales_person_id: scalar(record.sales_person),\n    si_payment_term_id: lineItemPromise[0].payment_term_id,\n    exchange_rate_currency: lineItemPromise[0].exchange_rate_currency,\n    exchange_rate: lineItemPromise[0].exchange_rate,\n    exchange_rate_myr: \"MYR\",\n    si_description: \"Sales\",\n    posted_date: \"\",\n    si_area_id: record.gd_area_id || \"\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    organization_id: record.organization_id,\n    acc_integration_type: record.acc_integration_type,\n    previous_status: \"\",\n    customer_credit_limit: record.customer_credit_limit,\n    overdue_limit: record.overdue_limit,\n    outstanding_balance: record.outstanding_balance,\n    overdue_inv_total_amount: record.overdue_inv_total_amount,\n    is_accurate: record.is_accurate,\n    table_si: lineItemPromise,\n    total_gross_currency: record.currency_code,\n    total_discount_currency: record.currency_code,\n    total_tax_currency: record.currency_code,\n    total_amount_currency: record.currency_code,\n    total_amount_myr: \"MYR\",\n    invoice_subtotal: totals.invoice_subtotal,\n    invoice_total_discount: totals.invoice_total_discount,\n    invoice_taxes_amount: totals.invoice_taxes_amount,\n    invoice_total: totals.invoice_total,\n    myr_total_amount: totals.myr_total_amount,\n    tnc: record.order_tnc,\n    payment_term: record.order_payment_details,\n    delivery_term: record.order_delivery_term,\n    remarks: record.order_remark,\n    remarks2: record.order_remark2,\n    remarks3: record.order_remark3,\n    remarks4: record.order_remark4,\n    remarks5: record.order_remark5,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n  };\n\n  // SI_SAVE pre-gates internal-trading SIs with pi_confirm 411 and saves NOTHING until the caller\n  // answers it. Nobody here answered it before, so completing an internal-trading GD produced no\n  // invoice at all while still reporting success. Both callers now answer it:\n  //   - auto: nobody to ask, so pre-confirm. The buyer org already opted in through\n  //     internal_trading_setup.auto_create_pi, which is what really decides if a PI gets created.\n  //   - convert: handleConvertGDtoSI asks the user and passes the answer down as auto_pi.\n  // Harmless when nothing is internally linked -- the gate never arms and both flags are ignored.\n  if (isAuto || autoPi === \"confirmed\") {\n    data.auto_pi_confirmed = true;\n  } else if (autoPi === \"skip\") {\n    data.auto_pi_skip = true;\n  }\n\n  return data;\n};\n\n// Helper function to calculate totals from GD lines\nconst calculateTotalsFromGdLines = (gdLines) => {\n  let totals = {\n    invoice_subtotal: 0,\n    invoice_total_discount: 0,\n    invoice_taxes_amount: 0,\n    invoice_total: 0,\n    myr_total_amount: 0,\n  };\n\n  for (const gdLine of gdLines) {\n    totals.invoice_subtotal += parseFloat(gdLine.recalculated_gross) || 0;\n    totals.invoice_total_discount +=\n      parseFloat(gdLine.recalculated_discount_amount) || 0;\n    totals.invoice_taxes_amount +=\n      parseFloat(gdLine.recalculated_tax_amount) || 0;\n    totals.invoice_total += parseFloat(gdLine.recalculated_amount) || 0;\n    totals.myr_total_amount += parseFloat(gdLine.myr_amount) || 0;\n  }\n\n  totals.invoice_subtotal = totals.invoice_subtotal.toFixed(4);\n  totals.invoice_total_discount = totals.invoice_total_discount.toFixed(4);\n  totals.invoice_taxes_amount = totals.invoice_taxes_amount.toFixed(4);\n  totals.invoice_total = totals.invoice_total.toFixed(4);\n  totals.myr_total_amount = totals.myr_total_amount.toFixed(4);\n\n  return totals;\n};\n\n// Helper function to find matching SO line item\nconst findSoLineItem = (gdItem, soLineItemList) => {\n  return soLineItemList.find((item) => item.id === gdItem.so_line_item_id);\n};\n\nconst findSOData = (gdItem, soList) => {\n  return soList.find((item) => item.id === gdItem.line_so_id);\n};\n\n// Process GD list and create SI\nconst processGdList = (gdListData) => {\n  const siLineItems = [];\n  let lineCounter = 0;\n  let allGdLines = [];\n  const plantID = gdListData[0].plant_id;\n\n  for (const gd of gdListData) {\n    // Get GD lines\n    const gdLines = gd.table_gd || [];\n\n    for (const gdItem of gdLines) {\n      // Find matching SO line item\n      const soLineItem = findSoLineItem(gdItem, soLineItemList);\n      const soData = findSOData(gdItem, soList);\n\n      // A GD line with no SO line behind it (description row) carries no price -- nothing to bill.\n      if (!soLineItem || !soData) continue;\n\n      const soQuantity = parseFloat(soLineItem.so_quantity) || 0;\n      const alreadyInvoiced = parseFloat(soLineItem.invoice_qty) || 0;\n      // What this SO line still allows to be invoiced. SI_SAVE rejects (410) anything above it.\n      const remaining = roundQty(soQuantity - alreadyInvoiced);\n\n      let invoiceQty = parseFloat(gdItem.gd_qty) || 0;\n\n      if (isAuto) {\n        // Already fully invoiced by an earlier GD on the same SO line -- skip, do not error.\n        if (remaining <= 0) continue;\n        // Over-delivery beyond the ordered quantity cannot be invoiced against this SO line.\n        if (invoiceQty > remaining) invoiceQty = remaining;\n        if (invoiceQty <= 0) continue;\n      }\n\n      const unitPrice = parseFloat(soLineItem.so_item_price) || 0;\n      const discountAmount = parseFloat(soLineItem.so_discount_amount) || 0;\n      const taxAmount = parseFloat(soLineItem.so_tax_amount) || 0;\n      const totalAmount = parseFloat(soLineItem.so_amount) || 0;\n\n      const ratio = soQuantity > 0 ? invoiceQty / soQuantity : 0;\n      const recalculatedGross = unitPrice * invoiceQty;\n      const recalculatedDiscountAmount = discountAmount * ratio;\n      const recalculatedTaxAmount = taxAmount * ratio;\n      const recalculatedAmount = totalAmount * ratio;\n\n      const lineItem = mapLineItem(\n        gdItem,\n        soLineItem,\n        gd,\n        lineCounter,\n        soData,\n        plantID,\n        invoiceQty,\n      );\n\n      // Store recalculated values for totals calculation\n      gdItem.recalculated_gross = recalculatedGross;\n      gdItem.recalculated_discount_amount = recalculatedDiscountAmount;\n      gdItem.recalculated_tax_amount = recalculatedTaxAmount;\n      gdItem.recalculated_amount = recalculatedAmount;\n      gdItem.myr_amount =\n        recalculatedAmount * (parseFloat(soData.exchange_rate) || 1);\n\n      allGdLines.push(gdItem);\n      siLineItems.push(lineItem);\n      lineCounter++;\n    }\n  }\n\n  return { siLineItems, allGdLines };\n};\n\nif (isMultiple === \"multiple\") {\n  for (const gdData of gdList) {\n    const { siLineItems, allGdLines } = processGdList([gdData]);\n    // No billable line -> no SI. mapHeaderData reads lineItemPromise[0], and an empty table_si\n    // would be rejected by SI_SAVE anyway (406 required / 407 zero qty).\n    if (siLineItems.length === 0) continue;\n    const totals = calculateTotalsFromGdLines(allGdLines);\n    const soNoDisplay = gdData.so_no;\n    const soID = gdData.so_id;\n    const gdNoDisplay = gdData.delivery_no;\n    const gdID = [gdData.id];\n    const mappedData = mapHeaderData(\n      gdData,\n      siLineItems,\n      soNoDisplay,\n      soID,\n      gdNoDisplay,\n      gdID,\n      totals,\n    );\n    siList.push(mappedData);\n  }\n} else if (isMultiple === \"single\" && gdList.length > 0) {\n  const gdData = gdList[0];\n  const { siLineItems, allGdLines } = processGdList(gdList);\n  if (siLineItems.length > 0) {\n    const totals = calculateTotalsFromGdLines(allGdLines);\n    const soNoDisplay = gdList.map((item) => item.so_no).join(\", \");\n    const soID = gdList.flatMap((gd) => gd.so_id || []);\n    const gdNoDisplay = gdList.map((item) => item.delivery_no).join(\", \");\n    const gdID = gdList.map((item) => item.id);\n    const mappedData = mapHeaderData(\n      gdData,\n      siLineItems,\n      soNoDisplay,\n      soID,\n      gdNoDisplay,\n      gdID,\n      totals,\n    );\n    siList.push(mappedData);\n  }\n}\n\nreturn { siList, siCount: siList.length };\n"
                         },
                         "response_json": [
                           {
@@ -668,10 +838,95 @@
                             "bsonType": "any",
                             "isExpand": false,
                             "children": []
+                          },
+                          {
+                            "key": "gcsi_sicount",
+                            "name": "siCount",
+                            "title": "SI Count",
+                            "description": "0 = nothing billable, reported as skipped",
+                            "bsonType": "int",
+                            "isExpand": false
                           }
                         ]
                       },
                       "blocks": []
+                    },
+                    {
+                      "id": "if_no_si",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Nothing To Invoice",
+                        "isValidator": true,
+                        "nodeName": "IF Nothing To Invoice",
+                        "name": "IF Nothing To Invoice",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_sQX9tldw.data.siCount}} == 0"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_no_si_t",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "end_no_si",
+                              "type": "end-node",
+                              "data": {
+                                "isValidator": true,
+                                "title": "结束节点",
+                                "nodeName": "Return Nothing To Invoice",
+                                "name": "Return Nothing To Invoice",
+                                "back_data_type": "OutputParams",
+                                "msg": { "type": "javascript", "code": "" },
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "propLabel": "code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "200",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "propLabel": "message",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "There is nothing left to invoice on this Goods Delivery.",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "skipped",
+                                      "propLabel": "skipped",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": 1,
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_no_si_f",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
                     },
                     {
                       "id": "code_node_YRozjK8Z",
@@ -717,6 +972,25 @@
                           "code": "0"
                         },
                         "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "set_cache_results_init",
+                      "type": "set-cache-node",
+                      "data": {
+                        "cache_key": "",
+                        "cache_value": "",
+                        "expire_time": 3600,
+                        "title": "6-2b. Init SI Results",
+                        "isValidator": true,
+                        "nodeName": "6-2b. Init SI Results",
+                        "name": "6-2b. Init SI Results",
+                        "custom_wkbocgni": {
+                          "type": "javascript",
+                          "code": "[]"
+                        },
+                        "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}_res"
                       },
                       "blocks": []
                     },
@@ -836,6 +1110,67 @@
                           "blocks": []
                         },
                         {
+                          "id": "get_cache_results",
+                          "type": "get-cache-node",
+                          "data": {
+                            "cache_key": "",
+                            "title": "8b. Get SI Results",
+                            "isValidator": true,
+                            "nodeName": "8b. Get SI Results",
+                            "name": "8b. Get SI Results",
+                            "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}_res"
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "code_collect",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "8c. Collect SI Result",
+                            "isValidator": true,
+                            "nodeName": "8c. Collect SI Result",
+                            "name": "8c. Collect SI Result",
+                            "script": {
+                              "type": "javascript",
+                              "code": "// Accumulate what SI_SAVE returned for this iteration. The loop's node outputs are not\n// readable once the loop ends, so each result is parked in redis and re-read by code_summary.\n//\n// SI_SAVE only reaches an OK end-node when the SI was actually written, so an empty id means the\n// save did not produce a row. Its failure paths (406/407/410) are ERROR end-nodes that throw\n// rather than return -- the auto path is built so they cannot be reached (see 5. Map SI Data).\nconst raw = {{node:get_cache_results.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst siId = {{node:workflow_node_gz6u8DqY.data.id}} || \"\";\nconst siNo = {{node:workflow_node_gz6u8DqY.data.si_no}} || \"\";\nconst piTriggerFailed = {{node:workflow_node_gz6u8DqY.data.pi_trigger_failed}} || 0;\nconst piMessage = {{node:workflow_node_gz6u8DqY.data.pi_message}} || \"\";\n\nresults.push({\n  si_id: siId ? String(siId) : \"\",\n  si_no: siNo ? String(siNo) : \"\",\n  pi_trigger_failed: Number(piTriggerFailed) || 0,\n  pi_message: piMessage,\n});\n\nreturn { results: results };\n"
+                            },
+                            "response_json": [
+                              {
+                                "key": "gcsi_collect_results",
+                                "name": "results",
+                                "title": "Results",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "set_cache_results",
+                          "type": "set-cache-node",
+                          "data": {
+                            "cache_key": "",
+                            "cache_value": "",
+                            "expire_time": 3600,
+                            "title": "8d. Set SI Results",
+                            "isValidator": true,
+                            "nodeName": "8d. Set SI Results",
+                            "name": "8d. Set SI Results",
+                            "custom_wkbocgni": {
+                              "type": "javascript",
+                              "code": "{{node:code_collect.data.results}}"
+                            },
+                            "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}_res"
+                          },
+                          "blocks": []
+                        },
+                        {
                           "id": "set_cache_node_FdcwMlCb",
                           "type": "set-cache-node",
                           "data": {
@@ -855,6 +1190,146 @@
                           "blocks": []
                         }
                       ]
+                    },
+                    {
+                      "id": "get_cache_final",
+                      "type": "get-cache-node",
+                      "data": {
+                        "cache_key": "",
+                        "title": "10. Get SI Results",
+                        "isValidator": true,
+                        "nodeName": "10. Get SI Results",
+                        "name": "10. Get SI Results",
+                        "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}_res"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_summary",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "11. Build Summary",
+                        "isValidator": true,
+                        "nodeName": "11. Build Summary",
+                        "name": "11. Build Summary",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const raw = {{node:get_cache_final.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst created = results.filter((r) => r && r.si_id);\nconst failed = results.filter((r) => !r || !r.si_id);\n\n// si_id / si_no describe the FIRST invoice created. The auto path always converts exactly one GD,\n// so that is the one GDheadWorkflow reports back; a multi-GD convert just uses the counts.\nconst first = created.length > 0 ? created[0] : null;\n\nlet code = \"200\";\nlet message = \"\";\n\nif (created.length === 0) {\n  code = \"400\";\n  message = \"The Sales Invoice could not be created.\";\n} else {\n  message =\n    \"Created \" +\n    created.length +\n    \" sales invoice\" +\n    (created.length === 1 ? \"\" : \"s\") +\n    (failed.length > 0 ? \", \" + failed.length + \" failed.\" : \".\");\n}\n\n// A failed buyer-side PI does not invalidate the SI, which is saved either way -- surface it in the\n// message instead of turning a written invoice into a failure.\nconst piFailed = created.filter((r) => Number(r.pi_trigger_failed) === 1);\nif (piFailed.length > 0 && piFailed[0].pi_message) {\n  message = message + \" \" + piFailed[0].pi_message;\n}\n\nreturn {\n  code: code,\n  message: message,\n  si_id: first ? first.si_id : \"\",\n  si_no: first ? first.si_no : \"\",\n  skipped: 0,\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "gcsi_sum_code",
+                            "name": "code",
+                            "title": "code",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "gcsi_sum_message",
+                            "name": "message",
+                            "title": "message",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "gcsi_sum_siid",
+                            "name": "si_id",
+                            "title": "si_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "gcsi_sum_sino",
+                            "name": "si_no",
+                            "title": "si_no",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "gcsi_sum_skipped",
+                            "name": "skipped",
+                            "title": "skipped",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "end_ok",
+                      "type": "end-node",
+                      "data": {
+                        "isValidator": true,
+                        "title": "结束节点",
+                        "nodeName": "Return SI Result",
+                        "name": "Return SI Result",
+                        "back_data_type": "OutputParams",
+                        "msg": { "type": "javascript", "code": "" },
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_summary.data.code}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "propLabel": "message",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_summary.data.message}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "si_id",
+                              "propLabel": "si_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_summary.data.si_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "si_no",
+                              "propLabel": "si_no",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_summary.data.si_no}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "skipped",
+                              "propLabel": "skipped",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_summary.data.skipped}}",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
                     }
                   ]
                 }

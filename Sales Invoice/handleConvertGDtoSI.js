@@ -1,15 +1,23 @@
+// autoPi: "" (not decided yet) | "confirmed" | "skip". Once decided it is threaded through the
+// 401/403 retries below so the user is never asked the same question twice.
 const handleConvertSI = async (
   selectedRecords,
   convertTo,
   isMultiple,
   filterDraft,
+  autoPi,
 ) => {
-  // Block combining internal-trading and non-internal Goods Deliveries into ONE
-  // Sales Invoice. Only relevant for single-SI conversion of 2+ GDs; "multiple"
-  // gives each GD its own SI (no mix). Internal = the GD is the source of a
-  // "Linked" GD->GR row in document_linkage.
-  if (isMultiple === "single" && selectedRecords.length > 1) {
-    const gdIds = [...new Set(selectedRecords.map((r) => r.id))];
+  const gdIds = [...new Set(selectedRecords.map((r) => r.id))];
+
+  // Internal trading = the GD is the source of a "Linked" GD->GR row in document_linkage.
+  // Two separate checks need that fact, so read it once:
+  //   - the mix guard, only when building ONE SI out of 2+ GDs
+  //   - the Purchase Invoice confirm, only when completing (see below)
+  const needsMixGuard = isMultiple === "single" && selectedRecords.length > 1;
+  const needsPiAnswer = convertTo === "completed" && !autoPi;
+
+  let internalCount = 0;
+  if (needsMixGuard || needsPiAnswer) {
     const linkRes = await db
       .collection("document_linkage")
       .filter([
@@ -32,15 +40,44 @@ const handleConvertSI = async (
     const internalSet = new Set(
       (linkRes?.data || []).map((r) => r.source_doc_id),
     );
-    const internalCount = gdIds.filter((id) => internalSet.has(id)).length;
+    internalCount = gdIds.filter((id) => internalSet.has(id)).length;
+  }
 
-    if (internalCount > 0 && internalCount < gdIds.length) {
-      await this.$alert(
-        "Cannot combine internal trading and non-internal Goods Deliveries in the same Sales Invoice. Please select only one type, or convert to multiple Sales Invoices.",
-        "Error",
-        { confirmButtonText: "OK", type: "error" },
-      );
-      return;
+  // Block combining internal-trading and non-internal Goods Deliveries into ONE
+  // Sales Invoice. "multiple" gives each GD its own SI, so there is no mix to block.
+  if (needsMixGuard && internalCount > 0 && internalCount < gdIds.length) {
+    await this.$alert(
+      "Cannot combine internal trading and non-internal Goods Deliveries in the same Sales Invoice. Please select only one type, or convert to multiple Sales Invoices.",
+      "Error",
+      { confirmButtonText: "OK", type: "error" },
+    );
+    return;
+  }
+
+  // SI_SAVE will not write an internal-trading COMPLETED invoice until it is told whether to also
+  // create the buyer organization's Purchase Invoice -- it returns pi_confirm 411 and saves
+  // nothing. The SI form answers that (SIsaveAsCompleted.js); this path never did, so completing
+  // an internal GD silently produced no invoice at all while still reporting success. Ask here and
+  // pass the answer through. (Draft never arms the gate, so it is only asked when completing.)
+  if (needsPiAnswer) {
+    if (internalCount > 0) {
+      const proceed = await this.$confirm(
+        `${internalCount} of the selected Goods Delivery(s) are linked to internal Purchase Orders.<br><br>Auto-create the Purchase Invoice in the buyer organization?`,
+        "Internal Trading – Auto-create Purchase Invoice",
+        {
+          confirmButtonText: "Yes, create PI",
+          cancelButtonText: "No, invoice only",
+          type: "info",
+          dangerouslyUseHTMLString: true,
+        },
+      )
+        .then(() => true)
+        .catch(() => false);
+
+      autoPi = proceed ? "confirmed" : "skip";
+    } else {
+      // Nothing internal — the gate never arms. Memoised so a retry does not re-query.
+      autoPi = "skip";
     }
   }
 
@@ -52,6 +89,7 @@ const handleConvertSI = async (
       convert_to: convertTo,
       is_multiple: isMultiple,
       filter_draft: filterDraft,
+      auto_pi: autoPi || "",
     },
     async (res) => {
       console.log("SI Data", res.data);
@@ -81,7 +119,13 @@ const handleConvertSI = async (
           throw new Error("Converting sales invoice cancelled.");
         });
 
-        await handleConvertSI(selectedRecords, convertTo, isMultiple, "yes");
+        await handleConvertSI(
+          selectedRecords,
+          convertTo,
+          isMultiple,
+          "yes",
+          autoPi,
+        );
       } else if (err.data?.code === 402) {
         // Selected Goods Delivery(s) already has a related Sales Invoice and cannot be converted.
         await this.$alert(err.data.msg, "Error", {
@@ -105,6 +149,7 @@ const handleConvertSI = async (
           convertTo,
           "multiple",
           filterDraft,
+          autoPi,
         );
       }
     },
