@@ -1493,6 +1493,123 @@
       ]
     },
     {
+      "id": "code_node_PkItemIDs",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Packing Item IDs",
+        "isValidator": true,
+        "nodeName": "Map Packing Item IDs",
+        "name": "Map Packing Item IDs",
+        "script": {
+          "type": "javascript",
+          "code": "const src = {{workflowparams:allData.created_source}} || '';\n\n// Web / Mobile already compute packing + weight in the form (SOchangeItem /\n// SOonChangeUOM). Internal Trading gets them from POsaveWorkflow's Build SO\n// Payload. Everything else lands here with the fields empty.\nconst skip = src == 'Web' || src == 'Mobile' || src == 'Internal Trading';\n\nconst entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:code_node_rPqQy5CD.data.table}};\nconst lines = (entry && entry.table_so) || [];\n\nconst itemIDs = skip ? [] : [...new Set(lines.filter(l => l.item_name).map(l => l.item_name))];\n\nreturn { itemIDs: itemIDs, needsPacking: !skip && itemIDs.length > 0 };"
+        },
+        "response_json": [
+          {
+            "key": "pkitmids",
+            "name": "itemIDs",
+            "title": "Item IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "pkitmid1",
+                "name": "items",
+                "title": "ID",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          },
+          {
+            "key": "pkneedpk",
+            "name": "needsPacking",
+            "title": "Needs Packing Calc",
+            "description": "",
+            "bsonType": "boolean",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_PkGate",
+      "type": "if",
+      "data": {
+        "title": "IF Needs Packing Calc?",
+        "isValidator": true,
+        "nodeName": "IF Needs Packing Calc?",
+        "name": "IF Needs Packing Calc?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:code_node_PkItemIDs.data.needsPacking}} == true"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_PkGateT",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "search_node_PkItems",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 1,
+                        "children": [
+                          {
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_PkItemIDs.data.itemIDs}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Packing Item Data",
+                "isValidator": true,
+                "nodeName": "Get Packing Item Data",
+                "name": "Get Packing Item Data"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_PkGateF",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "code_node_BtxYhPym",
       "type": "code-node",
       "data": {
@@ -1505,7 +1622,7 @@
         "name": "Fillback Header Fields",
         "script": {
           "type": "javascript",
-          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:code_node_rPqQy5CD.data.table}};\n\nfor(const [index, soLineItem] of entry.table_so.entries()) {\n  // Create a new object with formatted values\n  const formattedItem = {\n    ...soLineItem,\n    // Number formatting\n    unrestricted_qty: parseFloat(soLineItem.unrestricted_qty || 0).toFixed(3),\n    base_unrestricted_qty: parseFloat(soLineItem.base_unrestricted_qty || 0).toFixed(3),\n    so_quantity: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    so_item_price: parseFloat(soLineItem.so_item_price || 0).toFixed(4),\n    so_gross: parseFloat(soLineItem.so_gross|| 0).toFixed(4),\n    so_discount: parseFloat(soLineItem.so_discount || 0).toFixed(4),\n    so_discount_amount: parseFloat(soLineItem.so_discount_amount || 0).toFixed(4),\n    so_tax_amount: parseFloat(soLineItem.so_tax_amount || 0).toFixed(4),\n    min_price: parseFloat(soLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(soLineItem.max_price || 0).toFixed(4),\n    so_amount: parseFloat(soLineItem.so_amount || 0).toFixed(4),\n    production_planned_qty: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    production_status: \"Not Created\",\n    outstanding_quantity: (parseFloat(soLineItem.so_quantity || 0) - parseFloat(soLineItem.delivered_qty || 0)).toFixed(3),\n    // Other field assignments\n    plant_id: entry.plant_name || \"\",\n    customer_id: entry.customer_name || \"\",\n    payment_term_id: entry.so_payment_term || \"\",\n    sales_person_id: entry.so_sales_person || \"\",\n    billing_state_id: entry.billing_address_state || \"\",\n    billing_country_id: entry.billing_address_country || \"\",\n    shipping_state_id: entry.shipping_address_state || \"\",\n    shipping_country_id: entry.shipping_address_country || \"\",\n    area_id: entry.so_area_id || \"\",\n    line_index: index + 1,\n    organization_id: entry.organization_id,\n    line_status: !soLineItem.line_status || soLineItem.line_status === '' || soLineItem.line_status === 'Draft' ? entry.so_status === 'Processing' ? 'Issued' : entry.so_status : soLineItem.line_status,\n    access_group: entry.access_group || [],\n    agent_user_id: entry.so_agent_user_id || ''\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.need_cl = ''\n\nentry.production_status = !entry.production_status || entry.production_status === '' ? 'Not Created' : entry.production_status;\n\nentry.si_status = !entry.si_status || entry.si_status === '' ? 'Not Created' : entry.si_status;\nentry.so_total_gross = parseFloat(entry.so_total_gross || 0).toFixed(4);\nentry.so_total_discount = parseFloat(entry.so_total_discount || 0).toFixed(4);\nentry.so_total_tax = parseFloat(entry.so_total_tax || 0).toFixed(4);\nentry.so_total = parseFloat(entry.so_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\n\nentry.table_so = updatedLineItem;\n\nreturn { entry };"
+          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:code_node_rPqQy5CD.data.table}};\n\n// --- Packing + weight (mirrors SOchangeItem.buildPackingWeightData) ---\n// Only populated for created_source outside Web / Mobile / Internal Trading;\n// otherwise the gated search node never ran and this resolves to null.\nconst packingItemsRaw = {{node:search_node_PkItems.data.data}};\nconst packingItems = Array.isArray(packingItemsRaw) ? packingItemsRaw : (packingItemsRaw ? [packingItemsRaw] : []);\nconst needsPacking = packingItems.length > 0;\n\nconst round3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;\nconst getPackingDetail = (tpd, uom) => (!Array.isArray(tpd) || !tpd.length || !uom) ? null : (tpd.find((c) => c.uom_id === uom) || null);\nconst getBaseQty = (tuc, uom) => {\n  if (!Array.isArray(tuc) || !tuc.length || !uom) return 1;\n  const c = tuc.find((x) => x.alt_uom_id === uom);\n  return c && c.base_qty ? c.base_qty : 1;\n};\nconst buildPackingWeightData = (item, uom, soQuantity) => {\n  const pd = getPackingDetail(item.table_packing_detail, uom);\n  const packingConversion = (pd && pd.quantity) || 1;\n  const weightConversion = round3((Number(item.net_weight) || 0) * getBaseQty(item.table_uom_conversion, uom));\n  const qty = Number(soQuantity) || 0;\n  return {\n    packing_uom: (pd && pd.packing_uom_id) || '',\n    packing_conversion: parseFloat(packingConversion || 0).toFixed(3),\n    packing_qty: (packingConversion ? round3(qty / packingConversion) : 0).toFixed(3),\n    weight_conversion: weightConversion.toFixed(3),\n    net_weight: round3(qty * weightConversion).toFixed(3)\n  };\n};\n\nfor(const [index, soLineItem] of entry.table_so.entries()) {\n  // Create a new object with formatted values\n  const formattedItem = {\n    ...soLineItem,\n    // Number formatting\n    unrestricted_qty: parseFloat(soLineItem.unrestricted_qty || 0).toFixed(3),\n    base_unrestricted_qty: parseFloat(soLineItem.base_unrestricted_qty || 0).toFixed(3),\n    so_quantity: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    so_item_price: parseFloat(soLineItem.so_item_price || 0).toFixed(4),\n    so_gross: parseFloat(soLineItem.so_gross|| 0).toFixed(4),\n    so_discount: parseFloat(soLineItem.so_discount || 0).toFixed(4),\n    so_discount_amount: parseFloat(soLineItem.so_discount_amount || 0).toFixed(4),\n    so_tax_amount: parseFloat(soLineItem.so_tax_amount || 0).toFixed(4),\n    min_price: parseFloat(soLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(soLineItem.max_price || 0).toFixed(4),\n    so_amount: parseFloat(soLineItem.so_amount || 0).toFixed(4),\n    production_planned_qty: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    production_status: \"Not Created\",\n    outstanding_quantity: (parseFloat(soLineItem.so_quantity || 0) - parseFloat(soLineItem.delivered_qty || 0)).toFixed(3),\n    // Other field assignments\n    plant_id: entry.plant_name || \"\",\n    customer_id: entry.customer_name || \"\",\n    payment_term_id: entry.so_payment_term || \"\",\n    sales_person_id: entry.so_sales_person || \"\",\n    billing_state_id: entry.billing_address_state || \"\",\n    billing_country_id: entry.billing_address_country || \"\",\n    shipping_state_id: entry.shipping_address_state || \"\",\n    shipping_country_id: entry.shipping_address_country || \"\",\n    area_id: entry.so_area_id || \"\",\n    line_index: index + 1,\n    organization_id: entry.organization_id,\n    line_status: !soLineItem.line_status || soLineItem.line_status === '' || soLineItem.line_status === 'Draft' ? entry.so_status === 'Processing' ? 'Issued' : entry.so_status : soLineItem.line_status,\n    access_group: entry.access_group || [],\n    agent_user_id: entry.so_agent_user_id || ''\n  };\n\n  if (needsPacking && soLineItem.item_name) {\n    const itemData = packingItems.find((d) => String(d.id) === String(soLineItem.item_name));\n    if (itemData) {\n      Object.assign(formattedItem, buildPackingWeightData(itemData, soLineItem.so_item_uom, soLineItem.so_quantity));\n    }\n  }\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.need_cl = ''\n\nentry.production_status = !entry.production_status || entry.production_status === '' ? 'Not Created' : entry.production_status;\n\nentry.si_status = !entry.si_status || entry.si_status === '' ? 'Not Created' : entry.si_status;\nentry.so_total_gross = parseFloat(entry.so_total_gross || 0).toFixed(4);\nentry.so_total_discount = parseFloat(entry.so_total_discount || 0).toFixed(4);\nentry.so_total_tax = parseFloat(entry.so_total_tax || 0).toFixed(4);\nentry.so_total = parseFloat(entry.so_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\n\nentry.table_so = updatedLineItem;\n\nreturn { entry };"
         },
         "response_json": [
           {
