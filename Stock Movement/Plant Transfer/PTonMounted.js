@@ -76,6 +76,7 @@ const CONFIG = {
     Add: ["button_save_as_draft", "button_issued_ift"],
     Draft: ["button_save_as_draft", "button_issued_ift"],
     Issued: ["button_inprogress_ift"],
+    "In Progress": ["button_inprogress_ift"],
     Created: {
       "Plant Transfer (Receiving)": ["button_complete_receive"],
     },
@@ -121,6 +122,11 @@ const configureButtons = (pageStatus, stockMovementStatus, movementType) => {
     this.display(CONFIG.buttonConfig.Draft);
   } else if (stockMovementStatus === "Issued") {
     this.display(CONFIG.buttonConfig.Issued);
+  } else if (
+    stockMovementStatus === "In Progress" &&
+    movementType === "Plant Transfer"
+  ) {
+    this.display(CONFIG.buttonConfig["In Progress"]);
   } else if (
     stockMovementStatus === "Created" &&
     movementType === "Plant Transfer (Receiving)"
@@ -548,13 +554,23 @@ const hideBatchAdd = () => {
           }
         }
 
-        if (data.stock_movement_status === "Issued") {
+        // Issued and In Progress share the same inventory state (stock already
+        // subtracted from source, sitting as In Transit at the receiving plant's
+        // default bin), so both allow line edits — the save workflow reconciles
+        // the delta. Locking receiving_operation_faci is what makes that safe:
+        // re-pointing it would strand the In Transit stock at the old plant.
+        if (
+          data.stock_movement_status === "Issued" ||
+          data.stock_movement_status === "In Progress"
+        ) {
           this.disabled(
             [
               "issuing_operation_faci",
               "issue_date",
               "movement_reason",
-              "stock_movement",
+              "receiving_operation_faci",
+              "stock_movement_no",
+              "stock_movement_no_type",
             ],
             true,
           );

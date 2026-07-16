@@ -4555,6 +4555,184 @@
               "blocks": []
             },
             {
+              "id": "get_node_unHMLYXN",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Storage Location:Table:1986694920453566466",
+                  "rules": {
+                    "collectionId": "1986694920453566466",
+                    "list": [
+                      {
+                        "id": 1777951980486,
+                        "parentId": 1777951980487,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1746100004533,
+                            "parentId": 1777951980486,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1777951980488,
+                            "parentId": 1777951980486,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Default Storage Location",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1777951980489,
+                            "parentId": 1777951980486,
+                            "isTop": false,
+                            "prop": "storage_status",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1777951980490,
+                            "parentId": 1777951980486,
+                            "isTop": false,
+                            "prop": "location_type",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Common",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Location Type",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Receiving Default Storage Location",
+                "isValidator": true,
+                "nodeName": "Get Receiving Default Storage Location",
+                "name": "Get Receiving Default Storage Location"
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_node_WtFOLdKB",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Bin Location:Table:1902282127538507778",
+                  "rules": {
+                    "collectionId": "1902282127538507778",
+                    "list": [
+                      {
+                        "id": 1777952258283,
+                        "parentId": 1777952258284,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1746100025234,
+                            "parentId": 1777952258283,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1777952258285,
+                            "parentId": 1777952258283,
+                            "isTop": false,
+                            "prop": "storage_location_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:get_node_unHMLYXN.data.data.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Storage Location",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1777952258286,
+                            "parentId": 1777952258283,
+                            "isTop": false,
+                            "prop": "is_default",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Default Receiving Location",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1777952258287,
+                            "parentId": 1777952258283,
+                            "isTop": false,
+                            "prop": "bin_status",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Receiving Default Bin",
+                "isValidator": true,
+                "nodeName": "Get Receiving Default Bin",
+                "name": "Get Receiving Default Bin"
+              },
+              "blocks": []
+            },
+            {
               "id": "if_BZvAhHVQ",
               "type": "if",
               "data": {
@@ -4636,7 +4814,7 @@
                         "name": "Compare Data",
                         "script": {
                           "type": "javascript",
-                          "code": "const initialBalanceIndex = {{node:get_node_1wi90Edk.data.data.balance_index}}\nconst currentBalanceIndex = {{node:code_node_37LA0tgq.data.allData.balance_index}}\nconst status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\n\nlet isDifferent = 0\n\nif (status === \"Issued\") {\n  if (initialBalanceIndex.length !== currentBalanceIndex.length) {\n    isDifferent = 1;\n  } else {\n    for (let i = 0; i < initialBalanceIndex.length; i++) {\n      if (\n        initialBalanceIndex[i].sm_quantity !==\n        currentBalanceIndex[i].sm_quantity\n      ) {\n        isDifferent = 1;\n        break;\n      }\n    }\n  }\n}\n\nreturn {\n  isDifferent: isDifferent\n}\n"
+                          "code": "const initialBalanceIndex = {{node:get_node_1wi90Edk.data.data.balance_index}} || []\nconst currentBalanceIndex = {{node:code_node_37LA0tgq.data.allData.balance_index}} || []\nconst status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\n\nlet isDifferent = 0\n\n// Must stay identical to createKey in code_node_A8hTl5B7\nconst createKey = (item) => {\n  const batchId = item.batch_id || \"\"\n  const category = item.category || \"Unrestricted\"\n  const huId = item.handling_unit_id || \"\"\n  return `${item.material_id}|${item.location_id}|${batchId}|${category}|${huId}`\n}\n\n// Mirrors code_node_A8hTl5B7: last-write-wins per key, skip non-positive qty\nconst toMap = (arr) => {\n  const m = {}\n  for (const item of arr) {\n    const q = parseFloat(item.sm_quantity || 0)\n    if (q > 0) {\n      m[createKey(item)] = q\n    }\n  }\n  return m\n}\n\nif (status === \"Issued\" || status === \"In Progress\") {\n  const initialMap = toMap(initialBalanceIndex)\n  const currentMap = toMap(currentBalanceIndex)\n\n  const keys = {}\n  for (const k in initialMap) { keys[k] = 1 }\n  for (const k in currentMap) { keys[k] = 1 }\n\n  for (const k in keys) {\n    if ((initialMap[k] || 0) !== (currentMap[k] || 0)) {\n      isDifferent = 1;\n      break;\n    }\n  }\n}\n\nreturn {\n  isDifferent: isDifferent\n}\n"
                         },
                         "response_json": [
                           {
@@ -4706,7 +4884,7 @@
                                 "name": "Readjustment Balance Data",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}}\n\nconst initialMovementTable = {{node:get_node_1wi90Edk.data.data.stock_movement}}\nconst initialBalanceIndex = {{node:get_node_1wi90Edk.data.data.balance_index}}\n\nconst currentMovementTable = {{node:code_node_37LA0tgq.data.allData.stock_movement}}\nconst currentBalanceIndex = {{node:code_node_37LA0tgq.data.allData.balance_index}}\n\nconst plant_id = allData.issuing_operation_faci;\nconst receiving_plant = allData.receiving_operation_faci;\nconst receiving_default_location_id = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receiving_default_storage_location_id = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst page_status = {{workflowparams:pageStatus}}\nconst doc_date = allData.issue_date;\n\nconst balanceToAdd = []\nconst balanceToSubtract = []\n\n// Create key using material_id + location_id + batch_id + category\nconst createKey = (item) => {\n  const batchId = item.batch_id || \"\"\n  const category = item.category || \"Unrestricted\"\n  const huId = item.handling_unit_id || \"\"\n  return `${item.material_id}|${item.location_id}|${batchId}|${category}|${huId}`\n}\n\n// Build map of initial quantities from balance_index\nconst initialMap = {}\nfor (const item of initialBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    initialMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null,\n      handling_unit_id: item.handling_unit_id || null\n    }\n  }\n}\n\n// Build map of current quantities from balance_index\nconst currentMap = {}\nfor (const item of currentBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    currentMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null,\n      handling_unit_id: item.handling_unit_id || null\n    }\n  }\n}\n\n// Compare and calculate differences\n// Check items in current (new or increased)\nfor (const key in currentMap) {\n  const currentItem = currentMap[key]\n  const initialItem = initialMap[key]\n\n  if (!initialItem) {\n    // New item added (or category changed - treated as new)\n    balanceToAdd.push({\n      material_id: currentItem.material_id,\n      material_uom: currentItem.material_uom,\n      location_id: currentItem.location_id,\n      batch_id: currentItem.batch_id,\n      category: currentItem.category,\n      sm_quantity: currentItem.sm_quantity,\n      manufacturing_date: currentItem.manufacturing_date,\n      expired_date: currentItem.expired_date\n    })\n  } else {\n    const diff = currentItem.sm_quantity - initialItem.sm_quantity\n    if (diff > 0) {\n      // Quantity increased\n      balanceToAdd.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: diff,\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date,\n        handling_unit_id: currentItem.handling_unit_id\n      })\n    } else if (diff < 0) {\n      // Quantity decreased\n      balanceToSubtract.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: Math.abs(diff),\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date,\n        handling_unit_id: currentItem.handling_unit_id\n      })\n    }\n  }\n}\n\n// Check items removed (in initial but not in current, or category changed)\nfor (const key in initialMap) {\n  if (!currentMap[key]) {\n    const initialItem = initialMap[key]\n    balanceToSubtract.push({\n      material_id: initialItem.material_id,\n      material_uom: initialItem.material_uom,\n      location_id: initialItem.location_id,\n      batch_id: initialItem.batch_id,\n      category: initialItem.category,\n      sm_quantity: initialItem.sm_quantity,\n      manufacturing_date: initialItem.manufacturing_date,\n      expired_date: initialItem.expired_date,\n      handling_unit_id: initialItem.handling_unit_id\n    })\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  receiving_plant: receiving_plant,\n  receiving_default_location_id: receiving_default_location_id,\n  receiving_default_storage_location_id: receiving_default_storage_location_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  doc_date: doc_date,\n  balanceToAdd: balanceToAdd,\n  balanceToAddLength: balanceToAdd.length,\n  balanceToSubtract: balanceToSubtract,\n  balanceToSubtractLength: balanceToSubtract.length\n}"
+                                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}}\n\nconst initialMovementTable = {{node:get_node_1wi90Edk.data.data.stock_movement}}\nconst initialBalanceIndex = {{node:get_node_1wi90Edk.data.data.balance_index}}\n\nconst currentMovementTable = {{node:code_node_37LA0tgq.data.allData.stock_movement}}\nconst currentBalanceIndex = {{node:code_node_37LA0tgq.data.allData.balance_index}}\n\nconst plant_id = allData.issuing_operation_faci;\nconst receiving_plant = allData.receiving_operation_faci;\nconst receiving_default_location_id = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receiving_default_storage_location_id = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\nconst organization_id = allData.organization_id;\nconst initialData = {{node:get_node_1wi90Edk.data.data}}\nconst stock_movement_no = (initialData && initialData.stock_movement_no) || allData.stock_movement_no;\nconst page_status = {{workflowparams:pageStatus}}\nconst doc_date = allData.issue_date;\n\nconst balanceToAdd = []\nconst balanceToSubtract = []\n\n// Create key using material_id + location_id + batch_id + category\nconst createKey = (item) => {\n  const batchId = item.batch_id || \"\"\n  const category = item.category || \"Unrestricted\"\n  const huId = item.handling_unit_id || \"\"\n  return `${item.material_id}|${item.location_id}|${batchId}|${category}|${huId}`\n}\n\n// Build map of initial quantities from balance_index\nconst initialMap = {}\nfor (const item of initialBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    initialMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null,\n      handling_unit_id: item.handling_unit_id || null\n    }\n  }\n}\n\n// Build map of current quantities from balance_index\nconst currentMap = {}\nfor (const item of currentBalanceIndex) {\n  if (parseFloat(item.sm_quantity || 0) > 0) {\n    const key = createKey(item)\n    currentMap[key] = {\n      material_id: item.material_id,\n      material_uom: item.material_uom,\n      location_id: item.location_id,\n      batch_id: item.batch_id || null,\n      category: item.category || \"Unrestricted\",\n      sm_quantity: parseFloat(item.sm_quantity || 0),\n      manufacturing_date: item.manufacturing_date || null,\n      expired_date: item.expired_date || null,\n      handling_unit_id: item.handling_unit_id || null\n    }\n  }\n}\n\n// Compare and calculate differences\n// Check items in current (new or increased)\nfor (const key in currentMap) {\n  const currentItem = currentMap[key]\n  const initialItem = initialMap[key]\n\n  if (!initialItem) {\n    // New item added (or category changed - treated as new)\n    balanceToAdd.push({\n      material_id: currentItem.material_id,\n      material_uom: currentItem.material_uom,\n      location_id: currentItem.location_id,\n      batch_id: currentItem.batch_id,\n      category: currentItem.category,\n      sm_quantity: currentItem.sm_quantity,\n      manufacturing_date: currentItem.manufacturing_date,\n      expired_date: currentItem.expired_date\n    })\n  } else {\n    const diff = currentItem.sm_quantity - initialItem.sm_quantity\n    if (diff > 0) {\n      // Quantity increased\n      balanceToAdd.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: diff,\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date,\n        handling_unit_id: currentItem.handling_unit_id\n      })\n    } else if (diff < 0) {\n      // Quantity decreased\n      balanceToSubtract.push({\n        material_id: currentItem.material_id,\n        material_uom: currentItem.material_uom,\n        location_id: currentItem.location_id,\n        batch_id: currentItem.batch_id,\n        category: currentItem.category,\n        sm_quantity: Math.abs(diff),\n        manufacturing_date: currentItem.manufacturing_date,\n        expired_date: currentItem.expired_date,\n        handling_unit_id: currentItem.handling_unit_id\n      })\n    }\n  }\n}\n\n// Check items removed (in initial but not in current, or category changed)\nfor (const key in initialMap) {\n  if (!currentMap[key]) {\n    const initialItem = initialMap[key]\n    balanceToSubtract.push({\n      material_id: initialItem.material_id,\n      material_uom: initialItem.material_uom,\n      location_id: initialItem.location_id,\n      batch_id: initialItem.batch_id,\n      category: initialItem.category,\n      sm_quantity: initialItem.sm_quantity,\n      manufacturing_date: initialItem.manufacturing_date,\n      expired_date: initialItem.expired_date,\n      handling_unit_id: initialItem.handling_unit_id\n    })\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  receiving_plant: receiving_plant,\n  receiving_default_location_id: receiving_default_location_id,\n  receiving_default_storage_location_id: receiving_default_storage_location_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  doc_date: doc_date,\n  balanceToAdd: balanceToAdd,\n  balanceToAddLength: balanceToAdd.length,\n  balanceToSubtract: balanceToSubtract,\n  balanceToSubtractLength: balanceToSubtract.length\n}"
                                 },
                                 "response_json": [
                                   {
@@ -9960,184 +10138,6 @@
               ]
             },
             {
-              "id": "get_node_unHMLYXN",
-              "type": "get-node",
-              "data": {
-                "table_id": {
-                  "source": "Storage Location:Table:1986694920453566466",
-                  "rules": {
-                    "collectionId": "1986694920453566466",
-                    "list": [
-                      {
-                        "id": 1777951980486,
-                        "parentId": 1777951980487,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "all",
-                        "valueType": "",
-                        "value": "",
-                        "type": "branch",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1746100004533,
-                            "parentId": 1777951980486,
-                            "isTop": false,
-                            "prop": "plant_id",
-                            "operator": "numberEqual",
-                            "valueType": "field",
-                            "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Plant",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1777951980488,
-                            "parentId": 1777951980486,
-                            "isTop": false,
-                            "prop": "is_default",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 1,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Default Storage Location",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1777951980489,
-                            "parentId": 1777951980486,
-                            "isTop": false,
-                            "prop": "storage_status",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 1,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Active",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1777951980490,
-                            "parentId": 1777951980486,
-                            "isTop": false,
-                            "prop": "location_type",
-                            "operator": "equal",
-                            "valueType": "value",
-                            "value": "Common",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Location Type",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Get Receiving Default Storage Location",
-                "isValidator": true,
-                "nodeName": "Get Receiving Default Storage Location",
-                "name": "Get Receiving Default Storage Location"
-              },
-              "blocks": []
-            },
-            {
-              "id": "get_node_WtFOLdKB",
-              "type": "get-node",
-              "data": {
-                "table_id": {
-                  "source": "Bin Location:Table:1902282127538507778",
-                  "rules": {
-                    "collectionId": "1902282127538507778",
-                    "list": [
-                      {
-                        "id": 1777952258283,
-                        "parentId": 1777952258284,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "all",
-                        "valueType": "",
-                        "value": "",
-                        "type": "branch",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1746100025234,
-                            "parentId": 1777952258283,
-                            "isTop": false,
-                            "prop": "plant_id",
-                            "operator": "numberEqual",
-                            "valueType": "field",
-                            "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Plant",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1777952258285,
-                            "parentId": 1777952258283,
-                            "isTop": false,
-                            "prop": "storage_location_id",
-                            "operator": "numberEqual",
-                            "valueType": "field",
-                            "value": "{{node:get_node_unHMLYXN.data.data.id}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Storage Location",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1777952258286,
-                            "parentId": 1777952258283,
-                            "isTop": false,
-                            "prop": "is_default",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 1,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Default Receiving Location",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1777952258287,
-                            "parentId": 1777952258283,
-                            "isTop": false,
-                            "prop": "bin_status",
-                            "operator": "numberEqual",
-                            "valueType": "value",
-                            "value": 1,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Active",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Get Receiving Default Bin",
-                "isValidator": true,
-                "nodeName": "Get Receiving Default Bin",
-                "name": "Get Receiving Default Bin"
-              },
-              "blocks": []
-            },
-            {
               "id": "search_node_oOEYwCue",
               "type": "search-node",
               "data": {
@@ -12298,6 +12298,205 @@
                       "blocks": []
                     },
                     {
+                      "id": "search_node_PTChild",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Plant Transfer:Table:2025846960482627586",
+                          "rules": {
+                            "collectionId": "2025846960482627586",
+                            "list": [
+                              {
+                                "id": 1790000000000,
+                                "parentId": 1790000000001,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1790000000002,
+                                    "parentId": 1790000000000,
+                                    "isTop": false,
+                                    "prop": "parent_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_37LA0tgq.data.allData.id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Parent ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1790000000003,
+                                    "parentId": 1790000000000,
+                                    "isTop": false,
+                                    "prop": "movement_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Plant Transfer (Receiving)",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Movement Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1,
+                        "title": "Get Existing Receiving Child",
+                        "isValidator": true,
+                        "nodeName": "Get Existing Receiving Child",
+                        "name": "Get Existing Receiving Child"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_PTChildFlag",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Child Flag",
+                        "isValidator": true,
+                        "nodeName": "Child Flag",
+                        "name": "Child Flag",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const rows = {{node:search_node_PTChild.data.data}}\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : [])\nconst child = arr.length > 0 ? arr[0] : null\n\n// Identity match only (parent_id + movement_type) so a child in an unexpected\n// state is caught by if_PTChildBad instead of silently causing a duplicate insert.\nconst hasChild = child ? 1 : 0\nconst childId = child ? child.id : \"\"\nconst childStatus = child ? child.stock_movement_status : \"\"\nconst childNotCreated = (child && child.stock_movement_status !== \"Created\") ? 1 : 0\n\nreturn {\n  hasChild: hasChild,\n  childId: childId,\n  childStatus: childStatus,\n  childNotCreated: childNotCreated\n}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "ptchf001",
+                            "name": "hasChild",
+                            "title": "hasChild",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "ptchf002",
+                            "name": "childId",
+                            "title": "childId",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "ptchf003",
+                            "name": "childStatus",
+                            "title": "childStatus",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "ptchf004",
+                            "name": "childNotCreated",
+                            "title": "childNotCreated",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_PTChildBad",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Child Not Created",
+                        "isValidator": true,
+                        "nodeName": "IF Child Not Created",
+                        "name": "IF Child Not Created",
+                        "condition_type": "ConditionRule",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1790000000010,
+                              "parentId": 1790000000011,
+                              "isTop": true,
+                              "prop": "node.code_node_PTChildFlag.data.childNotCreated",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "childNotCreated",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_PTChildBadTrue",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "return_node_PTChildBad",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return Data",
+                                "isValidator": true,
+                                "nodeName": "Return Data",
+                                "name": "Return Data",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "propLabel": "code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "400",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "Cannot re-save this Plant Transfer: its receiving document is no longer in Created status.",
+                                      "valueLabel": "",
+                                      "propLabel": "message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_PTChildBadFalse",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
                       "id": "search_node_d8bhuxPm",
                       "type": "search-node",
                       "data": {
@@ -12446,208 +12645,433 @@
                       "blocks": []
                     },
                     {
-                      "id": "add_node_u455hdU9",
-                      "type": "add-node",
+                      "id": "if_PTHasChild",
+                      "type": "if",
                       "data": {
-                        "table_id": {
-                          "source": "Plant Transfer:Table:2025846960482627586",
-                          "rules": {
-                            "collectionId": "2025846960482627586",
-                            "list": [
-                              {
-                                "id": 1771840214853,
-                                "parentId": 1771840214852,
-                                "isTop": true,
-                                "prop": "",
-                                "operator": "",
-                                "valueType": "",
-                                "value": "",
-                                "type": "leaf",
-                                "level": 1
-                              }
-                            ]
-                          }
-                        },
-                        "fields": [],
-                        "title": "Add SM Data",
+                        "title": "IF hasChild",
                         "isValidator": true,
-                        "nodeName": "Add SM Data",
-                        "name": "Add SM Data",
-                        "props": {
-                          "modelName": "",
+                        "nodeName": "IF hasChild",
+                        "name": "IF hasChild",
+                        "condition_type": "ConditionRule",
+                        "filter": {
                           "list": [
                             {
-                              "prop": "stock_movement_status",
-                              "operator": "",
+                              "id": 1790000000030,
+                              "parentId": 1790000000031,
+                              "isTop": true,
+                              "prop": "node.code_node_PTChildFlag.data.hasChild",
+                              "operator": "numberEqual",
                               "valueType": "value",
-                              "value": "Created",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "hasChild",
                               "valueLabel": "",
-                              "propLabel": "Stock Movement Status"
-                            },
-                            {
-                              "prop": "issuing_operation_faci",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
-                              "valueLabel": "",
-                              "propLabel": "Plant"
-                            },
-                            {
-                              "prop": "issue_date",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.issue_date}}",
-                              "valueLabel": "",
-                              "propLabel": "Issue Date"
-                            },
-                            {
-                              "prop": "stock_movement_no",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_DuDWkVDG.data.stock_movement_no}}",
-                              "valueLabel": "",
-                              "propLabel": "Location Transfer No"
-                            },
-                            {
-                              "prop": "movement_type",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_DuDWkVDG.data.movement_type}}",
-                              "valueLabel": "",
-                              "propLabel": "Movement Type"
-                            },
-                            {
-                              "prop": "movement_type_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.movement_type_id}}",
-                              "valueLabel": "",
-                              "propLabel": "Movement Type ID"
-                            },
-                            {
-                              "prop": "movement_reason",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.movement_reason}}",
-                              "valueLabel": "",
-                              "propLabel": "Movement Reason"
-                            },
-                            {
-                              "prop": "issued_by",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.issued_by}}",
-                              "valueLabel": "",
-                              "propLabel": "Issued By"
-                            },
-                            {
-                              "prop": "reference_documents",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.reference_documents}}",
-                              "valueLabel": "",
-                              "propLabel": "Reference Documents"
-                            },
-                            {
-                              "prop": "organization_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.organization_id}}",
-                              "valueLabel": "",
-                              "propLabel": "Organization ID"
-                            },
-                            {
-                              "prop": "is_production_order",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.is_production_order}}",
-                              "valueLabel": "",
-                              "propLabel": "Link to Production Order"
-                            },
-                            {
-                              "prop": "production_order_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.production_order_id}}",
-                              "valueLabel": "",
-                              "propLabel": "Production Order No"
-                            },
-                            {
-                              "prop": "stock_movement",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_DuDWkVDG.data.stock_movement}}",
-                              "valueLabel": "",
-                              "propLabel": "Stock Movement Table"
-                            },
-                            {
-                              "prop": "remarks",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.remarks}}",
-                              "valueLabel": "",
-                              "propLabel": "Remarks"
-                            },
-                            {
-                              "prop": "remark",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.remark}}",
-                              "valueLabel": "",
-                              "propLabel": "Remark 1"
-                            },
-                            {
-                              "prop": "remark2",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.remark2}}",
-                              "valueLabel": "",
-                              "propLabel": "Remark 2"
-                            },
-                            {
-                              "prop": "remark3",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.remark3}}",
-                              "valueLabel": "",
-                              "propLabel": "Remark 3"
-                            },
-                            {
-                              "prop": "balance_index",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.balance_index}}",
-                              "valueLabel": "",
-                              "propLabel": "Balance Index"
-                            },
-                            {
-                              "prop": "stock_movement_no_type",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_DuDWkVDG.data.ptNoType}}",
-                              "valueLabel": "",
-                              "propLabel": "??"
-                            },
-                            {
-                              "prop": "receiving_operation_faci",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
-                              "valueLabel": "",
-                              "propLabel": "Receiving Plant"
-                            },
-                            {
-                              "prop": "parent_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_DuDWkVDG.data.id}}",
-                              "valueLabel": "",
-                              "propLabel": "Parent Plant Transfer"
+                              "operatorLabel": "Equal"
                             }
                           ]
                         }
                       },
-                      "blocks": []
+                      "blocks": [
+                        {
+                          "id": "ifBlock_PTHasChildTrue",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_PTChildUpd",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Plant Transfer:Table:2025846960482627586",
+                                  "rules": {
+                                    "collectionId": "2025846960482627586",
+                                    "list": [
+                                      {
+                                        "id": 1790000000020,
+                                        "parentId": 1790000000021,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_PTChildFlag.data.childId}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "Primary Key ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Update SM Child Data",
+                                "isValidator": true,
+                                "nodeName": "Update SM Child Data",
+                                "name": "Update SM Child Data",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "issuing_operation_faci",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Plant"
+                                    },
+                                    {
+                                      "prop": "issue_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.issue_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Issue Date"
+                                    },
+                                    {
+                                      "prop": "movement_type",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_DuDWkVDG.data.movement_type}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Movement Type"
+                                    },
+                                    {
+                                      "prop": "movement_type_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.movement_type_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Movement Type ID"
+                                    },
+                                    {
+                                      "prop": "movement_reason",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.movement_reason}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Movement Reason"
+                                    },
+                                    {
+                                      "prop": "issued_by",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.issued_by}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Issued By"
+                                    },
+                                    {
+                                      "prop": "reference_documents",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.reference_documents}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Reference Documents"
+                                    },
+                                    {
+                                      "prop": "organization_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.organization_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Organization ID"
+                                    },
+                                    {
+                                      "prop": "is_production_order",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.is_production_order}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Link to Production Order"
+                                    },
+                                    {
+                                      "prop": "production_order_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.production_order_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Production Order No"
+                                    },
+                                    {
+                                      "prop": "stock_movement",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_DuDWkVDG.data.stock_movement}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Stock Movement Table"
+                                    },
+                                    {
+                                      "prop": "remarks",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.remarks}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "remark",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.remark}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remark 1"
+                                    },
+                                    {
+                                      "prop": "remark2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.remark2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remark 2"
+                                    },
+                                    {
+                                      "prop": "remark3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.remark3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remark 3"
+                                    },
+                                    {
+                                      "prop": "balance_index",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.balance_index}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Balance Index"
+                                    },
+                                    {
+                                      "prop": "receiving_operation_faci",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Receiving Plant"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_PTHasChildFalse",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": [
+                            {
+                              "id": "add_node_u455hdU9",
+                              "type": "add-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Plant Transfer:Table:2025846960482627586",
+                                  "rules": {
+                                    "collectionId": "2025846960482627586",
+                                    "list": [
+                                      {
+                                        "id": 1771840214853,
+                                        "parentId": 1771840214852,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "title": "Add SM Data",
+                                "isValidator": true,
+                                "nodeName": "Add SM Data",
+                                "name": "Add SM Data",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "stock_movement_status",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "Created",
+                                      "valueLabel": "",
+                                      "propLabel": "Stock Movement Status"
+                                    },
+                                    {
+                                      "prop": "issuing_operation_faci",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Plant"
+                                    },
+                                    {
+                                      "prop": "issue_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.issue_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Issue Date"
+                                    },
+                                    {
+                                      "prop": "stock_movement_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_DuDWkVDG.data.stock_movement_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Location Transfer No"
+                                    },
+                                    {
+                                      "prop": "movement_type",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_DuDWkVDG.data.movement_type}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Movement Type"
+                                    },
+                                    {
+                                      "prop": "movement_type_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.movement_type_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Movement Type ID"
+                                    },
+                                    {
+                                      "prop": "movement_reason",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.movement_reason}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Movement Reason"
+                                    },
+                                    {
+                                      "prop": "issued_by",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.issued_by}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Issued By"
+                                    },
+                                    {
+                                      "prop": "reference_documents",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.reference_documents}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Reference Documents"
+                                    },
+                                    {
+                                      "prop": "organization_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.organization_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Organization ID"
+                                    },
+                                    {
+                                      "prop": "is_production_order",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.is_production_order}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Link to Production Order"
+                                    },
+                                    {
+                                      "prop": "production_order_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.production_order_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Production Order No"
+                                    },
+                                    {
+                                      "prop": "stock_movement",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_DuDWkVDG.data.stock_movement}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Stock Movement Table"
+                                    },
+                                    {
+                                      "prop": "remarks",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.remarks}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "remark",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.remark}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remark 1"
+                                    },
+                                    {
+                                      "prop": "remark2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.remark2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remark 2"
+                                    },
+                                    {
+                                      "prop": "remark3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.remark3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remark 3"
+                                    },
+                                    {
+                                      "prop": "balance_index",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.balance_index}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Balance Index"
+                                    },
+                                    {
+                                      "prop": "stock_movement_no_type",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_DuDWkVDG.data.ptNoType}}",
+                                      "valueLabel": "",
+                                      "propLabel": "??"
+                                    },
+                                    {
+                                      "prop": "receiving_operation_faci",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Receiving Plant"
+                                    },
+                                    {
+                                      "prop": "parent_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_DuDWkVDG.data.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Parent Plant Transfer"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 },
