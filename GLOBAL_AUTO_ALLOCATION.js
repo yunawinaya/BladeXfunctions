@@ -245,6 +245,12 @@ const sortByExpiry = (balanceArray, direction) => {
     if (isBatchManaged && a.expired_date && b.expired_date) {
       return (new Date(a.expired_date) - new Date(b.expired_date)) * direction;
     }
+    // No expiry on both sides: fall back to manufacturing date, then create time
+    if (isBatchManaged && a.manufacturing_date && b.manufacturing_date) {
+      return (
+        (new Date(a.manufacturing_date) - new Date(b.manufacturing_date)) * direction
+      );
+    }
     return (new Date(a.create_time) - new Date(b.create_time)) * direction;
   });
 };
