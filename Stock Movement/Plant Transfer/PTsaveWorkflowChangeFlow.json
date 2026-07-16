@@ -12444,9 +12444,7 @@
                         {
                           "id": "ifBlock_PTChildBadTrue",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "return_node_PTChildBad",
@@ -12489,9 +12487,7 @@
                         {
                           "id": "ifBlock_PTChildBadFalse",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -12676,9 +12672,7 @@
                         {
                           "id": "ifBlock_PTHasChildTrue",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "update_node_PTChildUpd",
@@ -12861,9 +12855,7 @@
                         {
                           "id": "ifBlock_PTHasChildFalse",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": [
                             {
                               "id": "add_node_u455hdU9",
