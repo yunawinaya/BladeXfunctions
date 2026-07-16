@@ -106,6 +106,7 @@
                     item.discount;
                   updates[`table_so.${item.line_index}.so_discount_uom`] =
                     item.discount_uom;
+                  updates[`table_so.${item.line_index}.trigger_calc`] = "Yes";
                 }
 
                 await this.setData(updates);
