@@ -26,6 +26,8 @@ const resetData = async (rowIndex) => {
     [`table_so.${rowIndex}.packing_qty`]: 0,
     [`table_so.${rowIndex}.weight_conversion`]: 0,
     [`table_so.${rowIndex}.net_weight`]: 0,
+    [`table_so.${rowIndex}.custom_fields`]: {},
+    [`table_so.${rowIndex}.further_description`]: "",
   });
 };
 console.log("item_codechange");
@@ -49,24 +51,17 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
 };
 
-// Find the packing detail row for a UOM. An item may define several packing rows
-// per uom_id, so when a packing UOM is supplied match on the (uom_id,
-// packing_uom_id) pair, which is unique. Otherwise fall back to the first row.
-const getPackingDetail = (table_packing_detail, uom, packingUom) => {
-  if (!Array.isArray(table_packing_detail) || !uom) {
+// Find the packing detail row whose uom_id matches the selected UOM.
+const getPackingDetail = (table_packing_detail, uom) => {
+  if (
+    !Array.isArray(table_packing_detail) ||
+    table_packing_detail.length === 0 ||
+    !uom
+  ) {
     return null;
   }
 
-  const rows = table_packing_detail.filter((conv) => conv.uom_id === uom);
-  if (rows.length === 0) {
-    return null;
-  }
-
-  if (packingUom) {
-    return rows.find((conv) => conv.packing_uom_id === packingUom) || null;
-  }
-
-  return rows[0];
+  return table_packing_detail.find((conv) => conv.uom_id === uom) || null;
 };
 
 // How many base UOM units make up 1 unit of the selected UOM.
@@ -270,6 +265,9 @@ const fetchUnrestrictedQty = async (
             arguments[0].fieldModel.item.material_name;
           updates[`table_so.${item.line_index}.custom_fields`] =
             arguments[0].fieldModel.item.custom_fields;
+          updates[`table_so.${item.line_index}.trigger_calc`] = "No";
+          updates[`table_so.${item.line_index}.further_description`] =
+            arguments[0].fieldModel.item.further_description;
         }
         await this.setData(updates);
         let Row = arguments[0];
@@ -296,7 +294,6 @@ const fetchUnrestrictedQty = async (
     this.refreshFieldOptionData([
       `table_so.${rowIndex}.so_item_uom`,
       `table_so.${rowIndex}.so_tax_percentage`,
-      `table_so.${rowIndex}.packing_uom`,
     ]);
 
     const initialQty = await fetchUnrestrictedQty(
@@ -391,7 +388,6 @@ const fetchUnrestrictedQty = async (
     this.refreshFieldOptionData([
       `table_so.${rowIndex}.so_item_uom`,
       `table_so.${rowIndex}.so_tax_percentage`,
-      `table_so.${rowIndex}.packing_uom`,
     ]);
   } else if (!arguments[0].value) {
     await resetData(rowIndex);
