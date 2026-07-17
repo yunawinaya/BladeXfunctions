@@ -1616,7 +1616,7 @@
                               "prop": "transaction_type",
                               "operator": "",
                               "valueType": "value",
-                              "value": "LOT",
+                              "value": "PT",
                               "valueLabel": "",
                               "propLabel": "Transaction Type"
                             },
@@ -1691,14 +1691,6 @@
                               "value": "{{node:get_node_9ZrFSqs4.data.data}}",
                               "valueLabel": "",
                               "propLabel": "Item Data"
-                            },
-                            {
-                              "prop": "unit_price",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:workflow_node_8E5yRdNq.data.unit_price}}",
-                              "valueLabel": "",
-                              "propLabel": "Unit Price"
                             },
                             {
                               "prop": "isMovingInv",
@@ -6088,7 +6080,7 @@
                                                   "prop": "transaction_type",
                                                   "operator": "",
                                                   "valueType": "value",
-                                                  "value": "LOT",
+                                                  "value": "PT",
                                                   "valueLabel": "",
                                                   "propLabel": "Transaction Type"
                                                 },
@@ -6340,7 +6332,7 @@
                                                   "prop": "transaction_type",
                                                   "operator": "",
                                                   "valueType": "value",
-                                                  "value": "LOT",
+                                                  "value": "PT",
                                                   "valueLabel": "",
                                                   "propLabel": "Transaction Type"
                                                 },
@@ -17053,7 +17045,7 @@
                 "prop": "id",
                 "operator": "in",
                 "valueType": "field",
-                "value": "{{node:code_node_0njluBVP.data.updates.id}}",
+                "value": "{{node:code_node_ozYIFP2S.data.updates.id}}",
                 "type": "leaf",
                 "level": 1,
                 "propLabel": "??ID",
