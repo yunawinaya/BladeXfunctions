@@ -308,7 +308,52 @@ On success it freezes the snapshot (§4d, keeping only `is_deleted !== 1` items)
 | **Load** | loose inventory | `fetchInventoryItems(plantId, organizationId)` |
 | **Unload / Transfer** | the chosen source HU's `table_hu_items` | `buildItemsFromHU(source_temp_data, ...)` |
 
-**Load — `fetchInventoryItems`:** reads `item_balance` (non-batch, kept only where the item's `item_batch_management !== 1`) and `item_batch_balance` (batch), both filtered to `unrestricted_qty > 0` and `is_deleted: 0`. `balance_id` = the balance row's id. Material master (`item`) is fetched once for names/desc/`based_uom`.
+**Load — `fetchInventoryItems`:** reads `item_balance` (non-batch, kept only where the item's `item_batch_management !== 1`) and `item_batch_balance` (batch), both filtered to `unrestricted_qty > 0` and `is_deleted: 0`. `balance_id` = the balance row's id. Material master (`item`) is fetched once for names/desc/`based_uom`. **It then deducts HU-held stock from those balances — see below. Do not skip that step.**
+
+### ⚠️ The loose-vs-HU deduction (Load only) — the double-count trap
+
+> **This is the single most important thing to get right in the Load path.**
+
+`item_balance` / `item_batch_balance` **do not carry `handling_unit_id`**. This is stated outright elsewhere in the codebase (`CATopenDialog.js`: *"item_balance does not carry handling_unit_id"*). The consequence:
+
+**`unrestricted_qty` commingles genuinely-loose stock with stock physically sitting inside handling units.**
+
+If you show raw `unrestricted_qty` in the Load picker, users can select stock that is inside an HU. Completion then subtracts it from *loose* (`subtractHandlingUnitId = ""`) and adds it into the target HU — while the holding HU's `table_hu_items` still lists it. The holding HU becomes a **phantom** claiming stock that physically moved elsewhere, and the same units are counted twice.
+
+Every other module compensates: GD via `fetchHuQtyByLocation`, MSI via `buildHuQtyMap` + `applyLooseDeduction`. RO's Load path now does the same:
+
+```
+trulyLoose = unrestricted_qty − Σ over HU items at (material, location, batch) of
+                                 max(0, hu_item.quantity − allocatedReservedQty)
+
+  …skipping any HU that is packed (packing_id set)
+```
+
+**Only stock that actually sits in `unrestricted_qty` may be deducted from it.** Three overlays move HU stock *out* of that bucket — miss one and you deduct it twice (hiding free stock); include one you shouldn't and the double-count bug returns. All three are load-bearing:
+
+1. **Allocated reservations.** An `on_reserved_gd` row with `status === "Allocated"` and `open_qty > 0` has already shifted its qty into `reserved_qty`. Subtract that portion from the HU item's qty before summing (key: `${hu_id}|${material_id}|${batch_id}`).
+2. **`Pending` reservations must NOT be counted.** They already moved qty `unrestricted → reserved` at SO save; counting them again double-deducts. Filter to `status === "Allocated"` only.
+3. **Packed HUs are excluded entirely.** An HU with `packing_id` set is committed to a Packing doc and its qty lives in `reserved_qty`, not `unrestricted_qty`. Skip the whole HU — do not deduct any of it.
+
+Reservation `open_qty` is in `item_uom`, which may be an alt UOM — convert to base via the item's `table_uom_conversion` (`conv.base_qty`) before subtracting. (This is the *only* place UOM conversion appears in RO.)
+
+> **⚠️ Never query `handling_unit` plant-wide to build this map.** The platform silently truncates at a **5000-row default cap**, which produces an incomplete map, **under**-deduction, and the double-count bug back again — with no error. Go through the flat sub-collection **`handling_unit_atu7sreg_sub`** (filter by `material_id in materialIds`) to get the HU contents and candidate HU ids, then fetch only those `handling_unit` docs by id. Every other module does this (GD, MSI, PRT, LOT, PT, CAT). You still need the parent HU docs for the `location_id` fallback, the plant/org scope check, and `packing_id`.
+
+Map keys — build them uniformly, using `"no_batch"` for null batches so non-batch materials match:
+- HU qty map: `` `${material_id}|${location_id}|${batch_id || "no_batch"}` `` (sub-row's `location_id` falls back to the parent HU's `location_id`).
+- Balance row lookup: the same key shape.
+
+Finally, **clamp at 0 and drop rows that fall to 0** — a fully-HU-held balance row must disappear from the Load list, not show as a zero row. The resulting `item_quantity` (post-deduction) is what `unload_quantity` clamps against.
+
+### Fetch plan (3 round-trips)
+
+| Stage | Fetches (parallel within a stage) | Depends on |
+|---|---|---|
+| 1 | `item_balance`, `item_batch_balance` | — |
+| 2 | `item` (master), `handling_unit_atu7sreg_sub`, `on_reserved_gd` | `materialIds` from stage 1 |
+| 3 | `handling_unit` (`id in candidateHuIds`) | `candidateHuIds` from stage 2 |
+
+> **Fail-open vs fail-closed.** Let `on_reserved_gd` fail soft (empty map → over-deduct → hides stock → safe). Do **not** swallow errors from the sub-collection or `handling_unit` fetches — an empty HU map there means *no deduction*, which silently reintroduces the corruption. Let those throw and surface the error.
 
 **Unload / Transfer — `buildItemsFromHU`:** parses `source_temp_data.table_hu_items`, keeps `is_deleted !== 1 && quantity > 0`, and re-resolves each item's `balance_id` via `fetchBalanceId` (queries `item_batch_balance` when `batch_id` is present, else `item_balance`, matching material + plant + org + location).
 
@@ -536,6 +581,8 @@ So each item is subtracted from the source (bin and/or source HU) and added to t
 - [ ] Three save actions: `Draft` (no number, no stock), `Created` (number, no stock, no reservation), `Completed` (number + stock).
 - [ ] Stage each line as three JSON strings: `source_temp_data`, `target_temp_data`, `items_temp_data` (+ `item_details`, `handling_unit_id`, `target_hu_id`, `target_hu_no`, location fields).
 - [ ] Item snapshot must carry `balance_id`, `location_id`, `batch_id`, `material_uom`, `item_quantity`, and `unload_quantity`.
+- [ ] **Load picker: deduct HU-held qty from `unrestricted_qty`** (Part 6). Subtract only the *unreserved* HU portion (`on_reserved_gd`, `status === "Allocated"`, `open_qty > 0`, converted to base UOM); skip packed HUs (`packing_id`); clamp at 0; drop rows that reach 0. Skipping this lets users pack the same physical stock twice.
+- [ ] **Load picker: source HU contents via `handling_unit_atu7sreg_sub`, never a plant-wide `handling_unit` query** — the 5000-row cap silently truncates and reintroduces the double-count.
 - [ ] Per-type flow: Load = Items→TargetHU; Unload = SourceHU→Items→(warehouse bin); Transfer = SourceHU→Items→TargetHU.
 - [ ] Source HU picker: filter to `item_count > 0 && total_quantity > 0`, single-select, non-deleted, plant+org scoped.
 - [ ] Target HU picker: all plant/org HUs **except** the source HU; allow empty HUs; offer "new HU" → `target_hu_no = "Auto-generated number"`.
@@ -553,7 +600,9 @@ So each item is subtracted from the source (bin and/or source HU) and added to t
 ## Part 12 — Edge Cases & Gotchas
 
 - **Build rows explicitly — no reactive-reference sharing.** When building candidate/item rows, assign fields explicitly rather than reusing the same object reference across rows (the desktop spreads `...hu` into a fresh object per row). Sharing a reference lets one row's edit corrupt siblings — a recurring HU-guide trap.
+- **Loose stock includes HU contents.** `item_balance.unrestricted_qty` is *not* HU-free — see [Part 6](#part-6--items-selection). The Load picker must deduct HU-held qty or users will pack the same physical units twice. This was a live bug in the desktop form (fixed in `ROopenSelectItemDialog.js`); do not reintroduce it by porting an older copy of that file.
 - **Empty-HU culling for sources.** A source HU with `item_count` or `total_quantity` at 0 is filtered out. If a user emptied an HU in a prior (uncommitted) line, it can still appear as a source until Completed actually moves stock — because Created reserves nothing.
+- **The Load deduction is a display-time guard only.** Because Created reserves nothing, two concurrent ROs can each pass the deduction check and still oversell the same loose stock. The completion `SUBTRACT_INVENTORY` call is the only real arbiter.
 - **Stale snapshots.** `source_temp_data` freezes the HU at selection time. Between Created and Completed, another document can consume that stock. The snapshot won't reflect it; the completion move (SUBTRACT_INVENTORY) is what surfaces a shortfall. Don't treat a staged snapshot as a hold.
 - **Source-HU uniqueness across rows.** A given source HU can be used in only one row of the order (`validateCompletion` blocks reuse). Enforce it while building rows, not just at save.
 - **Transfer self-target.** Source and target HU must differ; the target picker already excludes the source, and `validateCompletion` double-checks.
@@ -1138,7 +1187,14 @@ const selectTab = (tabName) => {
   }, 100);
 };
 
+// item_balance / item_batch_balance do NOT carry handling_unit_id, so their
+// unrestricted_qty commingles genuinely-loose stock with stock physically sitting
+// inside handling units. Load must only offer the truly-loose portion; otherwise
+// the same physical stock gets packed into a target HU while the holding HU still
+// lists it, and the holding HU becomes a phantom claiming stock that moved away.
+// Mirrors GD (fetchHuQtyByLocation) and MSI (buildHuQtyMap + applyLooseDeduction).
 const fetchInventoryItems = async (plantId, organizationId) => {
+  // Stage 1 — balances (independent of everything else).
   const [itemBalanceRes, itemBatchBalanceRes] = await Promise.all([
     db
       .collection("item_balance")
@@ -1172,9 +1228,17 @@ const fetchInventoryItems = async (plantId, organizationId) => {
     ]),
   ].filter(Boolean);
 
-  let itemMap = new Map();
-  if (materialIds.length > 0) {
-    const itemRes = await db
+  if (materialIds.length === 0) return [];
+
+  // Stage 2 — everything keyed off materialIds, in parallel.
+  // The HU contents come from the flat sub-collection rather than
+  // `handling_unit` documents: querying `handling_unit` plant-wide silently
+  // truncates at the platform's 5000-row default cap, which would UNDER-deduct
+  // and let HU-held stock leak back into the Load list. Same bypass GD/MSI use.
+  // on_reserved_gd is allowed to fail soft: an empty reserved map only
+  // over-deducts (hides stock), which is the safe direction.
+  const [itemRes, subRes, reservationRes] = await Promise.all([
+    db
       .collection("item")
       .filter([
         {
@@ -1186,9 +1250,127 @@ const fetchInventoryItems = async (plantId, organizationId) => {
           ],
         },
       ])
+      .get(),
+    db
+      .collection("handling_unit_atu7sreg_sub")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            { prop: "material_id", operator: "in", value: materialIds },
+            { prop: "is_deleted", operator: "equal", value: 0 },
+          ],
+        },
+      ])
+      .get(),
+    db
+      .collection("on_reserved_gd")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            { prop: "material_id", operator: "in", value: materialIds },
+            { prop: "plant_id", operator: "equal", value: plantId },
+            { prop: "organization_id", operator: "equal", value: organizationId },
+            { prop: "status", operator: "equal", value: "Allocated" },
+            { prop: "is_deleted", operator: "equal", value: 0 },
+          ],
+        },
+      ])
+      .get()
+      .catch((error) => {
+        console.error("Error fetching on_reserved_gd:", error);
+        return { data: [] };
+      }),
+  ]);
+
+  const itemMap = new Map();
+  (itemRes.data || []).forEach((it) => itemMap.set(it.id, it));
+
+  const subRows = subRes.data || [];
+
+  // Stage 3 — parent HUs of those sub-rows, for the location fallback, the
+  // plant/org scope check, and the packing_id overlay.
+  const candidateHuIds = [
+    ...new Set(subRows.map((r) => r.handling_unit_id).filter(Boolean)),
+  ];
+
+  const huLocationMap = new Map();
+  const packedHuIds = new Set();
+  if (candidateHuIds.length > 0) {
+    const huRes = await db
+      .collection("handling_unit")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            { prop: "id", operator: "in", value: candidateHuIds },
+            { prop: "plant_id", operator: "equal", value: plantId },
+            { prop: "organization_id", operator: "equal", value: organizationId },
+            { prop: "is_deleted", operator: "equal", value: 0 },
+          ],
+        },
+      ])
       .get();
-    (itemRes.data || []).forEach((it) => itemMap.set(it.id, it));
+    for (const hu of huRes.data || []) {
+      huLocationMap.set(hu.id, hu.location_id);
+      // Packed HUs are committed to a Packing doc; their qty lives in
+      // reserved_qty (not unrestricted_qty), so it must not be deducted.
+      if (hu.packing_id) packedHuIds.add(hu.id);
+    }
   }
+
+  // Only Allocated reservations with open_qty > 0 hold stock outside
+  // unrestricted_qty. Pending already moved its qty unrestricted -> reserved on
+  // the balance row at SO save, so counting it here would double-deduct.
+  const huReservedMap = new Map();
+  for (const r of reservationRes.data || []) {
+    if (!r.handling_unit_id) continue;
+    if ((parseFloat(r.open_qty) || 0) <= 0) continue;
+    const item = itemMap.get(r.material_id);
+    let qtyBase = parseFloat(r.open_qty) || 0;
+    if (item && r.item_uom && r.item_uom !== item.based_uom) {
+      const conv = (item.table_uom_conversion || []).find(
+        (c) => c.alt_uom_id === r.item_uom,
+      );
+      if (conv && conv.base_qty) qtyBase = qtyBase * conv.base_qty;
+    }
+    const key = `${r.handling_unit_id}|${r.material_id}|${r.batch_id || ""}`;
+    huReservedMap.set(key, (huReservedMap.get(key) || 0) + qtyBase);
+  }
+
+  // Sum HU-held qty per material/location/batch. Only the UNRESERVED portion of an
+  // HU item sits in unrestricted_qty, so the reserved part must not be deducted.
+  const huQtyMap = new Map();
+  for (const it of subRows) {
+    // Skip sub-rows whose parent HU isn't in this plant/org (or is deleted).
+    if (!huLocationMap.has(it.handling_unit_id)) continue;
+    // Skip packed HUs — their qty is in reserved_qty, not unrestricted_qty.
+    if (packedHuIds.has(it.handling_unit_id)) continue;
+
+    const locationId = it.location_id || huLocationMap.get(it.handling_unit_id);
+    const reservedKey = `${it.handling_unit_id}|${it.material_id}|${
+      it.batch_id || ""
+    }`;
+    const qty = Math.max(
+      0,
+      (parseFloat(it.quantity) || 0) - (huReservedMap.get(reservedKey) || 0),
+    );
+    if (qty <= 0) continue;
+    const key = `${it.material_id}|${locationId}|${it.batch_id || "no_batch"}`;
+    huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
+  }
+
+  const looseQty = (r) => {
+    const key = `${r.material_id}|${r.location_id}|${r.batch_id || "no_batch"}`;
+    return Math.max(
+      0,
+      (parseFloat(r.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0),
+    );
+  };
 
   const nonBatchBalances = itemBalanceRows.filter((r) => {
     const item = itemMap.get(r.material_id);
@@ -1199,6 +1381,8 @@ const fetchInventoryItems = async (plantId, organizationId) => {
 
   nonBatchBalances.forEach((r) => {
     const item = itemMap.get(r.material_id);
+    const available = looseQty(r);
+    if (available <= 0) return;
     combined.push({
       material_id: r.material_id,
       material_name: item?.material_name || "",
@@ -1206,7 +1390,7 @@ const fetchInventoryItems = async (plantId, organizationId) => {
       location_id: r.location_id,
       batch_id: null,
       material_uom: item?.based_uom || "",
-      item_quantity: parseFloat(r.unrestricted_qty) || 0,
+      item_quantity: available,
       unload_quantity: 0,
       line_status: "Open",
       balance_id: r.id,
@@ -1215,6 +1399,8 @@ const fetchInventoryItems = async (plantId, organizationId) => {
 
   batchBalanceRows.forEach((r) => {
     const item = itemMap.get(r.material_id);
+    const available = looseQty(r);
+    if (available <= 0) return;
     combined.push({
       material_id: r.material_id,
       material_name: item?.material_name || "",
@@ -1222,7 +1408,7 @@ const fetchInventoryItems = async (plantId, organizationId) => {
       location_id: r.location_id,
       batch_id: r.batch_id || null,
       material_uom: item?.based_uom || "",
-      item_quantity: parseFloat(r.unrestricted_qty) || 0,
+      item_quantity: available,
       unload_quantity: 0,
       line_status: "Open",
       balance_id: r.id,
@@ -2566,4 +2752,3 @@ const validateCompletion = (data) => {
   }
 })();
 ```
-

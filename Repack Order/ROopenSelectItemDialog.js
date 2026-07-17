@@ -44,7 +44,14 @@ const selectTab = (tabName) => {
   }, 100);
 };
 
+// item_balance / item_batch_balance do NOT carry handling_unit_id, so their
+// unrestricted_qty commingles genuinely-loose stock with stock physically sitting
+// inside handling units. Load must only offer the truly-loose portion; otherwise
+// the same physical stock gets packed into a target HU while the holding HU still
+// lists it, and the holding HU becomes a phantom claiming stock that moved away.
+// Mirrors GD (fetchHuQtyByLocation) and MSI (buildHuQtyMap + applyLooseDeduction).
 const fetchInventoryItems = async (plantId, organizationId) => {
+  // Stage 1 — balances (independent of everything else).
   const [itemBalanceRes, itemBatchBalanceRes] = await Promise.all([
     db
       .collection("item_balance")
@@ -78,9 +85,17 @@ const fetchInventoryItems = async (plantId, organizationId) => {
     ]),
   ].filter(Boolean);
 
-  let itemMap = new Map();
-  if (materialIds.length > 0) {
-    const itemRes = await db
+  if (materialIds.length === 0) return [];
+
+  // Stage 2 — everything keyed off materialIds, in parallel.
+  // The HU contents come from the flat sub-collection rather than
+  // `handling_unit` documents: querying `handling_unit` plant-wide silently
+  // truncates at the platform's 5000-row default cap, which would UNDER-deduct
+  // and let HU-held stock leak back into the Load list. Same bypass GD/MSI use.
+  // on_reserved_gd is allowed to fail soft: an empty reserved map only
+  // over-deducts (hides stock), which is the safe direction.
+  const [itemRes, subRes, reservationRes] = await Promise.all([
+    db
       .collection("item")
       .filter([
         {
@@ -92,9 +107,127 @@ const fetchInventoryItems = async (plantId, organizationId) => {
           ],
         },
       ])
+      .get(),
+    db
+      .collection("handling_unit_atu7sreg_sub")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            { prop: "material_id", operator: "in", value: materialIds },
+            { prop: "is_deleted", operator: "equal", value: 0 },
+          ],
+        },
+      ])
+      .get(),
+    db
+      .collection("on_reserved_gd")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            { prop: "material_id", operator: "in", value: materialIds },
+            { prop: "plant_id", operator: "equal", value: plantId },
+            { prop: "organization_id", operator: "equal", value: organizationId },
+            { prop: "status", operator: "equal", value: "Allocated" },
+            { prop: "is_deleted", operator: "equal", value: 0 },
+          ],
+        },
+      ])
+      .get()
+      .catch((error) => {
+        console.error("Error fetching on_reserved_gd:", error);
+        return { data: [] };
+      }),
+  ]);
+
+  const itemMap = new Map();
+  (itemRes.data || []).forEach((it) => itemMap.set(it.id, it));
+
+  const subRows = subRes.data || [];
+
+  // Stage 3 — parent HUs of those sub-rows, for the location fallback, the
+  // plant/org scope check, and the packing_id overlay.
+  const candidateHuIds = [
+    ...new Set(subRows.map((r) => r.handling_unit_id).filter(Boolean)),
+  ];
+
+  const huLocationMap = new Map();
+  const packedHuIds = new Set();
+  if (candidateHuIds.length > 0) {
+    const huRes = await db
+      .collection("handling_unit")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            { prop: "id", operator: "in", value: candidateHuIds },
+            { prop: "plant_id", operator: "equal", value: plantId },
+            { prop: "organization_id", operator: "equal", value: organizationId },
+            { prop: "is_deleted", operator: "equal", value: 0 },
+          ],
+        },
+      ])
       .get();
-    (itemRes.data || []).forEach((it) => itemMap.set(it.id, it));
+    for (const hu of huRes.data || []) {
+      huLocationMap.set(hu.id, hu.location_id);
+      // Packed HUs are committed to a Packing doc; their qty lives in
+      // reserved_qty (not unrestricted_qty), so it must not be deducted.
+      if (hu.packing_id) packedHuIds.add(hu.id);
+    }
   }
+
+  // Only Allocated reservations with open_qty > 0 hold stock outside
+  // unrestricted_qty. Pending already moved its qty unrestricted -> reserved on
+  // the balance row at SO save, so counting it here would double-deduct.
+  const huReservedMap = new Map();
+  for (const r of reservationRes.data || []) {
+    if (!r.handling_unit_id) continue;
+    if ((parseFloat(r.open_qty) || 0) <= 0) continue;
+    const item = itemMap.get(r.material_id);
+    let qtyBase = parseFloat(r.open_qty) || 0;
+    if (item && r.item_uom && r.item_uom !== item.based_uom) {
+      const conv = (item.table_uom_conversion || []).find(
+        (c) => c.alt_uom_id === r.item_uom,
+      );
+      if (conv && conv.base_qty) qtyBase = qtyBase * conv.base_qty;
+    }
+    const key = `${r.handling_unit_id}|${r.material_id}|${r.batch_id || ""}`;
+    huReservedMap.set(key, (huReservedMap.get(key) || 0) + qtyBase);
+  }
+
+  // Sum HU-held qty per material/location/batch. Only the UNRESERVED portion of an
+  // HU item sits in unrestricted_qty, so the reserved part must not be deducted.
+  const huQtyMap = new Map();
+  for (const it of subRows) {
+    // Skip sub-rows whose parent HU isn't in this plant/org (or is deleted).
+    if (!huLocationMap.has(it.handling_unit_id)) continue;
+    // Skip packed HUs — their qty is in reserved_qty, not unrestricted_qty.
+    if (packedHuIds.has(it.handling_unit_id)) continue;
+
+    const locationId = it.location_id || huLocationMap.get(it.handling_unit_id);
+    const reservedKey = `${it.handling_unit_id}|${it.material_id}|${
+      it.batch_id || ""
+    }`;
+    const qty = Math.max(
+      0,
+      (parseFloat(it.quantity) || 0) - (huReservedMap.get(reservedKey) || 0),
+    );
+    if (qty <= 0) continue;
+    const key = `${it.material_id}|${locationId}|${it.batch_id || "no_batch"}`;
+    huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
+  }
+
+  const looseQty = (r) => {
+    const key = `${r.material_id}|${r.location_id}|${r.batch_id || "no_batch"}`;
+    return Math.max(
+      0,
+      (parseFloat(r.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0),
+    );
+  };
 
   const nonBatchBalances = itemBalanceRows.filter((r) => {
     const item = itemMap.get(r.material_id);
@@ -105,6 +238,8 @@ const fetchInventoryItems = async (plantId, organizationId) => {
 
   nonBatchBalances.forEach((r) => {
     const item = itemMap.get(r.material_id);
+    const available = looseQty(r);
+    if (available <= 0) return;
     combined.push({
       material_id: r.material_id,
       material_name: item?.material_name || "",
@@ -112,7 +247,7 @@ const fetchInventoryItems = async (plantId, organizationId) => {
       location_id: r.location_id,
       batch_id: null,
       material_uom: item?.based_uom || "",
-      item_quantity: parseFloat(r.unrestricted_qty) || 0,
+      item_quantity: available,
       unload_quantity: 0,
       line_status: "Open",
       balance_id: r.id,
@@ -121,6 +256,8 @@ const fetchInventoryItems = async (plantId, organizationId) => {
 
   batchBalanceRows.forEach((r) => {
     const item = itemMap.get(r.material_id);
+    const available = looseQty(r);
+    if (available <= 0) return;
     combined.push({
       material_id: r.material_id,
       material_name: item?.material_name || "",
@@ -128,7 +265,7 @@ const fetchInventoryItems = async (plantId, organizationId) => {
       location_id: r.location_id,
       batch_id: r.batch_id || null,
       material_uom: item?.based_uom || "",
-      item_quantity: parseFloat(r.unrestricted_qty) || 0,
+      item_quantity: available,
       unload_quantity: 0,
       line_status: "Open",
       balance_id: r.id,
