@@ -1,0 +1,365 @@
+{
+  "request_json": [
+    {
+      "key": "p5qabiu9",
+      "name": "credit_consume",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.credit_consume",
+      "label": "",
+      "model": "0",
+      "valueCom": "input"
+    },
+    {
+      "key": "z1y592kn",
+      "name": "tenant_id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.tenant_id",
+      "label": "",
+      "model": "1",
+      "valueCom": "input"
+    }
+  ],
+  "response_json": [],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "开始节点",
+        "nodeName": "开始节点",
+        "name": "开始节点",
+        "run_filter": {
+          "list": [
+            {
+              "id": 1761899362416,
+              "parentId": 1761899362415,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "get_node_ekWVhyZV",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Sudu Customer:Table:1983717165334331394",
+          "rules": {
+            "collectionId": "1983717165334331394",
+            "list": [
+              {
+                "id": 1761898992004,
+                "parentId": 1761898992003,
+                "isTop": true,
+                "prop": "tenant_id2",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{workflowparams:tenant_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Tenant",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get One",
+        "isValidator": true,
+        "nodeName": "Get One",
+        "name": "Get One"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_qnALO4cQ",
+      "type": "if",
+      "data": {
+        "title": "IF",
+        "isValidator": true,
+        "nodeName": "IF",
+        "name": "IF",
+        "condition_type": "ConditionRule",
+        "filter": {
+          "list": [
+            {
+              "id": 1761899875609,
+              "parentId": 1761899875610,
+              "isTop": true,
+              "prop": "",
+              "operator": "all",
+              "valueType": "",
+              "value": "",
+              "type": "branch",
+              "level": 1,
+              "children": [
+                {
+                  "id": 1736695973613,
+                  "parentId": 1761899875609,
+                  "isTop": false,
+                  "prop": "node.get_node_ekWVhyZV.data.data.sub_remain_credit",
+                  "operator": "lessThanInclusive",
+                  "valueType": "value",
+                  "value": 0,
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "Sub Remain Credit",
+                  "valueLabel": "",
+                  "operatorLabel": "Less Than Or Equal"
+                },
+                {
+                  "id": 1761899875611,
+                  "parentId": 1761899875609,
+                  "isTop": false,
+                  "prop": "node.get_node_ekWVhyZV.data.data.reload_remain_credit",
+                  "operator": "greaterThan",
+                  "valueType": "value",
+                  "value": 0,
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "Reload Remain Credit",
+                  "valueLabel": "",
+                  "operatorLabel": "Greater Than"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_C9xCqMf2",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_IZyc0ykH",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Run Script",
+                "isValidator": true,
+                "nodeName": "Run Script",
+                "name": "Run Script",
+                "script": {
+                  "type": "javascript",
+                  "code": "let obj ={};\nobj.count = {{workflowparams:credit_consume}};\nreturn obj;"
+                },
+                "response_json": [
+                  {
+                    "key": "u6jzwqpr",
+                    "name": "count",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "isParamsNode": true
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_LVkNBhfO",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sudu Customer:Table:1983717165334331394",
+                  "rules": {
+                    "collectionId": "1983717165334331394",
+                    "list": [
+                      {
+                        "id": 1761899620812,
+                        "parentId": 1761899620811,
+                        "isTop": true,
+                        "prop": "tenant_id2",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{workflowparams:tenant_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Tenant",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Data",
+                "isValidator": true,
+                "nodeName": "Update Data",
+                "name": "Update Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:get_node_ekWVhyZV.data.data.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "reload_remain_credit",
+                      "operator": "",
+                      "valueType": "formula",
+                      "value": "minus({{node:code_node_IZyc0ykH.data.count}})",
+                      "valueLabel": "",
+                      "propLabel": "Reload Remain Credit"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_ZuzWhfBJ",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "code_node_VrFlcwJg",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Run Script",
+                "isValidator": true,
+                "nodeName": "Run Script",
+                "name": "Run Script",
+                "script": {
+                  "type": "javascript",
+                  "code": "let obj ={};\nobj.count = {{workflowparams:credit_consume}};\nreturn obj;"
+                },
+                "response_json": [
+                  {
+                    "key": "wjtxlklb",
+                    "name": "count",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "isParamsNode": true,
+                    "value": "node.code_node_VrFlcwJg.data.updatedCredit",
+                    "label": "",
+                    "model": "0",
+                    "valueCom": "input"
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_jIG7o8EK",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sudu Customer:Table:1983717165334331394",
+                  "rules": {
+                    "collectionId": "1983717165334331394",
+                    "list": [
+                      {
+                        "id": 1761899114411,
+                        "parentId": 1761899114410,
+                        "isTop": true,
+                        "prop": "tenant_id2",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{workflowparams:tenant_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Tenant",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Data",
+                "isValidator": true,
+                "nodeName": "Update Data",
+                "name": "Update Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:get_node_ekWVhyZV.data.data.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "sub_remain_credit",
+                      "operator": "",
+                      "valueType": "formula",
+                      "value": "minus({{node:code_node_VrFlcwJg.data.count}})",
+                      "valueLabel": "",
+                      "propLabel": "Sub Remain Credit"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "return_node_cIKP63aI",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "结束节点",
+        "nodeName": "结束节点",
+        "name": "结束节点"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
