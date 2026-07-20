@@ -126,7 +126,9 @@
         {
           "id": "ifBlock_if_cr_bad_headless_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_cr_bad_headless",
@@ -135,7 +137,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -154,7 +160,9 @@
         {
           "id": "ifBlock_if_cr_bad_headless_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -177,7 +185,9 @@
         {
           "id": "ifBlock_if_cr_bad_form_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_cr_bad_form",
@@ -186,7 +196,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -205,7 +219,9 @@
         {
           "id": "ifBlock_if_cr_bad_form_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -228,8 +244,44 @@
         {
           "id": "ifBlock_if_cr_edit_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
+            {
+              "id": "get_node_cr_before",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Sudu Credit Reload:Table:1983746316466860034",
+                  "rules": {
+                    "collectionId": "1983746316466860034",
+                    "list": [
+                      {
+                        "id": 1790000000002,
+                        "parentId": 1790000000001,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_cr_determine.data.input.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Primary Key ID",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Reload Before Update",
+                "isValidator": true,
+                "nodeName": "Fetch Reload Before Update",
+                "name": "Fetch Reload Before Update"
+              },
+              "blocks": []
+            },
             {
               "id": "code_cr_payment_entry",
               "type": "code-node",
@@ -378,7 +430,9 @@
         {
           "id": "ifBlock_if_cr_edit_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "if_cr_headless",
@@ -398,15 +452,21 @@
                 {
                   "id": "ifBlock_if_cr_headless_true",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "cond_all_cr_lookup",
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Branch",
-                        "filter": { "list": [] },
-                        "expression": { "code": "" },
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -612,7 +672,9 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_true",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "end_cr_no_customer",
@@ -622,7 +684,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -642,7 +706,9 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_false",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -715,7 +781,9 @@
                 {
                   "id": "ifBlock_if_cr_headless_false",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "code_cr_form_norm",
@@ -1145,8 +1213,286 @@
                 }
               },
               "blocks": []
+            },
+            {
+              "id": "workflow_cr_produce",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Grant Credit",
+                "isValidator": true,
+                "nodeName": "Grant Credit",
+                "name": "Grant Credit",
+                "workflow": {
+                  "source": "ProduceCredit:Workflow:2079116576704622594",
+                  "rules": {
+                    "collectionId": "2079116576704622594",
+                    "list": [
+                      {
+                        "id": 1780500000001,
+                        "parentId": 1780500000000,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "tenant_id",
+                      "propLabel": "tenant_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_cr_calc.data.entry.tenant_2}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "credit_produce",
+                      "propLabel": "credit_produce",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_cr_calc.data.entry.ai_credit_reload_amount}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "reload_type",
+                      "propLabel": "reload_type",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_cr_calc.data.entry.reload_type}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                }
+              },
+              "blocks": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "code_cr_ar_delta",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Outstanding Delta",
+        "isValidator": true,
+        "nodeName": "Outstanding Delta",
+        "name": "Outstanding Delta",
+        "script": {
+          "type": "javascript",
+          "code": "// Runs for BOTH branches - whichever path did not execute resolves to null.\nconst isEdit = '{{node:code_cr_determine.data.isEdit}}' === 'Y';\nconst input = {{node:code_cr_determine.data.input}} || {};\nconst before = {{node:get_node_cr_before.data.data}};\nconst added = {{node:code_cr_calc.data.entry}};\n\n// 'Paid' is the settled state; every other status means the customer still owes it.\nconst SETTLED = 'Paid';\n\nlet delta = 0;\nlet tenantId = '';\n\nif (isEdit) {\n  const prior = before ? (before.payment_status || '') : '';\n  const now = input.payment_status || '';\n  const total = parseFloat(before ? before.total_amount : 0) || 0;\n  tenantId = before ? before.tenant_2 : '';\n\n  if (prior !== SETTLED && now === SETTLED) {\n    delta = -total;            // settled: no longer owed\n  } else if (prior === SETTLED && now !== SETTLED) {\n    delta = total;             // un-settled: owed again\n  }\n} else {\n  const total = parseFloat(added ? added.total_amount : 0) || 0;\n  tenantId = added ? added.tenant_2 : '';\n\n  if ((added ? added.payment_status : '') !== SETTLED) {\n    delta = total;             // created unpaid: now owed\n  }\n}\n\nreturn { delta, tenantId, hasChange: delta !== 0 ? 'Y' : 'N' };"
+        },
+        "response_json": [
+          {
+            "key": "kdelta0",
+            "name": "delta",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kdelta1",
+            "name": "tenantId",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kdelta2",
+            "name": "hasChange",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_cr_ar_change",
+      "type": "if",
+      "data": {
+        "title": "Outstanding Changed ?",
+        "isValidator": true,
+        "nodeName": "Outstanding Changed ?",
+        "name": "Outstanding Changed ?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_cr_ar_delta.data.hasChange}}' == 'Y'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_if_cr_ar_change_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "get_node_cr_customer_ar",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Sudu Customer:Table:1983717165334331394",
+                  "rules": {
+                    "collectionId": "1983717165334331394",
+                    "list": [
+                      {
+                        "id": 1790000000004,
+                        "parentId": 1790000000003,
+                        "isTop": true,
+                        "prop": "tenant_id2",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{node:code_cr_ar_delta.data.tenantId}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Tenant",
+                        "valueLabel": "",
+                        "operatorLabel": "equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Customer AR",
+                "isValidator": true,
+                "nodeName": "Fetch Customer AR",
+                "name": "Fetch Customer AR"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_cr_ar_new",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Compute Outstanding",
+                "isValidator": true,
+                "nodeName": "Compute Outstanding",
+                "name": "Compute Outstanding",
+                "script": {
+                  "type": "javascript",
+                  "code": "const customer = {{node:get_node_cr_customer_ar.data.data}} || {};\nconst delta = parseFloat({{node:code_cr_ar_delta.data.delta}}) || 0;\nconst current = parseFloat(customer.outstanding_balance) || 0;\n\n// Clamped at zero: the column is a positive-money field and a negative write is\n// rejected. A clamp firing means the ledger has drifted - worth investigating.\nconst next = Math.max(0, current + delta);\n\nreturn {\n  customerId: customer.id,\n  outstandingBalance: next.toFixed(2),\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "kr_new0",
+                    "name": "customerId",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kr_new1",
+                    "name": "outstandingBalance",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_cr_outstanding",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sudu Customer:Table:1983717165334331394",
+                  "rules": {
+                    "collectionId": "1983717165334331394",
+                    "list": [
+                      {
+                        "id": 1790000000006,
+                        "parentId": 1790000000005,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{node:code_cr_ar_new.data.customerId}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "equal"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Outstanding Balance",
+                "isValidator": true,
+                "nodeName": "Update Outstanding Balance",
+                "name": "Update Outstanding Balance",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_ar_new.data.customerId}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "outstanding_balance",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_ar_new.data.outstandingBalance}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Balance"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_if_cr_ar_change_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
         }
       ]
     },
@@ -1197,7 +1543,10 @@
         "nodeName": "End Node",
         "name": "End Node",
         "back_data_type": "OutputParams",
-        "msg": { "type": "javascript", "code": "" },
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
         "response_value": {
           "list": [
             {

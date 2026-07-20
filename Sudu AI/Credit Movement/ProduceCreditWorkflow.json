@@ -1,20 +1,7 @@
 {
   "request_json": [
     {
-      "key": "p5qabiu9",
-      "name": "credit_consume",
-      "title": "",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "isParamsNode": true,
-      "value": "workflowparams.credit_consume",
-      "label": "",
-      "model": "0",
-      "valueCom": "input"
-    },
-    {
-      "key": "z1y592kn",
+      "key": "pctenant1",
       "name": "tenant_id",
       "title": "",
       "description": "",
@@ -22,6 +9,32 @@
       "isExpand": false,
       "isParamsNode": true,
       "value": "workflowparams.tenant_id",
+      "label": "",
+      "model": "0",
+      "valueCom": "input"
+    },
+    {
+      "key": "pccredit1",
+      "name": "credit_produce",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.credit_produce",
+      "label": "",
+      "model": "0",
+      "valueCom": "input"
+    },
+    {
+      "key": "pctype001",
+      "name": "reload_type",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.reload_type",
       "label": "",
       "model": "0",
       "valueCom": "input"
@@ -70,7 +83,66 @@
       "blocks": []
     },
     {
-      "id": "get_node_cc_customer",
+      "id": "if_pc_bad_type",
+      "type": "if",
+      "data": {
+        "title": "Unknown Reload Type ?",
+        "isValidator": true,
+        "nodeName": "Unknown Reload Type ?",
+        "name": "Unknown Reload Type ?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:reload_type}}' != 'Monthly Subscription' && '{{workflowparams:reload_type}}' != 'Add On'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_if_pc_bad_type_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "end_pc_bad_type",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 400,
+                "msg": {
+                  "type": "javascript",
+                  "code": "reload_type must be either 'Monthly Subscription' or 'Add On'."
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_if_pc_bad_type_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "get_node_pc_customer",
       "type": "get-node",
       "data": {
         "table_id": {
@@ -79,8 +151,8 @@
             "collectionId": "1983717165334331394",
             "list": [
               {
-                "id": 1780000000002,
-                "parentId": 1780000000001,
+                "id": 1780000000008,
+                "parentId": 1780000000007,
                 "isTop": true,
                 "prop": "tenant_id2",
                 "operator": "equal",
@@ -104,7 +176,7 @@
       "blocks": []
     },
     {
-      "id": "if_cc_no_customer",
+      "id": "if_pc_no_customer",
       "type": "if",
       "data": {
         "title": "Customer Missing ?",
@@ -114,19 +186,19 @@
         "condition_type": "Expression",
         "expression": {
           "type": "javascript",
-          "code": "'{{node:get_node_cc_customer.data.data.id}}' == ''"
+          "code": "'{{node:get_node_pc_customer.data.data.id}}' == ''"
         }
       },
       "blocks": [
         {
-          "id": "ifBlock_if_cc_no_customer_true",
+          "id": "ifBlock_if_pc_no_customer_true",
           "type": "ifBlock",
           "data": {
             "title": "true"
           },
           "blocks": [
             {
-              "id": "end_cc_no_customer",
+              "id": "end_pc_no_customer",
               "type": "end-node",
               "data": {
                 "title": "结束节点",
@@ -153,7 +225,7 @@
           ]
         },
         {
-          "id": "ifBlock_if_cc_no_customer_false",
+          "id": "ifBlock_if_pc_no_customer_false",
           "type": "ifBlock",
           "data": {
             "title": "false"
@@ -163,19 +235,19 @@
       ]
     },
     {
-      "id": "code_cc_compute",
+      "id": "code_pc_compute",
       "type": "code-node",
       "data": {
         "language": "javascript",
         "code": "",
         "timeout": 30000,
-        "title": "Compute Consumption",
+        "title": "Compute Grant",
         "isValidator": true,
-        "nodeName": "Compute Consumption",
-        "name": "Compute Consumption",
+        "nodeName": "Compute Grant",
+        "name": "Compute Grant",
         "script": {
           "type": "javascript",
-          "code": "const customer = {{node:get_node_cc_customer.data.data}} || {};\nconst amount = parseFloat({{workflowparams:credit_consume}}) || 0;\n\nconst subBefore = parseFloat(customer.sub_remain_credit) || 0;\nconst reloadBefore = parseFloat(customer.reload_remain_credit) || 0;\n\n// Bucket rule preserved exactly from the original workflow: the reload bucket is\n// used only once the subscription bucket is exhausted AND reload has something.\n// Balances are allowed to go negative - there is deliberately no sufficiency check.\nconst source = (subBefore <= 0 && reloadBefore > 0) ? 'Reload' : 'Subscription';\n\nconst subAfter = source === 'Subscription' ? subBefore - amount : subBefore;\nconst reloadAfter = source === 'Reload' ? reloadBefore - amount : reloadBefore;\n\nconst movement = {\n  customer_id: customer.id,\n  transaction_type: 'AI Usage',\n  ai_credit_source: source,\n  ai_credit_amount: Math.round(amount),\n  sub_previous_balance: Math.round(subBefore),\n  sub_balance_after: Math.round(subAfter),\n  reload_previous_balance: Math.round(reloadBefore),\n  reload_balance_after: Math.round(reloadAfter),\n  dealer_id: '',\n  agent_id: '',\n};\n\nreturn {\n  customerId: customer.id,\n  source,\n  amount: Math.round(amount),\n  subBefore: Math.round(subBefore),\n  subAfter: Math.round(subAfter),\n  reloadBefore: Math.round(reloadBefore),\n  reloadAfter: Math.round(reloadAfter),\n  movement,\n};"
+          "code": "const customer = {{node:get_node_pc_customer.data.data}} || {};\nconst credits = parseFloat({{workflowparams:credit_produce}}) || 0;\nconst reloadType = '{{workflowparams:reload_type}}';\n\nconst subBefore = parseFloat(customer.sub_remain_credit) || 0;\nconst reloadBefore = parseFloat(customer.reload_remain_credit) || 0;\n\n// Monthly Subscription RESETS the subscription bucket - leftover credit does not\n// carry over. Add On accumulates onto the reload bucket.\nlet source = '';\nlet transactionType = '';\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  source = 'Subscription';\n  transactionType = 'Monthly Grant';\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  source = 'Reload';\n  transactionType = 'Paid Reload';\n  reloadAfter = reloadBefore + credits;\n}\n\nconst movement = {\n  customer_id: customer.id,\n  transaction_type: transactionType,\n  ai_credit_source: source,\n  ai_credit_amount: Math.round(credits),\n  sub_previous_balance: Math.round(subBefore),\n  sub_balance_after: Math.round(subAfter),\n  reload_previous_balance: Math.round(reloadBefore),\n  reload_balance_after: Math.round(reloadAfter),\n  dealer_id: '',\n  agent_id: '',\n};\n\nreturn {\n  customerId: customer.id,\n  source,\n  transactionType,\n  credits: Math.round(credits),\n  subBefore: Math.round(subBefore),\n  subAfter: Math.round(subAfter),\n  reloadBefore: Math.round(reloadBefore),\n  reloadAfter: Math.round(reloadAfter),\n  movement,\n};"
         },
         "response_json": [
           {
@@ -198,7 +270,7 @@
           },
           {
             "key": "kmpute2",
-            "name": "amount",
+            "name": "transactionType",
             "title": "",
             "description": "",
             "bsonType": "any",
@@ -207,7 +279,7 @@
           },
           {
             "key": "kmpute3",
-            "name": "subBefore",
+            "name": "credits",
             "title": "",
             "description": "",
             "bsonType": "any",
@@ -216,7 +288,7 @@
           },
           {
             "key": "kmpute4",
-            "name": "subAfter",
+            "name": "subBefore",
             "title": "",
             "description": "",
             "bsonType": "any",
@@ -225,7 +297,7 @@
           },
           {
             "key": "kmpute5",
-            "name": "reloadBefore",
+            "name": "subAfter",
             "title": "",
             "description": "",
             "bsonType": "any",
@@ -234,7 +306,7 @@
           },
           {
             "key": "kmpute6",
-            "name": "reloadAfter",
+            "name": "reloadBefore",
             "title": "",
             "description": "",
             "bsonType": "any",
@@ -243,6 +315,15 @@
           },
           {
             "key": "kmpute7",
+            "name": "reloadAfter",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kmpute8",
             "name": "movement",
             "title": "",
             "description": "",
@@ -255,7 +336,7 @@
       "blocks": []
     },
     {
-      "id": "update_node_cc_customer",
+      "id": "update_node_pc_customer",
       "type": "update-node",
       "data": {
         "table_id": {
@@ -264,13 +345,13 @@
             "collectionId": "1983717165334331394",
             "list": [
               {
-                "id": 1780000000004,
-                "parentId": 1780000000003,
+                "id": 1780000000010,
+                "parentId": 1780000000009,
                 "isTop": true,
                 "prop": "id",
                 "operator": "equal",
                 "valueType": "field",
-                "value": "{{node:code_cc_compute.data.customerId}}",
+                "value": "{{node:code_pc_compute.data.customerId}}",
                 "type": "leaf",
                 "level": 1,
                 "propLabel": "主键ID",
@@ -292,7 +373,7 @@
             {
               "prop": "id",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.customerId}}",
+              "value": "{{node:code_pc_compute.data.customerId}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "主键ID"
@@ -300,7 +381,7 @@
             {
               "prop": "sub_remain_credit",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.subAfter}}",
+              "value": "{{node:code_pc_compute.data.subAfter}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "Sub Remain Credit"
@@ -308,7 +389,7 @@
             {
               "prop": "reload_remain_credit",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.reloadAfter}}",
+              "value": "{{node:code_pc_compute.data.reloadAfter}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "Reload Remain Credit"
@@ -319,7 +400,7 @@
       "blocks": []
     },
     {
-      "id": "add_node_cc_movement",
+      "id": "add_node_pc_movement",
       "type": "add-node",
       "data": {
         "table_id": {
@@ -328,8 +409,8 @@
             "collectionId": "2077658666434879490",
             "list": [
               {
-                "id": 1780000000006,
-                "parentId": 1780000000005,
+                "id": 1780000000012,
+                "parentId": 1780000000011,
                 "isTop": true,
                 "prop": "",
                 "operator": "",
@@ -355,7 +436,7 @@
             {
               "prop": "customer_id",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.customer_id}}",
+              "value": "{{node:code_pc_compute.data.movement.customer_id}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "customer_id"
@@ -363,7 +444,7 @@
             {
               "prop": "transaction_type",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.transaction_type}}",
+              "value": "{{node:code_pc_compute.data.movement.transaction_type}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "transaction_type"
@@ -371,7 +452,7 @@
             {
               "prop": "ai_credit_source",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.ai_credit_source}}",
+              "value": "{{node:code_pc_compute.data.movement.ai_credit_source}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "ai_credit_source"
@@ -379,7 +460,7 @@
             {
               "prop": "ai_credit_amount",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.ai_credit_amount}}",
+              "value": "{{node:code_pc_compute.data.movement.ai_credit_amount}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "ai_credit_amount"
@@ -387,7 +468,7 @@
             {
               "prop": "sub_previous_balance",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.sub_previous_balance}}",
+              "value": "{{node:code_pc_compute.data.movement.sub_previous_balance}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "sub_previous_balance"
@@ -395,7 +476,7 @@
             {
               "prop": "sub_balance_after",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.sub_balance_after}}",
+              "value": "{{node:code_pc_compute.data.movement.sub_balance_after}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "sub_balance_after"
@@ -403,7 +484,7 @@
             {
               "prop": "reload_previous_balance",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.reload_previous_balance}}",
+              "value": "{{node:code_pc_compute.data.movement.reload_previous_balance}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "reload_previous_balance"
@@ -411,7 +492,7 @@
             {
               "prop": "reload_balance_after",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.reload_balance_after}}",
+              "value": "{{node:code_pc_compute.data.movement.reload_balance_after}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "reload_balance_after"
@@ -419,7 +500,7 @@
             {
               "prop": "dealer_id",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.dealer_id}}",
+              "value": "{{node:code_pc_compute.data.movement.dealer_id}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "dealer_id"
@@ -427,7 +508,7 @@
             {
               "prop": "agent_id",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.agent_id}}",
+              "value": "{{node:code_pc_compute.data.movement.agent_id}}",
               "operator": "",
               "valueLabel": "",
               "propLabel": "agent_id"
@@ -460,7 +541,7 @@
               "valueType": "field",
               "valueTypeLabel": "",
               "valueLabel": "",
-              "value": "{{node:code_cc_compute.data.subAfter}}"
+              "value": "{{node:code_pc_compute.data.subAfter}}"
             },
             {
               "prop": "reload_remain_credit",
@@ -470,7 +551,7 @@
               "valueType": "field",
               "valueTypeLabel": "",
               "valueLabel": "",
-              "value": "{{node:code_cc_compute.data.reloadAfter}}"
+              "value": "{{node:code_pc_compute.data.reloadAfter}}"
             },
             {
               "prop": "source",
@@ -480,7 +561,7 @@
               "valueType": "field",
               "valueTypeLabel": "",
               "valueLabel": "",
-              "value": "{{node:code_cc_compute.data.source}}"
+              "value": "{{node:code_pc_compute.data.source}}"
             }
           ]
         }
