@@ -126,9 +126,7 @@
         {
           "id": "ifBlock_if_cr_bad_headless_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "end_cr_bad_headless",
@@ -137,11 +135,7 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "string"
-                    }
-                  }
+                  "properties": { "result": { "type": "string" } }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -160,9 +154,7 @@
         {
           "id": "ifBlock_if_cr_bad_headless_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -185,9 +177,7 @@
         {
           "id": "ifBlock_if_cr_bad_form_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "end_cr_bad_form",
@@ -196,11 +186,7 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "string"
-                    }
-                  }
+                  "properties": { "result": { "type": "string" } }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -219,9 +205,7 @@
         {
           "id": "ifBlock_if_cr_bad_form_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -244,9 +228,7 @@
         {
           "id": "ifBlock_if_cr_edit_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "get_node_cr_before",
@@ -430,9 +412,7 @@
         {
           "id": "ifBlock_if_cr_edit_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "if_cr_headless",
@@ -452,21 +432,15 @@
                 {
                   "id": "ifBlock_if_cr_headless_true",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "cond_all_cr_lookup",
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Branch",
-                        "filter": {
-                          "list": []
-                        },
-                        "expression": {
-                          "code": ""
-                        },
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -672,9 +646,7 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_true",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "end_cr_no_customer",
@@ -684,9 +656,7 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": {
-                                      "type": "string"
-                                    }
+                                    "result": { "type": "string" }
                                   }
                                 },
                                 "isValidator": true,
@@ -706,9 +676,7 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_false",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -781,9 +749,7 @@
                 {
                   "id": "ifBlock_if_cr_headless_false",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "code_cr_form_norm",
@@ -1352,9 +1318,7 @@
         {
           "id": "ifBlock_if_cr_ar_change_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "get_node_cr_customer_ar",
@@ -1489,9 +1453,7 @@
         {
           "id": "ifBlock_if_cr_ar_change_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -1543,10 +1505,7 @@
         "nodeName": "End Node",
         "name": "End Node",
         "back_data_type": "OutputParams",
-        "msg": {
-          "type": "javascript",
-          "code": ""
-        },
+        "msg": { "type": "javascript", "code": "" },
         "response_value": {
           "list": [
             {
