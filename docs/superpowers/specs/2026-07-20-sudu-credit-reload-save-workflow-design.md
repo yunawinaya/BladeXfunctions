@@ -18,7 +18,7 @@ Because the headless caller has none of the form's computed values, the calculat
 | Question | Decision |
 |---|---|
 | Does saving update the customer's balances? | **No** — document only. `sub_remain_credit` / `reload_remain_credit` on Sudu Customer are not written. The `*_before` / `*_after` fields are a record of the calculation, not an instruction. |
-| Headless invoice number | Workflow looks up the default rule (`is_default = 1`) in the serial-number rule table and writes it to `reload_invoice_no_type`, letting the platform generate the number exactly as the form does. |
+| Headless invoice number | Workflow looks up the rule in the serial-number rule table matching `business_type = "Reload Invoice"` **and** `is_draft = 0` **and** `is_default = 1`, and writes it to `reload_invoice_no_type`, letting the platform generate the number exactly as the form does. The three conditions sit in one `branch`/`all` wrapper — multiple top-level leaves do not AND. The form additionally scopes by `department_id = {{global:firstLvDeptId}}`; the workflow deliberately omits it, because a headless caller may have no department context and an empty match would yield no invoice number. Consequence: if two organizations each define a default Reload Invoice rule, the workflow takes whichever the table returns first. |
 | Scope | **Add + Edit in one workflow.** Edit exists only to settle payment, so it writes the payment fields and skips all derivation. |
 | Headless `payment_status` | `Unpaid` — same as a form-created record. |
 | Structure | **One workflow, one id, always recompute server-side** (approach A). |

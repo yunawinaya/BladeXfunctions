@@ -1,4 +1,36 @@
 {
+  "request_json": [
+    {
+      "key": "crdata01",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "crresp01",
+      "name": "id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "crresp02",
+      "name": "reload_invoice_no",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -94,9 +126,7 @@
         {
           "id": "ifBlock_if_cr_bad_headless_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "end_cr_bad_headless",
@@ -105,11 +135,7 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "string"
-                    }
-                  }
+                  "properties": { "result": { "type": "string" } }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -128,9 +154,7 @@
         {
           "id": "ifBlock_if_cr_bad_headless_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -153,9 +177,7 @@
         {
           "id": "ifBlock_if_cr_bad_form_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "end_cr_bad_form",
@@ -164,11 +186,7 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "string"
-                    }
-                  }
+                  "properties": { "result": { "type": "string" } }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -187,9 +205,7 @@
         {
           "id": "ifBlock_if_cr_bad_form_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -212,9 +228,7 @@
         {
           "id": "ifBlock_if_cr_edit_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_cr_payment_entry",
@@ -364,9 +378,7 @@
         {
           "id": "ifBlock_if_cr_edit_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "if_cr_headless",
@@ -386,21 +398,15 @@
                 {
                   "id": "ifBlock_if_cr_headless_true",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "cond_all_cr_lookup",
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Branch",
-                        "filter": {
-                          "list": []
-                        },
-                        "expression": {
-                          "code": ""
-                        },
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -518,18 +524,59 @@
                                     "collectionId": "1994006139209117697",
                                     "list": [
                                       {
-                                        "id": 1700000000004,
-                                        "parentId": 1700000000003,
+                                        "id": 1700000900001,
+                                        "parentId": 1700000900000,
                                         "isTop": true,
-                                        "prop": "is_default",
-                                        "operator": "numberEqual",
-                                        "valueType": "value",
-                                        "value": "1",
-                                        "type": "leaf",
+                                        "prop": "",
+                                        "operator": "all",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "branch",
                                         "level": 1,
-                                        "propLabel": "Is Default",
-                                        "valueLabel": "",
-                                        "operatorLabel": "numberEqual"
+                                        "children": [
+                                          {
+                                            "id": 1700000900002,
+                                            "parentId": 1700000900001,
+                                            "isTop": false,
+                                            "prop": "business_type",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "Reload Invoice",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Document Type",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1700000900003,
+                                            "parentId": 1700000900001,
+                                            "isTop": false,
+                                            "prop": "is_draft",
+                                            "operator": "numberEqual",
+                                            "valueType": "value",
+                                            "value": 0,
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Draft",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1700000900004,
+                                            "parentId": 1700000900001,
+                                            "isTop": false,
+                                            "prop": "is_default",
+                                            "operator": "numberEqual",
+                                            "valueType": "value",
+                                            "value": 1,
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Default",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          }
+                                        ]
                                       }
                                     ]
                                   }
@@ -565,9 +612,7 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_true",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "end_cr_no_customer",
@@ -577,9 +622,7 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": {
-                                      "type": "string"
-                                    }
+                                    "result": { "type": "string" }
                                   }
                                 },
                                 "isValidator": true,
@@ -599,9 +642,7 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_false",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -674,9 +715,7 @@
                 {
                   "id": "ifBlock_if_cr_headless_false",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "code_cr_form_norm",
@@ -1158,10 +1197,7 @@
         "nodeName": "End Node",
         "name": "End Node",
         "back_data_type": "OutputParams",
-        "msg": {
-          "type": "javascript",
-          "code": ""
-        },
+        "msg": { "type": "javascript", "code": "" },
         "response_value": {
           "list": [
             {
@@ -1190,37 +1226,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "crdata01",
-      "name": "data",
-      "title": "Data",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    }
-  ],
-  "response_json": [
-    {
-      "key": "crresp01",
-      "name": "id",
-      "title": "",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "crresp02",
-      "name": "reload_invoice_no",
-      "title": "",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "children": []
-    }
-  ],
-  "config": {}
+  "edges": []
 }
