@@ -126,7 +126,9 @@
         {
           "id": "ifBlock_if_cr_bad_headless_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_cr_bad_headless",
@@ -135,7 +137,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -154,7 +160,9 @@
         {
           "id": "ifBlock_if_cr_bad_headless_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -177,7 +185,9 @@
         {
           "id": "ifBlock_if_cr_bad_form_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_cr_bad_form",
@@ -186,7 +196,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -205,7 +219,9 @@
         {
           "id": "ifBlock_if_cr_bad_form_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -228,7 +244,9 @@
         {
           "id": "ifBlock_if_cr_edit_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_node_cr_before",
@@ -412,7 +430,9 @@
         {
           "id": "ifBlock_if_cr_edit_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "if_cr_headless",
@@ -432,15 +452,21 @@
                 {
                   "id": "ifBlock_if_cr_headless_true",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "cond_all_cr_lookup",
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Branch",
-                        "filter": { "list": [] },
-                        "expression": { "code": "" },
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -646,7 +672,9 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_true",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "end_cr_no_customer",
@@ -656,7 +684,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -676,7 +706,9 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_false",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -749,7 +781,9 @@
                 {
                   "id": "ifBlock_if_cr_headless_false",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "code_cr_form_norm",
@@ -1266,7 +1300,7 @@
         "name": "Outstanding Delta",
         "script": {
           "type": "javascript",
-          "code": "// Runs for BOTH branches - whichever path did not execute resolves to null.\nconst isEdit = '{{node:code_cr_determine.data.isEdit}}' === 'Y';\nconst input = {{node:code_cr_determine.data.input}} || {};\nconst before = {{node:get_node_cr_before.data.data}};\nconst added = {{node:code_cr_calc.data.entry}};\n\n// 'Paid' is the settled state; every other status means the customer still owes it.\nconst SETTLED = 'Paid';\n\nlet delta = 0;\nlet tenantId = '';\n\nif (isEdit) {\n  const prior = before ? (before.payment_status || '') : '';\n  const now = input.payment_status || '';\n  const total = parseFloat(before ? before.total_amount : 0) || 0;\n  tenantId = before ? before.tenant_2 : '';\n\n  if (prior !== SETTLED && now === SETTLED) {\n    delta = -total;            // settled: no longer owed\n  } else if (prior === SETTLED && now !== SETTLED) {\n    delta = total;             // un-settled: owed again\n  }\n} else {\n  const total = parseFloat(added ? added.total_amount : 0) || 0;\n  tenantId = added ? added.tenant_2 : '';\n\n  if ((added ? added.payment_status : '') !== SETTLED) {\n    delta = total;             // created unpaid: now owed\n  }\n}\n\nreturn { delta, tenantId, hasChange: delta !== 0 ? 'Y' : 'N' };"
+          "code": "// Runs for BOTH branches - whichever path did not execute resolves to null.\nconst isEdit = {{node:code_cr_determine.data.isEdit}} === 'Y';\nconst input = {{node:code_cr_determine.data.input}} || {};\nconst before = {{node:get_node_cr_before.data.data}};\nconst added = {{node:code_cr_calc.data.entry}};\n\n// 'Paid' is the settled state; every other status means the customer still owes it.\nconst SETTLED = 'Paid';\n\nlet delta = 0;\nlet tenantId = '';\n\nif (isEdit) {\n  const prior = before ? (before.payment_status || '') : '';\n  const now = input.payment_status || '';\n  const total = parseFloat(before ? before.total_amount : 0) || 0;\n  tenantId = before ? before.tenant_2 : '';\n\n  if (prior !== SETTLED && now === SETTLED) {\n    delta = -total;            // settled: no longer owed\n  } else if (prior === SETTLED && now !== SETTLED) {\n    delta = total;             // un-settled: owed again\n  }\n} else {\n  const total = parseFloat(added ? added.total_amount : 0) || 0;\n  tenantId = added ? added.tenant_2 : '';\n\n  if ((added ? added.payment_status : '') !== SETTLED) {\n    delta = total;             // created unpaid: now owed\n  }\n}\n\nreturn { delta, tenantId, hasChange: delta !== 0 ? 'Y' : 'N' };"
         },
         "response_json": [
           {
@@ -1318,7 +1352,9 @@
         {
           "id": "ifBlock_if_cr_ar_change_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_node_cr_customer_ar",
@@ -1453,7 +1489,9 @@
         {
           "id": "ifBlock_if_cr_ar_change_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1471,7 +1509,7 @@
         "name": "Map Result",
         "script": {
           "type": "javascript",
-          "code": "const isEdit = '{{node:code_cr_determine.data.isEdit}}' === 'Y';\nconst added = {{node:add_node_cr.data}};\nconst fetched = {{node:get_node_cr.data.data}};\n\nconst row = isEdit ? fetched : (added && added[0]);\n\nreturn {\n  id: row ? row.id : '',\n  reload_invoice_no: row ? row.reload_invoice_no : '',\n};"
+          "code": "const isEdit = {{node:code_cr_determine.data.isEdit}} === 'Y';\nconst added = {{node:add_node_cr.data}};\nconst fetched = {{node:get_node_cr.data.data}};\n\nconst row = isEdit ? fetched : (added && added[0]);\n\nreturn {\n  id: row ? row.id : '',\n  reload_invoice_no: row ? row.reload_invoice_no : '',\n};"
         },
         "response_json": [
           {
@@ -1505,7 +1543,10 @@
         "nodeName": "End Node",
         "name": "End Node",
         "back_data_type": "OutputParams",
-        "msg": { "type": "javascript", "code": "" },
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
         "response_value": {
           "list": [
             {

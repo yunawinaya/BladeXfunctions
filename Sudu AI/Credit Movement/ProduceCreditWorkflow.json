@@ -100,7 +100,9 @@
         {
           "id": "ifBlock_if_pc_bad_type_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_pc_bad_type",
@@ -109,7 +111,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -128,7 +134,9 @@
         {
           "id": "ifBlock_if_pc_bad_type_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -185,7 +193,9 @@
         {
           "id": "ifBlock_if_pc_no_customer_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_pc_no_customer",
@@ -194,7 +204,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -213,7 +227,9 @@
         {
           "id": "ifBlock_if_pc_no_customer_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -231,7 +247,7 @@
         "name": "Compute Grant",
         "script": {
           "type": "javascript",
-          "code": "const customer = {{node:get_node_pc_customer.data.data}} || {};\nconst credits = parseFloat({{workflowparams:credit_produce}}) || 0;\nconst reloadType = '{{workflowparams:reload_type}}';\n\nconst subBefore = parseFloat(customer.sub_remain_credit) || 0;\nconst reloadBefore = parseFloat(customer.reload_remain_credit) || 0;\n\n// Monthly Subscription RESETS the subscription bucket - leftover credit does not\n// carry over. Add On accumulates onto the reload bucket.\nlet source = '';\nlet transactionType = '';\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  source = 'Subscription';\n  transactionType = 'Monthly Grant';\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  source = 'Reload';\n  transactionType = 'Paid Reload';\n  reloadAfter = reloadBefore + credits;\n}\n\nconst movement = {\n  customer_id: customer.id,\n  transaction_type: transactionType,\n  ai_credit_source: source,\n  ai_credit_amount: Math.round(credits),\n  sub_previous_balance: Math.round(subBefore),\n  sub_balance_after: Math.round(subAfter),\n  reload_previous_balance: Math.round(reloadBefore),\n  reload_balance_after: Math.round(reloadAfter),\n  dealer_id: '',\n  agent_id: '',\n};\n\nreturn {\n  customerId: customer.id,\n  source,\n  transactionType,\n  credits: Math.round(credits),\n  subBefore: Math.round(subBefore),\n  subAfter: Math.round(subAfter),\n  reloadBefore: Math.round(reloadBefore),\n  reloadAfter: Math.round(reloadAfter),\n  movement,\n};"
+          "code": "const customer = {{node:get_node_pc_customer.data.data}} || {};\nconst credits = parseFloat({{workflowparams:credit_produce}}) || 0;\nconst reloadType = {{workflowparams:reload_type}};\n\nconst subBefore = parseFloat(customer.sub_remain_credit) || 0;\nconst reloadBefore = parseFloat(customer.reload_remain_credit) || 0;\n\n// Monthly Subscription RESETS the subscription bucket - leftover credit does not\n// carry over. Add On accumulates onto the reload bucket.\nlet source = '';\nlet transactionType = '';\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  source = 'Subscription';\n  transactionType = 'Monthly Grant';\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  source = 'Reload';\n  transactionType = 'Paid Reload';\n  reloadAfter = reloadBefore + credits;\n}\n\nconst movement = {\n  customer_id: customer.id,\n  transaction_type: transactionType,\n  ai_credit_source: source,\n  ai_credit_amount: Math.round(credits),\n  sub_previous_balance: Math.round(subBefore),\n  sub_balance_after: Math.round(subAfter),\n  reload_previous_balance: Math.round(reloadBefore),\n  reload_balance_after: Math.round(reloadAfter),\n  dealer_id: '',\n  agent_id: '',\n};\n\nreturn {\n  customerId: customer.id,\n  source,\n  transactionType,\n  credits: Math.round(credits),\n  subBefore: Math.round(subBefore),\n  subAfter: Math.round(subAfter),\n  reloadBefore: Math.round(reloadBefore),\n  reloadAfter: Math.round(reloadAfter),\n  movement,\n};"
         },
         "response_json": [
           {
@@ -511,7 +527,10 @@
         "nodeName": "结束节点",
         "name": "结束节点",
         "back_data_type": "OutputParams",
-        "msg": { "type": "javascript", "code": "" },
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
         "response_value": {
           "list": [
             {

@@ -211,6 +211,23 @@ def main(path):
                 f"{node['id']}: returns {sorted(missing)} not declared in response_json"
             )
 
+    # 2b. code-node placeholders must NOT be wrapped in quotes.
+    # The platform substitutes {{...}} with a JS EXPRESSION
+    # (_meta.cmpData['workflowparams:x']), so '{{...}}' produces nested quotes
+    # and the node dies at load time with "Expected ; but found workflowparams".
+    # Note if-node expressions are the opposite - there the value is substituted
+    # as a bare literal and MUST be quoted - so this check is code-nodes only.
+    quoted = re.compile(r"""(['"`])(\{\{[^}]+\}\})\1""")
+    for node in nodes:
+        if node.get("type") != "code-node":
+            continue
+        for match in quoted.finditer(code_of(node)):
+            line = code_of(node)[: match.start()].count("\n") + 1
+            findings.append(
+                f"{node['id']}: line {line} wraps a placeholder in quotes "
+                f"({match.group(0)}) - code-node placeholders must be bare"
+            )
+
     # 3. if nodes need a non-empty true block, and no === in the expression
     for node in nodes:
         if node.get("type") != "if":
