@@ -1,0 +1,1226 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_cr_determine",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Determine Params",
+        "isValidator": true,
+        "nodeName": "Determine Params",
+        "name": "Determine Params",
+        "script": {
+          "type": "javascript",
+          "code": "const input = {{workflowparams:data}} || {};\n\nconst mode = input.mode === 'headless' ? 'headless' : 'form';\nconst pageStatus = input.page_status || 'Add';\n\n// Headless is always an Add. Edit only ever arrives from the form.\nconst isEdit = (mode === 'form' && pageStatus === 'Edit') ? 'Y' : 'N';\nconst isHeadless = mode === 'headless' ? 'Y' : 'N';\n\nlet errorCode = '';\nif (isHeadless === 'Y') {\n  const amount = parseFloat(input.reload_amount);\n  if (!input.tenant_id || !input.reload_type || !amount || amount <= 0) {\n    errorCode = '400';\n  }\n} else if (isEdit === 'N') {\n  const amount = parseFloat(input.reload_amount);\n  if (!input.tenant_2 || !input.reload_type || !amount || amount <= 0) {\n    errorCode = '406';\n  }\n}\n\nreturn { input, mode, isEdit, isHeadless, errorCode };"
+        },
+        "response_json": [
+          {
+            "key": "kermine0",
+            "name": "input",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kermine1",
+            "name": "mode",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kermine2",
+            "name": "isEdit",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kermine3",
+            "name": "isHeadless",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kermine4",
+            "name": "errorCode",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_cr_bad_headless",
+      "type": "if",
+      "data": {
+        "title": "Bad Headless Input ?",
+        "isValidator": true,
+        "nodeName": "Bad Headless Input ?",
+        "name": "Bad Headless Input ?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_cr_determine.data.errorCode}}' == '400'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_if_cr_bad_headless_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "end_cr_bad_headless",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 400,
+                "msg": {
+                  "type": "javascript",
+                  "code": "Headless payload requires tenant_id, reload_type and a reload_amount greater than zero."
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_if_cr_bad_headless_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_cr_bad_form",
+      "type": "if",
+      "data": {
+        "title": "Bad Form Input ?",
+        "isValidator": true,
+        "nodeName": "Bad Form Input ?",
+        "name": "Bad Form Input ?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_cr_determine.data.errorCode}}' == '406'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_if_cr_bad_form_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "end_cr_bad_form",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 406,
+                "msg": {
+                  "type": "javascript",
+                  "code": "Missing required fields: customer, reload type and a reload amount greater than zero are required."
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_if_cr_bad_form_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_cr_edit",
+      "type": "if",
+      "data": {
+        "title": "Edit ?",
+        "isValidator": true,
+        "nodeName": "Edit ?",
+        "name": "Edit ?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_cr_determine.data.isEdit}}' == 'Y'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_if_cr_edit_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "code_cr_payment_entry",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Payment Entry",
+                "isValidator": true,
+                "nodeName": "Payment Entry",
+                "name": "Payment Entry",
+                "script": {
+                  "type": "javascript",
+                  "code": "const input = {{node:code_cr_determine.data.input}};\n\n// Edit exists only to settle payment - touch nothing else.\nconst entry = {\n  id: input.id,\n  payment_status: input.payment_status || '',\n  payment_term: input.payment_term || null,\n  payment_method: input.payment_method || '',\n  payment_date: input.payment_date || '',\n};\n\nreturn { entry };"
+                },
+                "response_json": [
+                  {
+                    "key": "k_entry0",
+                    "name": "entry",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_cr",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sudu Credit Reload:Table:1983746316466860034",
+                  "rules": {
+                    "collectionId": "1983746316466860034",
+                    "list": [
+                      {
+                        "id": 1700000000014,
+                        "parentId": 1700000000013,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_cr_payment_entry.data.entry.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Primary Key ID",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Payment",
+                "isValidator": true,
+                "nodeName": "Update Payment",
+                "name": "Update Payment",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_payment_entry.data.entry.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "id"
+                    },
+                    {
+                      "prop": "payment_status",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_payment_entry.data.entry.payment_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "payment_status"
+                    },
+                    {
+                      "prop": "payment_term",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_payment_entry.data.entry.payment_term}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "payment_term"
+                    },
+                    {
+                      "prop": "payment_method",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_payment_entry.data.entry.payment_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "payment_method"
+                    },
+                    {
+                      "prop": "payment_date",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_payment_entry.data.entry.payment_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "payment_date"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_node_cr",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Sudu Credit Reload:Table:1983746316466860034",
+                  "rules": {
+                    "collectionId": "1983746316466860034",
+                    "list": [
+                      {
+                        "id": 1700000000016,
+                        "parentId": 1700000000015,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_cr_payment_entry.data.entry.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Primary Key ID",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Fetch Updated Reload",
+                "isValidator": true,
+                "nodeName": "Fetch Updated Reload",
+                "name": "Fetch Updated Reload"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_if_cr_edit_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": [
+            {
+              "id": "if_cr_headless",
+              "type": "if",
+              "data": {
+                "title": "Headless ?",
+                "isValidator": true,
+                "nodeName": "Headless ?",
+                "name": "Headless ?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_cr_determine.data.isHeadless}}' == 'Y'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_if_cr_headless_true",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cond_all_cr_lookup",
+                      "type": "condition-all-node",
+                      "data": {
+                        "title": "Parallel Branch",
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cond_all_cr_lookup_item_cust",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 1",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1700000000006,
+                                  "parentId": 1700000000005,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "",
+                                  "valueLabel": "",
+                                  "operatorLabel": ""
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "true",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 1",
+                            "name": "Branch 1",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_customer",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Sudu Customer:Table:1983717165334331394",
+                                  "rules": {
+                                    "collectionId": "1983717165334331394",
+                                    "list": [
+                                      {
+                                        "id": 1700000000002,
+                                        "parentId": 1700000000001,
+                                        "isTop": true,
+                                        "prop": "tenant_id2",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_cr_determine.data.input.tenant_id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "Tenant",
+                                        "valueLabel": "",
+                                        "operatorLabel": "in"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Fetch Customer",
+                                "isValidator": true,
+                                "nodeName": "Fetch Customer",
+                                "name": "Fetch Customer"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cond_all_cr_lookup_item_rule",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 2",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1700000000008,
+                                  "parentId": 1700000000007,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "",
+                                  "valueLabel": "",
+                                  "operatorLabel": ""
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "true",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 2",
+                            "name": "Branch 2",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "search_node_serial",
+                              "type": "search-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "流水号规则表:Table:1994006139209117697",
+                                  "rules": {
+                                    "collectionId": "1994006139209117697",
+                                    "list": [
+                                      {
+                                        "id": 1700000000004,
+                                        "parentId": 1700000000003,
+                                        "isTop": true,
+                                        "prop": "is_default",
+                                        "operator": "numberEqual",
+                                        "valueType": "value",
+                                        "value": "1",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "Is Default",
+                                        "valueLabel": "",
+                                        "operatorLabel": "numberEqual"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "limit": 1,
+                                "title": "Fetch Default Serial Rule",
+                                "isValidator": true,
+                                "nodeName": "Fetch Default Serial Rule",
+                                "name": "Fetch Default Serial Rule"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_cr_no_customer",
+                      "type": "if",
+                      "data": {
+                        "title": "Customer Missing ?",
+                        "isValidator": true,
+                        "nodeName": "Customer Missing ?",
+                        "name": "Customer Missing ?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:get_node_customer.data.data.id}}' == ''"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_if_cr_no_customer_true",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "end_cr_no_customer",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "Default",
+                                "code": 404,
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": "No Sudu Customer found for the supplied tenant id."
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_if_cr_no_customer_false",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "get_node_currency",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Currency:Table:1902047936116805633",
+                          "rules": {
+                            "collectionId": "1902047936116805633",
+                            "list": [
+                              {
+                                "id": 1700000000010,
+                                "parentId": 1700000000009,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:get_node_customer.data.data.customer_currency_id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "Primary Key ID",
+                                "valueLabel": "",
+                                "operatorLabel": "in"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Fetch Currency",
+                        "isValidator": true,
+                        "nodeName": "Fetch Currency",
+                        "name": "Fetch Currency"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_cr_headless_norm",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Normalize Headless",
+                        "isValidator": true,
+                        "nodeName": "Normalize Headless",
+                        "name": "Normalize Headless",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const input = {{node:code_cr_determine.data.input}};\nconst customer = {{node:get_node_customer.data.data}} || {};\nconst currency = {{node:get_node_currency.data.data}} || {};\nconst rules = {{node:search_node_serial.data}} || [];\n\n// '----' and 'MYR' both mean base currency - nothing to convert.\nconst code = currency.currency_code;\nconst isBase = !code || code === 'MYR' || code === '----';\nconst exchangeRate = isBase ? 1 : (currency.currency_buying_rate || 1);\n\nconst now = new Date();\nconst reloadDate = now.getFullYear() + '-' +\n  String(now.getMonth() + 1).padStart(2, '0') + '-' +\n  String(now.getDate()).padStart(2, '0');\n\nconst entry = {\n  page_status: 'Add',\n  reload_date: reloadDate,\n  reload_invoice_no_type: rules[0] ? rules[0].id : '',\n  tenant_2: input.tenant_id,\n  reload_type: input.reload_type,\n  reload_amount: input.reload_amount,\n  currency_id: customer.customer_currency_id || null,\n  exchange_rate: exchangeRate,\n  exchange_rate_currency: code || '',\n  exchange_rate_myr: 'MYR',\n  payment_status: 'Unpaid',\n  payment_term: customer.customer_payment_term_id || null,\n  customer_name: customer.customer_com_name || '',\n  customer_reg_no: customer.customer_com_reg_no || '',\n  customer_tax_no: customer.customer_tin_no || '',\n  sub_remain_before: customer.sub_remain_credit || 0,\n  reload_remain_before: customer.reload_remain_credit || 0,\n};\n\nreturn { entry };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "ks_norm0",
+                            "name": "entry",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_if_cr_headless_false",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_cr_form_norm",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Normalize Form",
+                        "isValidator": true,
+                        "nodeName": "Normalize Form",
+                        "name": "Normalize Form",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const input = {{node:code_cr_determine.data.input}};\n\n// The form already carries every column; strip only the transport field.\nconst entry = Object.assign({}, input);\ndelete entry.mode;\n\nreturn { entry };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "km_norm0",
+                            "name": "entry",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_cr_calc",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Calculate Amounts",
+                "isValidator": true,
+                "nodeName": "Calculate Amounts",
+                "name": "Calculate Amounts",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Single source of truth for Credit Reload pricing. Runs for BOTH modes so the\n// form and the headless caller can never drift apart.\nconst BASE_AMOUNT = 45;\nconst BASE_CREDIT = 10000;\nconst TAX_RATE = 0.08;\n\nlet entry = {{node:code_cr_headless_norm.data.entry}} || {{node:code_cr_form_norm.data.entry}};\n\nconst round = (value, dp) => parseFloat(parseFloat(value || 0).toFixed(dp));\n\nconst reloadAmount = parseFloat(entry.reload_amount) || 0;\nconst exchangeRate = parseFloat(entry.exchange_rate) || 1;\nconst reloadType = entry.reload_type;\nconst subBefore = parseFloat(entry.sub_remain_before) || 0;\nconst reloadBefore = parseFloat(entry.reload_remain_before) || 0;\n\nconst credits = Math.round((reloadAmount / BASE_AMOUNT) * BASE_CREDIT);\n\nconst totalGross = round(reloadAmount, 2);\nconst totalTax = round(totalGross * TAX_RATE, 2);\nconst totalAmount = round(totalGross + totalTax, 2);\nconst totalAmountMyr = round(totalAmount * exchangeRate, 2);\n\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  reloadAfter = reloadBefore + credits;\n}\n\n// Format allow-list. Every decimal column MUST appear here as a toFixed STRING -\n// an unformatted float is rejected by the column's multipleOf constraint.\nentry.reload_amount = totalGross.toFixed(2);\nentry.total_gross = totalGross.toFixed(2);\nentry.total_tax_amount = totalTax.toFixed(2);\nentry.total_amount = totalAmount.toFixed(2);\nentry.total_amount_myr = totalAmountMyr.toFixed(2);\nentry.exchange_rate = exchangeRate.toFixed(6);\n\n// Credit balances are integer columns.\nentry.ai_credit_reload_amount = credits;\nentry.sub_remain_before = Math.round(subBefore);\nentry.reload_remain_before = Math.round(reloadBefore);\nentry.sub_remain_after = Math.round(subAfter);\nentry.reload_remain_after = Math.round(reloadAfter);\n\nreturn { entry };"
+                },
+                "response_json": [
+                  {
+                    "key": "kr_calc0",
+                    "name": "entry",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "add_node_cr",
+              "type": "add-node",
+              "data": {
+                "table_id": {
+                  "source": "Sudu Credit Reload:Table:1983746316466860034",
+                  "rules": {
+                    "collectionId": "1983746316466860034",
+                    "list": [
+                      {
+                        "id": 1700000000012,
+                        "parentId": 1700000000011,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "",
+                        "valueLabel": "",
+                        "operatorLabel": ""
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "Add Credit Reload",
+                "isValidator": true,
+                "nodeName": "Add Credit Reload",
+                "name": "Add Credit Reload",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "reload_date",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.reload_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "reload_date"
+                    },
+                    {
+                      "prop": "reload_invoice_no",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.reload_invoice_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "reload_invoice_no"
+                    },
+                    {
+                      "prop": "reload_invoice_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.reload_invoice_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "reload_invoice_no_type"
+                    },
+                    {
+                      "prop": "tenant_2",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.tenant_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "tenant_2"
+                    },
+                    {
+                      "prop": "reload_type",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.reload_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "reload_type"
+                    },
+                    {
+                      "prop": "currency_id",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.currency_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "currency_id"
+                    },
+                    {
+                      "prop": "exchange_rate",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.exchange_rate}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "exchange_rate"
+                    },
+                    {
+                      "prop": "exchange_rate_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.exchange_rate_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "exchange_rate_currency"
+                    },
+                    {
+                      "prop": "exchange_rate_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.exchange_rate_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "exchange_rate_myr"
+                    },
+                    {
+                      "prop": "reload_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.reload_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "reload_amount"
+                    },
+                    {
+                      "prop": "ai_credit_reload_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.ai_credit_reload_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "ai_credit_reload_amount"
+                    },
+                    {
+                      "prop": "sub_remain_before",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.sub_remain_before}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "sub_remain_before"
+                    },
+                    {
+                      "prop": "sub_remain_after",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.sub_remain_after}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "sub_remain_after"
+                    },
+                    {
+                      "prop": "reload_remain_before",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.reload_remain_before}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "reload_remain_before"
+                    },
+                    {
+                      "prop": "reload_remain_after",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.reload_remain_after}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "reload_remain_after"
+                    },
+                    {
+                      "prop": "payment_status",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.payment_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "payment_status"
+                    },
+                    {
+                      "prop": "payment_term",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.payment_term}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "payment_term"
+                    },
+                    {
+                      "prop": "payment_method",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.payment_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "payment_method"
+                    },
+                    {
+                      "prop": "payment_date",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.payment_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "payment_date"
+                    },
+                    {
+                      "prop": "total_gross",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.total_gross}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "total_gross"
+                    },
+                    {
+                      "prop": "total_tax_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.total_tax_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "total_tax_amount"
+                    },
+                    {
+                      "prop": "total_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.total_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "total_amount"
+                    },
+                    {
+                      "prop": "total_amount_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.total_amount_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "total_amount_myr"
+                    },
+                    {
+                      "prop": "dealer_id",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.dealer_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "dealer_id"
+                    },
+                    {
+                      "prop": "agent_id",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.agent_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "agent_id"
+                    },
+                    {
+                      "prop": "customer_name",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.customer_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "customer_name"
+                    },
+                    {
+                      "prop": "customer_reg_no",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.customer_reg_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "customer_reg_no"
+                    },
+                    {
+                      "prop": "customer_tax_no",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.customer_tax_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "customer_tax_no"
+                    },
+                    {
+                      "prop": "address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_name"
+                    },
+                    {
+                      "prop": "address_country_id",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_country_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_country_id"
+                    },
+                    {
+                      "prop": "adddress_state",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.adddress_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "adddress_state"
+                    },
+                    {
+                      "prop": "address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_line_1"
+                    },
+                    {
+                      "prop": "address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_line_2"
+                    },
+                    {
+                      "prop": "address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_line_3"
+                    },
+                    {
+                      "prop": "address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_line_4"
+                    },
+                    {
+                      "prop": "address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_city"
+                    },
+                    {
+                      "prop": "address_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_postal_code"
+                    },
+                    {
+                      "prop": "address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_phone"
+                    },
+                    {
+                      "prop": "address_phone2",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_phone2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_phone2"
+                    },
+                    {
+                      "prop": "address_mobile",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_mobile}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_mobile"
+                    },
+                    {
+                      "prop": "address_email",
+                      "valueType": "field",
+                      "value": "{{node:code_cr_calc.data.entry.address_email}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "address_email"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_cr_result",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Result",
+        "isValidator": true,
+        "nodeName": "Map Result",
+        "name": "Map Result",
+        "script": {
+          "type": "javascript",
+          "code": "const isEdit = '{{node:code_cr_determine.data.isEdit}}' === 'Y';\nconst added = {{node:add_node_cr.data}};\nconst fetched = {{node:get_node_cr.data.data}};\n\nconst row = isEdit ? fetched : (added && added[0]);\n\nreturn {\n  id: row ? row.id : '',\n  reload_invoice_no: row ? row.reload_invoice_no : '',\n};"
+        },
+        "response_json": [
+          {
+            "key": "kresult0",
+            "name": "id",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kresult1",
+            "name": "reload_invoice_no",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
+        "response_value": {
+          "list": [
+            {
+              "prop": "id",
+              "propLabel": "id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:code_cr_result.data.id}}"
+            },
+            {
+              "prop": "reload_invoice_no",
+              "propLabel": "reload_invoice_no",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:code_cr_result.data.reload_invoice_no}}"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "crdata01",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "crresp01",
+      "name": "id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "crresp02",
+      "name": "reload_invoice_no",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "config": {}
+}

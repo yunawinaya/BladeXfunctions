@@ -3,3 +3,4 @@ Resume/
 
 # Playwright MCP scratch output
 .playwright-mcp/
+.superpowers/

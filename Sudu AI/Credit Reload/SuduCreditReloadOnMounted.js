@@ -69,6 +69,16 @@ setTimeout(async () => {
   try {
     await setupInvoiceRule();
 
+    // The save workflow branches on this - it must always be populated.
+    const pageStatus = this.isAdd
+      ? 'Add'
+      : this.isEdit
+        ? 'Edit'
+        : this.isView
+          ? 'View'
+          : '';
+    this.setData({ page_status: pageStatus });
+
     if (this.isAdd) {
       this.setData({ reload_date: todayLocal() });
       return;
