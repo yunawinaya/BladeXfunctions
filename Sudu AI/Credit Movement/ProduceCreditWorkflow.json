@@ -100,9 +100,7 @@
         {
           "id": "ifBlock_if_pc_bad_type_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "end_pc_bad_type",
@@ -111,11 +109,7 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "string"
-                    }
-                  }
+                  "properties": { "result": { "type": "string" } }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -134,9 +128,7 @@
         {
           "id": "ifBlock_if_pc_bad_type_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -193,9 +185,7 @@
         {
           "id": "ifBlock_if_pc_no_customer_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "end_pc_no_customer",
@@ -204,11 +194,7 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": {
-                    "result": {
-                      "type": "string"
-                    }
-                  }
+                  "properties": { "result": { "type": "string" } }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -227,9 +213,7 @@
         {
           "id": "ifBlock_if_pc_no_customer_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -527,10 +511,7 @@
         "nodeName": "结束节点",
         "name": "结束节点",
         "back_data_type": "OutputParams",
-        "msg": {
-          "type": "javascript",
-          "code": ""
-        },
+        "msg": { "type": "javascript", "code": "" },
         "response_value": {
           "list": [
             {
