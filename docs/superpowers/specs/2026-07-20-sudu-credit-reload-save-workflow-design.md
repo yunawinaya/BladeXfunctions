@@ -21,6 +21,7 @@ Because the headless caller has none of the form's computed values, the calculat
 | Headless invoice number | Workflow looks up the rule in the serial-number rule table matching `business_type = "Reload Invoice"` **and** `is_draft = 0` **and** `is_default = 1`, and writes it to `reload_invoice_no_type`, letting the platform generate the number exactly as the form does. The three conditions sit in one `branch`/`all` wrapper — multiple top-level leaves do not AND. The form additionally scopes by `department_id = {{global:firstLvDeptId}}`; the workflow deliberately omits it, because a headless caller may have no department context and an empty match would yield no invoice number. Consequence: if two organizations each define a default Reload Invoice rule, the workflow takes whichever the table returns first. |
 | Scope | **Add + Edit in one workflow.** Edit exists only to settle payment, so it writes the payment fields and skips all derivation. |
 | Headless `payment_status` | `Unpaid` — same as a form-created record. |
+| Amount on type change | `onChange_reload_type` resets `reload_amount` to 45 **unconditionally**, discarding any value the user had typed. This is intentional: each reload type re-establishes the standard package price, and a custom amount must be re-entered per type. Do not "fix" this to only-fill-when-empty. |
 | Structure | **One workflow, one id, always recompute server-side** (approach A). |
 
 ### Why always recompute
