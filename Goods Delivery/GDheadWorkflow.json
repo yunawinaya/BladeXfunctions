@@ -5916,7 +5916,7 @@
                               "prop": "previous_data",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_IyJHrBst.data.originalTableGD}}",
+                              "value": "{{node:get_node_xTRvHWB8.data.data.table_gd}}",
                               "valueLabel": "",
                               "propLabel": "Previous Data"
                             },
@@ -5937,6 +5937,216 @@
                 },
                 {
                   "id": "if_block_CxqFBF50",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_ReorderCreated",
+              "type": "if",
+              "data": {
+                "title": "IF Created (Reorder)",
+                "isValidator": true,
+                "nodeName": "IF Created (Reorder)",
+                "name": "IF Created (Reorder)",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973620,
+                      "parentId": 1736695973619,
+                      "isTop": true,
+                      "prop": "workflowparams.saveAs",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Created",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "saveAs",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_ReorderCreatedTrue",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "workflow_node_ReorderCreated",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Reorder Redis Workflow (Created)",
+                        "isValidator": true,
+                        "nodeName": "Run Reorder Redis Workflow (Created)",
+                        "name": "Run Reorder Redis Workflow (Created)",
+                        "workflow": {
+                          "source": "REORDER_SET_REDIS:Workflow:2065256261729759233",
+                          "rules": {
+                            "collectionId": "2065256261729759233",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "document_type",
+                              "propLabel": "Document Type",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "GD_CREATED",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "previous_data",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:get_node_xTRvHWB8.data.data.table_gd}}",
+                              "valueLabel": "",
+                              "propLabel": "Previous Data"
+                            },
+                            {
+                              "prop": "latest_data",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_hb8ZWe9c.data.tableGD}}",
+                              "valueLabel": "",
+                              "propLabel": "Latest Data"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_ReorderCreatedFalse",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_ReorderCancelled",
+              "type": "if",
+              "data": {
+                "title": "IF Cancelled (Reorder)",
+                "isValidator": true,
+                "nodeName": "IF Cancelled (Reorder)",
+                "name": "IF Cancelled (Reorder)",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973622,
+                      "parentId": 1736695973621,
+                      "isTop": true,
+                      "prop": "workflowparams.saveAs",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Cancelled",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "saveAs",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_ReorderCancelledTrue",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "workflow_node_ReorderCancelled",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Reorder Redis Workflow (Cancelled)",
+                        "isValidator": true,
+                        "nodeName": "Run Reorder Redis Workflow (Cancelled)",
+                        "name": "Run Reorder Redis Workflow (Cancelled)",
+                        "workflow": {
+                          "source": "REORDER_SET_REDIS:Workflow:2065256261729759233",
+                          "rules": {
+                            "collectionId": "2065256261729759233",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "document_type",
+                              "propLabel": "Document Type",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "GD_CANCELLED",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "previous_data",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:get_node_xTRvHWB8.data.data.table_gd}}",
+                              "valueLabel": "",
+                              "propLabel": "Previous Data"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_ReorderCancelledFalse",
                   "type": "ifBlock",
                   "data": { "title": "false" },
                   "blocks": []

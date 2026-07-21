@@ -1,4 +1,83 @@
 {
+  "request_json": [
+    {
+      "key": "5qd6uils",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "trftcrfe",
+      "name": "saveAs",
+      "title": "saveAs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "g17mm0la",
+      "name": "pageStatus",
+      "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "kwm5jiov",
+      "name": "continueZero",
+      "title": "continueZero",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "fku2n6pu",
+      "name": "isPicking",
+      "title": "isPicking",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "e5tizpym",
+      "name": "isForceComplete",
+      "title": "isForceComplete",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "k806e8fl",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "50lc26nt",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "bvkafy3f",
+      "name": "toId",
+      "title": "toId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -6440,18 +6519,45 @@
                         "filter": {
                           "list": [
                             {
-                              "id": 1736695973613,
-                              "parentId": 1736695973612,
+                              "id": 1784620560136,
+                              "parentId": 1784620560137,
                               "isTop": true,
-                              "prop": "node.code_node_Y1TAR0U4.data.hasCancellations",
-                              "operator": "numberEqual",
-                              "valueType": "value",
-                              "value": 1,
-                              "type": "leaf",
+                              "prop": "",
+                              "operator": "all",
+                              "valueType": "",
+                              "value": "",
+                              "type": "branch",
                               "level": 1,
-                              "valueLabel": "",
-                              "propLabel": "hasCancellations",
-                              "operatorLabel": "Equal"
+                              "children": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1784620560136,
+                                  "isTop": false,
+                                  "prop": "node.code_node_Y1TAR0U4.data.hasCancellations",
+                                  "operator": "numberEqual",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "valueLabel": "",
+                                  "propLabel": "hasCancellations",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1784620560138,
+                                  "parentId": 1784620560136,
+                                  "isTop": false,
+                                  "prop": "workflowparams.saveAs",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Removed",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "saveAs",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -6696,18 +6802,45 @@
                         "filter": {
                           "list": [
                             {
-                              "id": 1736695973613,
-                              "parentId": 1736695973612,
+                              "id": 1784620572475,
+                              "parentId": 1784620572476,
                               "isTop": true,
-                              "prop": "node.code_node_Y1TAR0U4.data.hasAssignments",
-                              "operator": "numberEqual",
-                              "valueType": "value",
-                              "value": 1,
-                              "type": "leaf",
+                              "prop": "",
+                              "operator": "all",
+                              "valueType": "",
+                              "value": "",
+                              "type": "branch",
                               "level": 1,
-                              "valueLabel": "",
-                              "propLabel": "hasAssignments",
-                              "operatorLabel": "Equal"
+                              "children": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1784620572475,
+                                  "isTop": false,
+                                  "prop": "node.code_node_Y1TAR0U4.data.hasAssignments",
+                                  "operator": "numberEqual",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "valueLabel": "",
+                                  "propLabel": "hasAssignments",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1784620572477,
+                                  "parentId": 1784620572475,
+                                  "isTop": false,
+                                  "prop": "workflowparams.saveAs",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Removed",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "saveAs",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -8014,84 +8147,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "5qd6uils",
-      "name": "allData",
-      "title": "allData",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "trftcrfe",
-      "name": "saveAs",
-      "title": "saveAs",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "g17mm0la",
-      "name": "pageStatus",
-      "title": "pageStatus",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "kwm5jiov",
-      "name": "continueZero",
-      "title": "continueZero",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "fku2n6pu",
-      "name": "isPicking",
-      "title": "isPicking",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "e5tizpym",
-      "name": "isForceComplete",
-      "title": "isForceComplete",
-      "description": "",
-      "bsonType": "int",
-      "isExpand": false,
-      "children": []
-    }
-  ],
-  "response_json": [
-    {
-      "key": "k806e8fl",
-      "name": "code",
-      "title": "code",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "50lc26nt",
-      "name": "message",
-      "title": "message",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "bvkafy3f",
-      "name": "toId",
-      "title": "toId",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "config": {}
+  "edges": []
 }
