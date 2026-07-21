@@ -4302,6 +4302,34 @@
       "blocks": []
     },
     {
+      "id": "code_node_qmVdRW6W",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map ID",
+        "isValidator": true,
+        "nodeName": "Map ID",
+        "name": "Map ID",
+        "script": {
+          "type": "javascript",
+          "code": "const id = {{workflowparams:pageStatus}} === 'Add' && {{workflowparams:saveAs}} === 'Completed' ? {{node:add_node_rjbwKbKu.data}}[0].id : {{workflowparams:allData.id}}\n\n\nreturn { id }"
+        },
+        "response_json": [
+          {
+            "key": "b49s1dkf",
+            "name": "id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "return_node_9G1ztNQg",
       "type": "return-node",
       "data": {
@@ -4335,7 +4363,7 @@
               "prop": "id",
               "operator": "",
               "valueType": "field",
-              "value": "{{node:add_node_rjbwKbKu.data.id}}",
+              "value": "{{node:code_node_qmVdRW6W.data.id}}",
               "valueLabel": "",
               "propLabel": "id"
             }
