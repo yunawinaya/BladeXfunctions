@@ -9,8 +9,8 @@
       customer_reg_no: item.customer_com_reg_no || '',
       customer_tax_no: item.customer_tin_no || '',
       payment_term: item.customer_payment_term_id || null,
-      sub_remain_before: item.sub_remain_credit || 0,
-      reload_remain_before: item.reload_remain_credit || 0,
+      monthly_remain_before: item.monthly_remain_credit || 0,
+      flex_remain_before: item.flex_remain_credit || 0,
     });
 
     // --- billing address ---------------------------------------------------

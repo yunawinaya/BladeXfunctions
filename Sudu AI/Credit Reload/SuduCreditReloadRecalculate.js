@@ -11,8 +11,8 @@ const data = this.getValues();
 const reloadAmount = parseFloat(data.reload_amount) || 0;
 const exchangeRate = parseFloat(data.exchange_rate) || 1;
 const reloadType = data.reload_type;
-const subBefore = parseFloat(data.sub_remain_before) || 0;
-const reloadBefore = parseFloat(data.reload_remain_before) || 0;
+const subBefore = parseFloat(data.monthly_remain_before) || 0;
+const reloadBefore = parseFloat(data.flex_remain_before) || 0;
 
 // Credits scale linearly with the amount paid. ai_credit_reload_amount is an
 // int column (precision 0), so round rather than truncate.
@@ -42,6 +42,6 @@ this.setData({
   total_tax_amount: totalTax,
   total_amount: totalAmount,
   total_amount_myr: totalAmountMyr,
-  sub_remain_after: subAfter,
-  reload_remain_after: reloadAfter,
+  monthly_remain_after: subAfter,
+  flex_remain_after: reloadAfter,
 });

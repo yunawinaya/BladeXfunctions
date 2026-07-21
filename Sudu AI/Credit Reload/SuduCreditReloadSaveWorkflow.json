@@ -760,7 +760,7 @@
                         "name": "Normalize Headless",
                         "script": {
                           "type": "javascript",
-                          "code": "const input = {{node:code_cr_determine.data.input}};\nconst customer = {{node:get_node_customer.data.data}} || {};\nconst currency = {{node:get_node_currency.data.data}} || {};\nconst rules = {{node:search_node_serial.data}} || [];\n\n// '----' and 'MYR' both mean base currency - nothing to convert.\nconst code = currency.currency_code;\nconst isBase = !code || code === 'MYR' || code === '----';\nconst exchangeRate = isBase ? 1 : (currency.currency_buying_rate || 1);\n\nconst now = new Date();\nconst reloadDate = now.getFullYear() + '-' +\n  String(now.getMonth() + 1).padStart(2, '0') + '-' +\n  String(now.getDate()).padStart(2, '0');\n\nconst entry = {\n  page_status: 'Add',\n  reload_date: reloadDate,\n  reload_invoice_no_type: rules[0] ? rules[0].id : '',\n  tenant_2: input.tenant_id,\n  reload_type: input.reload_type,\n  reload_amount: input.reload_amount,\n  currency_id: customer.customer_currency_id || null,\n  exchange_rate: exchangeRate,\n  exchange_rate_currency: code || '',\n  exchange_rate_myr: 'MYR',\n  payment_status: 'Unpaid',\n  payment_term: customer.customer_payment_term_id || null,\n  customer_name: customer.customer_com_name || '',\n  customer_reg_no: customer.customer_com_reg_no || '',\n  customer_tax_no: customer.customer_tin_no || '',\n  sub_remain_before: customer.sub_remain_credit || 0,\n  reload_remain_before: customer.reload_remain_credit || 0,\n};\n\nreturn { entry };"
+                          "code": "const input = {{node:code_cr_determine.data.input}};\nconst customer = {{node:get_node_customer.data.data}} || {};\nconst currency = {{node:get_node_currency.data.data}} || {};\nconst rules = {{node:search_node_serial.data}} || [];\n\n// '----' and 'MYR' both mean base currency - nothing to convert.\nconst code = currency.currency_code;\nconst isBase = !code || code === 'MYR' || code === '----';\nconst exchangeRate = isBase ? 1 : (currency.currency_buying_rate || 1);\n\nconst now = new Date();\nconst reloadDate = now.getFullYear() + '-' +\n  String(now.getMonth() + 1).padStart(2, '0') + '-' +\n  String(now.getDate()).padStart(2, '0');\n\nconst entry = {\n  page_status: 'Add',\n  reload_date: reloadDate,\n  reload_invoice_no_type: rules[0] ? rules[0].id : '',\n  tenant_2: input.tenant_id,\n  reload_type: input.reload_type,\n  reload_amount: input.reload_amount,\n  currency_id: customer.customer_currency_id || null,\n  exchange_rate: exchangeRate,\n  exchange_rate_currency: code || '',\n  exchange_rate_myr: 'MYR',\n  payment_status: 'Unpaid',\n  payment_term: customer.customer_payment_term_id || null,\n  customer_name: customer.customer_com_name || '',\n  customer_reg_no: customer.customer_com_reg_no || '',\n  customer_tax_no: customer.customer_tin_no || '',\n  monthly_remain_before: customer.monthly_remain_credit || 0,\n  flex_remain_before: customer.flex_remain_credit || 0,\n};\n\nreturn { entry };"
                         },
                         "response_json": [
                           {
@@ -831,7 +831,7 @@
                 "name": "Calculate Amounts",
                 "script": {
                   "type": "javascript",
-                  "code": "// Single source of truth for Credit Reload pricing. Runs for BOTH modes so the\n// form and the headless caller can never drift apart.\nconst BASE_AMOUNT = 45;\nconst BASE_CREDIT = 10000;\nconst TAX_RATE = 0.08;\n\nlet entry = {{node:code_cr_headless_norm.data.entry}} || {{node:code_cr_form_norm.data.entry}};\n\nconst round = (value, dp) => parseFloat(parseFloat(value || 0).toFixed(dp));\n\nconst reloadAmount = parseFloat(entry.reload_amount) || 0;\nconst exchangeRate = parseFloat(entry.exchange_rate) || 1;\nconst reloadType = entry.reload_type;\nconst subBefore = parseFloat(entry.sub_remain_before) || 0;\nconst reloadBefore = parseFloat(entry.reload_remain_before) || 0;\n\nconst credits = Math.round((reloadAmount / BASE_AMOUNT) * BASE_CREDIT);\n\nconst totalGross = round(reloadAmount, 2);\nconst totalTax = round(totalGross * TAX_RATE, 2);\nconst totalAmount = round(totalGross + totalTax, 2);\nconst totalAmountMyr = round(totalAmount * exchangeRate, 2);\n\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  reloadAfter = reloadBefore + credits;\n}\n\n// Format allow-list. Every decimal column MUST appear here as a toFixed STRING -\n// an unformatted float is rejected by the column's multipleOf constraint.\nentry.reload_amount = totalGross.toFixed(2);\nentry.total_gross = totalGross.toFixed(2);\nentry.total_tax_amount = totalTax.toFixed(2);\nentry.total_amount = totalAmount.toFixed(2);\nentry.total_amount_myr = totalAmountMyr.toFixed(2);\nentry.exchange_rate = exchangeRate.toFixed(6);\n\n// Credit balances are integer columns.\nentry.ai_credit_reload_amount = credits;\nentry.sub_remain_before = Math.round(subBefore);\nentry.reload_remain_before = Math.round(reloadBefore);\nentry.sub_remain_after = Math.round(subAfter);\nentry.reload_remain_after = Math.round(reloadAfter);\n\nreturn { entry };"
+                  "code": "// Single source of truth for Credit Reload pricing. Runs for BOTH modes so the\n// form and the headless caller can never drift apart.\nconst BASE_AMOUNT = 45;\nconst BASE_CREDIT = 10000;\nconst TAX_RATE = 0.08;\n\nlet entry = {{node:code_cr_headless_norm.data.entry}} || {{node:code_cr_form_norm.data.entry}};\n\nconst round = (value, dp) => parseFloat(parseFloat(value || 0).toFixed(dp));\n\nconst reloadAmount = parseFloat(entry.reload_amount) || 0;\nconst exchangeRate = parseFloat(entry.exchange_rate) || 1;\nconst reloadType = entry.reload_type;\nconst subBefore = parseFloat(entry.monthly_remain_before) || 0;\nconst reloadBefore = parseFloat(entry.flex_remain_before) || 0;\n\nconst credits = Math.round((reloadAmount / BASE_AMOUNT) * BASE_CREDIT);\n\nconst totalGross = round(reloadAmount, 2);\nconst totalTax = round(totalGross * TAX_RATE, 2);\nconst totalAmount = round(totalGross + totalTax, 2);\nconst totalAmountMyr = round(totalAmount * exchangeRate, 2);\n\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  reloadAfter = reloadBefore + credits;\n}\n\n// Format allow-list. Every decimal column MUST appear here as a toFixed STRING -\n// an unformatted float is rejected by the column's multipleOf constraint.\nentry.reload_amount = totalGross.toFixed(2);\nentry.total_gross = totalGross.toFixed(2);\nentry.total_tax_amount = totalTax.toFixed(2);\nentry.total_amount = totalAmount.toFixed(2);\nentry.total_amount_myr = totalAmountMyr.toFixed(2);\nentry.exchange_rate = exchangeRate.toFixed(6);\n\n// Credit balances are integer columns.\nentry.ai_credit_reload_amount = credits;\nentry.monthly_remain_before = Math.round(subBefore);\nentry.flex_remain_before = Math.round(reloadBefore);\nentry.monthly_remain_after = Math.round(subAfter);\nentry.flex_remain_after = Math.round(reloadAfter);\n\nreturn { entry };"
                 },
                 "response_json": [
                   {
@@ -970,36 +970,36 @@
                       "propLabel": "ai_credit_reload_amount"
                     },
                     {
-                      "prop": "sub_remain_before",
+                      "prop": "monthly_remain_before",
                       "valueType": "field",
-                      "value": "{{node:code_cr_calc.data.entry.sub_remain_before}}",
+                      "value": "{{node:code_cr_calc.data.entry.monthly_remain_before}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "sub_remain_before"
+                      "propLabel": "monthly_remain_before"
                     },
                     {
-                      "prop": "sub_remain_after",
+                      "prop": "monthly_remain_after",
                       "valueType": "field",
-                      "value": "{{node:code_cr_calc.data.entry.sub_remain_after}}",
+                      "value": "{{node:code_cr_calc.data.entry.monthly_remain_after}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "sub_remain_after"
+                      "propLabel": "monthly_remain_after"
                     },
                     {
-                      "prop": "reload_remain_before",
+                      "prop": "flex_remain_before",
                       "valueType": "field",
-                      "value": "{{node:code_cr_calc.data.entry.reload_remain_before}}",
+                      "value": "{{node:code_cr_calc.data.entry.flex_remain_before}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "reload_remain_before"
+                      "propLabel": "flex_remain_before"
                     },
                     {
-                      "prop": "reload_remain_after",
+                      "prop": "flex_remain_after",
                       "valueType": "field",
-                      "value": "{{node:code_cr_calc.data.entry.reload_remain_after}}",
+                      "value": "{{node:code_cr_calc.data.entry.flex_remain_after}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "reload_remain_after"
+                      "propLabel": "flex_remain_after"
                     },
                     {
                       "prop": "payment_status",

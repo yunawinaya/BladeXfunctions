@@ -4,7 +4,7 @@
 // SuduCreditReloadRecalculate.js, once embedded as a string inside the save
 // workflow's code_cr_calc node. This script runs both against the same inputs
 // and fails on any disagreement, which is the guard against the
-// remain_sub_credit / sub_remain_credit class of drift.
+// remain_sub_credit / monthly_remain_credit class of drift.
 const fs = require("fs");
 const path = require("path");
 
@@ -21,8 +21,8 @@ function computeReload(input) {
   const reloadAmount = parseFloat(input.reload_amount) || 0;
   const exchangeRate = parseFloat(input.exchange_rate) || 1;
   const reloadType = input.reload_type;
-  const subBefore = parseFloat(input.sub_remain_before) || 0;
-  const reloadBefore = parseFloat(input.reload_remain_before) || 0;
+  const subBefore = parseFloat(input.monthly_remain_before) || 0;
+  const reloadBefore = parseFloat(input.flex_remain_before) || 0;
 
   const credits = Math.round((reloadAmount / BASE_AMOUNT) * BASE_CREDIT);
 
@@ -46,8 +46,8 @@ function computeReload(input) {
     total_tax_amount: totalTax,
     total_amount: totalAmount,
     total_amount_myr: totalAmountMyr,
-    sub_remain_after: subAfter,
-    reload_remain_after: reloadAfter,
+    monthly_remain_after: subAfter,
+    flex_remain_after: reloadAfter,
   };
 }
 
@@ -68,16 +68,16 @@ function runClientRecalc(values) {
 }
 
 const CASES = [
-  { reload_amount: 45, exchange_rate: 1, reload_type: "Monthly Subscription", sub_remain_before: 3200, reload_remain_before: 500 },
-  { reload_amount: 45, exchange_rate: 1, reload_type: "Add On", sub_remain_before: 3200, reload_remain_before: 500 },
-  { reload_amount: 90, exchange_rate: 4.72, reload_type: "Add On", sub_remain_before: 3200, reload_remain_before: 500 },
-  { reload_amount: 0, exchange_rate: 1, reload_type: "", sub_remain_before: 3200, reload_remain_before: 500 },
-  { reload_amount: 22.5, exchange_rate: 3.1416, reload_type: "Monthly Subscription", sub_remain_before: 0, reload_remain_before: 0 },
+  { reload_amount: 45, exchange_rate: 1, reload_type: "Monthly Subscription", monthly_remain_before: 3200, flex_remain_before: 500 },
+  { reload_amount: 45, exchange_rate: 1, reload_type: "Add On", monthly_remain_before: 3200, flex_remain_before: 500 },
+  { reload_amount: 90, exchange_rate: 4.72, reload_type: "Add On", monthly_remain_before: 3200, flex_remain_before: 500 },
+  { reload_amount: 0, exchange_rate: 1, reload_type: "", monthly_remain_before: 3200, flex_remain_before: 500 },
+  { reload_amount: 22.5, exchange_rate: 3.1416, reload_type: "Monthly Subscription", monthly_remain_before: 0, flex_remain_before: 0 },
 ];
 
 const KEYS = [
   "ai_credit_reload_amount", "total_gross", "total_tax_amount",
-  "total_amount", "total_amount_myr", "sub_remain_after", "reload_remain_after",
+  "total_amount", "total_amount_myr", "monthly_remain_after", "flex_remain_after",
 ];
 
 let failures = 0;

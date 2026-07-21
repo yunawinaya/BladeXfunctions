@@ -17,7 +17,7 @@ Because the headless caller has none of the form's computed values, the calculat
 
 | Question | Decision |
 |---|---|
-| Does saving update the customer's balances? | **Yes, as of 2026-07-20** — superseding the original document-only decision. `add_node_cr` is followed by a `workflow-node` (`workflow_cr_produce`) calling `ProduceCreditWorkflow`, which moves `sub_remain_credit` / `reload_remain_credit` on Sudu Customer and writes an `AI Credit Movement` ledger row. It sits inside `ifBlock_if_cr_edit_false`, so it runs on **Add only** — never on the payment-settling Edit. Monthly Subscription **resets** the subscription bucket; Add On **accumulates** onto the reload bucket. Credit is granted regardless of `payment_status`, so an Unpaid reload still grants credit. |
+| Does saving update the customer's balances? | **Yes, as of 2026-07-20** — superseding the original document-only decision. `add_node_cr` is followed by a `workflow-node` (`workflow_cr_produce`) calling `ProduceCreditWorkflow`, which moves `monthly_remain_credit` / `flex_remain_credit` on Sudu Customer and writes an `AI Credit Movement` ledger row. It sits inside `ifBlock_if_cr_edit_false`, so it runs on **Add only** — never on the payment-settling Edit. Monthly Subscription **resets** the subscription bucket; Add On **accumulates** onto the reload bucket. Credit is granted regardless of `payment_status`, so an Unpaid reload still grants credit. |
 | Headless invoice number | Workflow looks up the rule in the serial-number rule table matching `business_type = "Reload Invoice"` **and** `is_draft = 0` **and** `is_default = 1`, and writes it to `reload_invoice_no_type`, letting the platform generate the number exactly as the form does. The three conditions sit in one `branch`/`all` wrapper — multiple top-level leaves do not AND. The form additionally scopes by `department_id = {{global:firstLvDeptId}}`; the workflow deliberately omits it, because a headless caller may have no department context and an empty match would yield no invoice number. Consequence: if two organizations each define a default Reload Invoice rule, the workflow takes whichever the table returns first. |
 | Scope | **Add + Edit in one workflow.** Edit exists only to settle payment, so it writes the payment fields and skips all derivation. |
 | Headless `payment_status` | `Unpaid` — same as a form-created record. |
@@ -28,7 +28,7 @@ Because the headless caller has none of the form's computed values, the calculat
 
 The pricing rules (`BASE_AMOUNT = 45`, `BASE_CREDIT = 10000`, `TAX_RATE = 0.08`) live in exactly one place — the workflow. The form's client-computed values are overwritten on save. Form and headless therefore cannot drift, and moving pricing into the Sudu Item table later is a one-node change.
 
-This repo already has a live example of the failure this avoids: `remain_sub_credit` vs `sub_remain_credit`, the same concept spelled two ways in two forms, silently returning `undefined` for months.
+This repo already has a live example of the failure this avoids: `remain_sub_credit` vs `monthly_remain_credit`, the same concept spelled two ways in two forms, silently returning `undefined` for months.
 
 ## Table references
 
@@ -96,17 +96,17 @@ total_tax    = total_gross * 0.08          // exclusive, added on top
 total_amount = total_gross + total_tax
 total_myr    = total_amount * exchange_rate
 
-Monthly Subscription: sub_remain_after    = credits            (reset, ignores before)
-                      reload_remain_after = reload_remain_before
-Add On:               reload_remain_after = reload_remain_before + credits
-                      sub_remain_after    = sub_remain_before
+Monthly Subscription: monthly_remain_after    = credits            (reset, ignores before)
+                      flex_remain_after = flex_remain_before
+Add On:               flex_remain_after = flex_remain_before + credits
+                      monthly_remain_after    = monthly_remain_before
 anything else:        both *_after = their *_before
 ```
 
 Two values where the payload wins if present, so a form record is not silently rewritten:
 
 - `exchange_rate` — preserves a manual override. Absent (headless), it comes from the currency lookup's `currency_buying_rate`, defaulting to `1` for `MYR` and `----`, which are equivalent.
-- the `*_before` balances — preserves the balances as they were when the form was opened. Absent (headless), they are read off the fetched customer's `sub_remain_credit` / `reload_remain_credit`.
+- the `*_before` balances — preserves the balances as they were when the form was opened. Absent (headless), they are read off the fetched customer's `monthly_remain_credit` / `flex_remain_credit`.
 
 ### Decimal formatting
 
@@ -116,7 +116,7 @@ This node doubles as the format allow-list — the single pass that must name ev
 |---|---|
 | `reload_amount`, `total_gross`, `total_tax_amount`, `total_amount`, `total_amount_myr` | `.toFixed(2)` |
 | `exchange_rate` | `.toFixed(6)` |
-| `ai_credit_reload_amount`, `sub_remain_before/after`, `reload_remain_before/after` | integer |
+| `ai_credit_reload_amount`, `monthly_remain_before/after`, `flex_remain_before/after` | integer |
 
 Following `POsaveWorkflow`'s `code_fillback`, the `toFixed` results stay **strings** rather than being re-parsed through `parseFloat` — that is what avoids the `multipleOf` rejection.
 

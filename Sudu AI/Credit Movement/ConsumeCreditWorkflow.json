@@ -30,7 +30,7 @@
   "response_json": [
     {
       "key": "rj0",
-      "name": "sub_remain_credit",
+      "name": "monthly_remain_credit",
       "title": "",
       "description": "",
       "bsonType": "any",
@@ -39,7 +39,7 @@
     },
     {
       "key": "rj1",
-      "name": "reload_remain_credit",
+      "name": "flex_remain_credit",
       "title": "",
       "description": "",
       "bsonType": "any",
@@ -175,7 +175,7 @@
         "name": "Compute Consumption",
         "script": {
           "type": "javascript",
-          "code": "const customer = {{node:get_node_cc_customer.data.data}} || {};\nconst amount = parseFloat({{workflowparams:credit_consume}}) || 0;\n\nconst subBefore = parseFloat(customer.sub_remain_credit) || 0;\nconst reloadBefore = parseFloat(customer.reload_remain_credit) || 0;\n\n// Bucket rule preserved exactly from the original workflow: the reload bucket is\n// used only once the subscription bucket is exhausted AND reload has something.\n// Balances are allowed to go negative - there is deliberately no sufficiency check.\nconst source = (subBefore <= 0 && reloadBefore > 0) ? 'Reload' : 'Subscription';\n\nconst subAfter = source === 'Subscription' ? subBefore - amount : subBefore;\nconst reloadAfter = source === 'Reload' ? reloadBefore - amount : reloadBefore;\n\nconst movement = {\n  customer_id: customer.id,\n  transaction_type: 'AI Usage',\n  ai_credit_source: source,\n  ai_credit_amount: Math.round(amount),\n  sub_previous_balance: Math.round(subBefore),\n  sub_balance_after: Math.round(subAfter),\n  reload_previous_balance: Math.round(reloadBefore),\n  reload_balance_after: Math.round(reloadAfter),\n  dealer_id: '',\n  agent_id: '',\n};\n\nreturn {\n  customerId: customer.id,\n  source,\n  amount: Math.round(amount),\n  subBefore: Math.round(subBefore),\n  subAfter: Math.round(subAfter),\n  reloadBefore: Math.round(reloadBefore),\n  reloadAfter: Math.round(reloadAfter),\n  movement,\n};"
+          "code": "const customer = {{node:get_node_cc_customer.data.data}} || {};\nconst amount = parseFloat({{workflowparams:credit_consume}}) || 0;\n\nconst subBefore = parseFloat(customer.monthly_remain_credit) || 0;\nconst reloadBefore = parseFloat(customer.flex_remain_credit) || 0;\n\n// Bucket rule preserved exactly from the original workflow: the reload bucket is\n// used only once the subscription bucket is exhausted AND reload has something.\n// Balances are allowed to go negative - there is deliberately no sufficiency check.\nconst source = (subBefore <= 0 && reloadBefore > 0) ? 'Reload' : 'Subscription';\n\nconst subAfter = source === 'Subscription' ? subBefore - amount : subBefore;\nconst reloadAfter = source === 'Reload' ? reloadBefore - amount : reloadBefore;\n\nconst movement = {\n  customer_id: customer.id,\n  transaction_type: 'AI Usage',\n  ai_credit_source: source,\n  ai_credit_amount: Math.round(amount),\n  monthly_previous_balance: Math.round(subBefore),\n  monthly_balance_after: Math.round(subAfter),\n  flex_previous_balance: Math.round(reloadBefore),\n  flex_balance_after: Math.round(reloadAfter),\n  dealer_id: '',\n  agent_id: '',\n};\n\nreturn {\n  customerId: customer.id,\n  source,\n  amount: Math.round(amount),\n  subBefore: Math.round(subBefore),\n  subAfter: Math.round(subAfter),\n  reloadBefore: Math.round(reloadBefore),\n  reloadAfter: Math.round(reloadAfter),\n  movement,\n};"
         },
         "response_json": [
           {
@@ -298,7 +298,7 @@
               "propLabel": "主键ID"
             },
             {
-              "prop": "sub_remain_credit",
+              "prop": "monthly_remain_credit",
               "valueType": "field",
               "value": "{{node:code_cc_compute.data.subAfter}}",
               "operator": "",
@@ -306,7 +306,7 @@
               "propLabel": "Sub Remain Credit"
             },
             {
-              "prop": "reload_remain_credit",
+              "prop": "flex_remain_credit",
               "valueType": "field",
               "value": "{{node:code_cc_compute.data.reloadAfter}}",
               "operator": "",
@@ -385,36 +385,36 @@
               "propLabel": "ai_credit_amount"
             },
             {
-              "prop": "sub_previous_balance",
+              "prop": "monthly_previous_balance",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.sub_previous_balance}}",
+              "value": "{{node:code_cc_compute.data.movement.monthly_previous_balance}}",
               "operator": "",
               "valueLabel": "",
-              "propLabel": "sub_previous_balance"
+              "propLabel": "monthly_previous_balance"
             },
             {
-              "prop": "sub_balance_after",
+              "prop": "monthly_balance_after",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.sub_balance_after}}",
+              "value": "{{node:code_cc_compute.data.movement.monthly_balance_after}}",
               "operator": "",
               "valueLabel": "",
-              "propLabel": "sub_balance_after"
+              "propLabel": "monthly_balance_after"
             },
             {
-              "prop": "reload_previous_balance",
+              "prop": "flex_previous_balance",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.reload_previous_balance}}",
+              "value": "{{node:code_cc_compute.data.movement.flex_previous_balance}}",
               "operator": "",
               "valueLabel": "",
-              "propLabel": "reload_previous_balance"
+              "propLabel": "flex_previous_balance"
             },
             {
-              "prop": "reload_balance_after",
+              "prop": "flex_balance_after",
               "valueType": "field",
-              "value": "{{node:code_cc_compute.data.movement.reload_balance_after}}",
+              "value": "{{node:code_cc_compute.data.movement.flex_balance_after}}",
               "operator": "",
               "valueLabel": "",
-              "propLabel": "reload_balance_after"
+              "propLabel": "flex_balance_after"
             },
             {
               "prop": "dealer_id",
@@ -453,8 +453,8 @@
         "response_value": {
           "list": [
             {
-              "prop": "sub_remain_credit",
-              "propLabel": "sub_remain_credit",
+              "prop": "monthly_remain_credit",
+              "propLabel": "monthly_remain_credit",
               "operator": "",
               "operatorLabel": "",
               "valueType": "field",
@@ -463,8 +463,8 @@
               "value": "{{node:code_cc_compute.data.subAfter}}"
             },
             {
-              "prop": "reload_remain_credit",
-              "propLabel": "reload_remain_credit",
+              "prop": "flex_remain_credit",
+              "propLabel": "flex_remain_credit",
               "operator": "",
               "operatorLabel": "",
               "valueType": "field",

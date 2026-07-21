@@ -209,7 +209,7 @@ The workflow's calc node must produce byte-identical results to `SuduCreditReloa
 
 **Interfaces:**
 - Produces: `computeReload(input)` — the canonical calculation, later pasted verbatim into the workflow's `code_cr_calc` node. Signature:
-  `computeReload({reload_amount, exchange_rate, reload_type, sub_remain_before, reload_remain_before}) -> {ai_credit_reload_amount, total_gross, total_tax_amount, total_amount, total_amount_myr, sub_remain_after, reload_remain_after}`
+  `computeReload({reload_amount, exchange_rate, reload_type, monthly_remain_before, flex_remain_before}) -> {ai_credit_reload_amount, total_gross, total_tax_amount, total_amount, total_amount_myr, monthly_remain_after, flex_remain_after}`
   All fields are **numbers** here, so they can be compared field-by-field against the form handler's output, which is also numeric. The `toFixed` string conversion for persistence happens later, in the workflow's `code_cr_calc` node, *after* this arithmetic — do not move it into `computeReload` or the differential test will compare strings against numbers and fail spuriously.
 
 - [ ] **Step 1: Write the differential test**
@@ -234,8 +234,8 @@ function computeReload(input) {
   const reloadAmount = parseFloat(input.reload_amount) || 0;
   const exchangeRate = parseFloat(input.exchange_rate) || 1;
   const reloadType = input.reload_type;
-  const subBefore = parseFloat(input.sub_remain_before) || 0;
-  const reloadBefore = parseFloat(input.reload_remain_before) || 0;
+  const subBefore = parseFloat(input.monthly_remain_before) || 0;
+  const reloadBefore = parseFloat(input.flex_remain_before) || 0;
 
   const credits = Math.round((reloadAmount / BASE_AMOUNT) * BASE_CREDIT);
 
@@ -259,8 +259,8 @@ function computeReload(input) {
     total_tax_amount: totalTax,
     total_amount: totalAmount,
     total_amount_myr: totalAmountMyr,
-    sub_remain_after: subAfter,
-    reload_remain_after: reloadAfter,
+    monthly_remain_after: subAfter,
+    flex_remain_after: reloadAfter,
   };
 }
 
@@ -277,16 +277,16 @@ function runClientRecalc(values) {
 }
 
 const CASES = [
-  { reload_amount: 45, exchange_rate: 1, reload_type: "Monthly Subscription", sub_remain_before: 3200, reload_remain_before: 500 },
-  { reload_amount: 45, exchange_rate: 1, reload_type: "Add On", sub_remain_before: 3200, reload_remain_before: 500 },
-  { reload_amount: 90, exchange_rate: 4.72, reload_type: "Add On", sub_remain_before: 3200, reload_remain_before: 500 },
-  { reload_amount: 0, exchange_rate: 1, reload_type: "", sub_remain_before: 3200, reload_remain_before: 500 },
-  { reload_amount: 22.5, exchange_rate: 3.1416, reload_type: "Monthly Subscription", sub_remain_before: 0, reload_remain_before: 0 },
+  { reload_amount: 45, exchange_rate: 1, reload_type: "Monthly Subscription", monthly_remain_before: 3200, flex_remain_before: 500 },
+  { reload_amount: 45, exchange_rate: 1, reload_type: "Add On", monthly_remain_before: 3200, flex_remain_before: 500 },
+  { reload_amount: 90, exchange_rate: 4.72, reload_type: "Add On", monthly_remain_before: 3200, flex_remain_before: 500 },
+  { reload_amount: 0, exchange_rate: 1, reload_type: "", monthly_remain_before: 3200, flex_remain_before: 500 },
+  { reload_amount: 22.5, exchange_rate: 3.1416, reload_type: "Monthly Subscription", monthly_remain_before: 0, flex_remain_before: 0 },
 ];
 
 const KEYS = [
   "ai_credit_reload_amount", "total_gross", "total_tax_amount",
-  "total_amount", "total_amount_myr", "sub_remain_after", "reload_remain_after",
+  "total_amount", "total_amount_myr", "monthly_remain_after", "flex_remain_after",
 ];
 
 let failures = 0;
@@ -318,7 +318,7 @@ node scripts/check_reload_calc.js
 ```
 Expected: `PASS  5 cases agree across all 7 fields`.
 
-If it fails, the workflow copy has drifted from the form's — reconcile before continuing. This script is the guard against exactly the `remain_sub_credit` / `sub_remain_credit` class of bug.
+If it fails, the workflow copy has drifted from the form's — reconcile before continuing. This script is the guard against exactly the `remain_sub_credit` / `monthly_remain_credit` class of bug.
 
 - [ ] **Step 3: Report**
 
@@ -515,8 +515,8 @@ const entry = {
   customer_name: customer.customer_com_name || '',
   customer_reg_no: customer.customer_com_reg_no || '',
   customer_tax_no: customer.customer_tin_no || '',
-  sub_remain_before: customer.sub_remain_credit || 0,
-  reload_remain_before: customer.reload_remain_credit || 0,
+  monthly_remain_before: customer.monthly_remain_credit || 0,
+  flex_remain_before: customer.flex_remain_credit || 0,
 };
 
 return { entry };
@@ -552,8 +552,8 @@ const round = (value, dp) => parseFloat(parseFloat(value || 0).toFixed(dp));
 const reloadAmount = parseFloat(entry.reload_amount) || 0;
 const exchangeRate = parseFloat(entry.exchange_rate) || 1;
 const reloadType = entry.reload_type;
-const subBefore = parseFloat(entry.sub_remain_before) || 0;
-const reloadBefore = parseFloat(entry.reload_remain_before) || 0;
+const subBefore = parseFloat(entry.monthly_remain_before) || 0;
+const reloadBefore = parseFloat(entry.flex_remain_before) || 0;
 
 const credits = Math.round((reloadAmount / BASE_AMOUNT) * BASE_CREDIT);
 
@@ -582,10 +582,10 @@ entry.exchange_rate = exchangeRate.toFixed(6);
 
 // Credit balances are integer columns.
 entry.ai_credit_reload_amount = credits;
-entry.sub_remain_before = Math.round(subBefore);
-entry.reload_remain_before = Math.round(reloadBefore);
-entry.sub_remain_after = Math.round(subAfter);
-entry.reload_remain_after = Math.round(reloadAfter);
+entry.monthly_remain_before = Math.round(subBefore);
+entry.flex_remain_before = Math.round(reloadBefore);
+entry.monthly_remain_after = Math.round(subAfter);
+entry.flex_remain_after = Math.round(reloadAfter);
 
 return { entry };
 """.strip(), ["entry"])
@@ -594,8 +594,8 @@ CR_COLUMNS = [
     "reload_date", "reload_invoice_no", "reload_invoice_no_type", "tenant_2",
     "reload_type", "currency_id", "exchange_rate", "exchange_rate_currency",
     "exchange_rate_myr", "reload_amount", "ai_credit_reload_amount",
-    "sub_remain_before", "sub_remain_after", "reload_remain_before",
-    "reload_remain_after", "payment_status", "payment_term", "payment_method",
+    "monthly_remain_before", "monthly_remain_after", "flex_remain_before",
+    "flex_remain_after", "payment_status", "payment_term", "payment_method",
     "payment_date", "total_gross", "total_tax_amount", "total_amount",
     "total_amount_myr", "dealer_id", "agent_id", "customer_name",
     "customer_reg_no", "customer_tax_no", "address_name", "address_country_id",
