@@ -329,15 +329,15 @@
         "width": "",
         "options": [
           {
-            "value": "Subscription",
-            "label": "Subscription",
+            "value": "Month",
+            "label": "Month",
             "explain": "",
             "disabled": false,
             "visible": true
           },
           {
-            "value": "Reload",
-            "label": "Reload",
+            "value": "Flex",
+            "label": "Flex",
             "explain": "",
             "disabled": false,
             "visible": true
