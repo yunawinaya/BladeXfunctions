@@ -1336,33 +1336,7 @@
                                                   "id": "ifBlock_sQHDIDQ3",
                                                   "type": "ifBlock",
                                                   "data": { "title": "false" },
-                                                  "blocks": [
-                                                    {
-                                                      "id": "end_node_Gn2YCHPt",
-                                                      "type": "end-node",
-                                                      "data": {
-                                                        "title": "结束节点",
-                                                        "outputs": {
-                                                          "type": "object",
-                                                          "properties": {
-                                                            "result": {
-                                                              "type": "string"
-                                                            }
-                                                          }
-                                                        },
-                                                        "isValidator": true,
-                                                        "nodeName": "结束节点",
-                                                        "name": "结束节点",
-                                                        "back_data_type": "Default",
-                                                        "code": 403,
-                                                        "msg": {
-                                                          "type": "javascript",
-                                                          "code": "{{node:workflow_node_1IYhCFaV.data.message}}"
-                                                        }
-                                                      },
-                                                      "blocks": []
-                                                    }
-                                                  ]
+                                                  "blocks": []
                                                 }
                                               ]
                                             }
@@ -1795,6 +1769,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "so_description",
+                      "valueType": "field",
+                      "value": "{{node:code_node_BtxYhPym.data.entry.so_description}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Description"
                     },
                     {
                       "prop": "created_source",
@@ -2905,6 +2887,14 @@
                 "props": {
                   "modelName": "",
                   "list": [
+                    {
+                      "prop": "so_description",
+                      "valueType": "field",
+                      "value": "{{node:code_node_BtxYhPym.data.entry.so_description}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Description"
+                    },
                     {
                       "prop": "created_source",
                       "valueType": "field",
@@ -4062,6 +4052,161 @@
         ]
       },
       "blocks": []
+    },
+    {
+      "id": "if_vpSQ6BEE",
+      "type": "if",
+      "data": {
+        "title": "IF override",
+        "isValidator": true,
+        "nodeName": "IF override",
+        "name": "IF override",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1784516086317,
+              "parentId": 1784516086318,
+              "isTop": true,
+              "prop": "",
+              "operator": "all",
+              "valueType": "",
+              "value": "",
+              "type": "branch",
+              "level": 1,
+              "children": [
+                {
+                  "id": 1736695973613,
+                  "parentId": 1784516086317,
+                  "isTop": false,
+                  "prop": "node.code_node_vqKDnsnD.data.isBlock",
+                  "operator": "isNotNull",
+                  "valueType": "value",
+                  "type": "leaf",
+                  "level": 2,
+                  "valueLabel": "",
+                  "propLabel": "Is Block",
+                  "operatorLabel": "Is Not Null"
+                },
+                {
+                  "id": 1784516086319,
+                  "parentId": 1784516086317,
+                  "isTop": false,
+                  "prop": "node.code_node_vqKDnsnD.data.isBlock",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "override",
+                  "type": "leaf",
+                  "level": 2,
+                  "propLabel": "Is Block",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_y3p3lOJh",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "slot_node_ehX7sDpE",
+              "type": "slot-node",
+              "data": {
+                "slot_id": "",
+                "slot_name": "",
+                "slot_params": {},
+                "title": "Override CL Approval",
+                "isValidator": true,
+                "nodeName": "Override CL Approval",
+                "name": "Override CL Approval",
+                "name_k": "Override CL",
+                "table_id": {
+                  "rules": {
+                    "collectionId": "1902773735979597826",
+                    "list": [
+                      {
+                        "id": 1735218938947,
+                        "parentId": 1735218938946,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "Sales Order:Table:1902773735979597826"
+                },
+                "primary_key": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_9wKKlXUI.data.soData.id}}"
+                },
+                "des": ""
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_tkZIw0Dd",
+              "type": "if",
+              "data": {
+                "title": "IF",
+                "isValidator": true,
+                "nodeName": "IF",
+                "name": "IF",
+                "condition_type": "Expression",
+                "expression": { "type": "javascript", "code": "true" }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_qLoeLrgX",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_Z75phIsK",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 401,
+                        "msg": { "type": "javascript", "code": "'Validation'" }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_P4aVab6N",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_6GnRGhZW",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "code_node_aU4K2EjW",
