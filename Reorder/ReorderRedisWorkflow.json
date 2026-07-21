@@ -269,6 +269,138 @@
           ]
         },
         {
+          "id": "condition_or_item_PpReorder",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "PP Created/Cancelled",
+            "filter": {
+              "list": [
+                {
+                  "id": 1781246052960,
+                  "parentId": 1781246052959,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:document_type}}' == 'PP_CREATED' || '{{workflowparams:document_type}}' == 'PP_CANCELLED'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 3,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "PP Created/Cancelled",
+            "name": "PP Created/Cancelled",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "code_node_PpReorderItemIDs",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Collect PP Item IDs",
+                "isValidator": true,
+                "nodeName": "Collect PP Item IDs",
+                "name": "Collect PP Item IDs",
+                "script": {
+                  "type": "javascript",
+                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// Distinct material ids across previous + latest PP (table_to) allocations\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => { if (a && a.material_id) idSet.add(a.material_id); });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\nreturn { itemIDs: Array.from(idSet) };"
+                },
+                "response_json": [
+                  {
+                    "key": "ppitemids1",
+                    "name": "itemIDs",
+                    "title": "Item IDs",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_PpReorderItems",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 1,
+                        "children": [
+                          {
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_PpReorderItemIDs.data.itemIDs}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get PP Item Conversion",
+                "isValidator": true,
+                "nodeName": "Get PP Item Conversion",
+                "name": "Get PP Item Conversion"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PpCompare",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Compare PP Data",
+                "isValidator": true,
+                "nodeName": "Compare PP Data",
+                "name": "Compare PP Data",
+                "script": {
+                  "type": "javascript",
+                  "code": "const previousData = {{workflowparams:previous_data}} || []; // table_to lines\nconst latestData = {{workflowparams:latest_data}} || []; // table_to lines (null/omitted on cancel -> [] -> negatives)\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). PP lines don't store\n// base_qty, so base conversion needs the item's table_uom_conversion (like SO).\nconst itemMasterRaw = {{node:search_node_PpReorderItems.data.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => { if (it && it.id) itemMasterMap.set(String(it.id), it); });\n\n// Convert a PP allocation qty (in the line's to_order_uom_id) to base UOM qty\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || uomId === itemData.based_uom) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => c.alt_uom_id === uomId)\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// Extract + aggregate temp_qty_data (to_quantity -> base) by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    // Per-line order UOM (all allocations on a PP line share the line's UOM)\n    const lineUom = item.to_order_uom_id;\n\n    tempQtyArray.forEach(qtyItem => {\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = convertToBaseQty(materialId, lineUom, qtyItem.to_quantity);\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).to_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          to_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: formatQuantity(-prevItem.to_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: formatQuantity(latestItem.to_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.to_quantity !== latestItem.to_quantity) {\n    const difference = formatQuantity(latestItem.to_quantity - prevItem.to_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
+                },
+                "response_json": [
+                  {
+                    "key": "hb66tohi",
+                    "name": "data",
+                    "title": "PP Data",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
           "id": "condition_or_node_item_z5Yhfu1v",
           "type": "condition-or-node-item",
           "data": {
@@ -308,7 +440,7 @@
         "name": "Map latest redis",
         "script": {
           "type": "javascript",
-          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
+          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
         },
         "response_json": [
           {

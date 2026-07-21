@@ -7083,6 +7083,196 @@
               ]
             },
             {
+              "id": "if_PpReorderCreated",
+              "type": "if",
+              "data": {
+                "title": "IF Created (Reorder)",
+                "isValidator": true,
+                "nodeName": "IF Created (Reorder)",
+                "name": "IF Created (Reorder)",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{workflowparams:saveAs}}' == 'Created'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_PpReorderCreatedTrue",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "workflow_node_PpReorderCreated",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Reorder Redis Workflow (PP Created)",
+                        "isValidator": true,
+                        "nodeName": "Run Reorder Redis Workflow (PP Created)",
+                        "name": "Run Reorder Redis Workflow (PP Created)",
+                        "workflow": {
+                          "source": "REORDER_SET_REDIS:Workflow:2065256261729759233",
+                          "rules": {
+                            "collectionId": "2065256261729759233",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "document_type",
+                              "propLabel": "Document Type",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "PP_CREATED",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "previous_data",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:get_node_zG6KDDEF.data.data.table_to}}",
+                              "valueLabel": "",
+                              "propLabel": "Previous Data"
+                            },
+                            {
+                              "prop": "latest_data",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_Nj60Z2XF.data.allData.table_to}}",
+                              "valueLabel": "",
+                              "propLabel": "Latest Data"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_PpReorderCreatedFalse",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_PpReorderCancelled",
+              "type": "if",
+              "data": {
+                "title": "IF Cancelled (Reorder)",
+                "isValidator": true,
+                "nodeName": "IF Cancelled (Reorder)",
+                "name": "IF Cancelled (Reorder)",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{workflowparams:saveAs}}' == 'Cancelled'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_PpReorderCancelledTrue",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "workflow_node_PpReorderCancelled",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Reorder Redis Workflow (PP Cancelled)",
+                        "isValidator": true,
+                        "nodeName": "Run Reorder Redis Workflow (PP Cancelled)",
+                        "name": "Run Reorder Redis Workflow (PP Cancelled)",
+                        "workflow": {
+                          "source": "REORDER_SET_REDIS:Workflow:2065256261729759233",
+                          "rules": {
+                            "collectionId": "2065256261729759233",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "document_type",
+                              "propLabel": "Document Type",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "PP_CANCELLED",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "previous_data",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:get_node_zG6KDDEF.data.data.table_to}}",
+                              "valueLabel": "",
+                              "propLabel": "Previous Data"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_PpReorderCancelledFalse",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "if_M0SOqd-x",
               "type": "if",
               "data": {

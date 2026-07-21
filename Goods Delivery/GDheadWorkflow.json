@@ -5842,24 +5842,10 @@
                 "isValidator": true,
                 "nodeName": "IF Completed",
                 "name": "IF Completed",
-                "condition_type": "ConditionRule",
-                "filter": {
-                  "list": [
-                    {
-                      "id": 1736695973613,
-                      "parentId": 1736695973612,
-                      "isTop": true,
-                      "prop": "workflowparams.saveAs",
-                      "operator": "equal",
-                      "valueType": "value",
-                      "value": "Completed",
-                      "type": "leaf",
-                      "level": 1,
-                      "propLabel": "saveAs",
-                      "valueLabel": "",
-                      "operatorLabel": "Equal"
-                    }
-                  ]
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{workflowparams:saveAs}}' == 'Completed' && '{{workflowparams:allData.is_select_picking}}' != '1'"
                 }
               },
               "blocks": [
@@ -5951,24 +5937,10 @@
                 "isValidator": true,
                 "nodeName": "IF Created (Reorder)",
                 "name": "IF Created (Reorder)",
-                "condition_type": "ConditionRule",
-                "filter": {
-                  "list": [
-                    {
-                      "id": 1736695973620,
-                      "parentId": 1736695973619,
-                      "isTop": true,
-                      "prop": "workflowparams.saveAs",
-                      "operator": "equal",
-                      "valueType": "value",
-                      "value": "Created",
-                      "type": "leaf",
-                      "level": 1,
-                      "propLabel": "saveAs",
-                      "valueLabel": "",
-                      "operatorLabel": "Equal"
-                    }
-                  ]
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{workflowparams:saveAs}}' == 'Created' && '{{workflowparams:allData.is_select_picking}}' != '1'"
                 }
               },
               "blocks": [
@@ -6060,24 +6032,10 @@
                 "isValidator": true,
                 "nodeName": "IF Cancelled (Reorder)",
                 "name": "IF Cancelled (Reorder)",
-                "condition_type": "ConditionRule",
-                "filter": {
-                  "list": [
-                    {
-                      "id": 1736695973622,
-                      "parentId": 1736695973621,
-                      "isTop": true,
-                      "prop": "workflowparams.saveAs",
-                      "operator": "equal",
-                      "valueType": "value",
-                      "value": "Cancelled",
-                      "type": "leaf",
-                      "level": 1,
-                      "propLabel": "saveAs",
-                      "valueLabel": "",
-                      "operatorLabel": "Equal"
-                    }
-                  ]
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{workflowparams:saveAs}}' == 'Cancelled' && '{{workflowparams:allData.is_select_picking}}' != '1'"
                 }
               },
               "blocks": [
