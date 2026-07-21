@@ -1797,8 +1797,8 @@
               "enableScopes": ["Component", "Table", "Page"],
               "tabs": [
                 {
-                  "title": "Subscription Credit",
-                  "name": "collapse_sub",
+                  "title": "Monthly Credit",
+                  "name": "collapse_monthly",
                   "list": [
                     {
                       "name": "Before",
@@ -1865,7 +1865,7 @@
                       },
                       "type": "custom",
                       "key": "jjdyw03g",
-                      "model": "sub_remain_before",
+                      "model": "monthly_remain_before",
                       "rules": [],
                       "novalid": {}
                     },
@@ -1934,7 +1934,7 @@
                       },
                       "type": "custom",
                       "key": "j8qeezpa",
-                      "model": "sub_remain_after",
+                      "model": "monthly_remain_after",
                       "rules": [],
                       "novalid": {}
                     }
@@ -1943,8 +1943,8 @@
                 },
                 {
                   "key": "pjrzg8jo",
-                  "title": "Reload Credit",
-                  "name": "collapse_reload",
+                  "title": "Flex Credit",
+                  "name": "collapse_flex",
                   "list": [
                     {
                       "name": "Before",
@@ -2011,7 +2011,7 @@
                       },
                       "type": "custom",
                       "key": "akefnmgl",
-                      "model": "reload_remain_before",
+                      "model": "flex_remain_before",
                       "rules": [],
                       "novalid": {}
                     },
@@ -2080,7 +2080,7 @@
                       },
                       "type": "custom",
                       "key": "rff61jqj",
-                      "model": "reload_remain_after",
+                      "model": "flex_remain_after",
                       "rules": [],
                       "novalid": {}
                     }
@@ -4976,7 +4976,7 @@
       {
         "key": "jfkte9td",
         "name": "onCustomerChange",
-        "func": "(async () => {\n  try {\n    const item = arguments[0]?.fieldModel?.item;\n    if (!item) return;\n\n    // Scalars come straight off the selected customer row - no fetch needed.\n    this.setData({\n      customer_name: item.customer_com_name || '',\n      customer_reg_no: item.customer_com_reg_no || '',\n      customer_tax_no: item.customer_tin_no || '',\n      payment_term: item.customer_payment_term_id || null,\n      sub_remain_before: item.sub_remain_credit || 0,\n      reload_remain_before: item.reload_remain_credit || 0,\n    });\n\n    // --- billing address ---------------------------------------------------\n    const addressList = item.address_list;\n\n    if (Array.isArray(addressList) && addressList.length > 0) {\n      const resBilling = await db\n        .collection('address_purpose')\n        .where({ purpose_name: 'Billing' })\n        .get();\n\n      // address_purpose is a global reference table - a missing row must not throw.\n      const billingPurposeId = resBilling?.data?.[0]?.id;\n\n      const billing =\n        (billingPurposeId &&\n          addressList.find(\n            (address) =>\n              address.address_purpose_id === billingPurposeId &&\n              address.switch_save_as_default\n          )) ||\n        (billingPurposeId &&\n          addressList.find(\n            (address) => address.address_purpose_id === billingPurposeId\n          )) ||\n        addressList[0];\n\n      if (billing) {\n        // address_country_id / adddress_state are id-bound selects on this form\n        // too, so the raw ids copy across without a name lookup.\n        this.setData({\n          address_name: billing.address_name || '',\n          address_country_id: billing.address_country_id || null,\n          adddress_state: billing.adddress_state || null,\n          address_line_1: billing.address_line_1 || '',\n          address_line_2: billing.address_line_2 || '',\n          address_line_3: billing.address_line_3 || '',\n          address_line_4: billing.address_line_4 || '',\n          address_city: billing.address_city || '',\n          address_postal_code: billing.address_postal_code || '',\n          address_phone: billing.address_phone || '',\n          address_phone2: billing.address_phone2 || '',\n          address_mobile: billing.address_mobile || '',\n          address_email: billing.address_email || '',\n        });\n      }\n    } else {\n      console.warn('Credit Reload: customer row carried no address_list', item);\n    }\n\n    // --- currency ----------------------------------------------------------\n    // Re-set through '' so currency_id's onChange fires even when the new\n    // customer happens to share the previous customer's currency.\n    await this.setData({ currency_id: '' });\n    await this.setData({ currency_id: item.customer_currency_id || null });\n  } catch (error) {\n    console.error('Credit Reload: failed to load customer', error);\n    this.$message.error('Failed to load customer details.');\n  }\n})();",
+        "func": "(async () => {\n  try {\n    const item = arguments[0]?.fieldModel?.item;\n    if (!item) return;\n\n    // Scalars come straight off the selected customer row - no fetch needed.\n    this.setData({\n      customer_name: item.customer_com_name || '',\n      customer_reg_no: item.customer_com_reg_no || '',\n      customer_tax_no: item.customer_tin_no || '',\n      payment_term: item.customer_payment_term_id || null,\n      monthly_remain_before: item.sub_remain_credit || 0,\n      flex_remain_before: item.reload_remain_credit || 0,\n    });\n\n    // --- billing address ---------------------------------------------------\n    const addressList = item.address_list;\n\n    if (Array.isArray(addressList) && addressList.length > 0) {\n      const resBilling = await db\n        .collection('address_purpose')\n        .where({ purpose_name: 'Billing' })\n        .get();\n\n      // address_purpose is a global reference table - a missing row must not throw.\n      const billingPurposeId = resBilling?.data?.[0]?.id;\n\n      const billing =\n        (billingPurposeId &&\n          addressList.find(\n            (address) =>\n              address.address_purpose_id === billingPurposeId &&\n              address.switch_save_as_default\n          )) ||\n        (billingPurposeId &&\n          addressList.find(\n            (address) => address.address_purpose_id === billingPurposeId\n          )) ||\n        addressList[0];\n\n      if (billing) {\n        // address_country_id / adddress_state are id-bound selects on this form\n        // too, so the raw ids copy across without a name lookup.\n        this.setData({\n          address_name: billing.address_name || '',\n          address_country_id: billing.address_country_id || null,\n          adddress_state: billing.adddress_state || null,\n          address_line_1: billing.address_line_1 || '',\n          address_line_2: billing.address_line_2 || '',\n          address_line_3: billing.address_line_3 || '',\n          address_line_4: billing.address_line_4 || '',\n          address_city: billing.address_city || '',\n          address_postal_code: billing.address_postal_code || '',\n          address_phone: billing.address_phone || '',\n          address_phone2: billing.address_phone2 || '',\n          address_mobile: billing.address_mobile || '',\n          address_email: billing.address_email || '',\n        });\n      }\n    } else {\n      console.warn('Credit Reload: customer row carried no address_list', item);\n    }\n\n    // --- currency ----------------------------------------------------------\n    // Re-set through '' so currency_id's onChange fires even when the new\n    // customer happens to share the previous customer's currency.\n    await this.setData({ currency_id: '' });\n    await this.setData({ currency_id: item.customer_currency_id || null });\n  } catch (error) {\n    console.error('Credit Reload: failed to load customer', error);\n    this.$message.error('Failed to load customer details.');\n  }\n})();",
         "type": "js"
       },
       {
@@ -4988,7 +4988,7 @@
       {
         "key": "rcl9v3mp",
         "name": "func_recalc",
-        "func": "// Single source of truth for every computed amount on this form.\n// Pricing is hardcoded for now - BASE_AMOUNT of document currency buys BASE_CREDIT credits.\nconst BASE_AMOUNT = 45;\nconst BASE_CREDIT = 10000;\nconst TAX_RATE = 0.08;\n\nconst round = (value, dp) => parseFloat(parseFloat(value || 0).toFixed(dp));\n\nconst data = this.getValues();\n\nconst reloadAmount = parseFloat(data.reload_amount) || 0;\nconst exchangeRate = parseFloat(data.exchange_rate) || 1;\nconst reloadType = data.reload_type;\nconst subBefore = parseFloat(data.sub_remain_before) || 0;\nconst reloadBefore = parseFloat(data.reload_remain_before) || 0;\n\n// Credits scale linearly with the amount paid. ai_credit_reload_amount is an\n// int column (precision 0), so round rather than truncate.\nconst credits = Math.round((reloadAmount / BASE_AMOUNT) * BASE_CREDIT);\n\n// Tax is exclusive - added on top of the entered amount.\nconst totalGross = round(reloadAmount, 2);\nconst totalTax = round(totalGross * TAX_RATE, 2);\nconst totalAmount = round(totalGross + totalTax, 2);\nconst totalAmountMyr = round(totalAmount * exchangeRate, 2);\n\n// Monthly Subscription RESETS the subscription balance to the purchased credits,\n// ignoring whatever was left. Add On accumulates onto the reload balance.\n// Anything else leaves both balances untouched.\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  reloadAfter = reloadBefore + credits;\n}\n\nthis.setData({\n  ai_credit_reload_amount: credits,\n  total_gross: totalGross,\n  total_tax_amount: totalTax,\n  total_amount: totalAmount,\n  total_amount_myr: totalAmountMyr,\n  sub_remain_after: subAfter,\n  reload_remain_after: reloadAfter,\n});",
+        "func": "// Single source of truth for every computed amount on this form.\n// Pricing is hardcoded for now - BASE_AMOUNT of document currency buys BASE_CREDIT credits.\nconst BASE_AMOUNT = 45;\nconst BASE_CREDIT = 10000;\nconst TAX_RATE = 0.08;\n\nconst round = (value, dp) => parseFloat(parseFloat(value || 0).toFixed(dp));\n\nconst data = this.getValues();\n\nconst reloadAmount = parseFloat(data.reload_amount) || 0;\nconst exchangeRate = parseFloat(data.exchange_rate) || 1;\nconst reloadType = data.reload_type;\nconst subBefore = parseFloat(data.sub_remain_before) || 0;\nconst reloadBefore = parseFloat(data.reload_remain_before) || 0;\n\n// Credits scale linearly with the amount paid. ai_credit_reload_amount is an\n// int column (precision 0), so round rather than truncate.\nconst credits = Math.round((reloadAmount / BASE_AMOUNT) * BASE_CREDIT);\n\n// Tax is exclusive - added on top of the entered amount.\nconst totalGross = round(reloadAmount, 2);\nconst totalTax = round(totalGross * TAX_RATE, 2);\nconst totalAmount = round(totalGross + totalTax, 2);\nconst totalAmountMyr = round(totalAmount * exchangeRate, 2);\n\n// Monthly Subscription RESETS the subscription balance to the purchased credits,\n// ignoring whatever was left. Add On accumulates onto the reload balance.\n// Anything else leaves both balances untouched.\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  reloadAfter = reloadBefore + credits;\n}\n\nthis.setData({\n  ai_credit_reload_amount: credits,\n  total_gross: totalGross,\n  total_tax_amount: totalTax,\n  total_amount: totalAmount,\n  total_amount_myr: totalAmountMyr,\n  monthly_remain_after: subAfter,\n  flex_remain_after: reloadAfter,\n});",
         "type": "js"
       },
       {

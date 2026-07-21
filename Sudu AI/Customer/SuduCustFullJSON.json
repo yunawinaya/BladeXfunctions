@@ -2532,10 +2532,10 @@
                         "onFocus": "",
                         "onBlur": ""
                       },
-                      "name": "Sub Package",
+                      "name": "Plan",
                       "novalid": {},
                       "key": "d5zqxydi",
-                      "model": "sub_package",
+                      "model": "plan_package",
                       "rules": []
                     }
                   ],
@@ -2557,7 +2557,7 @@
                   },
                   "list": [
                     {
-                      "name": "Sub Remain Credit",
+                      "name": "Monthly Remain Credit",
                       "el": "su-fm-enhanced-number-input",
                       "mainIcon": "数字",
                       "typeIcon": "数字",
@@ -2620,11 +2620,11 @@
                       "type": "custom",
                       "novalid": {},
                       "key": "6bylalmb",
-                      "model": "sub_remain_credit",
+                      "model": "monthly_remain_credit",
                       "rules": []
                     },
                     {
-                      "name": "Sub Max Credit",
+                      "name": "Monthly Max Credit",
                       "el": "su-fm-enhanced-number-input",
                       "mainIcon": "数字",
                       "typeIcon": "数字",
@@ -2687,11 +2687,11 @@
                       "type": "custom",
                       "novalid": {},
                       "key": "2vqr7mjt",
-                      "model": "sub_max_credit",
+                      "model": "monthly_max_credit",
                       "rules": []
                     },
                     {
-                      "name": "Reload Remain Credit",
+                      "name": "Flex Remain Credit",
                       "el": "su-fm-enhanced-number-input",
                       "mainIcon": "数字",
                       "typeIcon": "数字",
@@ -2754,11 +2754,11 @@
                       "type": "custom",
                       "novalid": {},
                       "key": "pmpwoj1q",
-                      "model": "reload_remain_credit",
+                      "model": "flex_remain_credit",
                       "rules": []
                     },
                     {
-                      "name": "Reload Max Credit",
+                      "name": "Flex Max Credit",
                       "el": "su-fm-enhanced-number-input",
                       "mainIcon": "数字",
                       "typeIcon": "数字",
@@ -2821,7 +2821,7 @@
                       "type": "custom",
                       "novalid": {},
                       "key": "uttt70cb",
-                      "model": "reload_max_credit",
+                      "model": "flex_max_credit",
                       "rules": []
                     }
                   ],
@@ -6332,7 +6332,7 @@
         "remoteOption": "option_odfkr8r5",
         "tableColumn": false,
         "subform": false,
-        "elementFxCurrent": "tab_1"
+        "elementFxCurrent": "tab_onyvw0nv"
       },
       "key": "odfkr8r5",
       "model": "tabs_odfkr8r5",
@@ -6488,7 +6488,7 @@
       "options": {
         "title": "布局",
         "customClass": "fixbutton",
-        "hidden": false,
+        "hidden": true,
         "recursive": false,
         "recursiveStyleFx": "",
         "slotTarget": "",
@@ -6542,7 +6542,13 @@
         "remoteOption": "option_mll82vie",
         "tableColumn": false,
         "subform": false,
-        "props": {},
+        "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+        },
         "datasource": {
           "rules": {
             "collectionId": "",
@@ -6606,7 +6612,10 @@
         "paging_way": "Pagination",
         "page_size": 10,
         "more_fields": [],
-        "columns": []
+        "columns": [],
+        "auto_refresh": 0,
+        "auto_refresh_debounce": 100,
+        "options": []
       },
       "list": [
         {
@@ -6674,7 +6683,13 @@
             "remoteFunc": "func_xu40m9cw",
             "remoteOption": "option_xu40m9cw",
             "tableColumn": false,
-            "subform": false
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
           },
           "events": {
             "onClick": "xwpla592"
@@ -8496,7 +8511,7 @@
       {
         "key": "xwpla592",
         "name": "save",
-        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = requiredFields.filter((field) => {\n    const value = data[field.name];\n    if (Array.isArray(value)) return value.length === 0;\n    if (typeof value === \"string\") return value.trim() === \"\";\n    return !value;\n  });\n  return missingFields;\n};\n\nconst addEntry = async (entry) => {\n  try {\n    await db.collection(\"Sudu Customer\").add(entry);\n    this.$message.success(\"Add successfully\");\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst updateEntry = async (entry, customerId) => {\n  try {\n    await db.collection(\"Sudu Customer\").doc(customerId).update(entry);\n    this.$message.success(\"Update successfully\");\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    // Check array elements\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    // Check all object properties\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n  }\n  return null;\n};\n\n(async () => {\n  try {\n    this.showLoading();\n    const data = this.getValues();\n    let entry = data;\n    const requiredFields = [\n      { name: \"customer_status\", label: \"Customer Status\" },\n      { name: \"customer_com_name\", label: \"Customer Name\" },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    if (missingFields.length === 0) {\n      const page_status = data.page_status;\n\n      if (page_status === \"Add\") {\n        await addEntry(entry);\n        await closeDialog();\n      } else if (page_status === \"Edit\") {\n        const customerId = this.getValue(\"id\");\n        await updateEntry(entry, customerId);\n        await closeDialog();\n      }\n    } else {\n      this.hideLoading();\n      const missingFieldNames = missingFields.map((f) => f.label).join(\", \");\n      this.$message.error(`Missing required fields: ${missingFieldNames}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(errorMessage);\n  }\n})();\n",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = requiredFields.filter((field) => {\n    const value = data[field.name];\n    if (Array.isArray(value)) return value.length === 0;\n    if (typeof value === \"string\") return value.trim() === \"\";\n    return !value;\n  });\n  return missingFields;\n};\n\nconst addEntry = async (entry) => {\n  try {\n    await db.collection(\"sudu_customer\").add(entry);\n    this.$message.success(\"Add successfully\");\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst updateEntry = async (entry, customerId) => {\n  try {\n    await db.collection(\"sudu_customer\").doc(customerId).update(entry);\n    this.$message.success(\"Update successfully\");\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    // Check array elements\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    // Check all object properties\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n  }\n  return null;\n};\n\n(async () => {\n  try {\n    this.showLoading();\n    const data = this.getValues();\n    let entry = data;\n    const requiredFields = [\n      { name: \"customer_status\", label: \"Customer Status\" },\n      { name: \"customer_com_name\", label: \"Customer Name\" },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    if (missingFields.length === 0) {\n      const page_status = data.page_status;\n\n      if (page_status === \"Add\") {\n        await addEntry(entry);\n        await closeDialog();\n      } else if (page_status === \"Edit\") {\n        const customerId = this.getValue(\"id\");\n        await updateEntry(entry, customerId);\n        await closeDialog();\n      }\n    } else {\n      this.hideLoading();\n      const missingFieldNames = missingFields.map((f) => f.label).join(\", \");\n      this.$message.error(`Missing required fields: ${missingFieldNames}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(errorMessage);\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -8519,8 +8534,8 @@
       },
       {
         "key": "bqbtk3eu",
-        "name": "onSubPackageChange_bqbtk3eu",
-        "func": "const credit = arguments[0].fieldModel.item.reload_credit;\n\nthis.setData({\n  sub_max_credit: credit,\n  sub_remain_credit: credit,\n});",
+        "name": "onPlanChange",
+        "func": "const credit = arguments[0].fieldModel.item.reload_credit;\n\nthis.setData({\n  monthly_max_credit: credit,\n  monthly_remain_credit: credit,\n});",
         "type": "js"
       }
     ],
