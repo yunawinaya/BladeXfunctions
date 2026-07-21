@@ -6557,18 +6557,45 @@
                         "filter": {
                           "list": [
                             {
-                              "id": 1736695973613,
-                              "parentId": 1736695973612,
+                              "id": 1784272713519,
+                              "parentId": 1784272713520,
                               "isTop": true,
-                              "prop": "node.code_node_jo9g6Ldx.data.isAssignedTo",
-                              "operator": "numberEqual",
-                              "valueType": "value",
-                              "value": 1,
-                              "type": "leaf",
+                              "prop": "",
+                              "operator": "all",
+                              "valueType": "",
+                              "value": "",
+                              "type": "branch",
                               "level": 1,
-                              "propLabel": "isAssignedTo",
-                              "valueLabel": "",
-                              "operatorLabel": "Equal"
+                              "children": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1784272713519,
+                                  "isTop": false,
+                                  "prop": "node.code_node_jo9g6Ldx.data.isAssignedTo",
+                                  "operator": "numberEqual",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "isAssignedTo",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1784272713521,
+                                  "parentId": 1784272713519,
+                                  "isTop": false,
+                                  "prop": "workflowparams.saveAs",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Removed",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "saveAs",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
                             }
                           ]
                         }
