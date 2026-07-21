@@ -477,7 +477,7 @@
     },
     {
       "version": "1.0.0",
-      "name": "Subscription Previous Balance",
+      "name": "Monthly Previous Balance",
       "el": "su-fm-enhanced-number-input",
       "mainIcon": "数字",
       "typeIcon": "数字",
@@ -540,12 +540,12 @@
       "source": "system",
       "type": "custom",
       "key": "u72ilqzp",
-      "model": "sub_previous_balance",
+      "model": "monthly_previous_balance",
       "rules": []
     },
     {
       "version": "1.0.0",
-      "name": "Subscription Balance After",
+      "name": "Monthly Balance After",
       "el": "su-fm-enhanced-number-input",
       "mainIcon": "数字",
       "typeIcon": "数字",
@@ -608,12 +608,12 @@
       "source": "system",
       "type": "custom",
       "key": "27uw886h",
-      "model": "sub_balance_after",
+      "model": "monthly_balance_after",
       "rules": []
     },
     {
       "version": "1.0.0",
-      "name": "Reload Previous Balance",
+      "name": "Flex Previous Balance",
       "el": "su-fm-enhanced-number-input",
       "mainIcon": "数字",
       "typeIcon": "数字",
@@ -676,12 +676,12 @@
       "source": "system",
       "type": "custom",
       "key": "39zszofm",
-      "model": "reload_previous_balance",
+      "model": "flex_previous_balance",
       "rules": []
     },
     {
       "version": "1.0.0",
-      "name": "Reload Balance After",
+      "name": "Flex Balance After",
       "el": "su-fm-enhanced-number-input",
       "mainIcon": "数字",
       "typeIcon": "数字",
@@ -744,7 +744,7 @@
       "source": "system",
       "type": "custom",
       "key": "nhh3gb4s",
-      "model": "reload_balance_after",
+      "model": "flex_balance_after",
       "rules": []
     },
     {
