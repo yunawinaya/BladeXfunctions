@@ -88,6 +88,7 @@ const tempQtyData = currentMaterialAllocs.map((alloc) => {
 const tempHuData = huAllocations.map((alloc) => ({
   row_type: "item",
   handling_unit_id: alloc.handling_unit_id,
+  handling_no: getHandlingNo(alloc.handling_unit_id),
   material_id: alloc.material_id || currentRow.materialId,
   location_id: alloc.location_id,
   batch_id: alloc.batch_id || null,
@@ -231,6 +232,7 @@ if (splitPolicy !== "ALLOW_SPLIT" && otherMaterialAllocs.length > 0) {
       crossLineUpdates[targetIdx].tempHuData.push({
         row_type: "item",
         handling_unit_id: alloc.handling_unit_id,
+        handling_no: getHandlingNo(alloc.handling_unit_id),
         material_id: alloc.material_id,
         location_id: alloc.location_id,
         batch_id: alloc.batch_id || null,

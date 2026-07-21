@@ -785,6 +785,7 @@
         crossLineAccum[lineInfo.lineIndex].tempHu.push({
           row_type: "item",
           handling_unit_id: huItem.handling_unit_id,
+          handling_no: huItem.handling_no || "",
           material_id: huItem.material_id,
           location_id: huItem.location_id,
           batch_id: huItem.batch_id || null,

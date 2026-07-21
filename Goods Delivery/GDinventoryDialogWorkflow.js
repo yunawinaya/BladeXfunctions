@@ -593,7 +593,7 @@
             huTableData.push({
               row_type: "item",
               handling_unit_id: hu.id,
-              handling_no: "",
+              handling_no: hu.handling_no,
               material_id: huItem.material_id,
               material_name: huItem.material_name,
               storage_location_id: hu.storage_location_id,
