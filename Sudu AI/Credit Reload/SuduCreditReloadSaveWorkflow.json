@@ -56,7 +56,7 @@
         "name": "Determine Params",
         "script": {
           "type": "javascript",
-          "code": "const input = {{workflowparams:data}} || {};\n\nconst mode = input.mode === 'headless' ? 'headless' : 'form';\nconst pageStatus = input.page_status || 'Add';\n\n// Headless is always an Add. Edit only ever arrives from the form.\nconst isEdit = (mode === 'form' && pageStatus === 'Edit') ? 'Y' : 'N';\nconst isHeadless = mode === 'headless' ? 'Y' : 'N';\n\nlet errorCode = '';\nif (isHeadless === 'Y') {\n  const amount = parseFloat(input.reload_amount);\n  if (!input.tenant_id || !input.reload_type || !amount || amount <= 0) {\n    errorCode = '400';\n  }\n} else if (isEdit === 'N') {\n  const amount = parseFloat(input.reload_amount);\n  if (!input.tenant_2 || !input.reload_type || !amount || amount <= 0) {\n    errorCode = '406';\n  }\n}\n\nreturn { input, mode, isEdit, isHeadless, errorCode };"
+          "code": "const input = {{workflowparams:data}} || {};\n\nconst pageStatus = input.page_status || '';\n\n// tenant_2 is the tenant being topped up - it fetches the Sudu Customer.\n// input.tenant_id is the acting/context tenant, a DIFFERENT value; not used here.\nconst custTenant = input.tenant_2 || '';\n\n// A form call declares mode 'form' AND carries page_status (set in onMounted).\n// A headless caller sends neither, so anything lacking both markers is headless.\nconst isForm = input.mode === 'form' || pageStatus !== '';\nconst isHeadless = isForm ? 'N' : 'Y';\nconst isEdit = (isForm && pageStatus === 'Edit') ? 'Y' : 'N';\n\nlet errorCode = '';\nif (isHeadless === 'Y') {\n  const amount = parseFloat(input.reload_amount);\n  if (!custTenant || !input.reload_type || !amount || amount <= 0) {\n    errorCode = '400';\n  }\n} else if (isEdit === 'N') {\n  const amount = parseFloat(input.reload_amount);\n  if (!custTenant || !input.reload_type || !amount || amount <= 0) {\n    errorCode = '406';\n  }\n}\n\nreturn { input, mode: isHeadless === 'Y' ? 'headless' : 'form', isEdit, isHeadless, errorCode, custTenant };"
         },
         "response_json": [
           {
@@ -98,6 +98,15 @@
           {
             "key": "kermine4",
             "name": "errorCode",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kdeterm5",
+            "name": "custTenant",
             "title": "",
             "description": "",
             "bsonType": "any",
@@ -520,7 +529,7 @@
                                         "prop": "tenant_id2",
                                         "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{node:code_cr_determine.data.input.tenant_id}}",
+                                        "value": "{{node:code_cr_determine.data.custTenant}}",
                                         "type": "leaf",
                                         "level": 1,
                                         "propLabel": "Tenant",
@@ -760,7 +769,7 @@
                         "name": "Normalize Headless",
                         "script": {
                           "type": "javascript",
-                          "code": "const input = {{node:code_cr_determine.data.input}};\nconst customer = {{node:get_node_customer.data.data}} || {};\nconst currency = {{node:get_node_currency.data.data}} || {};\nconst rules = {{node:search_node_serial.data}} || [];\n\n// '----' and 'MYR' both mean base currency - nothing to convert.\nconst code = currency.currency_code;\nconst isBase = !code || code === 'MYR' || code === '----';\nconst exchangeRate = isBase ? 1 : (currency.currency_buying_rate || 1);\n\nconst now = new Date();\nconst reloadDate = now.getFullYear() + '-' +\n  String(now.getMonth() + 1).padStart(2, '0') + '-' +\n  String(now.getDate()).padStart(2, '0');\n\nconst entry = {\n  page_status: 'Add',\n  reload_date: reloadDate,\n  reload_invoice_no_type: rules[0] ? rules[0].id : '',\n  tenant_2: input.tenant_id,\n  reload_type: input.reload_type,\n  reload_amount: input.reload_amount,\n  currency_id: customer.customer_currency_id || null,\n  exchange_rate: exchangeRate,\n  exchange_rate_currency: code || '',\n  exchange_rate_myr: 'MYR',\n  payment_status: 'Unpaid',\n  payment_term: customer.customer_payment_term_id || null,\n  customer_name: customer.customer_com_name || '',\n  customer_reg_no: customer.customer_com_reg_no || '',\n  customer_tax_no: customer.customer_tin_no || '',\n  monthly_remain_before: customer.monthly_remain_credit || 0,\n  flex_remain_before: customer.flex_remain_credit || 0,\n};\n\nreturn { entry };"
+                          "code": "const input = {{node:code_cr_determine.data.input}};\nconst customer = {{node:get_node_customer.data.data}} || {};\nconst currency = {{node:get_node_currency.data.data}} || {};\nconst rules = {{node:search_node_serial.data}} || [];\n\n// '----' and 'MYR' both mean base currency - nothing to convert.\nconst code = currency.currency_code;\nconst isBase = !code || code === 'MYR' || code === '----';\nconst exchangeRate = isBase ? 1 : (currency.currency_buying_rate || 1);\n\nconst now = new Date();\nconst reloadDate = now.getFullYear() + '-' +\n  String(now.getMonth() + 1).padStart(2, '0') + '-' +\n  String(now.getDate()).padStart(2, '0');\n\nconst entry = {\n  page_status: 'Add',\n  reload_date: reloadDate,\n  reload_invoice_no_type: rules[0] ? rules[0].id : '',\n  tenant_2: input.tenant_2 || '',\n  reload_type: input.reload_type,\n  reload_amount: input.reload_amount,\n  currency_id: customer.customer_currency_id || null,\n  exchange_rate: exchangeRate,\n  exchange_rate_currency: code || '',\n  exchange_rate_myr: 'MYR',\n  payment_status: 'Unpaid',\n  payment_term: customer.customer_payment_term_id || null,\n  customer_name: customer.customer_com_name || '',\n  customer_reg_no: customer.customer_com_reg_no || '',\n  customer_tax_no: customer.customer_tin_no || '',\n  monthly_remain_before: customer.monthly_remain_credit || 0,\n  flex_remain_before: customer.flex_remain_credit || 0,\n};\n\nreturn { entry };"
                         },
                         "response_json": [
                           {
