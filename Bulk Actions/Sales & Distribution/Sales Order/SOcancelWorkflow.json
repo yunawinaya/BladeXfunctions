@@ -980,6 +980,97 @@
       "blocks": []
     },
     {
+      "id": "get_node_SoCancelReorder",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Order:Table:1902773735979597826",
+          "rules": {
+            "collectionId": "1902773735979597826",
+            "list": [
+              {
+                "id": 1783100000131,
+                "parentId": 1783100000130,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:so_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Primary Key ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get SO For Reorder",
+        "isValidator": true,
+        "nodeName": "Get SO For Reorder",
+        "name": "Get SO For Reorder"
+      },
+      "blocks": []
+    },
+    {
+      "id": "workflow_node_SoCancelReorder",
+      "type": "workflow-node",
+      "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Run Reorder Redis (SO Cancelled)",
+        "isValidator": true,
+        "nodeName": "Run Reorder Redis (SO Cancelled)",
+        "name": "Run Reorder Redis (SO Cancelled)",
+        "workflow": {
+          "source": "REORDER_SET_REDIS:Workflow:2065256261729759233",
+          "rules": {
+            "collectionId": "2065256261729759233",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+          "list": [
+            {
+              "prop": "document_type",
+              "propLabel": "Document Type",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "value": "SO_CANCELLED",
+              "valueLabel": ""
+            },
+            {
+              "prop": "previous_data",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:get_node_SoCancelReorder.data.data.table_so}}",
+              "valueLabel": "",
+              "propLabel": "Previous Data"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
       "id": "return_success",
       "type": "return-node",
       "data": {
