@@ -1,0 +1,2937 @@
+{
+  "request_json": [
+    {
+      "key": "b3mzc7mj",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "3tr8hhhp",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "condition_or_ZwR1Rbnj",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Condition",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_or_node_item_aUE2LWek",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Create or Update",
+            "filter": {
+              "list": [
+                {
+                  "id": 1778740571035,
+                  "parentId": 1778740571034,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:data.action_type}}' == 'Create' || '{{workflowparams:data.action_type}}' == 'Update'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Create or Update",
+            "name": "Create or Update",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "if_XSC0Uzwj",
+              "type": "if",
+              "data": {
+                "title": "IF apply to user?",
+                "isValidator": true,
+                "nodeName": "IF apply to user?",
+                "name": "IF apply to user?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "{{workflowparams:data.apply_to_user}} == 1"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_4KvAGDFV",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "condition_or_ChEofPM0",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Condition",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "condition_or_node_item_0OCFg8e3",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "Type == CUSTOMER",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1778722665336,
+                                  "parentId": 1778722665335,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "'{{workflowparams:data.type}}' == 'CUSTOMER'",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Type == CUSTOMER",
+                            "name": "Type == CUSTOMER",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_WRXnyH4a",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Aliases:Table:2042068008880824322",
+                                  "rules": {
+                                    "collectionId": "2042068008880824322",
+                                    "list": [
+                                      {
+                                        "id": 1778731764330,
+                                        "parentId": 1778731764331,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "all",
+                                        "valueType": "",
+                                        "type": "branch",
+                                        "level": 1,
+                                        "value": "",
+                                        "children": [
+                                          {
+                                            "id": 1778722743845,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "org_id",
+                                            "operator": "equal",
+                                            "valueType": "field",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Organization ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal",
+                                            "value": "{{global:firstLvDeptId}}"
+                                          },
+                                          {
+                                            "id": 1778731764332,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "create_user.id",
+                                            "operator": "numberEqual",
+                                            "valueType": "field",
+                                            "value": "{{system:uid}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1778731764333,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "type",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "CUSTOMER",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Type",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1778731764334,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "alias_key",
+                                            "operator": "equal",
+                                            "valueType": "field",
+                                            "value": "{{workflowparams:data.alias_key}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Alias Key",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1778740860815,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "numberNotEqual",
+                                            "valueType": "field",
+                                            "value": "{{workflowparams:data.id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Not Equal"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "ORG+USER+KEY",
+                                "isValidator": true,
+                                "nodeName": "ORG+USER+KEY",
+                                "name": "ORG+USER+KEY"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "if_NnP_RJ_b",
+                              "type": "if",
+                              "data": {
+                                "title": "IF has data?",
+                                "isValidator": true,
+                                "nodeName": "IF has data?",
+                                "name": "IF has data?",
+                                "condition_type": "Expression",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "{{node:get_node_WRXnyH4a.data.count}} > 0"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "if_block_DkcOyOwE",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "code_node_04c8zjwR",
+                                      "type": "code-node",
+                                      "data": {
+                                        "language": "javascript",
+                                        "code": "",
+                                        "timeout": 30000,
+                                        "title": "401 Duplicate entry",
+                                        "isValidator": true,
+                                        "nodeName": "Error Duplicate",
+                                        "name": "Error Duplicate",
+                                        "script": {
+                                          "type": "javascript",
+                                          "code": "return {\n  message: 'This alias key already exist.'\n}"
+                                        },
+                                        "response_json": [
+                                          {
+                                            "key": "jc4jhwv8",
+                                            "name": "message",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "string",
+                                            "isExpand": false
+                                          }
+                                        ]
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "end_PUqehc50",
+                                      "type": "end-node",
+                                      "data": {
+                                        "title": "结束节点",
+                                        "outputs": {
+                                          "type": "object",
+                                          "properties": {
+                                            "result": { "type": "string" }
+                                          }
+                                        },
+                                        "isValidator": true,
+                                        "nodeName": "结束节点",
+                                        "name": "结束节点",
+                                        "back_data_type": "Default",
+                                        "code": 401,
+                                        "msg": {
+                                          "type": "javascript",
+                                          "code": "{{node:code_node_04c8zjwR.data.message}}"
+                                        }
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "if_block_UgJunpOh",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "condition_or_item_iSNqntda",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "Type == ITEM",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1778732703328,
+                                  "parentId": 1778732703327,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "'{{workflowparams:data.type}}' == 'ITEM'",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "__index": 2,
+                            "isDefault": false,
+                            "isValidator": true,
+                            "nodeName": "Type == ITEM",
+                            "name": "Type == ITEM",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_1wzaPN-P",
+                              "type": "if",
+                              "data": {
+                                "title": "IF has customer_id",
+                                "isValidator": true,
+                                "nodeName": "IF !customer_id",
+                                "name": "IF !customer_id",
+                                "condition_type": "Expression",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "{{workflowparams:data.customer_id}} && {{workflowparams:data.customer_id}} != null && {{workflowparams:data.customer_id}} != ''"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "if_block_J4S60s2K",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "get_node_8QngCyEC",
+                                      "type": "get-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Aliases:Table:2042068008880824322",
+                                          "rules": {
+                                            "collectionId": "2042068008880824322",
+                                            "list": [
+                                              {
+                                                "id": 1778731764330,
+                                                "parentId": 1778731764331,
+                                                "isTop": true,
+                                                "prop": "",
+                                                "operator": "all",
+                                                "valueType": "",
+                                                "type": "branch",
+                                                "level": 1,
+                                                "value": "",
+                                                "children": [
+                                                  {
+                                                    "id": 1778722743845,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "org_id",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Organization ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal",
+                                                    "value": "{{global:firstLvDeptId}}"
+                                                  },
+                                                  {
+                                                    "id": 1778731764332,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "create_user.id",
+                                                    "operator": "numberEqual",
+                                                    "valueType": "field",
+                                                    "value": "{{system:uid}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "主键ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778731764333,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "type",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "ITEM",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Type",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778731764334,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "alias_key",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.alias_key}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Alias Key",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778740860815,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "id",
+                                                    "operator": "numberNotEqual",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.id}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "主键ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Not Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778741060098,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "customer_id",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.customer_id}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Customer ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "title": "ORG+USER+KEY+CUST",
+                                        "isValidator": true,
+                                        "nodeName": "ORG+USER+KEY+CUST",
+                                        "name": "ORG+USER+KEY+CUST"
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "if_SRFnYELt",
+                                      "type": "if",
+                                      "data": {
+                                        "title": "IF has data?",
+                                        "isValidator": true,
+                                        "nodeName": "IF has data?",
+                                        "name": "IF has data?",
+                                        "condition_type": "Expression",
+                                        "expression": {
+                                          "type": "javascript",
+                                          "code": "{{node:get_node_8QngCyEC.data.count}} > 0"
+                                        }
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "ifBlock_Injj65p1",
+                                          "type": "ifBlock",
+                                          "data": { "title": "true" },
+                                          "blocks": [
+                                            {
+                                              "id": "code_node_0o58ftwH",
+                                              "type": "code-node",
+                                              "data": {
+                                                "language": "javascript",
+                                                "code": "",
+                                                "timeout": 30000,
+                                                "title": "401 Duplicate entry",
+                                                "isValidator": true,
+                                                "nodeName": "401 Duplicate entry",
+                                                "name": "401 Duplicate entry",
+                                                "script": {
+                                                  "type": "javascript",
+                                                  "code": "return {\n  message: 'This alias key already exist.'\n}"
+                                                },
+                                                "response_json": [
+                                                  {
+                                                    "key": "jc4jhwv8",
+                                                    "name": "message",
+                                                    "title": "",
+                                                    "description": "",
+                                                    "bsonType": "string",
+                                                    "isExpand": false
+                                                  }
+                                                ]
+                                              },
+                                              "blocks": []
+                                            },
+                                            {
+                                              "id": "end_node_2Hz9Txd1",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 401,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_0o58ftwH.data.message}}"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "ifBlock_Qt7GblN4",
+                                          "type": "ifBlock",
+                                          "data": { "title": "false" },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "if_block_YjtFEpnC",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": [
+                                    {
+                                      "id": "get_node_iQ8XN5B5",
+                                      "type": "get-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Aliases:Table:2042068008880824322",
+                                          "rules": {
+                                            "collectionId": "2042068008880824322",
+                                            "list": [
+                                              {
+                                                "id": 1778731764330,
+                                                "parentId": 1778731764331,
+                                                "isTop": true,
+                                                "prop": "",
+                                                "operator": "all",
+                                                "valueType": "",
+                                                "type": "branch",
+                                                "level": 1,
+                                                "value": "",
+                                                "children": [
+                                                  {
+                                                    "id": 1778722743845,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "org_id",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Organization ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal",
+                                                    "value": "{{global:firstLvDeptId}}"
+                                                  },
+                                                  {
+                                                    "id": 1778731764332,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "create_user.id",
+                                                    "operator": "numberEqual",
+                                                    "valueType": "field",
+                                                    "value": "{{system:uid}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "主键ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778731764333,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "type",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "ITEM",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Type",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778731764334,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "alias_key",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.alias_key}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Alias Key",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778740860815,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "id",
+                                                    "operator": "numberNotEqual",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.id}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "主键ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Not Equal"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "title": "ORG+USER+KEY",
+                                        "isValidator": true,
+                                        "nodeName": "ORG+USER+KEY",
+                                        "name": "ORG+USER+KEY"
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "if_0L3dGIIU",
+                                      "type": "if",
+                                      "data": {
+                                        "title": "IF has data?",
+                                        "isValidator": true,
+                                        "nodeName": "IF has data?",
+                                        "name": "IF has data?",
+                                        "condition_type": "Expression",
+                                        "expression": {
+                                          "type": "javascript",
+                                          "code": "{{node:get_node_iQ8XN5B5.data.count}} > 0"
+                                        }
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "ifBlock_lm7OrqR0",
+                                          "type": "ifBlock",
+                                          "data": { "title": "true" },
+                                          "blocks": [
+                                            {
+                                              "id": "code_node_WtMEmgOV",
+                                              "type": "code-node",
+                                              "data": {
+                                                "language": "javascript",
+                                                "code": "",
+                                                "timeout": 30000,
+                                                "title": "401 Duplicate entry",
+                                                "isValidator": true,
+                                                "nodeName": "401 Duplicate entry",
+                                                "name": "401 Duplicate entry",
+                                                "script": {
+                                                  "type": "javascript",
+                                                  "code": "return {\n  message: 'This alias key already exist.'\n}"
+                                                },
+                                                "response_json": [
+                                                  {
+                                                    "key": "jc4jhwv8",
+                                                    "name": "message",
+                                                    "title": "",
+                                                    "description": "",
+                                                    "bsonType": "string",
+                                                    "isExpand": false
+                                                  }
+                                                ]
+                                              },
+                                              "blocks": []
+                                            },
+                                            {
+                                              "id": "end_node_mqzLHDsA",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 401,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_WtMEmgOV.data.message}}"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "ifBlock_ojGAx6BM",
+                                          "type": "ifBlock",
+                                          "data": { "title": "false" },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "condition_or_node_item_Q9HrBuEa",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "No type",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": [
+                            {
+                              "id": "code_node_KEs2HZZo",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "402 No alias type found",
+                                "isValidator": true,
+                                "nodeName": "Error no alias type found",
+                                "name": "Error no alias type found",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "return {\n  message: 'No alias type found.'\n}"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "k41usavg",
+                                    "name": "message",
+                                    "title": "Message",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "end_KLDZ971L",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": { "type": "string" }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "Default",
+                                "code": 402,
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": "{{node:code_node_KEs2HZZo.data.message}}"
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_NbOyixps",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "condition_or_node_9KXEznuN",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Condition",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "condition_or_node_item_nW1AnwjT",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "Type == CUSTOMER",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1778722665336,
+                                  "parentId": 1778722665335,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "'{{workflowparams:data.type}}' == 'CUSTOMER'",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Type == CUSTOMER",
+                            "name": "Type == CUSTOMER",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_gW3OcWyA",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Aliases:Table:2042068008880824322",
+                                  "rules": {
+                                    "collectionId": "2042068008880824322",
+                                    "list": [
+                                      {
+                                        "id": 1778731764330,
+                                        "parentId": 1778731764331,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "all",
+                                        "valueType": "",
+                                        "type": "branch",
+                                        "level": 1,
+                                        "value": "",
+                                        "children": [
+                                          {
+                                            "id": 1778722743845,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "org_id",
+                                            "operator": "equal",
+                                            "valueType": "field",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Organization ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal",
+                                            "value": "{{global:firstLvDeptId}}"
+                                          },
+                                          {
+                                            "id": 1778731764333,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "type",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "CUSTOMER",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Type",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1778731764334,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "alias_key",
+                                            "operator": "equal",
+                                            "valueType": "field",
+                                            "value": "{{workflowparams:data.alias_key}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Alias Key",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1778740860815,
+                                            "parentId": 1778731764330,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "numberNotEqual",
+                                            "valueType": "field",
+                                            "value": "{{workflowparams:data.id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Not Equal"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "ORG+KEY",
+                                "isValidator": true,
+                                "nodeName": "ORG+KEY",
+                                "name": "ORG+KEY"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "if_nSSFsCAp",
+                              "type": "if",
+                              "data": {
+                                "title": "IF has data?",
+                                "isValidator": true,
+                                "nodeName": "IF has data?",
+                                "name": "IF has data?",
+                                "condition_type": "Expression",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "{{node:get_node_gW3OcWyA.data.count}} > 0"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_KogUaP8n",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "code_node_3QzsSHfG",
+                                      "type": "code-node",
+                                      "data": {
+                                        "language": "javascript",
+                                        "code": "",
+                                        "timeout": 30000,
+                                        "title": "401 Duplicate entry",
+                                        "isValidator": true,
+                                        "nodeName": "401 Duplicate entry",
+                                        "name": "401 Duplicate entry",
+                                        "script": {
+                                          "type": "javascript",
+                                          "code": "return {\n  message: 'This alias key already exist.'\n}"
+                                        },
+                                        "response_json": [
+                                          {
+                                            "key": "jc4jhwv8",
+                                            "name": "message",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "string",
+                                            "isExpand": false
+                                          }
+                                        ]
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "end_node_x1lAzT5L",
+                                      "type": "end-node",
+                                      "data": {
+                                        "title": "结束节点",
+                                        "outputs": {
+                                          "type": "object",
+                                          "properties": {
+                                            "result": { "type": "string" }
+                                          }
+                                        },
+                                        "isValidator": true,
+                                        "nodeName": "结束节点",
+                                        "name": "结束节点",
+                                        "back_data_type": "Default",
+                                        "code": 401,
+                                        "msg": {
+                                          "type": "javascript",
+                                          "code": "{{node:code_node_3QzsSHfG.data.message}}"
+                                        }
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_6VR4PP0i",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "condition_or_node_item_grXNfHiG",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "Type == ITEM",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1778732703328,
+                                  "parentId": 1778732703327,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "'{{workflowparams:data.type}}' == 'ITEM'",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "__index": 2,
+                            "isDefault": false,
+                            "isValidator": true,
+                            "nodeName": "Type == ITEM",
+                            "name": "Type == ITEM",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_uNZ78izW",
+                              "type": "if",
+                              "data": {
+                                "title": "IF has customer_id",
+                                "isValidator": true,
+                                "nodeName": "IF has customer_id",
+                                "name": "IF has customer_id",
+                                "condition_type": "Expression",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "{{workflowparams:data.customer_id}} && {{workflowparams:data.customer_id}} != null && {{workflowparams:data.customer_id}} != ''"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_baFB4SJ3",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "get_node_XPBTBoYd",
+                                      "type": "get-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Aliases:Table:2042068008880824322",
+                                          "rules": {
+                                            "collectionId": "2042068008880824322",
+                                            "list": [
+                                              {
+                                                "id": 1778731764330,
+                                                "parentId": 1778731764331,
+                                                "isTop": true,
+                                                "prop": "",
+                                                "operator": "all",
+                                                "valueType": "",
+                                                "type": "branch",
+                                                "level": 1,
+                                                "value": "",
+                                                "children": [
+                                                  {
+                                                    "id": 1778722743845,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "org_id",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Organization ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal",
+                                                    "value": "{{global:firstLvDeptId}}"
+                                                  },
+                                                  {
+                                                    "id": 1778731764333,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "type",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "ITEM",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Type",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778731764334,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "alias_key",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.alias_key}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Alias Key",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778740860815,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "id",
+                                                    "operator": "numberNotEqual",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.id}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "主键ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Not Equal"
+                                                  },
+                                                  {
+                                                    "id": 1778741060098,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "customer_id",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.customer_id}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "Customer ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "title": "ORG+KEY+CUST",
+                                        "isValidator": true,
+                                        "nodeName": "ORG+KEY+CUST",
+                                        "name": "ORG+KEY+CUST"
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "if_0cG0btKm",
+                                      "type": "if",
+                                      "data": {
+                                        "title": "IF has data?",
+                                        "isValidator": true,
+                                        "nodeName": "IF has data?",
+                                        "name": "IF has data?",
+                                        "condition_type": "Expression",
+                                        "expression": {
+                                          "type": "javascript",
+                                          "code": "{{node:get_node_XPBTBoYd.data.count}} > 0"
+                                        }
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "ifBlock_1Yq2DNNF",
+                                          "type": "ifBlock",
+                                          "data": { "title": "true" },
+                                          "blocks": [
+                                            {
+                                              "id": "code_node_Kqn0Z0Z3",
+                                              "type": "code-node",
+                                              "data": {
+                                                "language": "javascript",
+                                                "code": "",
+                                                "timeout": 30000,
+                                                "title": "401 Duplicate entry",
+                                                "isValidator": true,
+                                                "nodeName": "401 Duplicate entry",
+                                                "name": "401 Duplicate entry",
+                                                "script": {
+                                                  "type": "javascript",
+                                                  "code": "return {\n  message: 'This alias key already exist.'\n}"
+                                                },
+                                                "response_json": [
+                                                  {
+                                                    "key": "jc4jhwv8",
+                                                    "name": "message",
+                                                    "title": "",
+                                                    "description": "",
+                                                    "bsonType": "string",
+                                                    "isExpand": false
+                                                  }
+                                                ]
+                                              },
+                                              "blocks": []
+                                            },
+                                            {
+                                              "id": "end_node_lepN1hix",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 401,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_Kqn0Z0Z3.data.message}}"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "ifBlock_IK3WEb1n",
+                                          "type": "ifBlock",
+                                          "data": { "title": "false" },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_NX02kVww",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": [
+                                    {
+                                      "id": "get_node_igQqQPJo",
+                                      "type": "get-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Aliases:Table:2042068008880824322",
+                                          "rules": {
+                                            "collectionId": "2042068008880824322",
+                                            "list": [
+                                              {
+                                                "id": 1778731764330,
+                                                "parentId": 1778731764331,
+                                                "isTop": true,
+                                                "prop": "",
+                                                "operator": "all",
+                                                "valueType": "",
+                                                "type": "branch",
+                                                "level": 1,
+                                                "value": "",
+                                                "children": [
+                                                  {
+                                                    "id": 1778722743845,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "org_id",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "组织ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "等于",
+                                                    "value": "{{global:firstLvDeptId}}"
+                                                  },
+                                                  {
+                                                    "id": 1778731764333,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "type",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "ITEM",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "类型",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "等于"
+                                                  },
+                                                  {
+                                                    "id": 1778731764334,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "alias_key",
+                                                    "operator": "equal",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.alias_key}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "别名密钥",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "等于"
+                                                  },
+                                                  {
+                                                    "id": 1778740860815,
+                                                    "parentId": 1778731764330,
+                                                    "isTop": false,
+                                                    "prop": "id",
+                                                    "operator": "numberNotEqual",
+                                                    "valueType": "field",
+                                                    "value": "{{workflowparams:data.id}}",
+                                                    "type": "leaf",
+                                                    "level": 2,
+                                                    "propLabel": "主键ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "不等于"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "title": "ORG+KEY",
+                                        "isValidator": true,
+                                        "nodeName": "ORG+KEY",
+                                        "name": "ORG+KEY"
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "if_9b7wbQ0h",
+                                      "type": "if",
+                                      "data": {
+                                        "title": "IF has data?",
+                                        "isValidator": true,
+                                        "nodeName": "IF has data?",
+                                        "name": "IF has data?",
+                                        "condition_type": "Expression",
+                                        "expression": {
+                                          "type": "javascript",
+                                          "code": "{{node:get_node_igQqQPJo.data.count}} > 0"
+                                        }
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "ifBlock_5FLHSsVW",
+                                          "type": "ifBlock",
+                                          "data": { "title": "true" },
+                                          "blocks": [
+                                            {
+                                              "id": "code_node_5RKLHleJ",
+                                              "type": "code-node",
+                                              "data": {
+                                                "language": "javascript",
+                                                "code": "",
+                                                "timeout": 30000,
+                                                "title": "401 Duplicate entry",
+                                                "isValidator": true,
+                                                "nodeName": "401 Duplicate entry",
+                                                "name": "401 Duplicate entry",
+                                                "script": {
+                                                  "type": "javascript",
+                                                  "code": "return {\n  message: 'This alias key already exist.'\n}"
+                                                },
+                                                "response_json": [
+                                                  {
+                                                    "key": "jc4jhwv8",
+                                                    "name": "message",
+                                                    "title": "",
+                                                    "description": "",
+                                                    "bsonType": "string",
+                                                    "isExpand": false
+                                                  }
+                                                ]
+                                              },
+                                              "blocks": []
+                                            },
+                                            {
+                                              "id": "end_node_u3sqlw01",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 401,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_5RKLHleJ.data.message}}"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "ifBlock_rgrtPFKo",
+                                          "type": "ifBlock",
+                                          "data": { "title": "false" },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "condition_or_node_item_FFEOs8cQ",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "No type",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": [
+                            {
+                              "id": "code_node_0TMjnRAv",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "402 No alias type found",
+                                "isValidator": true,
+                                "nodeName": "402 No alias type found",
+                                "name": "402 No alias type found",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "return {\n  message: 'No alias type found.'\n}"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "k41usavg",
+                                    "name": "message",
+                                    "title": "Message",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "end_node_jMSYfeSV",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": { "type": "string" }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "Default",
+                                "code": 402,
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": "{{node:code_node_0TMjnRAv.data.message}}"
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "if_SIgwY0gb",
+              "type": "if",
+              "data": {
+                "title": "IF create?",
+                "isValidator": true,
+                "nodeName": "IF create?",
+                "name": "IF create?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{workflowparams:data.action_type}}' == 'Create'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_k6nWcRBS",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "add_node_xfT2e5od",
+                      "type": "add-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Aliases:Table:2042068008880824322",
+                          "rules": {
+                            "collectionId": "2042068008880824322",
+                            "list": [
+                              {
+                                "id": 1778741506800,
+                                "parentId": 1778741506799,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "title": "Add Alias",
+                        "isValidator": true,
+                        "nodeName": "Add Alias",
+                        "name": "Add Alias",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "org_id",
+                              "valueType": "field",
+                              "value": "{{global:firstLvDeptId}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.type}}",
+                              "valueLabel": "",
+                              "propLabel": "Type"
+                            },
+                            {
+                              "prop": "alias_key",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.alias_key}}",
+                              "valueLabel": "",
+                              "propLabel": "Alias Key"
+                            },
+                            {
+                              "prop": "customer_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.customer_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Customer ID"
+                            },
+                            {
+                              "prop": "customer_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.customer_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Customer Name"
+                            },
+                            {
+                              "prop": "target_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.target_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Code"
+                            },
+                            {
+                              "prop": "target_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.target_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Name"
+                            },
+                            {
+                              "prop": "apply_to_user",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.apply_to_user}}",
+                              "valueLabel": "",
+                              "propLabel": "Apply to User"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_U-4nrJEu",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "update_node_j60Zxdow",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Aliases:Table:2042068008880824322",
+                          "rules": {
+                            "collectionId": "2042068008880824322",
+                            "list": [
+                              {
+                                "id": 1778741623621,
+                                "parentId": 1778741623620,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{workflowparams:data.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Update Alias",
+                        "isValidator": true,
+                        "nodeName": "Update Alias",
+                        "name": "Update Alias",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "org_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{global:firstLvDeptId}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.type}}",
+                              "valueLabel": "",
+                              "propLabel": "Type"
+                            },
+                            {
+                              "prop": "alias_key",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.alias_key}}",
+                              "valueLabel": "",
+                              "propLabel": "Alias Key"
+                            },
+                            {
+                              "prop": "customer_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.customer_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Customer ID"
+                            },
+                            {
+                              "prop": "customer_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.customer_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Customer Name"
+                            },
+                            {
+                              "prop": "target_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.target_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Code"
+                            },
+                            {
+                              "prop": "target_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.target_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Name"
+                            },
+                            {
+                              "prop": "apply_to_user",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.apply_to_user}}",
+                              "valueLabel": "",
+                              "propLabel": "Apply to User"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_node_hLCo4A3A",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Alias ID",
+                "isValidator": true,
+                "nodeName": "Alias ID",
+                "name": "Alias ID",
+                "script": {
+                  "type": "javascript",
+                  "code": "const actionType = {{workflowparams:data.action_type}}\nconst id = actionType === 'Create' ? {{node:add_node_xfT2e5od.data.id}} : {{workflowparams:data.id}}\n\nreturn {\n  id\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "mvsh4ayo",
+                    "name": "id",
+                    "title": "ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "api_node_f8BrUq23",
+              "type": "api-node",
+              "data": {
+                "url": "",
+                "method": "GET",
+                "headers": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "params": {},
+                "body": "",
+                "title": "Call API",
+                "isValidator": true,
+                "nodeName": "Call API",
+                "name": "Call API",
+                "api": {
+                  "rules": {
+                    "collectionId": "2076558335357542401",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "Upsert Aliases:Api:2076558335357542401"
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "id",
+                      "propLabel": "ID",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "valueLabel": "",
+                      "value": "{{node:code_node_hLCo4A3A.data.id}}"
+                    },
+                    {
+                      "prop": "tenant_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{system:tenantId}}",
+                      "valueLabel": "",
+                      "propLabel": "Tenant ID"
+                    },
+                    {
+                      "prop": "org_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{global:firstLvDeptId}}",
+                      "valueLabel": "",
+                      "propLabel": "Organization ID"
+                    },
+                    {
+                      "prop": "alias_key",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.alias_key}}",
+                      "valueLabel": "",
+                      "propLabel": "Alias Key"
+                    },
+                    {
+                      "prop": "target_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.target_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Target Code"
+                    },
+                    {
+                      "prop": "target_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.target_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Target Name"
+                    },
+                    {
+                      "prop": "customer_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.customer_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Customer ID"
+                    },
+                    {
+                      "prop": "apply_to_user",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.apply_to_user}}",
+                      "valueLabel": "",
+                      "propLabel": "Apply to User"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_item_jvqA4c4O",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Read",
+            "filter": {
+              "list": [
+                {
+                  "id": 1778740584020,
+                  "parentId": 1778740584019,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:data.action_type}}' == 'Read'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 2,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "Read",
+            "name": "Read",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "code_node_eYCY6n8R",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Check Read Type",
+                "isValidator": true,
+                "nodeName": "Check Read Type",
+                "name": "Check Read Type",
+                "script": {
+                  "type": "javascript",
+                  "code": "const data = {{workflowparams:data}};\nconst type = data?.type || \"\";\nconst targetCode = data?.target_code || \"\";\nconst aliasKey = data?.alias_key || \"\";\nlet readType = 0;\n\n// Type 1: Find Alias by Alias Key\n// Type 2: Find Alias by Alias Key for Item\n// Type 3: Find Alias by Alias Key for Customer\n// Type 4: Find Alias by Target Code\n// Type 5: Find Alias by Target Code for Item\n// Type 6: Find Alias by Target Code for Customer\n\n// Define Type\nif (type === \"\") {\n  if (aliasKey !== \"\" && targetCode === \"\") {\n    readType = 1;\n  } else if (targetCode !== \"\" && aliasKey === \"\") {\n    readType = 4;\n  }\n} else {\n  if (type === \"ITEM\") {\n    if (aliasKey !== \"\" && targetCode === \"\") {\n      readType = 2;\n    } else if (targetCode !== \"\" && aliasKey === \"\") {\n      readType = 5;\n    }\n  } else if (type === \"CUSTOMER\") {\n    if (aliasKey !== \"\" && targetCode === \"\") {\n      readType = 3;\n    } else if (targetCode !== \"\" && aliasKey === \"\") {\n      readType = 6;\n    }\n  }\n}\n\nreturn { readType };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "2x6ho2a8",
+                    "name": "readType",
+                    "title": "readType",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "condition_or_BSbpzQ8B",
+              "type": "condition-or-node",
+              "data": {
+                "title": "Condition",
+                "filter": { "list": [] },
+                "expression": { "code": "" },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "condition_or_node_item_OQIySmRE",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Type 1",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1778809912243,
+                          "parentId": 1778809912242,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "{{node:code_node_eYCY6n8R.data.readType}} == 1",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Type 1",
+                    "name": "Type 1",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_fuFgdsBD",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Aliases:Table:2042068008880824322",
+                          "rules": {
+                            "collectionId": "2042068008880824322",
+                            "list": [
+                              {
+                                "id": 1778810078280,
+                                "parentId": 1778810078281,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1778810078282,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "org_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:firstLvDeptId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810078284,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "alias_key",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:data.alias_key}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Alias Key",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get Type 1 Data",
+                        "isValidator": true,
+                        "nodeName": "Get Type 1 Data",
+                        "name": "Get Type 1 Data"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_item_NsqcY6RF",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Type 2",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1778809934510,
+                          "parentId": 1778809934509,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "{{node:code_node_eYCY6n8R.data.readType}} == 2",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 2,
+                    "isDefault": false,
+                    "isValidator": true,
+                    "nodeName": "Type 2",
+                    "name": "Type 2",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_fX3XLkDF",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Aliases:Table:2042068008880824322",
+                          "rules": {
+                            "collectionId": "2042068008880824322",
+                            "list": [
+                              {
+                                "id": 1778810078280,
+                                "parentId": 1778810078281,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1778810078282,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "org_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:firstLvDeptId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810078284,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "alias_key",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:data.alias_key}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Alias Key",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810239978,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "ITEM",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get Type 2 Data",
+                        "isValidator": true,
+                        "nodeName": "Get Type 2 Data",
+                        "name": "Get Type 2 Data"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_item_8lQmZats",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Type 3",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1778809944422,
+                          "parentId": 1778809944421,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "{{node:code_node_eYCY6n8R.data.readType}} == 3",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 3,
+                    "isDefault": false,
+                    "isValidator": true,
+                    "nodeName": "Type 3",
+                    "name": "Type 3",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_GTLS1TIB",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Aliases:Table:2042068008880824322",
+                          "rules": {
+                            "collectionId": "2042068008880824322",
+                            "list": [
+                              {
+                                "id": 1778810078280,
+                                "parentId": 1778810078281,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1778810078282,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "org_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:firstLvDeptId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810078284,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "alias_key",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:data.alias_key}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Alias Key",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810265363,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "CUSTOMER",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get Type 3 Data",
+                        "isValidator": true,
+                        "nodeName": "Get Type 3 Data",
+                        "name": "Get Type 3 Data"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_item_cv95fUEq",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Type 4",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1778809953652,
+                          "parentId": 1778809953651,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "{{node:code_node_eYCY6n8R.data.readType}} == 4",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 4,
+                    "isDefault": false,
+                    "isValidator": true,
+                    "nodeName": "Type 4",
+                    "name": "Type 4",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_GAwvO9f7",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Aliases:Table:2042068008880824322",
+                          "rules": {
+                            "collectionId": "2042068008880824322",
+                            "list": [
+                              {
+                                "id": 1778810078280,
+                                "parentId": 1778810078281,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1778810078282,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "org_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:firstLvDeptId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810078284,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "target_code",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:data.target_code}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Target Code",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get Type 4 Data",
+                        "isValidator": true,
+                        "nodeName": "Get Type 4 Data",
+                        "name": "Get Type 4 Data"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_item_FhsSgk2h",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Type 5",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1778809966784,
+                          "parentId": 1778809966783,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "{{node:code_node_eYCY6n8R.data.readType}} == 5",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 5,
+                    "isDefault": false,
+                    "isValidator": true,
+                    "nodeName": "Type 5",
+                    "name": "Type 5",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_DYkfBU6s",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Aliases:Table:2042068008880824322",
+                          "rules": {
+                            "collectionId": "2042068008880824322",
+                            "list": [
+                              {
+                                "id": 1778810078280,
+                                "parentId": 1778810078281,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1778810078282,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "org_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:firstLvDeptId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810078284,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "target_code",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:data.target_code}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Target Code",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810304639,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "ITEM",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get Type 5 Data",
+                        "isValidator": true,
+                        "nodeName": "Get Type 5 Data",
+                        "name": "Get Type 5 Data"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_item_gam7bnn9",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Type 6",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1778809976494,
+                          "parentId": 1778809976493,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "{{node:code_node_eYCY6n8R.data.readType}} == 6",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 6,
+                    "isDefault": false,
+                    "isValidator": true,
+                    "nodeName": "Type 6",
+                    "name": "Type 6",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_bfaKcGH1",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Aliases:Table:2042068008880824322",
+                          "rules": {
+                            "collectionId": "2042068008880824322",
+                            "list": [
+                              {
+                                "id": 1778810078280,
+                                "parentId": 1778810078281,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1778810078282,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "org_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:firstLvDeptId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810078284,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "target_code",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:data.target_code}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Target Code",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1778810316384,
+                                    "parentId": 1778810078280,
+                                    "isTop": false,
+                                    "prop": "type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "CUSTOMER",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get Type 6 Data",
+                        "isValidator": true,
+                        "nodeName": "Get Type 6 Data",
+                        "name": "Get Type 6 Data"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_node_item_Q0ApK3H1",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Other",
+                    "isDefault": true,
+                    "filter": { "list": [] },
+                    "expression": { "code": "" },
+                    "displayContent": "sdk.form.otherCondition"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_node_Pc8wtqG0",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "402 No read type found",
+                        "isValidator": true,
+                        "nodeName": "402 No read type found",
+                        "name": "402 No read type found",
+                        "script": {
+                          "type": "javascript",
+                          "code": "return {\n  message: 'No read type found.'\n}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "aee975tc",
+                            "name": "message",
+                            "title": "Message",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "end_pdOnS9Qm",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 402,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_Pc8wtqG0.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_node_JnqK96Df",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Check Aliases Priority",
+                "isValidator": true,
+                "nodeName": "Check Aliases Priority",
+                "name": "Check Aliases Priority",
+                "script": {
+                  "type": "javascript",
+                  "code": "const readType = {{node:code_node_eYCY6n8R.data.readType}};\nconst type = {{workflowparams:data.type}} || '';\nconst userID = {{system:uid}};\nlet data = [];\nlet status = 'Failed';\nlet message = '';\n\n\nswitch (readType) {\n  case 1:\n    data = {{node:search_node_fuFgdsBD.data.data}} || [];\n    break;\n  case 2:\n    data = {{node:search_node_fX3XLkDF.data.data}} || [];\n    break;\n  case 3:\n    data = {{node:search_node_GTLS1TIB.data.data}} || [];\n    break;\n  case 4:\n    data = {{node:search_node_GAwvO9f7.data.data}} || [];\n    break;\n  case 5:\n    data = {{node:search_node_DYkfBU6s.data.data}} || [];\n    break;\n  case 6:\n    data = {{node:search_node_bfaKcGH1.data.data}} || [];\n    break;\n}\n\n// Check Priority\n// If type == '', then return data;\n// If type == 'ITEM', then return the data with the priority order which is Org + User + Customer ID > Org + User > Org + Customer ID > Org\n// If type == 'CUSTOMER', then return the data with the priority order which is Org + User > Org\n\n// Function to calculate priority weight\nfunction getPriorityWeight(item, type) {\n  const orgLevel = item.apply_to_user === 0 ;\n  const userLevel = item.update_user === userID && item.apply_to_user === 1;\n  const hasCustomer = !!item.customer_id;\n  \n  if (type === 'ITEM') {\n    if (userLevel && hasCustomer) return 4;\n    if (userLevel) return 3;\n    if (orgLevel && hasCustomer) return 2;\n    if (orgLevel) return 1;\n    return 0;\n  } else if (type === 'CUSTOMER') {\n    if (userLevel) return 2;\n    if (orgLevel) return 1;\n    return 0;\n  }\n  return 0;\n}\n\nif (data.length > 0) {\n  if (type === '') {\n    status = 'Success';\n  } else if (type === 'ITEM' || type === 'CUSTOMER') {\n    // Add weight to each record\n    data = data.map(item => ({\n      ...item,\n      priorityWeight: getPriorityWeight(item, type)\n    }));\n    \n    // Sort by weight (highest first)\n    data.sort((a, b) => b.priorityWeight - a.priorityWeight);\n    \n    status = 'Success';\n  } else {\n    status = 'Success';\n  }\n} else {\n  message = 'No data found';\n}\n\nreturn {\n  status,\n  message,\n  data\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "wguct8z9",
+                    "name": "status",
+                    "title": "Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "llmp1gmw",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "ygtp957w",
+                    "name": "data",
+                    "title": "Data",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_WTO6j7lI",
+              "type": "if",
+              "data": {
+                "title": "IF failed?",
+                "isValidator": true,
+                "nodeName": "IF failed?",
+                "name": "IF failed?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_JnqK96Df.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_x-xSqilx",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_b-szALU6",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 402,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_JnqK96Df.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_ngQ5JHv8",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "condition_or_node_item_SZFXN9nK",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "No action type found",
+            "isDefault": true,
+            "filter": { "list": [] },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": [
+            {
+              "id": "code_node_rLUiwfhC",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "402 No action type found",
+                "isValidator": true,
+                "nodeName": "Error no action type found",
+                "name": "Error no action type found",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  message: 'No action type found.'\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "aee975tc",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "end_B7z0ItZv",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 402,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_rLUiwfhC.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_yVzMqxWH",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Return Data",
+        "isValidator": true,
+        "nodeName": "Map Return Data",
+        "name": "Map Return Data",
+        "script": {
+          "type": "javascript",
+          "code": "const actionType = {{workflowparams:data.action_type}};\nlet data = [];\nswitch (actionType) {\n  case \"Create\":\n    data = {{node:add_node_xfT2e5od.data}}[0];\n    break;\n  case \"Update\":\n    data = {{workflowparams:data}};\n    break;\n  case 'Read':\n    data = {{node:code_node_JnqK96Df.data.data}};\n    break;\n  default:\n    break;\n}\n\nreturn {\n  data\n}"
+        },
+        "response_json": [
+          {
+            "key": "9ciynobe",
+            "name": "data",
+            "title": "Data",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "code": "",
+        "msg": { "type": "javascript", "code": "" },
+        "response_value": {
+          "list": [
+            {
+              "prop": "data",
+              "propLabel": "Data",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:code_node_yVzMqxWH.data.data}}"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
