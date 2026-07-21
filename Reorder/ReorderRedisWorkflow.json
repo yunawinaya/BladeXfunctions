@@ -1,0 +1,287 @@
+{
+  "request_json": [
+    {
+      "key": "ck71dnzi",
+      "name": "document_type",
+      "title": "Document Type",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "97vp3ubb",
+      "name": "previous_data",
+      "title": "Previous Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "uz7u6p6a",
+      "name": "latest_data",
+      "title": "Latest Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_AOJKqFmc",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Define current redis key",
+        "isValidator": true,
+        "nodeName": "Define current redis key",
+        "name": "Define current redis key",
+        "script": {
+          "type": "javascript",
+          "code": "const date = new Date({{system:now}});\nconst orgID = {{global:firstLvDeptId}};\nconst tenantID = {{system:tenantId}};\n\nconst yyyyMMddHH = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}${String(date.getHours()).padStart(2, '0')}`;\n\nreturn {\n  redis_key: `auto_reorder:${tenantID}:${orgID}:${yyyyMMddHH}`\n}"
+        },
+        "response_json": [
+          {
+            "key": "uy4ewjt6",
+            "name": "redis_key",
+            "title": "Redis Key",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_or_qtTbjqdk",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Condition",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_or_node_item_hS6jysTf",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "SO Issued",
+            "filter": {
+              "list": [
+                {
+                  "id": 1781231494729,
+                  "parentId": 1781231494728,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:document_type}}' == 'SO_ISSUED'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "SO Issued",
+            "name": "SO Issued",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "code_node_1sd1QGLR",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Compare SO Data",
+                "isValidator": true,
+                "nodeName": "Compare SO Data",
+                "name": "Compare SO Data",
+                "script": {
+                  "type": "javascript",
+                  "code": "const soPreviousData = {{workflowparams:previous_data}}; // array of item\nconst soLatestData = {{workflowparams:latest_data}}; // array of item\nlet data = [];\n\n// Helper function to create composite key for maps\nconst getCompositeKey = (item) => {\n  return `${item.item_name}|${item.plant_id}`;\n};\n\n// Helper function to aggregate items by composite key\nconst aggregateItems = (items) => {\n  if (!items || items.length === 0) return [];\n  \n  const aggregatedMap = new Map();\n  \n  items.forEach(item => {\n    // Skip items without item_name (item_id)\n    if (!item.item_name || item.item_name.trim() === \"\") {\n      return; // Skip this item\n    }\n    \n    const key = getCompositeKey(item);\n    \n    // Convert so_quantity to number (decimal)\n    const quantity = parseFloat(item.so_quantity) || 0;\n    \n    if (aggregatedMap.has(key)) {\n      // Sum up the quantity for existing key\n      const existingItem = aggregatedMap.get(key);\n      existingItem.so_quantity += quantity;\n    } else {\n      // Create new entry with a copy of the item\n      aggregatedMap.set(key, {\n        ...item,\n        so_quantity: quantity\n      });\n    }\n  });\n  \n  return Array.from(aggregatedMap.values());\n};\n\n// Helper to format quantity to 3 decimal places\nconst formatQuantity = (value) => {\n  return parseFloat(value.toFixed(3));\n};\n\n// Aggregate previous and latest data\nconst aggregatedPrevious = aggregateItems(soPreviousData);\nconst aggregatedLatest = aggregateItems(soLatestData);\n\nif (aggregatedPrevious.length > 0) {\n  const previousItems = aggregatedPrevious;\n  const latestItems = aggregatedLatest;\n  \n  // Create maps using composite key (item_name + plant_id)\n  const previousMap = new Map(previousItems.map(item => [getCompositeKey(item), item]));\n  const latestMap = new Map(latestItems.map(item => [getCompositeKey(item), item]));\n  \n  // Check for deleted and modified items\n  previousItems.forEach(prevItem => {\n    const compositeKey = getCompositeKey(prevItem);\n    const latestItem = latestMap.get(compositeKey);\n    \n    if (!latestItem) {\n      // Item deleted from that specific plant - quantity is negative (removing stock)\n      data.push({\n        item_id: prevItem.item_name,\n        quantity: formatQuantity(-prevItem.so_quantity),\n        tenant_id: {{system:tenantId}},\n        organization_id: prevItem.organization_id,\n        plant_id: prevItem.plant_id,\n        trigger_source: \"SO_ISSUED\"\n      });\n    } else {\n      // Item exists in same plant, check for quantity changes\n      const quantityDifference = formatQuantity(latestItem.so_quantity - prevItem.so_quantity);\n      \n      if (quantityDifference !== 0) {\n        // Quantity changed - positive for addition, negative for removal\n        data.push({\n          item_id: prevItem.item_name,\n          quantity: quantityDifference,\n          tenant_id: {{system:tenantId}},\n          organization_id: latestItem.organization_id,\n          plant_id: latestItem.plant_id,\n          trigger_source: \"SO_ISSUED\"\n        });\n      }\n    }\n  });\n  \n  // Check for added items (new item or same item in different plant)\n  latestItems.forEach(latestItem => {\n    const compositeKey = getCompositeKey(latestItem);\n    if (!previousMap.has(compositeKey)) {\n      // New item added OR existing item moved to new plant\n      data.push({\n        item_id: latestItem.item_name,\n        quantity: formatQuantity(latestItem.so_quantity),\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        trigger_source: \"SO_ISSUED\"\n      });\n    }\n  });\n  \n} else if (aggregatedLatest.length > 0) {\n  // No previous data, all items are new additions\n  aggregatedLatest.forEach(latestItem => {\n    data.push({\n      item_id: latestItem.item_name,\n      quantity: formatQuantity(latestItem.so_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      trigger_source: \"SO_ISSUED\"\n    });\n  });\n}\n\nreturn { data };"
+                },
+                "response_json": [
+                  {
+                    "key": "hb66tohi",
+                    "name": "data",
+                    "title": "SO Data",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_item_g3zNo7yL",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "GD Completed",
+            "filter": {
+              "list": [
+                {
+                  "id": 1781246052949,
+                  "parentId": 1781246052948,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:document_type}}' == 'GD_COMPLETED'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 2,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "GD Completed",
+            "name": "GD Completed",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "code_node_f8qELJUF",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Compare GD Comp Data",
+                "isValidator": true,
+                "nodeName": "Compare GD Comp Data",
+                "name": "Compare GD Comp Data",
+                "script": {
+                  "type": "javascript",
+                  "code": "const previousData = {{workflowparams:previous_data}}; // array of item\nconst latestData = {{workflowparams:latest_data}}; // array of item\nlet data = [];\n\n// Helper to extract and aggregate temp_qty_data\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  \n  const aggregatedMap = new Map();\n  \n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    \n    let tempQtyArray = item.temp_qty_data;\n    \n    // Parse if it's a string\n    if (typeof tempQtyArray === 'string') {\n      try {\n        tempQtyArray = JSON.parse(tempQtyArray);\n      } catch (e) {\n        console.error('Failed to parse temp_qty_data:', e);\n        return;\n      }\n    }\n    \n    if (!Array.isArray(tempQtyArray)) return;\n    \n    tempQtyArray.forEach(qtyItem => {\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      \n      if (!materialId || !locationId) return;\n      \n      const key = `${materialId}|${locationId}`;\n      const gdQuantity = parseFloat(qtyItem.gd_quantity) || 0;\n      \n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).gd_quantity += gdQuantity;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          gd_quantity: gdQuantity,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  \n  return Array.from(aggregatedMap.values());\n};\n\n// Helper to format quantity\nconst formatQuantity = (value) => {\n  return Math.round(value * 1000) / 1000; // Keep 3 decimal places\n};\n\n// Get composite key\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\n// Extract and aggregate\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\n// Create maps\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\n// Process all keys\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n  \n  if (prevItem && !latestItem) {\n    // Item removed from location\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: formatQuantity(-prevItem.gd_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: \"GD_COMPLETED\"\n    });\n  } \n  else if (!prevItem && latestItem) {\n    // New item added to location\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: formatQuantity(latestItem.gd_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: \"GD_COMPLETED\"\n    });\n  }\n  else if (prevItem && latestItem && prevItem.gd_quantity !== latestItem.gd_quantity) {\n    // Quantity changed\n    const difference = formatQuantity(latestItem.gd_quantity - prevItem.gd_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: \"GD_COMPLETED\"\n      });\n    }\n  }\n});\n\nreturn { data };"
+                },
+                "response_json": [
+                  {
+                    "key": "hb66tohi",
+                    "name": "data",
+                    "title": "GD Data",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_or_node_item_z5Yhfu1v",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "Other",
+            "isDefault": true,
+            "filter": { "list": [] },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "get_cache_node_jUGP70I3",
+      "type": "get-cache-node",
+      "data": {
+        "cache_key": "",
+        "title": "Get Redis Cache",
+        "isValidator": true,
+        "nodeName": "Get Redis Cache",
+        "name": "Get Redis Cache",
+        "redis_key": "{{node:code_node_AOJKqFmc.data.redis_key}}"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_mUwWyvpT",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map latest redis",
+        "isValidator": true,
+        "nodeName": "Map latest redis",
+        "name": "Map latest redis",
+        "script": {
+          "type": "javascript",
+          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_COMPLETED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
+        },
+        "response_json": [
+          {
+            "key": "a1hwmp93",
+            "name": "latestredisData",
+            "title": "latestredisData",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "set_cache_node_QyRAHT6o",
+      "type": "set-cache-node",
+      "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Set Redis Cache",
+        "isValidator": true,
+        "nodeName": "Set Redis Cache",
+        "name": "Set Redis Cache",
+        "custom_wkbocgni": {
+          "type": "javascript",
+          "code": "{{node:code_node_mUwWyvpT.data.latestredisData}}"
+        },
+        "redis_key": "{{node:code_node_AOJKqFmc.data.redis_key}}",
+        "limit_time": 172800000
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
