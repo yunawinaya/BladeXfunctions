@@ -11071,18 +11071,45 @@
                         "filter": {
                           "list": [
                             {
-                              "id": 1736695973613,
-                              "parentId": 1736695973612,
+                              "id": 1784272741717,
+                              "parentId": 1784272741718,
                               "isTop": true,
-                              "prop": "node.code_node_5oTXzIic.data.hasCancellations",
-                              "operator": "numberEqual",
-                              "valueType": "value",
-                              "value": 1,
-                              "type": "leaf",
+                              "prop": "",
+                              "operator": "all",
+                              "valueType": "",
+                              "value": "",
+                              "type": "branch",
                               "level": 1,
-                              "valueLabel": "",
-                              "propLabel": "hasCancellations",
-                              "operatorLabel": "Equal"
+                              "children": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1784272741717,
+                                  "isTop": false,
+                                  "prop": "node.code_node_5oTXzIic.data.hasCancellations",
+                                  "operator": "numberEqual",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "valueLabel": "",
+                                  "propLabel": "hasCancellations",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1784272741719,
+                                  "parentId": 1784272741717,
+                                  "isTop": false,
+                                  "prop": "workflowparams.saveAs",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Removed",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "saveAs",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -11327,18 +11354,45 @@
                         "filter": {
                           "list": [
                             {
-                              "id": 1736695973613,
-                              "parentId": 1736695973612,
+                              "id": 1784272757270,
+                              "parentId": 1784272757271,
                               "isTop": true,
-                              "prop": "node.code_node_5oTXzIic.data.hasAssignments",
-                              "operator": "numberEqual",
-                              "valueType": "value",
-                              "value": 1,
-                              "type": "leaf",
+                              "prop": "",
+                              "operator": "all",
+                              "valueType": "",
+                              "value": "",
+                              "type": "branch",
                               "level": 1,
-                              "valueLabel": "",
-                              "propLabel": "hasAssignments",
-                              "operatorLabel": "Equal"
+                              "children": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1784272757270,
+                                  "isTop": false,
+                                  "prop": "node.code_node_5oTXzIic.data.hasAssignments",
+                                  "operator": "numberEqual",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "valueLabel": "",
+                                  "propLabel": "hasAssignments",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1784272757272,
+                                  "parentId": 1784272757270,
+                                  "isTop": false,
+                                  "prop": "workflowparams.saveAs",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Removed",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "saveAs",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
                             }
                           ]
                         }
