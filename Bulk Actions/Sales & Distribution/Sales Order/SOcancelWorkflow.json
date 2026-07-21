@@ -1,4 +1,32 @@
 {
+  "request_json": [
+    {
+      "key": "wf_req_action",
+      "name": "action",
+      "title": "Action",
+      "description": "cancel | delete",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_so_id",
+      "name": "so_id",
+      "title": "SO ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_so_no",
+      "name": "so_no",
+      "title": "SO Number",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -37,6 +65,7 @@
       },
       "blocks": [
         {
+          "id": "KRazJoGkC1pRNy-OUblX_",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -127,6 +156,7 @@
           ]
         },
         {
+          "id": "3oh_KKyUzDdwEFJANld-a",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -356,11 +386,46 @@
           "code": "const gdList = {{node:search_gd.data.data}} || [];\nconst ppList = {{node:search_pp.data.data}} || [];\nconst siList = {{node:search_si.data.data}} || [];\n\nconst createdGd = gdList.filter((d) => d.gd_status === \"Created\");\nconst createdPp = ppList.filter((d) => d.to_status === \"Created\");\nconst draftGd = gdList.filter((d) => d.gd_status === \"Draft\");\nconst draftPp = ppList.filter((d) => d.to_status === \"Draft\");\nconst invoiced = siList.filter((s) => s.si_status !== \"Draft\" && s.si_status !== \"Cancelled\");\nconst draftSI = siList.filter((s) => s.si_status === \"Draft\");\n\nlet code = \"200\";\nlet message = \"\";\nif (createdGd.length > 0 || createdPp.length > 0) {\n  code = \"400\";\n  message = \"Has a created \" + (createdPp.length > 0 ? \"picking plan\" : \"goods delivery\") + \". Cancel it first.\";\n} else if (invoiced.length > 0) {\n  code = \"400\";\n  message = \"Sales order is already invoiced. Cannot cancel.\";\n}\n\nreturn {\n  code: code,\n  message: message,\n  deleteGD: (draftGd.length > 0 && code === \"200\") ? 1 : 0,\n  deletePP: (draftPp.length > 0 && code === \"200\") ? 1 : 0,\n  deleteSI: (draftSI.length > 0 && code === \"200\") ? 1 : 0,\n  draftGdIds: draftGd.map((d) => d.id),\n  draftPpIds: draftPp.map((d) => d.id),\n  draftSiIds: draftSI.map((s) => s.id)\n};"
         },
         "response_json": [
-          { "key": "wf_code", "name": "code", "title": "code", "description": "", "bsonType": "string", "isExpand": false },
-          { "key": "wf_message", "name": "message", "title": "message", "description": "", "bsonType": "string", "isExpand": false },
-          { "key": "wf_deletegd", "name": "deleteGD", "title": "deleteGD", "description": "", "bsonType": "number", "isExpand": false },
-          { "key": "wf_deletepp", "name": "deletePP", "title": "deletePP", "description": "", "bsonType": "number", "isExpand": false },
-          { "key": "wf_deletesi", "name": "deleteSI", "title": "deleteSI", "description": "", "bsonType": "number", "isExpand": false },
+          {
+            "key": "wf_code",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "wf_message",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "wf_deletegd",
+            "name": "deleteGD",
+            "title": "deleteGD",
+            "description": "",
+            "bsonType": "number",
+            "isExpand": false
+          },
+          {
+            "key": "wf_deletepp",
+            "name": "deletePP",
+            "title": "deletePP",
+            "description": "",
+            "bsonType": "number",
+            "isExpand": false
+          },
+          {
+            "key": "wf_deletesi",
+            "name": "deleteSI",
+            "title": "deleteSI",
+            "description": "",
+            "bsonType": "number",
+            "isExpand": false
+          },
           {
             "key": "wf_draftgdids",
             "name": "draftGdIds",
@@ -369,7 +434,15 @@
             "bsonType": "array",
             "isExpand": true,
             "children": [
-              { "key": "wf_draftgdids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+              {
+                "key": "wf_draftgdids_item",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
             ]
           },
           {
@@ -380,7 +453,15 @@
             "bsonType": "array",
             "isExpand": true,
             "children": [
-              { "key": "wf_draftppids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+              {
+                "key": "wf_draftppids_item",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
             ]
           },
           {
@@ -391,7 +472,15 @@
             "bsonType": "array",
             "isExpand": true,
             "children": [
-              { "key": "wf_draftsiids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+              {
+                "key": "wf_draftsiids_item",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
             ]
           }
         ]
@@ -429,6 +518,7 @@
       },
       "blocks": [
         {
+          "id": "tUsLQQoKj2Ij2quuwmDbK",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -471,6 +561,7 @@
           ]
         },
         {
+          "id": "o5NBOoB7xXA7iX8Gjn9-r",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -508,6 +599,7 @@
       },
       "blocks": [
         {
+          "id": "n7wtBGlE6kk00I5f6wQ9j",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -562,6 +654,7 @@
           ]
         },
         {
+          "id": "4PMFSOrgNofadvOuSwq_T",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -599,6 +692,7 @@
       },
       "blocks": [
         {
+          "id": "rE_pRpcWZ3cy-jKMio3rC",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -653,6 +747,7 @@
           ]
         },
         {
+          "id": "ZKkNOXVCFIVB5BSOvnhju",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -690,6 +785,7 @@
       },
       "blocks": [
         {
+          "id": "aFoIK6RZr5XJauqTbrQ3y",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -744,6 +840,7 @@
           ]
         },
         {
+          "id": "S8k3gYTKObAUG6ysQSjaI",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -766,7 +863,14 @@
           "code": "const soNo = {{workflowparams:so_no}} || \"\";\nreturn { soNo: soNo.endsWith(\"-Cancelled\") ? soNo : soNo + \"-Cancelled\" };"
         },
         "response_json": [
-          { "key": "wf_sono", "name": "soNo", "title": "soNo", "description": "", "bsonType": "string", "isExpand": false }
+          {
+            "key": "wf_sono",
+            "name": "soNo",
+            "title": "soNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
         ]
       },
       "blocks": []
@@ -918,33 +1022,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "wf_req_action",
-      "name": "action",
-      "title": "Action",
-      "description": "cancel | delete",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_so_id",
-      "name": "so_id",
-      "title": "SO ID",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_so_no",
-      "name": "so_no",
-      "title": "SO Number",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [],
-  "config": {}
+  "edges": []
 }
