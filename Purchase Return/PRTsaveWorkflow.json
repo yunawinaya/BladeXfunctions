@@ -1131,9 +1131,18 @@
                 "name": "Sync Target Ids",
                 "script": {
                   "type": "javascript",
-                  "code": "const newLines = {{node:code_node_ISWz5KGY.data.allData.table_prt}} || [];\n\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\nconst origLines = origPRT && Array.isArray(origPRT.table_prt) ? origPRT.table_prt : [];\n\n// Union of the new and the pre-edit lines. A line that was deleted — or zeroed, and\n// so dropped by fillback — still holds a created_return_qty on its GR/PO, and those\n// rows have to be fetched or the reservation is stranded forever.\nconst all = newLines.concat(origLines);\nconst uniq = (key) => [...new Set(all.map((l) => l[key]).filter((x) => x))];\n\n// Sentinel keeps the equalAny filter well-formed when nothing is linked; it matches nothing.\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"__none__\"]);\n\nreturn {\n  grIds: orNone(uniq(\"gr_id\")),\n  poLineIds: orNone(uniq(\"po_line_id\")),\n};"
+                  "code": "const newLines = {{node:code_node_ISWz5KGY.data.allData.table_prt}} || [];\n\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\nconst origLines = origPRT && Array.isArray(origPRT.table_prt) ? origPRT.table_prt : [];\n\n// Union of the new and the pre-edit lines. A line that was deleted — or zeroed, and\n// so dropped by fillback — still holds a created_return_qty on its GR/PO, and those\n// rows have to be fetched or the reservation is stranded forever.\nconst all = newLines.concat(origLines);\nconst uniq = (key) => [...new Set(all.map((l) => l[key]).filter((x) => x))];\n\n// Sentinel keeps the equalAny filter well-formed when nothing is linked; it matches nothing.\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"__none__\"]);\n\nreturn {\n  grIds: orNone(uniq(\"gr_id\")),\n  poLineIds: orNone(uniq(\"po_line_id\")),\n  // Item ids for the batched Item fetch that rides cond_all_PRTsync\n  // (replaces a per-line get-node inside loop_BBZNjfzE).\n  itemIds: orNone(uniq(\"material_id\")),\n};"
                 },
                 "response_json": [
+                  {
+                    "key": "prtitmids",
+                    "name": "itemIds",
+                    "title": "Item IDs",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
                   {
                     "key": "prtk0014",
                     "name": "grIds",
@@ -1289,6 +1298,78 @@
                         "isValidator": true,
                         "nodeName": "Get GR Heads",
                         "name": "Get GR Heads"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "cond_item_PRTitems",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Get Items",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1810000000125,
+                          "parentId": 1810000000126,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "true",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Get Items",
+                    "name": "Get Items",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_PRTitems",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Item:Table:1901546842240438273",
+                          "rules": {
+                            "collectionId": "1901546842240438273",
+                            "list": [
+                              {
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_syncIds.data.itemIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Primary Key ID",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 200,
+                        "title": "Get Items",
+                        "isValidator": true,
+                        "nodeName": "Get Items",
+                        "name": "Get Items"
                       },
                       "blocks": []
                     }
@@ -2191,40 +2272,6 @@
                         }
                       },
                       "blocks": []
-                    },
-                    {
-                      "id": "get_node_7CFMbGI0",
-                      "type": "get-node",
-                      "data": {
-                        "table_id": {
-                          "source": "Purchase Return:Table:1901967357895626753",
-                          "rules": {
-                            "collectionId": "1901967357895626753",
-                            "list": [
-                              {
-                                "id": 1769399969235,
-                                "parentId": 1769399969234,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_node_ISWz5KGY.data.allData.id}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "title": "Get Updated PRT Data",
-                        "isValidator": true,
-                        "nodeName": "Get Updated PRT Data",
-                        "name": "Get Updated PRT Data"
-                      },
-                      "blocks": []
                     }
                   ]
                 },
@@ -3005,6 +3052,74 @@
                   "data": { "title": "true" },
                   "blocks": [
                     {
+                      "id": "if_PRTgetUpdatedEdit",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Edit Mode (Get Updated PRT)",
+                        "isValidator": true,
+                        "nodeName": "IF Edit Mode (Get Updated PRT)",
+                        "name": "IF Edit Mode (Get Updated PRT)",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{workflowparams:pageStatus}}' == 'Edit'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_PRTgetUpdatedTrue",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_7CFMbGI0",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Purchase Return:Table:1901967357895626753",
+                                  "rules": {
+                                    "collectionId": "1901967357895626753",
+                                    "list": [
+                                      {
+                                        "id": 1769399969235,
+                                        "parentId": 1769399969234,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_ISWz5KGY.data.allData.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get Updated PRT Data",
+                                "isValidator": true,
+                                "nodeName": "Get Updated PRT Data",
+                                "name": "Get Updated PRT Data"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_PRTgetUpdatedFalse",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
                       "id": "loop_BBZNjfzE",
                       "type": "loop",
                       "data": {
@@ -3065,9 +3180,18 @@
                             "name": "Subform Preparation",
                             "script": {
                               "type": "javascript",
-                              "code": "const page_status = {{workflowparams:pageStatus}};\nlet allData;\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\nconst plant_id = allData.plant;\nconst organization_id = allData.organization_id;\nconst purchase_return_no = allData.purchase_return_no;\nconst doc_date = allData.purchase_return_date;\n\nconst item = {{node:loop_BBZNjfzE}};\nconst material_id = item.material_id;\nconst material_uom = item.return_uom_id;\nconst total_quantity = item.return_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst parentNo = item.gr_number || item.po_no_display || allData.po_no_display || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.return_quantity && parseFloat(entry.return_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\nbalancesToProcess = balancesToProcess.map((entry) => ({ ...entry, po_no: parentNo }));\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  purchase_return_no: purchase_return_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  balancesToProcess: balancesToProcess\n};"
+                              "code": "const page_status = {{workflowparams:pageStatus}};\nlet allData;\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\nconst plant_id = allData.plant;\nconst organization_id = allData.organization_id;\nconst purchase_return_no = allData.purchase_return_no;\nconst doc_date = allData.purchase_return_date;\n\nconst item = {{node:loop_BBZNjfzE}};\nconst material_id = item.material_id;\nconst material_uom = item.return_uom_id;\nconst total_quantity = item.return_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst parentNo = item.gr_number || item.po_no_display || allData.po_no_display || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.return_quantity && parseFloat(entry.return_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\nbalancesToProcess = balancesToProcess.map((entry) => ({ ...entry, po_no: parentNo }));\n\n// itemData for SUBTRACT_INVENTORY, from the single batched Item fetch that\n// rides cond_all_PRTsync (previously one get-node per loop iteration).\nconst itemsRaw = {{node:search_PRTitems.data.data}} || [];\nconst itemsArr = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemData = itemsArr.find(i => i && String(i.id) === String(material_id)) || null;\n\nreturn {\n  itemData: itemData,\n  plant_id: plant_id,\n  organization_id: organization_id,\n  purchase_return_no: purchase_return_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  balancesToProcess: balancesToProcess\n};"
                             },
                             "response_json": [
+                              {
+                                "key": "prtitmdta",
+                                "name": "itemData",
+                                "title": "Item Data",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              },
                               {
                                 "key": "zdxudxha",
                                 "name": "plant_id",
@@ -3169,25 +3293,7 @@
                                   }
                                 ]
                               },
-                              {
-                                "key": "ruschnvr",
-                                "name": "index",
-                                "title": "index",
-                                "description": "",
-                                "bsonType": "int",
-                                "isExpand": false,
-                                "children": []
-                              },
-                              {
-                                "key": "er4qz9j4",
-                                "name": "nextIndex",
-                                "title": "nextIndex",
-                                "description": "",
-                                "bsonType": "int",
-                                "isExpand": false,
-                                "children": []
-                              },
-                              {
+{
                                 "key": "4ccj2hbx",
                                 "name": "doc_date",
                                 "title": "doc_date",
@@ -3210,70 +3316,12 @@
                                 "description": "",
                                 "bsonType": "string",
                                 "isExpand": false
-                              },
-                              {
-                                "key": "zgxm5wgc",
-                                "name": "remark",
-                                "title": "remark",
-                                "description": "",
-                                "bsonType": "string",
-                                "isExpand": false
-                              },
-                              {
-                                "key": "aunde5hu",
-                                "name": "remark2",
-                                "title": "remark2",
-                                "description": "",
-                                "bsonType": "string",
-                                "isExpand": false
-                              },
-                              {
-                                "key": "tur9is2w",
-                                "name": "remark3",
-                                "title": "remark3",
-                                "description": "",
-                                "bsonType": "string",
-                                "isExpand": false
                               }
                             ]
                           },
                           "blocks": []
                         },
-                        {
-                          "id": "get_node_bcTcnD1c",
-                          "type": "get-node",
-                          "data": {
-                            "table_id": {
-                              "source": "Item:Table:1901546842240438273",
-                              "rules": {
-                                "collectionId": "1901546842240438273",
-                                "list": [
-                                  {
-                                    "id": 1768809950205,
-                                    "parentId": 1768809950204,
-                                    "isTop": true,
-                                    "prop": "id",
-                                    "operator": "in",
-                                    "valueType": "field",
-                                    "value": "{{node:code_node_PeidsgXa.data.material_id}}",
-                                    "type": "leaf",
-                                    "level": 1,
-                                    "propLabel": "主键ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "In"
-                                  }
-                                ]
-                              }
-                            },
-                            "condition": {},
-                            "title": "Get Item",
-                            "isValidator": true,
-                            "nodeName": "Get Item",
-                            "name": "Get Item"
-                          },
-                          "blocks": []
-                        },
-                        {
+{
                           "id": "loop_NWeT5dSb",
                           "type": "loop",
                           "data": {
@@ -3334,7 +3382,7 @@
                                 "name": "Balance Preparation",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const balance = {{node:loop_NWeT5dSb}};\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.return_quantity;\nlet inventory_category = balance.inventory_category || \"Unrestricted\";\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst po_no = balance.po_no || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: 0,\n  po_no: po_no\n};"
+                                  "code": "const balance = {{node:loop_NWeT5dSb}};\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.return_quantity;\nlet inventory_category = balance.inventory_category || \"Unrestricted\";\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst po_no = balance.po_no || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  po_no: po_no\n};"
                                 },
                                 "response_json": [
                                   {
@@ -3370,25 +3418,7 @@
                                     "bsonType": "string",
                                     "isExpand": false
                                   },
-                                  {
-                                    "key": "2odwbcz5",
-                                    "name": "index",
-                                    "title": "index",
-                                    "description": "",
-                                    "bsonType": "int",
-                                    "isExpand": false,
-                                    "children": []
-                                  },
-                                  {
-                                    "key": "2b7zktba",
-                                    "name": "nextIndex",
-                                    "title": "nextIndex",
-                                    "description": "",
-                                    "bsonType": "int",
-                                    "isExpand": false,
-                                    "children": []
-                                  },
-                                  {
+{
                                     "key": "6uixt627",
                                     "name": "manufacturing_date",
                                     "title": "manufacturing_date",
@@ -3532,19 +3562,11 @@
                                       "valueLabel": "",
                                       "propLabel": "Batch ID"
                                     },
-                                    {
-                                      "prop": "index",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_SXZuEFWW.data.index}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Index"
-                                    },
-                                    {
+{
                                       "prop": "itemData",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:get_node_bcTcnD1c.data.data}}",
+                                      "value": "{{node:code_node_PeidsgXa.data.itemData}}",
                                       "valueLabel": "",
                                       "propLabel": "Item Data"
                                     },
@@ -3692,16 +3714,7 @@
                           "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}};\nconst subformData = allData.table_prt || [];\nconst plantId = allData.plant;\nconst organizationId = allData.organization_id;\n\nconst huUpdatesMap = new Map();\nfor (const line of subformData) {\n  if (!line.temp_qty_data) continue;\n  let entries;\n  try {\n    entries = JSON.parse(line.temp_qty_data);\n  } catch (e) {\n    continue;\n  }\n  if (!Array.isArray(entries)) continue;\n\n  for (const entry of entries) {\n    const huId = entry.handling_unit_id;\n    if (!huId) continue;\n    const qty = parseFloat(entry.return_quantity || 0);\n    if (qty <= 0) continue;\n\n    if (!huUpdatesMap.has(huId)) {\n      huUpdatesMap.set(huId, {\n        handling_unit_id: huId,\n        plant_id: plantId,\n        organization_id: organizationId,\n        location_id: entry.location_id || null,\n        storage_location_id: entry.storage_location_id || null,\n        items: [],\n      });\n    }\n    const update = huUpdatesMap.get(huId);\n\n    const key = `${entry.material_id}__${entry.balance_id || \"\"}__${entry.batch_id || \"\"}`;\n    const existing = update.items.find(\n      (i) => `${i.material_id}__${i.balance_id || \"\"}__${i.batch_id || \"\"}` === key\n    );\n    if (existing) {\n      existing.quantity += qty;\n    } else {\n      update.items.push({\n        material_id: entry.material_id,\n        balance_id: entry.balance_id || \"\",\n        batch_id: entry.batch_id || null,\n        quantity: qty,\n      });\n    }\n  }\n}\n\nreturn {\n  huUpdates: Array.from(huUpdatesMap.values()),\n  huUpdatesLength: huUpdatesMap.size,\n};"
                         },
                         "response_json": [
-                          {
-                            "key": "go76sbii",
-                            "name": "huUpdatesLength",
-                            "title": "huUpdatesLength",
-                            "description": "",
-                            "bsonType": "int",
-                            "isExpand": false,
-                            "children": []
-                          },
-                          {
+{
                             "key": "a3q59cnv",
                             "name": "huUpdates",
                             "title": "huUpdates",
@@ -4031,6 +4044,63 @@
                           ]
                         }
                       ]
+                    },
+                    {
+                      "id": "workflow_node_ReorderPrtCompleted",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Reorder Redis Workflow (PRT Completed)",
+                        "isValidator": true,
+                        "nodeName": "Run Reorder Redis Workflow (PRT Completed)",
+                        "name": "Run Reorder Redis Workflow (PRT Completed)",
+                        "workflow": {
+                          "source": "REORDER_SET_REDIS:Workflow:2065256261729759233",
+                          "rules": {
+                            "collectionId": "2065256261729759233",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "document_type",
+                              "propLabel": "Document Type",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "PRT_COMPLETED",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "latest_data",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.table_prt}}",
+                              "valueLabel": "",
+                              "propLabel": "Latest Data"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
                     }
                   ]
                 },

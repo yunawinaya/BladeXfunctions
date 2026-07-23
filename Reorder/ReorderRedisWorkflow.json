@@ -665,6 +665,138 @@
           ]
         },
         {
+          "id": "condition_or_item_PrtReorder",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "PRT Completed",
+            "filter": {
+              "list": [
+                {
+                  "id": 1781246052990,
+                  "parentId": 1781246052989,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:document_type}}' == 'PRT_COMPLETED'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 6,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "PRT Completed",
+            "name": "PRT Completed",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "code_node_PrtReorderItemIDs",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Collect PRT Item IDs",
+                "isValidator": true,
+                "nodeName": "Collect PRT Item IDs",
+                "name": "Collect PRT Item IDs",
+                "script": {
+                  "type": "javascript",
+                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// PRT allocation keys differ from MSI/PT/CAT — do NOT reuse those compares:\n//   quantity  -> return_quantity  (legacy alias prt_quantity), not sm_quantity\n//   category  -> inventory_category, not `category`\n//   line UOM  -> return_uom_id, not quantity_uom\n// The MSI filter (!a.category || ...) would accept EVERY PRT allocation,\n// including Blocked/Reserved picks, because PRT has no `category` key at all.\n// Only Unrestricted returns reduce available stock.\nconst isUnrestricted = (a) => !a.inventory_category || a.inventory_category === 'Unrestricted';\nconst allocQty = (a) => (a.return_quantity !== undefined && a.return_quantity !== null)\n  ? a.return_quantity\n  : a.prt_quantity;\nconst isLive = (a) => Number(a.is_deleted) !== 1;\n\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => {\n      if (a && a.material_id && isLive(a) && isUnrestricted(a)) idSet.add(a.material_id);\n    });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\nreturn { itemIDs: Array.from(idSet) };"
+                },
+                "response_json": [
+                  {
+                    "key": "prtitemids1",
+                    "name": "itemIDs",
+                    "title": "Item IDs",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_PrtReorderItems",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 1,
+                        "children": [
+                          {
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_PrtReorderItemIDs.data.itemIDs}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get PRT Item Conversion",
+                "isValidator": true,
+                "nodeName": "Get PRT Item Conversion",
+                "name": "Get PRT Item Conversion"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PrtCompare",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Compare PRT Data",
+                "isValidator": true,
+                "nodeName": "Compare PRT Data",
+                "name": "Compare PRT Data",
+                "script": {
+                  "type": "javascript",
+                  "code": "const previousData = {{workflowparams:previous_data}} || []; // table_prt lines\nconst latestData = {{workflowparams:latest_data}} || []; // table_prt lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). PRT's return_uom_id is\n// disabled in the form but is set to the GR RECEIPT uom (not based_uom), so it\n// can legitimately be an alternate UOM — conversion is required.\nconst itemMasterRaw = {{node:search_node_PrtReorderItems.data.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => { if (it && it.id) itemMasterMap.set(String(it.id), it); });\n\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || uomId === itemData.based_uom) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => c.alt_uom_id === uomId)\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// PRT allocation keys differ from MSI/PT/CAT — do NOT reuse those compares:\n//   quantity  -> return_quantity  (legacy alias prt_quantity), not sm_quantity\n//   category  -> inventory_category, not `category`\n//   line UOM  -> return_uom_id, not quantity_uom\n// The MSI filter (!a.category || ...) would accept EVERY PRT allocation,\n// including Blocked/Reserved picks, because PRT has no `category` key at all.\n// Only Unrestricted returns reduce available stock.\nconst isUnrestricted = (a) => !a.inventory_category || a.inventory_category === 'Unrestricted';\nconst allocQty = (a) => (a.return_quantity !== undefined && a.return_quantity !== null)\n  ? a.return_quantity\n  : a.prt_quantity;\nconst isLive = (a) => Number(a.is_deleted) !== 1;\n\n// Extract + aggregate temp_qty_data (return_quantity -> base) by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    // Per-line return UOM (all allocations on a PRT line share the line's UOM)\n    const lineUom = item.return_uom_id;\n\n    tempQtyArray.forEach(qtyItem => {\n      if (!isLive(qtyItem)) return;\n      if (!isUnrestricted(qtyItem)) return;\n\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = convertToBaseQty(materialId, lineUom, allocQty(qtyItem));\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).return_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          return_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    const q = formatQuantity(-prevItem.return_quantity);\n    if (q === 0) return;\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    const q = formatQuantity(latestItem.return_quantity);\n    if (q === 0) return;\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.return_quantity !== latestItem.return_quantity) {\n    const difference = formatQuantity(latestItem.return_quantity - prevItem.return_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
+                },
+                "response_json": [
+                  {
+                    "key": "hb66tohi",
+                    "name": "data",
+                    "title": "PRT Data",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
           "id": "condition_or_node_item_z5Yhfu1v",
           "type": "condition-or-node-item",
           "data": {
@@ -704,7 +836,7 @@
         "name": "Map latest redis",
         "script": {
           "type": "javascript",
-          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n  case 'SO_CANCELLED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n  case 'MSI_COMPLETED':\n  case 'PT_ISSUED':\n    pendingAddData = {{node:code_node_MsiCompare.data.data}};\n    break;\n  case 'CAT_COMPLETED':\n    pendingAddData = {{node:code_node_CatCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
+          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n  case 'SO_CANCELLED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n  case 'MSI_COMPLETED':\n  case 'PT_ISSUED':\n    pendingAddData = {{node:code_node_MsiCompare.data.data}};\n    break;\n  case 'CAT_COMPLETED':\n    pendingAddData = {{node:code_node_CatCompare.data.data}};\n    break;\n  case 'PRT_COMPLETED':\n    pendingAddData = {{node:code_node_PrtCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
         },
         "response_json": [
           {
