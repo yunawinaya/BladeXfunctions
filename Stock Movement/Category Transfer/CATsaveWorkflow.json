@@ -1,4 +1,58 @@
 {
+  "request_json": [
+    {
+      "key": "0kbzhxc7",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "dj4gtnio",
+      "name": "saveAs",
+      "title": "saveAs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "chwjdl8m",
+      "name": "pageStatus",
+      "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "iuio9txe",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "kbiohdod",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "s3p6ktzf",
+      "name": "id",
+      "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -24,7 +78,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  if (!smLineItem.total_quantity || parseFloat(smLineItem.total_quantity) === 0) {\n    continue;\n  }\n  // Format qty and price fields\n  smLineItem.requested_qty = formatNumber(smLineItem.requested_qty);\n  smLineItem.total_quantity = formatNumber(smLineItem.total_quantity);\n  smLineItem.unit_price = formatNumber(smLineItem.unit_price);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\nallData.po_id = [...new Set(updatedSM.map((sm) => sm.po_id).filter(poID => poID))]\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n}\n"
+          "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  if (!smLineItem.total_quantity || parseFloat(smLineItem.total_quantity) === 0) {\n    continue;\n  }\n  // Format qty and price fields\n  smLineItem.requested_qty = formatNumber(smLineItem.requested_qty);\n  smLineItem.total_quantity = formatNumber(smLineItem.total_quantity);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\nallData.po_id = [...new Set(updatedSM.map((sm) => sm.po_id).filter(poID => poID))]\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n}\n"
         },
         "response_json": [
           {
@@ -264,10 +318,10 @@
                 "language": "javascript",
                 "code": "",
                 "timeout": 30000,
-                "title": "Validate Location & Quantity",
+                "title": "Validate Quantity",
                 "isValidator": true,
-                "nodeName": "Validate Location & Quantity",
-                "name": "Validate Location & Quantity",
+                "nodeName": "Validate Quantity",
+                "name": "Validate Quantity",
                 "script": {
                   "type": "javascript",
                   "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}}\nconst subformData = allData.stock_movement || []\n\nlet quantityFailed = 0\nlet quantityMessage\n\nconst hasQuantity = subformData.some((line) => {\n  if (!line.temp_qty_data) return false;\n  try {\n    const parsed = JSON.parse(line.temp_qty_data);\n    return Array.isArray(parsed) && parsed.some(\n      (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n    );\n  } catch (e) {\n    return false;\n  }\n});\n\nif (!hasQuantity) {\n  quantityFailed = 1\n  quantityMessage = 'No quantity selected to issue'\n}\n\nreturn {\n  quantityFailed: quantityFailed,\n  quantityMessage: quantityMessage\n};"
@@ -700,7 +754,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balance = {{node:loop_9XodkC0Z}};\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id\n};\n"
+                          "code": "const balance = {{node:loop_9XodkC0Z}};\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst inventory_category = balance.category_from;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id\n};\n"
                         },
                         "response_json": [
                           {
@@ -869,12 +923,12 @@
                               "valueLabel": ""
                             },
                             {
-                              "prop": " category",
+                              "prop": "category",
                               "operator": "",
                               "valueType": "field",
                               "value": "{{node:code_node_l7SCHo67.data.inventory_category}}",
                               "valueLabel": "",
-                              "propLabel": " category"
+                              "propLabel": "Category"
                             }
                           ]
                         }
@@ -1051,18 +1105,18 @@
                       "type": "update-node",
                       "data": {
                         "table_id": {
-                          "source": "Miscellaneous Issue :Table:2015621214538432514",
+                          "source": "Category Transfer:Table:2056989380253265921",
                           "rules": {
-                            "collectionId": "2015621214538432514",
+                            "collectionId": "2056989380253265921",
                             "list": [
                               {
-                                "id": 1769399947560,
-                                "parentId": 1769399947559,
+                                "id": 1779266583050,
+                                "parentId": 1779266583049,
                                 "isTop": true,
                                 "prop": "id",
                                 "operator": "in",
                                 "valueType": "field",
-                                "value": "{{node:code_node_ISWz5KGY.data.allData.id}}",
+                                "value": "{{workflowparams:allData.id}}",
                                 "type": "leaf",
                                 "level": 1,
                                 "propLabel": "主键ID",
@@ -1090,14 +1144,6 @@
                               "propLabel": "Stock Movement Status"
                             },
                             {
-                              "prop": "custom_fields_56oh0ovf",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
-                              "valueLabel": "",
-                              "propLabel": "Custom Fields"
-                            },
-                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -1112,30 +1158,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.issue_date}}",
                               "valueLabel": "",
                               "propLabel": "Issue Date"
-                            },
-                            {
-                              "prop": "msi_type",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.msi_type}}",
-                              "valueLabel": "",
-                              "propLabel": "Type"
-                            },
-                            {
-                              "prop": "reference_from",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.reference_from}}",
-                              "valueLabel": "",
-                              "propLabel": "Reference From"
-                            },
-                            {
-                              "prop": "po_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.po_id}}",
-                              "valueLabel": "",
-                              "propLabel": "PO ID"
                             },
                             {
                               "prop": "movement_type",
@@ -1256,22 +1278,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement_no_type}}",
                               "valueLabel": "",
                               "propLabel": "规则"
-                            },
-                            {
-                              "prop": "acc_integration_type",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.acc_integration_type}}",
-                              "valueLabel": "",
-                              "propLabel": "Accounting Integration Type"
-                            },
-                            {
-                              "prop": "posted_status",
-                              "operator": "",
-                              "valueType": "value",
-                              "value": "Unposted",
-                              "valueLabel": "",
-                              "propLabel": "Posted Status"
                             }
                           ]
                         }
@@ -1283,23 +1289,23 @@
                       "type": "get-node",
                       "data": {
                         "table_id": {
-                          "source": "Miscellaneous Issue :Table:2015621214538432514",
+                          "source": "Category Transfer:Table:2056989380253265921",
                           "rules": {
-                            "collectionId": "2015621214538432514",
+                            "collectionId": "2056989380253265921",
                             "list": [
                               {
-                                "id": 1769399969235,
-                                "parentId": 1769399969234,
+                                "id": 1780035152184,
+                                "parentId": 1780035152183,
                                 "isTop": true,
-                                "prop": "id",
                                 "operator": "in",
                                 "valueType": "field",
-                                "value": "{{node:code_node_ISWz5KGY.data.allData.id}}",
+                                "value": "{{workflowparams:allData.id}}",
                                 "type": "leaf",
                                 "level": 1,
-                                "propLabel": "主键ID",
+                                "propLabel": "Primary Key ID",
                                 "valueLabel": "",
-                                "operatorLabel": "In"
+                                "operatorLabel": "In",
+                                "prop": "id"
                               }
                             ]
                           }
@@ -1324,13 +1330,13 @@
                       "type": "add-node",
                       "data": {
                         "table_id": {
-                          "source": "Miscellaneous Issue :Table:2015621214538432514",
+                          "source": "Category Transfer:Table:2056989380253265921",
                           "rules": {
-                            "collectionId": "2015621214538432514",
+                            "collectionId": "2056989380253265921",
                             "list": [
                               {
-                                "id": 1769399797857,
-                                "parentId": 1769399797856,
+                                "id": 1779266513963,
+                                "parentId": 1779266513962,
                                 "isTop": true,
                                 "prop": "",
                                 "operator": "",
@@ -1359,14 +1365,6 @@
                               "propLabel": "Stock Movement Status"
                             },
                             {
-                              "prop": "custom_fields_56oh0ovf",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
-                              "valueLabel": "",
-                              "propLabel": "Custom Fields"
-                            },
-                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -1389,30 +1387,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement_no}}",
                               "valueLabel": "",
                               "propLabel": "Location Transfer No"
-                            },
-                            {
-                              "prop": "msi_type",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.msi_type}}",
-                              "valueLabel": "",
-                              "propLabel": "Type"
-                            },
-                            {
-                              "prop": "reference_from",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.reference_from}}",
-                              "valueLabel": "",
-                              "propLabel": "Reference From"
-                            },
-                            {
-                              "prop": "po_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.po_id}}",
-                              "valueLabel": "",
-                              "propLabel": "PO ID"
                             },
                             {
                               "prop": "movement_type",
@@ -1525,30 +1499,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement_no_type}}",
                               "valueLabel": "",
                               "propLabel": "规则"
-                            },
-                            {
-                              "prop": "acc_integration_type",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.acc_integration_type}}",
-                              "valueLabel": "",
-                              "propLabel": "Accounting Integration Type"
-                            },
-                            {
-                              "prop": "posted_status",
-                              "operator": "",
-                              "valueType": "value",
-                              "value": "Unposted",
-                              "valueLabel": "",
-                              "propLabel": "Posted Status"
-                            },
-                            {
-                              "prop": "custom_fields_56oh0ovf",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
-                              "valueLabel": "",
-                              "propLabel": "Custom Fields"
                             }
                           ]
                         }
@@ -2998,18 +2948,18 @@
                       "type": "update-node",
                       "data": {
                         "table_id": {
-                          "source": "Miscellaneous Issue :Table:2015621214538432514",
+                          "source": "Category Transfer:Table:2056989380253265921",
                           "rules": {
-                            "collectionId": "2015621214538432514",
+                            "collectionId": "2056989380253265921",
                             "list": [
                               {
-                                "id": 1769400068669,
-                                "parentId": 1769400068668,
+                                "id": 1779266478613,
+                                "parentId": 1779266478612,
                                 "isTop": true,
                                 "prop": "id",
                                 "operator": "in",
                                 "valueType": "field",
-                                "value": "{{node:code_node_ISWz5KGY.data.allData.id}}",
+                                "value": "{{workflowparams:allData.id}}",
                                 "type": "leaf",
                                 "level": 1,
                                 "propLabel": "主键ID",
@@ -3037,14 +2987,6 @@
                               "propLabel": "Stock Movement Status"
                             },
                             {
-                              "prop": "custom_fields_56oh0ovf",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
-                              "valueLabel": "",
-                              "propLabel": "Custom Fields"
-                            },
-                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -3067,30 +3009,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.movement_type}}",
                               "valueLabel": "",
                               "propLabel": "Movement Type"
-                            },
-                            {
-                              "prop": "msi_type",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.msi_type}}",
-                              "valueLabel": "",
-                              "propLabel": "Type"
-                            },
-                            {
-                              "prop": "reference_from",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.reference_from}}",
-                              "valueLabel": "",
-                              "propLabel": "Reference From"
-                            },
-                            {
-                              "prop": "po_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.po_id}}",
-                              "valueLabel": "",
-                              "propLabel": "PO ID"
                             },
                             {
                               "prop": "movement_type_id",
@@ -3131,22 +3049,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.organization_id}}",
                               "valueLabel": "",
                               "propLabel": "Organization ID"
-                            },
-                            {
-                              "prop": "is_production_order",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.is_production_order}}",
-                              "valueLabel": "",
-                              "propLabel": "Link to Production Order"
-                            },
-                            {
-                              "prop": "production_order_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.production_order_id}}",
-                              "valueLabel": "",
-                              "propLabel": "Production Order No"
                             },
                             {
                               "prop": "stock_movement",
@@ -3205,13 +3107,13 @@
                       "type": "add-node",
                       "data": {
                         "table_id": {
-                          "source": "Miscellaneous Issue :Table:2015621214538432514",
+                          "source": "Category Transfer:Table:2056989380253265921",
                           "rules": {
-                            "collectionId": "2015621214538432514",
+                            "collectionId": "2056989380253265921",
                             "list": [
                               {
-                                "id": 1769400002551,
-                                "parentId": 1769400002550,
+                                "id": 1779266402006,
+                                "parentId": 1779266402005,
                                 "isTop": true,
                                 "prop": "",
                                 "operator": "",
@@ -3240,14 +3142,6 @@
                               "propLabel": "Stock Movement Status"
                             },
                             {
-                              "prop": "custom_fields_56oh0ovf",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
-                              "valueLabel": "",
-                              "propLabel": "Custom Fields"
-                            },
-                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -3270,30 +3164,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement_no}}",
                               "valueLabel": "",
                               "propLabel": "Location Transfer No"
-                            },
-                            {
-                              "prop": "msi_type",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.msi_type}}",
-                              "valueLabel": "",
-                              "propLabel": "Type"
-                            },
-                            {
-                              "prop": "reference_from",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.reference_from}}",
-                              "valueLabel": "",
-                              "propLabel": "Reference From"
-                            },
-                            {
-                              "prop": "po_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.po_id}}",
-                              "valueLabel": "",
-                              "propLabel": "PO ID"
                             },
                             {
                               "prop": "movement_type",
@@ -3406,14 +3276,6 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement_no_type}}",
                               "valueLabel": "",
                               "propLabel": "规则"
-                            },
-                            {
-                              "prop": "custom_fields_56oh0ovf",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
-                              "valueLabel": "",
-                              "propLabel": "Custom Fields"
                             }
                           ]
                         }
@@ -3550,7 +3412,7 @@
               "prop": "message",
               "operator": "",
               "valueType": "value",
-              "value": "Misc Issue saved successfully",
+              "value": "Category Transfer saved successfully",
               "valueLabel": "",
               "propLabel": "message"
             },
@@ -3575,59 +3437,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "0kbzhxc7",
-      "name": "allData",
-      "title": "allData",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "dj4gtnio",
-      "name": "saveAs",
-      "title": "saveAs",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "chwjdl8m",
-      "name": "pageStatus",
-      "title": "pageStatus",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [
-    {
-      "key": "iuio9txe",
-      "name": "code",
-      "title": "code",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "kbiohdod",
-      "name": "message",
-      "title": "message",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "s3p6ktzf",
-      "name": "id",
-      "title": "id",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "config": {}
+  "edges": []
 }
