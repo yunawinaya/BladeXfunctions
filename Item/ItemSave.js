@@ -403,11 +403,11 @@ const validatePurchaseAndSalesInformation = async (entry) => {
       let key;
 
       if (hasID) {
-        key = `${name.tableName}_${item[`${name.tableName}_id`]}`;
+        key = `${name.tableName}_${item[`${name.tableName}_id`]}_${item[`${name.fieldName}_price_uom`]}`;
       } else if (hasPriceTagID) {
         key = `${name.fieldName}_price_tag_${
           item[`${name.fieldName}_price_tag_id`]
-        }`;
+        }_${item[`${name.fieldName}_price_uom`]}`;
       } else {
         key = "no_id"; // Handle items with no ID
       }
