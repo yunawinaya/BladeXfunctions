@@ -533,6 +533,138 @@
           ]
         },
         {
+          "id": "condition_or_item_CatReorder",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "CAT Completed",
+            "filter": {
+              "list": [
+                {
+                  "id": 1781246052980,
+                  "parentId": 1781246052979,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:document_type}}' == 'CAT_COMPLETED'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 5,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "CAT Completed",
+            "name": "CAT Completed",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "code_node_CatReorderItemIDs",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Collect CAT Item IDs",
+                "isValidator": true,
+                "nodeName": "Collect CAT Item IDs",
+                "name": "Collect CAT Item IDs",
+                "script": {
+                  "type": "javascript",
+                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// A Category Transfer moves stock between inventory categories at the SAME\n// plant + location. Availability only changes when Unrestricted is one side:\n//   Unrestricted -> non-Unrestricted  => +qty (available drops)\n//   non-Unrestricted -> Unrestricted  => -qty (available rises)\n//   neither side Unrestricted         =>  0   (skip entirely)\n// NOTE: CAT allocations carry category_from / category_to — there is NO\n// `category` key (unlike MSI/PT), so the MSI filter must NOT be reused here.\nconst isU = (c) => c === 'Unrestricted';\nconst signOf = (a) => {\n  const from = isU(a.category_from);\n  const to = isU(a.category_to);\n  if (from && !to) return 1;\n  if (!from && to) return -1;\n  return 0;\n};\n\n// Only allocations that actually shift availability need a conversion factor.\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => { if (a && a.material_id && signOf(a) !== 0) idSet.add(a.material_id); });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\nreturn { itemIDs: Array.from(idSet) };"
+                },
+                "response_json": [
+                  {
+                    "key": "catitemids1",
+                    "name": "itemIDs",
+                    "title": "Item IDs",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_CatReorderItems",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 1,
+                        "children": [
+                          {
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_CatReorderItemIDs.data.itemIDs}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get CAT Item Conversion",
+                "isValidator": true,
+                "nodeName": "Get CAT Item Conversion",
+                "name": "Get CAT Item Conversion"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_CatCompare",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Compare CAT Data",
+                "isValidator": true,
+                "nodeName": "Compare CAT Data",
+                "name": "Compare CAT Data",
+                "script": {
+                  "type": "javascript",
+                  "code": "const previousData = {{workflowparams:previous_data}} || []; // stock_movement lines\nconst latestData = {{workflowparams:latest_data}} || []; // stock_movement lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). CAT's quantity_uom is\n// NOT disabled (unlike PT), so sm_quantity can be in an alternate UOM.\nconst itemMasterRaw = {{node:search_node_CatReorderItems.data.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => { if (it && it.id) itemMasterMap.set(String(it.id), it); });\n\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || uomId === itemData.based_uom) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => c.alt_uom_id === uomId)\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// A Category Transfer moves stock between inventory categories at the SAME\n// plant + location. Availability only changes when Unrestricted is one side:\n//   Unrestricted -> non-Unrestricted  => +qty (available drops)\n//   non-Unrestricted -> Unrestricted  => -qty (available rises)\n//   neither side Unrestricted         =>  0   (skip entirely)\n// NOTE: CAT allocations carry category_from / category_to — there is NO\n// `category` key (unlike MSI/PT), so the MSI filter must NOT be reused here.\nconst isU = (c) => c === 'Unrestricted';\nconst signOf = (a) => {\n  const from = isU(a.category_from);\n  const to = isU(a.category_to);\n  if (from && !to) return 1;\n  if (!from && to) return -1;\n  return 0;\n};\n\n// Extract + aggregate the SIGNED base delta by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    const lineUom = item.quantity_uom;\n\n    tempQtyArray.forEach(qtyItem => {\n      const sign = signOf(qtyItem);\n      if (sign === 0) return;\n\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = sign * convertToBaseQty(materialId, lineUom, qtyItem.sm_quantity);\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).sm_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          sm_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    const q = formatQuantity(-prevItem.sm_quantity);\n    if (q === 0) return; // opposite transitions cancelled out\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    const q = formatQuantity(latestItem.sm_quantity);\n    if (q === 0) return; // net-zero: e.g. U->B and B->U of equal qty on the same balance\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.sm_quantity !== latestItem.sm_quantity) {\n    const difference = formatQuantity(latestItem.sm_quantity - prevItem.sm_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
+                },
+                "response_json": [
+                  {
+                    "key": "hb66tohi",
+                    "name": "data",
+                    "title": "CAT Data",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
           "id": "condition_or_node_item_z5Yhfu1v",
           "type": "condition-or-node-item",
           "data": {
@@ -572,7 +704,7 @@
         "name": "Map latest redis",
         "script": {
           "type": "javascript",
-          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n  case 'SO_CANCELLED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n  case 'MSI_COMPLETED':\n  case 'PT_ISSUED':\n    pendingAddData = {{node:code_node_MsiCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
+          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n  case 'SO_CANCELLED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n  case 'MSI_COMPLETED':\n  case 'PT_ISSUED':\n    pendingAddData = {{node:code_node_MsiCompare.data.data}};\n    break;\n  case 'CAT_COMPLETED':\n    pendingAddData = {{node:code_node_CatCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
         },
         "response_json": [
           {

@@ -1509,19 +1509,71 @@
                 }
               ]
             },
-            {
-              "id": "set_cache_node_Ynh0tu9M",
-              "type": "set-cache-node",
+{
+              "id": "code_node_CatItemIDs",
+              "type": "code-node",
               "data": {
-                "cache_key": "",
-                "cache_value": "",
-                "expire_time": 3600,
-                "title": "Set Initial Subform Index",
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Collect Item IDs",
                 "isValidator": true,
-                "nodeName": "Set Initial Subform Index",
-                "name": "Set Initial Subform Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
-                "redis_key": "subformIndex_{{workflowparams:allData.issued_by}}"
+                "nodeName": "Collect Item IDs",
+                "name": "Collect Item IDs",
+                "script": {
+                  "type": "javascript",
+                  "code": "// One batched Item fetch for the whole subform (was: one get-node per\n// iteration inside the loop).\nconst rows = {{node:code_node_ISWz5KGY.data.allData.stock_movement}} || [];\nconst itemIDs = [...new Set(rows.filter(i => i.item_selection).map(i => i.item_selection))];\nreturn { itemIDs: itemIDs };"
+                },
+                "response_json": [
+                  {
+                    "key": "titemids",
+                    "name": "itemIDs",
+                    "title": "Item IDs",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_CatItems",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 1,
+                        "children": [
+                          {
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_CatItemIDs.data.itemIDs}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Items",
+                "isValidator": true,
+                "nodeName": "Get Items",
+                "name": "Get Items"
               },
               "blocks": []
             },
@@ -1573,20 +1625,7 @@
                 }
               },
               "blocks": [
-                {
-                  "id": "get_cache_node_cFQ0jK2S",
-                  "type": "get-cache-node",
-                  "data": {
-                    "cache_key": "",
-                    "title": "Get Subform Index",
-                    "isValidator": true,
-                    "nodeName": "Get Subform Index",
-                    "name": "Get Subform Index",
-                    "redis_key": "subformIndex_{{workflowparams:allData.issued_by}}"
-                  },
-                  "blocks": []
-                },
-                {
+{
                   "id": "code_node_PeidsgXa",
                   "type": "code-node",
                   "data": {
@@ -1599,9 +1638,18 @@
                     "name": "Subform Preparation",
                     "script": {
                       "type": "javascript",
-                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_cFQ0jK2S.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark_2 || null;\nconst remark3 = item.item_remark_3 || null;\nconst poNO = item.po_no || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
+                      "code": "const page_status = {{workflowparams:pageStatus}};\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\n// Row comes straight from the loop variable — no redis index counter\n// (the old counter was keyed only on issued_by, and that key namespace is\n// shared verbatim with LOT/MSR/SA, so concurrent saves corrupted it).\n// NOTE: line_index is NOT usable as the position here — code_node_ISWz5KGY\n// stamps it from the unfiltered array then skips zero-qty rows, so it has\n// gaps. No numeric index is needed at this level.\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = {{node:loop_BBZNjfzE}};\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark_2 || null;\nconst remark3 = item.item_remark_3 || null;\nconst poNO = item.po_no || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\n// itemData for the inventory sub-workflows, from the single batched Item\n// fetch (previously one get-node per loop iteration).\nconst itemsRaw = {{node:search_node_CatItems.data.data}} || [];\nconst itemsArr = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemData = itemsArr.find(i => i && String(i.id) === String(material_id)) || null;\n\nreturn {\n  itemData: itemData,\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess\n};"
                     },
                     "response_json": [
+                      {
+                        "key": "catitmdta",
+                        "name": "itemData",
+                        "title": "Item Data",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      },
                       {
                         "key": "zdxudxha",
                         "name": "plant_id",
@@ -1703,25 +1751,7 @@
                           }
                         ]
                       },
-                      {
-                        "key": "ruschnvr",
-                        "name": "index",
-                        "title": "index",
-                        "description": "",
-                        "bsonType": "int",
-                        "isExpand": false,
-                        "children": []
-                      },
-                      {
-                        "key": "er4qz9j4",
-                        "name": "nextIndex",
-                        "title": "nextIndex",
-                        "description": "",
-                        "bsonType": "int",
-                        "isExpand": false,
-                        "children": []
-                      },
-                      {
+{
                         "key": "4ccj2hbx",
                         "name": "doc_date",
                         "title": "doc_date",
@@ -1773,57 +1803,7 @@
                   },
                   "blocks": []
                 },
-                {
-                  "id": "get_node_bcTcnD1c",
-                  "type": "get-node",
-                  "data": {
-                    "table_id": {
-                      "source": "Item:Table:1901546842240438273",
-                      "rules": {
-                        "collectionId": "1901546842240438273",
-                        "list": [
-                          {
-                            "id": 1768809950205,
-                            "parentId": 1768809950204,
-                            "isTop": true,
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_PeidsgXa.data.material_id}}",
-                            "type": "leaf",
-                            "level": 1,
-                            "propLabel": "主键ID",
-                            "valueLabel": "",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    },
-                    "condition": {},
-                    "title": "Get Item",
-                    "isValidator": true,
-                    "nodeName": "Get Item",
-                    "name": "Get Item"
-                  },
-                  "blocks": []
-                },
-                {
-                  "id": "set_cache_node_VhGHIY11",
-                  "type": "set-cache-node",
-                  "data": {
-                    "cache_key": "",
-                    "cache_value": "",
-                    "expire_time": 3600,
-                    "title": "Set Initial Balance Index",
-                    "isValidator": true,
-                    "nodeName": "Set Initial Balance Index",
-                    "name": "Set Initial Balance Index",
-                    "custom_wkbocgni": { "type": "javascript", "code": "0" },
-                    "redis_key": "balanceIndex_{{workflowparams:allData.issued_by}}"
-                  },
-                  "blocks": []
-                },
-                {
+{
                   "id": "loop_NWeT5dSb",
                   "type": "loop",
                   "data": {
@@ -1871,20 +1851,7 @@
                     }
                   },
                   "blocks": [
-                    {
-                      "id": "get_cache_node_V3E6xZfN",
-                      "type": "get-cache-node",
-                      "data": {
-                        "cache_key": "",
-                        "title": "Get Balance Index",
-                        "isValidator": true,
-                        "nodeName": "Get Balance Index",
-                        "name": "Get Balance Index",
-                        "redis_key": "balanceIndex_{{workflowparams:allData.issued_by}}"
-                      },
-                      "blocks": []
-                    },
-                    {
+{
                       "id": "code_node_SXZuEFWW",
                       "type": "code-node",
                       "data": {
@@ -1897,7 +1864,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const balancesToProcess = {{node:code_node_PeidsgXa.data.balancesToProcess}}\nconst currentIndexRaw = {{node:get_cache_node_V3E6xZfN.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\n\nconst balance = balancesToProcess[index];\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst category_from = balance.category_from;\nconst category_to = balance.category_to;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  category_from: category_from,\n  category_to: category_to,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  index: index,\n  nextIndex: index + 1,\n  handling_unit_id: handling_unit_id,\n};\n\n"
+                          "code": "const saveAs = {{workflowparams:saveAs}}\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\n\n// Balance straight from the loop variable — no redis index counter.\nconst balance = {{node:loop_NWeT5dSb}};\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sm_quantity;\nconst category_from = balance.category_from;\nconst category_to = balance.category_to;\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst handling_unit_id = balance.handling_unit_id || null;\n\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  category_from: category_from,\n  category_to: category_to,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  handling_unit_id: handling_unit_id,\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -1925,25 +1892,7 @@
                             "isExpand": false,
                             "children": []
                           },
-                          {
-                            "key": "2odwbcz5",
-                            "name": "index",
-                            "title": "index",
-                            "description": "",
-                            "bsonType": "int",
-                            "isExpand": false,
-                            "children": []
-                          },
-                          {
-                            "key": "2b7zktba",
-                            "name": "nextIndex",
-                            "title": "nextIndex",
-                            "description": "",
-                            "bsonType": "int",
-                            "isExpand": false,
-                            "children": []
-                          },
-                          {
+{
                             "key": "6uixt627",
                             "name": "manufacturing_date",
                             "title": "manufacturing_date",
@@ -2103,19 +2052,11 @@
                               "valueLabel": "",
                               "propLabel": "Batch ID"
                             },
-                            {
-                              "prop": "index",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_SXZuEFWW.data.index}}",
-                              "valueLabel": "",
-                              "propLabel": "Index"
-                            },
-                            {
+{
                               "prop": "itemData",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:get_node_bcTcnD1c.data.data}}",
+                              "value": "{{node:code_node_PeidsgXa.data.itemData}}",
                               "valueLabel": "",
                               "propLabel": "Item Data"
                             },
@@ -2361,19 +2302,11 @@
                               "valueLabel": "",
                               "propLabel": "Batch ID"
                             },
-                            {
-                              "prop": "index",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_SXZuEFWW.data.index}}",
-                              "valueLabel": "",
-                              "propLabel": "Index"
-                            },
-                            {
+{
                               "prop": "itemData",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:get_node_bcTcnD1c.data.data}}",
+                              "value": "{{node:code_node_PeidsgXa.data.itemData}}",
                               "valueLabel": "",
                               "propLabel": "Item Data"
                             },
@@ -2502,46 +2435,8 @@
                           "blocks": []
                         }
                       ]
-                    },
-                    {
-                      "id": "set_cache_node_9n4RZoAn",
-                      "type": "set-cache-node",
-                      "data": {
-                        "cache_key": "",
-                        "cache_value": "",
-                        "expire_time": 3600,
-                        "title": "Set Balance nextIndex",
-                        "isValidator": true,
-                        "nodeName": "Set Balance nextIndex",
-                        "name": "Set Balance nextIndex",
-                        "custom_wkbocgni": {
-                          "type": "javascript",
-                          "code": "{{node:code_node_SXZuEFWW.data.nextIndex}}"
-                        },
-                        "redis_key": "balanceIndex_{{workflowparams:allData.issued_by}}"
-                      },
-                      "blocks": []
                     }
                   ]
-                },
-                {
-                  "id": "set_cache_node_KxeoxlCO",
-                  "type": "set-cache-node",
-                  "data": {
-                    "cache_key": "",
-                    "cache_value": "",
-                    "expire_time": 3600,
-                    "title": "Set Subform nextIndex",
-                    "isValidator": true,
-                    "nodeName": "Set Subform nextIndex",
-                    "name": "Set Subform nextIndex",
-                    "custom_wkbocgni": {
-                      "type": "javascript",
-                      "code": "{{node:code_node_PeidsgXa.data.nextIndex}}"
-                    },
-                    "redis_key": "subformIndex_{{workflowparams:allData.issued_by}}"
-                  },
-                  "blocks": []
                 }
               ]
             },
@@ -2900,6 +2795,193 @@
                   ]
                 }
               ]
+            },
+            {
+              "id": "if_ReorderCatCompleted",
+              "type": "if",
+              "data": {
+                "title": "IF Completed (Reorder)",
+                "isValidator": true,
+                "nodeName": "IF Completed (Reorder)",
+                "name": "IF Completed (Reorder)",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_ISWz5KGY.data.stock_movement_status}}' == 'Draft' && '{{workflowparams:saveAs}}' == 'Completed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_ReorderCatTrue",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "workflow_node_ReorderCatCompleted",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Reorder Redis Workflow (CAT Completed)",
+                        "isValidator": true,
+                        "nodeName": "Run Reorder Redis Workflow (CAT Completed)",
+                        "name": "Run Reorder Redis Workflow (CAT Completed)",
+                        "workflow": {
+                          "source": "REORDER_SET_REDIS:Workflow:2065256261729759233",
+                          "rules": {
+                            "collectionId": "2065256261729759233",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "document_type",
+                              "propLabel": "Document Type",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "CAT_COMPLETED",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "latest_data",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement}}",
+                              "valueLabel": "",
+                              "propLabel": "Latest Data"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_ReorderCatFalse",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "code_node_PoHldB2U",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "updateItemTransactionDate",
+                "isValidator": true,
+                "nodeName": "updateItemTransactionDate",
+                "name": "updateItemTransactionDate",
+                "script": {
+                  "type": "javascript",
+                  "code": "const tableSM = {{node:code_node_ISWz5KGY.data.allData.stock_movement}}\n\nconst uniqueItemIds = [\n  ...new Set(\n    tableSM\n      .filter((item) => item.item_selection)\n      .map((item) => item.item_selection),\n  ),\n];\n\nconst date = new Date().toISOString();\nconst updates = [];\n\nfor (const itemId of uniqueItemIds) {\n  updates.push({\n    id: itemId,\n    last_transaction_date: date,\n  });\n}\n\nreturn {\n  updates: updates,\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "eu8g52hn",
+                    "name": "updates",
+                    "title": "updates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "vlbp3x5c",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_XItzVWhg",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 1768877374931,
+                        "parentId": 1768877374930,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_PoHldB2U.data.updates.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Item Transaction",
+                "isValidator": true,
+                "nodeName": "Update Item Transaction",
+                "name": "Update Item Transaction",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_PoHldB2U.data.updates.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "last_transaction_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_PoHldB2U.data.updates.last_transaction_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Last Transaction Date"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
             }
           ]
         },
@@ -3290,103 +3372,7 @@
         }
       ]
     },
-    {
-      "id": "code_node_PoHldB2U",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "updateItemTransactionDate",
-        "isValidator": true,
-        "nodeName": "updateItemTransactionDate",
-        "name": "updateItemTransactionDate",
-        "script": {
-          "type": "javascript",
-          "code": "const tableSM = {{node:code_node_ISWz5KGY.data.allData.stock_movement}}\n\nconst uniqueItemIds = [\n  ...new Set(\n    tableSM\n      .filter((item) => item.item_selection)\n      .map((item) => item.item_selection),\n  ),\n];\n\nconst date = new Date().toISOString();\nconst updates = [];\n\nfor (const itemId of uniqueItemIds) {\n  updates.push({\n    id: itemId,\n    last_transaction_date: date,\n  });\n}\n\nreturn {\n  updates: updates,\n};\n"
-        },
-        "response_json": [
-          {
-            "key": "eu8g52hn",
-            "name": "updates",
-            "title": "updates",
-            "description": "",
-            "bsonType": "array",
-            "isExpand": true,
-            "children": [
-              {
-                "key": "vlbp3x5c",
-                "name": "items",
-                "title": "",
-                "description": "",
-                "bsonType": "any",
-                "isExpand": false,
-                "isArrayItem": true,
-                "children": []
-              }
-            ]
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "update_node_XItzVWhg",
-      "type": "update-node",
-      "data": {
-        "table_id": {
-          "source": "Item:Table:1901546842240438273",
-          "rules": {
-            "collectionId": "1901546842240438273",
-            "list": [
-              {
-                "id": 1768877374931,
-                "parentId": 1768877374930,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_node_PoHldB2U.data.updates.id}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
-        },
-        "fields": [],
-        "condition": {},
-        "title": "Update Item Transaction",
-        "isValidator": true,
-        "nodeName": "Update Item Transaction",
-        "name": "Update Item Transaction",
-        "props": {
-          "modelName": "",
-          "list": [
-            {
-              "prop": "id",
-              "valueType": "field",
-              "value": "{{node:code_node_PoHldB2U.data.updates.id}}",
-              "operator": "",
-              "valueLabel": "",
-              "propLabel": "主键ID"
-            },
-            {
-              "prop": "last_transaction_date",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_PoHldB2U.data.updates.last_transaction_date}}",
-              "valueLabel": "",
-              "propLabel": "Last Transaction Date"
-            }
-          ]
-        }
-      },
-      "blocks": []
-    },
-    {
+{
       "id": "return_node_b8XNN3w1",
       "type": "return-node",
       "data": {
