@@ -404,7 +404,7 @@
           "id": "condition_or_item_MsiReorder",
           "type": "condition-or-node-item",
           "data": {
-            "title": "MSI Completed",
+            "title": "MSI Completed / PT Issued",
             "filter": {
               "list": [
                 {
@@ -421,15 +421,15 @@
               ]
             },
             "expression": {
-              "code": "'{{workflowparams:document_type}}' == 'MSI_COMPLETED'",
+              "code": "'{{workflowparams:document_type}}' == 'MSI_COMPLETED' || '{{workflowparams:document_type}}' == 'PT_ISSUED'",
               "type": "javascript"
             },
             "displayContent": "sdk.form.setCondition",
             "__index": 4,
             "isDefault": false,
             "isValidator": true,
-            "nodeName": "MSI Completed",
-            "name": "MSI Completed",
+            "nodeName": "MSI Completed / PT Issued",
+            "name": "MSI Completed / PT Issued",
             "condition_type": "Expression"
           },
           "blocks": [
@@ -572,7 +572,7 @@
         "name": "Map latest redis",
         "script": {
           "type": "javascript",
-          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n  case 'SO_CANCELLED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n  case 'MSI_COMPLETED':\n    pendingAddData = {{node:code_node_MsiCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
+          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n  case 'SO_CANCELLED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n  case 'MSI_COMPLETED':\n  case 'PT_ISSUED':\n    pendingAddData = {{node:code_node_MsiCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
         },
         "response_json": [
           {
