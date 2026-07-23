@@ -1,4 +1,24 @@
 {
+  "request_json": [
+    {
+      "key": "prtcq001",
+      "name": "action",
+      "title": "action",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "prtcq002",
+      "name": "prt_id",
+      "title": "prt_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -160,10 +180,9 @@
       },
       "blocks": [
         {
+          "id": "UWcNevRQs9ISKnyLyDJaR",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "return_blocked",
@@ -204,10 +223,9 @@
           ]
         },
         {
+          "id": "KLAFTzQpWMsRMy_YyouVW",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -243,10 +261,9 @@
       },
       "blocks": [
         {
+          "id": "RqWOMIDCUxpQioe89p2S3",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "update_prt_delete",
@@ -335,10 +352,9 @@
           ]
         },
         {
+          "id": "emRx8W6pSiJf1upXykSYw",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -348,12 +364,8 @@
       "type": "condition-all-node",
       "data": {
         "title": "Parallel Fetch",
-        "filter": {
-          "list": []
-        },
-        "expression": {
-          "code": ""
-        },
+        "filter": { "list": [] },
+        "expression": { "code": "" },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -377,10 +389,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": "true",
-              "type": "javascript"
-            },
+            "expression": { "code": "true", "type": "javascript" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "GR Heads",
@@ -445,10 +454,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": "true",
-              "type": "javascript"
-            },
+            "expression": { "code": "true", "type": "javascript" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "PO Lines",
@@ -578,10 +584,9 @@
       },
       "blocks": [
         {
+          "id": "qfMTj3xXdfNkW_s8V19kd",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "update_grHeads",
@@ -650,10 +655,9 @@
           ]
         },
         {
+          "id": "9xg2xdPb5v3Xl4ZdkJhn7",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -689,10 +693,9 @@
       },
       "blocks": [
         {
+          "id": "SvS6XPmTSY6QwmKHs3rJm",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "update_poLines",
@@ -753,10 +756,9 @@
           ]
         },
         {
+          "id": "ML_Qd_SewCHiQaZMeovBC",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -865,25 +867,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "prtcq001",
-      "name": "action",
-      "title": "action",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "prtcq002",
-      "name": "prt_id",
-      "title": "prt_id",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [],
-  "config": {}
+  "edges": []
 }
