@@ -797,6 +797,70 @@
           ]
         },
         {
+          "id": "condition_or_item_SaReorder",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "SA Completed",
+            "filter": {
+              "list": [
+                {
+                  "id": 1781246053000,
+                  "parentId": 1781246052999,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "'{{workflowparams:document_type}}' == 'SA_COMPLETED'",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 7,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "SA Completed",
+            "name": "SA Completed",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "code_node_SaCompare",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Compare SA Data",
+                "isValidator": true,
+                "nodeName": "Compare SA Data",
+                "name": "Compare SA Data",
+                "script": {
+                  "type": "javascript",
+                  "code": "const previousData = {{workflowparams:previous_data}} || []; // stock_adjustment lines\nconst latestData = {{workflowparams:latest_data}} || []; // stock_adjustment lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Stock Adjustment moves stock BOTH ways. Only DEDUCTIONS are recorded:\n// an SA write-off is consumption (+qty, availability drops); an SA write-on is a\n// receipt and books nothing (the reorder stream never records stock arriving).\n//\n// ⚠️ movement_type casing is inconsistent in stored data — SAselectMovement.js\n// writes \"In\"/\"Out\" while SAopenDialog.js and SAtableQtyChange.js write\n// \"IN\"/\"OUT\". Always compare lowercased (the save workflow does the same).\nconst isDeduction = (a) => String(a.movement_type || '').toLowerCase() === 'out';\n\n// Only Unrestricted stock is available, so a deduction from Blocked / Quality\n// Inspection / Reserved doesn't change availability.\n// ⚠️ SA's key is `category` (NOT `inventory_category` as in PRT).\nconst isUnrestricted = (a) => !a.category || a.category === 'Unrestricted';\n\n// SA quantities need NO conversion: line uom_id is disabled and always the item's\n// based_uom, and SAconfirmBalance converts to base before saving. sa_quantity is\n// already base and always positive.\nconst extractAllocations = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.balance_index) return;\n    // balance_index is a JSON string on the line (SA's temp_qty_data analogue)\n    let allocations = item.balance_index;\n    if (typeof allocations === 'string') {\n      try { allocations = JSON.parse(allocations); } catch (e) { return; }\n    }\n    if (!Array.isArray(allocations)) return;\n\n    allocations.forEach(a => {\n      if (!a) return;\n      if (!isDeduction(a)) return;\n      if (!isUnrestricted(a)) return;\n\n      const qty = parseFloat(a.sa_quantity) || 0;\n      if (qty <= 0) return;\n\n      const materialId = item.material_id || a.material_id;\n      const locationId = a.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).sa_quantity += qty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: item.plant_id || a.plant_id,\n          organization_id: a.organization_id || item.organization_id,\n          sa_quantity: qty,\n          batch_id: a.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractAllocations(previousData);\nconst latestAggregated = extractAllocations(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    const q = formatQuantity(-prevItem.sa_quantity);\n    if (q === 0) return;\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    const q = formatQuantity(latestItem.sa_quantity);\n    if (q === 0) return;\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.sa_quantity !== latestItem.sa_quantity) {\n    const difference = formatQuantity(latestItem.sa_quantity - prevItem.sa_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
+                },
+                "response_json": [
+                  {
+                    "key": "hb66tohi",
+                    "name": "data",
+                    "title": "SA Data",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
           "id": "condition_or_node_item_z5Yhfu1v",
           "type": "condition-or-node-item",
           "data": {
@@ -836,7 +900,7 @@
         "name": "Map latest redis",
         "script": {
           "type": "javascript",
-          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n  case 'SO_CANCELLED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n  case 'MSI_COMPLETED':\n  case 'PT_ISSUED':\n    pendingAddData = {{node:code_node_MsiCompare.data.data}};\n    break;\n  case 'CAT_COMPLETED':\n    pendingAddData = {{node:code_node_CatCompare.data.data}};\n    break;\n  case 'PRT_COMPLETED':\n    pendingAddData = {{node:code_node_PrtCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
+          "code": "const redisDataRaw = {{node:get_cache_node_jUGP70I3.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\nconst documentType = {{workflowparams:document_type}};\nlet pendingAddData = [];\n\nswitch (documentType) {\n  case 'SO_ISSUED':\n  case 'SO_CANCELLED':\n    pendingAddData = {{node:code_node_1sd1QGLR.data.data}};\n    break;\n  case 'GD_CREATED':\n  case 'GD_COMPLETED':\n  case 'GD_CANCELLED':\n    pendingAddData = {{node:code_node_f8qELJUF.data.data}};\n    break;\n  case 'PP_CREATED':\n  case 'PP_CANCELLED':\n    pendingAddData = {{node:code_node_PpCompare.data.data}};\n    break;\n  case 'MSI_COMPLETED':\n  case 'PT_ISSUED':\n    pendingAddData = {{node:code_node_MsiCompare.data.data}};\n    break;\n  case 'CAT_COMPLETED':\n    pendingAddData = {{node:code_node_CatCompare.data.data}};\n    break;\n  case 'PRT_COMPLETED':\n    pendingAddData = {{node:code_node_PrtCompare.data.data}};\n    break;\n  case 'SA_COMPLETED':\n    pendingAddData = {{node:code_node_SaCompare.data.data}};\n    break;\n}\n\nconst latestredisData = [...redisData, ...pendingAddData];\n\nreturn {\n  latestredisData\n}\n"
         },
         "response_json": [
           {
