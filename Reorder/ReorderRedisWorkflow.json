@@ -78,7 +78,7 @@
           "id": "condition_or_node_item_hS6jysTf",
           "type": "condition-or-node-item",
           "data": {
-            "title": "SO Issued",
+            "title": "SO Issued/Cancelled",
             "filter": {
               "list": [
                 {
@@ -100,8 +100,8 @@
             },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
-            "nodeName": "SO Issued",
-            "name": "SO Issued",
+            "nodeName": "SO Issued/Cancelled",
+            "name": "SO Issued/Cancelled",
             "condition_type": "Expression"
           },
           "blocks": [
