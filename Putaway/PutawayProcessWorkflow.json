@@ -1,4 +1,42 @@
 {
+  "request_json": [
+    {
+      "key": "ml92rvlq",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "tynnbe46",
+      "name": "confirmed_by",
+      "title": "confirmed_by",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "qwr3c0zu",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gapff3tq",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -263,7 +301,7 @@
         "name": "Create Table Putaway Records",
         "script": {
           "type": "javascript",
-          "code": "const allData = {{workflowparams:allData}};\n\nconst records = [];\nconst itemsToProcess = []; // Items with putaway_qty > 0 for inventory processing\nlet totalOriginalQuantity = 0;\nlet totalPutawayQuantity = 0;\nlet hasAnyQuantity = false;\n\nfor (const item of allData.table_putaway_item) {\n  // Skip cancelled items\n  if (item.line_status === 'Cancelled') continue;\n\n  // Skip parent items with split children (process children instead)\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n\n  const putawayQty = parseFloat(item.putaway_qty) || 0;\n\n  // Track totals for parent items only\n  if (item.parent_or_child !== 'Child') {\n    totalOriginalQuantity += parseFloat(item.qty_to_putaway) || 0;\n  }\n  totalPutawayQuantity += putawayQty;\n\n  // Only create records for items with quantity\n  if (putawayQty > 0) {\n    hasAnyQuantity = true;\n\n    // Add to putaway records\n    records.push({\n      line_index: item.line_index,\n      item_code: item.item_code,\n      item_name: item.item_name,\n      item_desc: item.item_desc || '',\n      batch_no: item.batch_no || '',\n      source_inv_category: item.source_inv_category,\n      target_inv_category: item.target_inv_category,\n      store_in_qty: putawayQty,\n      item_uom: item.item_uom,\n      source_bin: item.source_bin || '',\n      target_location: item.target_location || '',\n      remark: item.remark || '',\n      line_status: 'Confirmed',\n      confirmed_by: {{workflowparams:confirmed_by}} || \"\",\n      confirmed_at: new Date().toISOString().replace(\"T\", \" \").slice(0, 19),\n    });\n\n    // Add to items for inventory processing\n    itemsToProcess.push({\n      item_code: item.item_code,\n      item_uom: item.item_uom,\n      putaway_qty: putawayQty,\n      source_bin: item.source_bin || '',\n      storage_location: item.storage_location || '',\n      target_location: item.target_location || '',\n      batch_no: item.batch_no || '',\n      source_inv_category: item.source_inv_category,\n      target_inv_category: item.target_inv_category,\n      unit_price: parseFloat(item.unit_price) || 0,\n      hu_data: item.hu_data || '',\n    });\n  }\n}\n\n// Extract unique item codes for Item master lookup\nconst uniqueItemCodes = [...new Set(itemsToProcess.map(i => i.item_code))];\n\nreturn {\n  records,\n  itemsToProcess,\n  uniqueItemCodes,\n  totalOriginalQuantity,\n  totalPutawayQuantity,\n  hasAnyQuantity\n};\n"
+          "code": "const allData = {{workflowparams:allData}};\n\nconst records = [];\nconst itemsToProcess = []; // Items with putaway_qty > 0 for inventory processing\nlet totalOriginalQuantity = 0;\nlet totalPutawayQuantity = 0;\nlet hasAnyQuantity = false;\n\nfor (const item of allData.table_putaway_item) {\n  // Skip cancelled items\n  if (item.line_status === 'Cancelled') continue;\n\n  // Skip parent items with split children (process children instead)\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n\n  const putawayQty = parseFloat(item.putaway_qty) || 0;\n\n  // Track totals for parent items only\n  if (item.parent_or_child !== 'Child') {\n    totalOriginalQuantity += parseFloat(item.qty_to_putaway) || 0;\n  }\n  totalPutawayQuantity += putawayQty;\n\n  // Only create records for items with quantity\n  if (putawayQty > 0) {\n    hasAnyQuantity = true;\n\n    // Add to putaway records\n    records.push({\n      line_index: item.line_index,\n      item_code: item.item_code,\n      item_name: item.item_name,\n      item_desc: item.item_desc || '',\n      batch_no: item.batch_no || '',\n      source_inv_category: item.source_inv_category,\n      target_inv_category: item.target_inv_category,\n      store_in_qty: putawayQty,\n      item_uom: item.item_uom,\n      source_bin: item.source_bin || '',\n      target_location: item.target_location || '',\n      remark: item.remark || '',\n      line_status: 'Confirmed',\n      confirmed_by: {{workflowparams:confirmed_by}} || \"\",\n      confirmed_at: new Date().toISOString().replace(\"T\", \" \").slice(0, 19),\n    });\n\n    // Add to items for inventory processing\n    itemsToProcess.push({\n      putaway_line_id: item.id || '',\n      item_code: item.item_code,\n      item_uom: item.item_uom,\n      putaway_qty: putawayQty,\n      source_bin: item.source_bin || '',\n      storage_location: item.storage_location || '',\n      target_location: item.target_location || '',\n      batch_no: item.batch_no || '',\n      source_inv_category: item.source_inv_category,\n      target_inv_category: item.target_inv_category,\n      unit_price: parseFloat(item.unit_price) || 0,\n      hu_data: item.hu_data || '',\n    });\n  }\n}\n\n// Extract unique item codes for Item master lookup\nconst uniqueItemCodes = [...new Set(itemsToProcess.map(i => i.item_code))];\n\nreturn {\n  records,\n  itemsToProcess,\n  uniqueItemCodes,\n  grId: allData.gr_no || '',\n  organizationId: allData.organization_id || '',\n  totalOriginalQuantity,\n  totalPutawayQuantity,\n  hasAnyQuantity\n};\n"
         },
         "response_json": [
           {
@@ -352,45 +390,211 @@
                 "children": []
               }
             ]
+          },
+          {
+            "key": "itgrid001",
+            "name": "grId",
+            "title": "grId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itorg001",
+            "name": "organizationId",
+            "title": "organizationId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
       "blocks": []
     },
     {
-      "id": "search_node_6yzlT81I",
-      "type": "search-node",
+      "id": "condition_all_ITfetch",
+      "type": "condition-all-node",
       "data": {
-        "table_id": {
-          "source": "Item:Table:1901546842240438273",
-          "rules": {
-            "collectionId": "1901546842240438273",
-            "list": [
-              {
-                "id": 1773127781923,
-                "parentId": 1773127781922,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_node_qfSZO0bi.data.uniqueItemCodes}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 100,
-        "title": "Get Items",
-        "isValidator": true,
-        "nodeName": "Get Items",
-        "name": "Get Items"
+        "title": "Parallel Branch",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
       },
-      "blocks": []
+      "blocks": [
+        {
+          "id": "condition_all_item_ITfa",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 1",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790000001023,
+                  "parentId": 1790000001022,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "1 == 1", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 1",
+            "name": "Branch 1",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_node_6yzlT81I",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 1773127781923,
+                        "parentId": 1773127781922,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_qfSZO0bi.data.uniqueItemCodes}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Items",
+                "isValidator": true,
+                "nodeName": "Get Items",
+                "name": "Get Items"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_ITfb",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 2",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790000001023,
+                  "parentId": 1790000001022,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "1 == 1", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 2",
+            "name": "Branch 2",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_node_ITopen",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "In Transit Detail:Table:2080477944160923650",
+                  "rules": {
+                    "collectionId": "2080477944160923650",
+                    "list": [
+                      {
+                        "id": 1790000003000,
+                        "parentId": 1790000003001,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1790000003002,
+                            "parentId": 1790000003000,
+                            "isTop": false,
+                            "prop": "doc_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_qfSZO0bi.data.grId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Document ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1790000003003,
+                            "parentId": 1790000003000,
+                            "isTop": false,
+                            "prop": "status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "In Transit",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Status",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1790000003004,
+                            "parentId": 1790000003000,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_qfSZO0bi.data.organizationId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get Open In Transit",
+                "isValidator": true,
+                "nodeName": "Get Open In Transit",
+                "name": "Get Open In Transit"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "code_node_KbJLkjP8",
@@ -473,7 +677,7 @@
         "name": "Create Inventory Movement Array",
         "script": {
           "type": "javascript",
-          "code": "const allData = {{workflowparams:allData}};\nconst itemsToProcess = {{node:code_node_qfSZO0bi.data.itemsToProcess}};\nconst itemMasterData = {{node:search_node_6yzlT81I.data.data}} || [];\n\n// Helper: round to 3 decimal places\nconst roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\nconst roundPrice = (value) => parseFloat(parseFloat(value || 0).toFixed(4));\n\n// Build item master lookup map\nconst itemMasterMap = {};\nfor (const item of itemMasterData) {\n  itemMasterMap[item.id] = item;\n}\n\n// Array to collect inventory movements for loop processing\nconst inventoryMovements = [];\n\nfor (const mat of itemsToProcess) {\n  const itemData = itemMasterMap[mat.item_code];\n\n  if (!itemData) {\n    continue;\n  }\n\n  // UOM conversion\n  let basedQty = mat.putaway_qty;\n  if (mat.item_uom !== itemData.based_uom && itemData.table_uom_conversion) {\n    for (const uom of itemData.table_uom_conversion) {\n      if (mat.item_uom === uom.alt_uom_id) {\n        basedQty = roundQty(mat.putaway_qty * uom.base_qty);\n        break;\n      }\n    }\n  }\n  basedQty = roundQty(basedQty);\n\n  const isBatchManaged = itemData.item_batch_management === 1;\n\n  // OUT movement from source_bin\n  inventoryMovements.push({\n    movement: \"OUT\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    bin_location_id: mat.source_bin,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.source_inv_category,\n    unit_price: roundPrice(mat.unit_price),\n    total_price: roundPrice(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n  });\n\n  // IN movement to target_location\n  inventoryMovements.push({\n    movement: \"IN\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    storage_location: mat.storage_location,\n    bin_location_id: mat.target_location,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.target_inv_category,\n    unit_price: roundPrice(mat.unit_price),\n    total_price: roundPrice(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n    hu_data: mat.hu_data || \"\",\n  });\n}\n\nreturn {\n  inventoryMovements: inventoryMovements,\n  inventoryMovementsLength: inventoryMovements.length\n};\n"
+          "code": "const allData = {{workflowparams:allData}};\nconst itemsToProcess = {{node:code_node_qfSZO0bi.data.itemsToProcess}};\nconst itemMasterData = {{node:search_node_6yzlT81I.data.data}} || [];\n\n// Helper: round to 3 decimal places\nconst roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\nconst roundPrice = (value) => parseFloat(parseFloat(value || 0).toFixed(4));\n\n// Build item master lookup map\nconst itemMasterMap = {};\nfor (const item of itemMasterData) {\n  itemMasterMap[item.id] = item;\n}\n\n// Array to collect inventory movements for loop processing\nconst inventoryMovements = [];\n\nfor (const mat of itemsToProcess) {\n  const itemData = itemMasterMap[mat.item_code];\n\n  if (!itemData) {\n    continue;\n  }\n\n  // UOM conversion\n  let basedQty = mat.putaway_qty;\n  if (mat.item_uom !== itemData.based_uom && itemData.table_uom_conversion) {\n    for (const uom of itemData.table_uom_conversion) {\n      if (mat.item_uom === uom.alt_uom_id) {\n        basedQty = roundQty(mat.putaway_qty * uom.base_qty);\n        break;\n      }\n    }\n  }\n  basedQty = roundQty(basedQty);\n\n  const isBatchManaged = itemData.item_batch_management === 1;\n\n  // OUT movement from source_bin\n  inventoryMovements.push({\n    movement: \"OUT\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    bin_location_id: mat.source_bin,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.source_inv_category,\n    target_bin: mat.target_location,\n    target_category: mat.target_inv_category,\n    target_doc_line_id: mat.putaway_line_id || \"\",\n    unit_price: roundPrice(mat.unit_price),\n    total_price: roundPrice(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n  });\n\n  // IN movement to target_location\n  inventoryMovements.push({\n    movement: \"IN\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    storage_location: mat.storage_location,\n    bin_location_id: mat.target_location,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.target_inv_category,\n    unit_price: roundPrice(mat.unit_price),\n    total_price: roundPrice(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n    hu_data: mat.hu_data || \"\",\n  });\n}\n\nreturn {\n  inventoryMovements: inventoryMovements,\n  inventoryMovementsLength: inventoryMovements.length\n};\n"
         },
         "response_json": [
           {
@@ -508,6 +712,220 @@
         ]
       },
       "blocks": []
+    },
+    {
+      "id": "code_node_ITmatch",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Match In Transit",
+        "isValidator": true,
+        "nodeName": "Match In Transit",
+        "name": "Match In Transit",
+        "script": {
+          "type": "javascript",
+          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n// toFixed(3) STRINGS: the serializer emits full-precision floats that\n// BigDecimal multipleOf rejects, and Number()/parseFloat() do not fix it.\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n\nconst allData = {{workflowparams:allData}};\nconst movements = {{node:code_node_M7XzDZ48.data.inventoryMovements}} || [];\n\nconst openRaw = {{node:search_node_ITopen.data.data}};\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\n\n// Goods Receivings completed before this ledger existed hold In-Transit stock with\n// no rows behind it. Blocking their putaway would be an operational break, so fall\n// through silently and let the inventory workflows behave as they always did.\nif (openRows.length === 0) {\n  return {\n    transitUpdates: [], transitUpdatesLength: 0, hasTransitUpdates: 0,\n    transitCreates: [], transitCreatesLength: 0, hasTransitCreates: 0,\n    shortages: [], hasShortage: 0,\n    message: \"No in-transit ledger rows for this GR (legacy document) - skipped\"\n  };\n}\n\nconst keyOf = (mat, batch, bin) =>\n  String(mat || \"\") + \"|\" + String(batch || \"\") + \"|\" + String(bin || \"\");\n\n// FIFO pool keyed on the tuple the OUT movement can actually see.\n// handling_unit_id is deliberately NOT in the key: code_node_M7XzDZ48 attaches\n// hu_data only to the IN movement, so on the OUT iteration code_node_dofqVRSn\n// resolves huId to \"\". HU is stored for traceability and consumed in aggregate.\nconst pool = {};\nfor (const r of openRows) {\n  const k = keyOf(r.material_id, r.batch_id, r.transit_bin);\n  if (!pool[k]) pool[k] = [];\n  pool[k].push({ row: r, remaining: roundQty(r.open_qty), slices: [] });\n}\nfor (const k in pool) {\n  pool[k].sort((a, b) => {\n    const da = String(a.row.transit_date || \"\");\n    const db = String(b.row.transit_date || \"\");\n    if (da !== db) return da < db ? -1 : 1;\n    return (parseInt(a.row.line_no, 10) || 0) - (parseInt(b.row.line_no, 10) || 0);\n  });\n}\n\n// Demand is accumulated against the shared pool across every line of this\n// putaway, so two lines drawing on one balance cannot both pass -- the stateless\n// per-row check is exactly what let the PT double-commit through.\nconst shortages = [];\nfor (const m of movements) {\n  if (m.movement !== \"OUT\") continue;\n  if (m.inventory_category !== \"In Transit\") continue;\n\n  let need = roundQty(m.based_qty);\n  const bucket = pool[keyOf(m.item_id, m.batch_id, m.bin_location_id)] || [];\n\n  for (const entry of bucket) {\n    if (need <= 0) break;\n    if (entry.remaining <= 0) continue;\n    const take = roundQty(Math.min(entry.remaining, need));\n    if (take <= 0) continue;\n    entry.remaining = roundQty(entry.remaining - take);\n    entry.slices.push({\n      qty: take,\n      to_bin: m.target_bin || null,\n      to_category: m.target_category || \"\",\n      target_doc_line_id: m.target_doc_line_id || \"\"\n    });\n    need = roundQty(need - take);\n  }\n\n  if (need > 0) {\n    shortages.push({\n      material_id: m.item_id,\n      batch_id: m.batch_id || \"\",\n      bin_location: m.bin_location_id,\n      shortage: qtyStr(need)\n    });\n  }\n}\n\nif (shortages.length > 0) {\n  const f = shortages[0];\n  return {\n    transitUpdates: [], transitUpdatesLength: 0, hasTransitUpdates: 0,\n    transitCreates: [], transitCreatesLength: 0, hasTransitCreates: 0,\n    shortages: shortages, hasShortage: 1,\n    message: \"Insufficient in-transit quantity for item \" + f.material_id +\n      \" at bin \" + f.bin_location + \" (short by \" + f.shortage +\n      \"). This putaway would consume stock already claimed by another transfer order.\"\n  };\n}\n\nconst receivedDate = new Date().toISOString().split(\"T\")[0];\nconst targetDocId = allData.id || \"\";\nconst targetDocNo = allData.to_id || \"\";\n\nconst cloneOf = (r) => ({\n  doc_type: r.doc_type, doc_id: r.doc_id, doc_no: r.doc_no, doc_line_id: r.doc_line_id,\n  line_no: r.line_no,\n  parent_id: r.parent_id, parent_no: r.parent_no, parent_line_id: r.parent_line_id,\n  material_id: r.material_id, item_code: r.item_code, item_name: r.item_name,\n  item_desc: r.item_desc, item_uom: r.item_uom, batch_id: r.batch_id,\n  handling_unit_id: r.handling_unit_id, plant_id: r.plant_id,\n  organization_id: r.organization_id, transit_bin: r.transit_bin,\n  from_plant_id: r.from_plant_id, from_bin: r.from_bin, from_category: r.from_category,\n  to_plant_id: r.to_plant_id, to_category: r.to_category,\n  transit_date: r.transit_date, remark: r.remark,\n  source_transit_id: r.source_transit_id || r.id\n});\n\nconst transitUpdates = [];\nconst transitCreates = [];\n\nfor (const k in pool) {\n  for (const entry of pool[k]) {\n    if (entry.slices.length === 0) continue;\n    const r = entry.row;\n\n    // The first slice closes the original row in place; further slices become\n    // their own closed rows chained by source_transit_id, and any leftover stays\n    // open. Same split shape as on_reserved_gd's partial delivery, so each\n    // portion keeps its own destination bin.\n    const first = entry.slices[0];\n    transitUpdates.push({\n      id: r.id,\n      transit_qty: qtyStr(first.qty),\n      received_qty: qtyStr(roundQty((r.received_qty || 0) + first.qty)),\n      open_qty: qtyStr(0),\n      status: \"Received\",\n      received_date: receivedDate,\n      to_bin: first.to_bin,\n      to_category: first.to_category,\n      target_doc_type: \"Putaway\",\n      target_doc_id: targetDocId,\n      target_doc_no: targetDocNo,\n      target_doc_line_id: first.target_doc_line_id\n    });\n\n    for (let i = 1; i < entry.slices.length; i++) {\n      const s = entry.slices[i];\n      const row = cloneOf(r);\n      row.to_bin = s.to_bin;\n      row.to_category = s.to_category;\n      row.transit_qty = qtyStr(s.qty);\n      row.received_qty = qtyStr(s.qty);\n      row.open_qty = qtyStr(0);\n      row.status = \"Received\";\n      row.received_date = receivedDate;\n      row.target_doc_type = \"Putaway\";\n      row.target_doc_id = targetDocId;\n      row.target_doc_no = targetDocNo;\n      row.target_doc_line_id = s.target_doc_line_id;\n      transitCreates.push(row);\n    }\n\n    if (entry.remaining > 0) {\n      const row = cloneOf(r);\n      row.to_bin = null;\n      row.transit_qty = qtyStr(entry.remaining);\n      row.received_qty = qtyStr(0);\n      row.open_qty = qtyStr(entry.remaining);\n      row.status = \"In Transit\";\n      row.received_date = null;\n      row.target_doc_type = \"\";\n      row.target_doc_id = \"\";\n      row.target_doc_no = \"\";\n      row.target_doc_line_id = \"\";\n      transitCreates.push(row);\n    }\n  }\n}\n\nreturn {\n  transitUpdates,\n  transitUpdatesLength: transitUpdates.length,\n  hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  transitCreates,\n  transitCreatesLength: transitCreates.length,\n  hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  shortages: [],\n  hasShortage: 0,\n  message: \"In transit ledger: \" + transitUpdates.length + \" closed, \" +\n    transitCreates.length + \" created\"\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "itmu001",
+            "name": "transitUpdates",
+            "title": "transitUpdates",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "itmu001i",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "itmul01",
+            "name": "transitUpdatesLength",
+            "title": "transitUpdatesLength",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itmhu01",
+            "name": "hasTransitUpdates",
+            "title": "hasTransitUpdates",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itmc001",
+            "name": "transitCreates",
+            "title": "transitCreates",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "itmc001i",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "itmcl01",
+            "name": "transitCreatesLength",
+            "title": "transitCreatesLength",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itmhc01",
+            "name": "hasTransitCreates",
+            "title": "hasTransitCreates",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itms001",
+            "name": "shortages",
+            "title": "shortages",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "itms001i",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "itmhs01",
+            "name": "hasShortage",
+            "title": "hasShortage",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itmmsg1",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_ITshort",
+      "type": "if",
+      "data": {
+        "title": "IF In Transit Shortage",
+        "isValidator": true,
+        "nodeName": "IF In Transit Shortage",
+        "name": "IF In Transit Shortage",
+        "condition_type": "ConditionRule",
+        "filter": {
+          "list": [
+            {
+              "id": 1790000002002,
+              "parentId": 1790000002001,
+              "isTop": true,
+              "prop": "node.code_node_ITmatch.data.hasShortage",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "hasShortage",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_ITshort_t",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_ITshort",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_ITmatch.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_ITshort_f",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "search_node_SVMdNd3K",
@@ -1887,6 +2305,626 @@
       "blocks": []
     },
     {
+      "id": "condition_all_ITwrite",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Branch",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_all_item_ITwa",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 1",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790000001023,
+                  "parentId": 1790000001022,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "1 == 1", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 1",
+            "name": "Branch 1",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "if_ITupd",
+              "type": "if",
+              "data": {
+                "title": "IF hasTransitUpdates",
+                "isValidator": true,
+                "nodeName": "IF hasTransitUpdates",
+                "name": "IF hasTransitUpdates",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1790000002004,
+                      "parentId": 1790000002003,
+                      "isTop": true,
+                      "prop": "node.code_node_ITmatch.data.hasTransitUpdates",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "hasTransitUpdates",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_ITupd_t",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "update_node_ITupd",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "In Transit Detail:Table:2080477944160923650",
+                          "rules": {
+                            "collectionId": "2080477944160923650",
+                            "list": [
+                              {
+                                "id": 1790000004000,
+                                "parentId": 1790000004001,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_ITmatch.data.transitUpdates.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Close In Transit Rows",
+                        "isValidator": true,
+                        "nodeName": "Close In Transit Rows",
+                        "name": "Close In Transit Rows",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.id}}",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "transit_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.transit_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Transit Quantity"
+                            },
+                            {
+                              "prop": "received_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.received_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Received Quantity"
+                            },
+                            {
+                              "prop": "open_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.open_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Open Quantity"
+                            },
+                            {
+                              "prop": "status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.status}}",
+                              "valueLabel": "",
+                              "propLabel": "Status"
+                            },
+                            {
+                              "prop": "received_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.received_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Received Date"
+                            },
+                            {
+                              "prop": "to_bin",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.to_bin}}",
+                              "valueLabel": "",
+                              "propLabel": "To Bin"
+                            },
+                            {
+                              "prop": "to_category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.to_category}}",
+                              "valueLabel": "",
+                              "propLabel": "To Category"
+                            },
+                            {
+                              "prop": "target_doc_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.target_doc_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Type"
+                            },
+                            {
+                              "prop": "target_doc_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.target_doc_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document ID"
+                            },
+                            {
+                              "prop": "target_doc_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.target_doc_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Number"
+                            },
+                            {
+                              "prop": "target_doc_line_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitUpdates.target_doc_line_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Line ID"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_ITupd_f",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_ITwb",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 2",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790000001023,
+                  "parentId": 1790000001022,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "1 == 1", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 2",
+            "name": "Branch 2",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "if_ITcre",
+              "type": "if",
+              "data": {
+                "title": "IF hasTransitCreates",
+                "isValidator": true,
+                "nodeName": "IF hasTransitCreates",
+                "name": "IF hasTransitCreates",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1790000002006,
+                      "parentId": 1790000002005,
+                      "isTop": true,
+                      "prop": "node.code_node_ITmatch.data.hasTransitCreates",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "hasTransitCreates",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_ITcre_t",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "add_node_ITsplit",
+                      "type": "add-node",
+                      "data": {
+                        "table_id": {
+                          "source": "In Transit Detail:Table:2080477944160923650",
+                          "rules": {
+                            "collectionId": "2080477944160923650",
+                            "list": [
+                              {
+                                "id": 1790000005000,
+                                "parentId": 1790000005001,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "title": "Add Split In Transit Rows",
+                        "isValidator": true,
+                        "nodeName": "Add Split In Transit Rows",
+                        "name": "Add Split In Transit Rows",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "doc_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.doc_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Document Type"
+                            },
+                            {
+                              "prop": "doc_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.doc_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Document ID"
+                            },
+                            {
+                              "prop": "doc_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.doc_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Document Number"
+                            },
+                            {
+                              "prop": "doc_line_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.doc_line_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Document Line ID"
+                            },
+                            {
+                              "prop": "line_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.line_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Line No"
+                            },
+                            {
+                              "prop": "parent_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.parent_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent ID"
+                            },
+                            {
+                              "prop": "parent_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.parent_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent Number"
+                            },
+                            {
+                              "prop": "parent_line_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.parent_line_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent Line ID"
+                            },
+                            {
+                              "prop": "material_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.material_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Item ID"
+                            },
+                            {
+                              "prop": "item_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.item_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Code"
+                            },
+                            {
+                              "prop": "item_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.item_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Name"
+                            },
+                            {
+                              "prop": "item_desc",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.item_desc}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Description"
+                            },
+                            {
+                              "prop": "item_uom",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.item_uom}}",
+                              "valueLabel": "",
+                              "propLabel": "UOM"
+                            },
+                            {
+                              "prop": "batch_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.batch_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Batch ID"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.handling_unit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit ID"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Plant ID"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "transit_bin",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.transit_bin}}",
+                              "valueLabel": "",
+                              "propLabel": "Transit Bin"
+                            },
+                            {
+                              "prop": "from_plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.from_plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "From Plant ID"
+                            },
+                            {
+                              "prop": "from_bin",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.from_bin}}",
+                              "valueLabel": "",
+                              "propLabel": "From Bin"
+                            },
+                            {
+                              "prop": "from_category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.from_category}}",
+                              "valueLabel": "",
+                              "propLabel": "From Category"
+                            },
+                            {
+                              "prop": "to_plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.to_plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "To Plant ID"
+                            },
+                            {
+                              "prop": "to_bin",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.to_bin}}",
+                              "valueLabel": "",
+                              "propLabel": "To Bin"
+                            },
+                            {
+                              "prop": "to_category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.to_category}}",
+                              "valueLabel": "",
+                              "propLabel": "To Category"
+                            },
+                            {
+                              "prop": "transit_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.transit_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Transit Quantity"
+                            },
+                            {
+                              "prop": "received_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.received_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Received Quantity"
+                            },
+                            {
+                              "prop": "open_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.open_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Open Quantity"
+                            },
+                            {
+                              "prop": "status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.status}}",
+                              "valueLabel": "",
+                              "propLabel": "Status"
+                            },
+                            {
+                              "prop": "transit_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.transit_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Transit Date"
+                            },
+                            {
+                              "prop": "received_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.received_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Received Date"
+                            },
+                            {
+                              "prop": "remark",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.remark}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark"
+                            },
+                            {
+                              "prop": "target_doc_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.target_doc_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Type"
+                            },
+                            {
+                              "prop": "target_doc_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.target_doc_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document ID"
+                            },
+                            {
+                              "prop": "target_doc_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.target_doc_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Number"
+                            },
+                            {
+                              "prop": "target_doc_line_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.target_doc_line_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Line ID"
+                            },
+                            {
+                              "prop": "source_transit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITmatch.data.transitCreates.source_transit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Source Transit ID"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_ITcre_f",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "return_node_NUcmslK4",
       "type": "return-node",
       "data": {
@@ -1929,43 +2967,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "ml92rvlq",
-      "name": "allData",
-      "title": "allData",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "tynnbe46",
-      "name": "confirmed_by",
-      "title": "confirmed_by",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [
-    {
-      "key": "qwr3c0zu",
-      "name": "code",
-      "title": "code",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "gapff3tq",
-      "name": "message",
-      "title": "message",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "config": {}
+  "edges": []
 }

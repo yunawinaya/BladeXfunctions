@@ -2968,6 +2968,22 @@
               "blocks": []
             },
             {
+              "id": "set_cache_node_ITinit",
+              "type": "set-cache-node",
+              "data": {
+                "cache_key": "",
+                "cache_value": "",
+                "expire_time": 3600,
+                "title": "Set inTransitLineData",
+                "isValidator": true,
+                "nodeName": "Set inTransitLineData",
+                "name": "Set inTransitLineData",
+                "custom_wkbocgni": { "type": "javascript", "code": "[]" },
+                "redis_key": "inTransitLineData_{{node:code_node_LFPr1wQW.data.unique}}"
+              },
+              "blocks": []
+            },
+            {
               "id": "if_7eKOPdic",
               "type": "if",
               "data": {
@@ -5840,6 +5856,126 @@
                               "blocks": []
                             }
                           ]
+                        },
+                        {
+                          "id": "if_ITstage",
+                          "type": "if",
+                          "data": {
+                            "title": "IF Stages In Transit",
+                            "isValidator": true,
+                            "nodeName": "IF Stages In Transit",
+                            "name": "IF Stages In Transit",
+                            "condition_type": "ConditionRule",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1790000000101,
+                                  "parentId": 1790000000100,
+                                  "isTop": true,
+                                  "prop": "node.code_node_D9IbUV8t.data.inventory_category",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "In Transit",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "inventory_category",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "ifBlock_ITstage_t",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "true"
+                              },
+                              "blocks": [
+                                {
+                                  "id": "get_cache_node_ITget",
+                                  "type": "get-cache-node",
+                                  "data": {
+                                    "cache_key": "",
+                                    "title": "Get inTransitLineData",
+                                    "isValidator": true,
+                                    "nodeName": "Get inTransitLineData",
+                                    "name": "Get inTransitLineData",
+                                    "redis_key": "inTransitLineData_{{node:code_node_LFPr1wQW.data.unique}}"
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "code_node_ITrow",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "inTransitLineData",
+                                    "isValidator": true,
+                                    "nodeName": "inTransitLineData",
+                                    "name": "inTransitLineData",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const inTransitLineData = ((__v)=>{try{return JSON.parse(__v)}catch(__e){return null}})({{node:get_cache_node_ITget.data}}) || [];\nconst item = {{node:code_node_D9IbUV8t.data.grItem}} || {};\nconst itemMaster = {{node:get_node_x5DWSZ3z.data.data}} || {};\n\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n// Quantities go in as toFixed(3) STRINGS. The serializer emits full-precision\n// floats (100 -> 99.99999999999999) that BigDecimal multipleOf rejects, and\n// Number()/parseFloat() do not fix that.\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n\n// Stored in BASE uom so the row reconciles directly against\n// item_balance.intransit_qty, which ADD_INVENTORY writes in base.\nconst baseQty = roundQty(item.base_received_qty || item.received_qty || 0);\n\n// workflow_node_2GqNmp7t only runs under IF hasHuData; otherwise the reference\n// resolves to null rather than erroring.\nconst hasHuData = {{node:code_node_ngFX3hcL.data.hasHuData}} || 0;\nconst newHuId = {{node:workflow_node_2GqNmp7t.data.huId}};\nconst handlingUnitId = hasHuData === 1\n  ? (newHuId || {{node:code_node_ngFX3hcL.data.handling_unit_id}} || \"\")\n  : \"\";\n\n// doc_id / doc_no / target_doc_* are stamped after the loop by code_node_ITrows,\n// where the canonical grId node and the created putaway TO are both available.\nif (baseQty > 0) {\n  inTransitLineData.push({\n    doc_type: \"Goods Receiving\",\n    doc_line_id: item.id || \"\",\n    line_no: {{node:code_node_D9IbUV8t.data.index}},\n    parent_id: {{node:code_node_D9IbUV8t.data.po_id}} || \"\",\n    parent_no: {{node:code_node_D9IbUV8t.data.po_no}} || \"\",\n    parent_line_id: {{node:code_node_D9IbUV8t.data.po_line_id}} || \"\",\n    material_id: {{node:code_node_D9IbUV8t.data.material_id}},\n    item_code: itemMaster.material_code || \"\",\n    item_name: itemMaster.material_name || \"\",\n    item_desc: itemMaster.material_desc || \"\",\n    item_uom: itemMaster.based_uom || item.base_item_uom || item.item_uom,\n    batch_id: {{node:workflow_node_bThL52BP.data.batchId}} || null,\n    handling_unit_id: handlingUnitId,\n    plant_id: {{node:code_node_D9IbUV8t.data.plant_id}},\n    organization_id: {{node:code_node_D9IbUV8t.data.organization_id}},\n    transit_bin: {{node:code_node_D9IbUV8t.data.location_id}},\n    from_plant_id: null,\n    from_bin: null,\n    from_category: null,\n    to_plant_id: {{node:code_node_D9IbUV8t.data.plant_id}},\n    to_bin: null,\n    to_category: \"Unrestricted\",\n    transit_qty: qtyStr(baseQty),\n    received_qty: qtyStr(0),\n    open_qty: qtyStr(baseQty),\n    status: \"In Transit\",\n    transit_date: {{node:code_node_D9IbUV8t.data.doc_date}},\n    remark: item.line_remark_1 || \"\"\n  });\n}\n\nreturn { inTransitLineData };\n"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "it1lin3dt",
+                                        "name": "inTransitLineData",
+                                        "title": "inTransitLineData",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "it1lin3it",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "set_cache_node_ITset",
+                                  "type": "set-cache-node",
+                                  "data": {
+                                    "cache_key": "",
+                                    "cache_value": "",
+                                    "expire_time": 3600,
+                                    "title": "Set inTransitLineData",
+                                    "isValidator": true,
+                                    "nodeName": "Set inTransitLineData",
+                                    "name": "Set inTransitLineData",
+                                    "custom_wkbocgni": {
+                                      "type": "javascript",
+                                      "code": "{{node:code_node_ITrow.data.inTransitLineData}}"
+                                    },
+                                    "redis_key": "inTransitLineData_{{node:code_node_LFPr1wQW.data.unique}}"
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "ifBlock_ITstage_f",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "false"
+                              },
+                              "blocks": []
+                            }
+                          ]
                         }
                       ]
                     },
@@ -6091,6 +6227,19 @@
                 "nodeName": "Get putawayLineItemData",
                 "name": "Get putawayLineItemData",
                 "redis_key": "putawayLineItemData_{{node:code_node_LFPr1wQW.data.unique}}"
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_cache_node_ITfinal",
+              "type": "get-cache-node",
+              "data": {
+                "cache_key": "",
+                "title": "Get inTransitLineData",
+                "isValidator": true,
+                "nodeName": "Get inTransitLineData",
+                "name": "Get inTransitLineData",
+                "redis_key": "inTransitLineData_{{node:code_node_LFPr1wQW.data.unique}}"
               },
               "blocks": []
             },
@@ -6820,6 +6969,419 @@
                       ]
                     }
                   ]
+                }
+              ]
+            },
+            {
+              "id": "code_node_ITrows",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "In Transit Rows",
+                "isValidator": true,
+                "nodeName": "In Transit Rows",
+                "name": "In Transit Rows",
+                "script": {
+                  "type": "javascript",
+                  "code": "const rows = ((__v)=>{try{return JSON.parse(__v)}catch(__e){return null}})({{node:get_cache_node_ITfinal.data}}) || [];\n\nconst docId = {{node:code_node_UQWzCg37.data.id}} || \"\";\nconst docNo = {{node:code_node_UQWzCg37.data.gr_no}} || \"\";\n\n// add_node_RTuMAGp5 lives inside IF Auto Create Putaway. When that branch did not\n// run the reference resolves to null rather than erroring, so target_doc_* stay\n// empty and are stamped later, at consumption.\nconst rawPutaway = {{node:add_node_RTuMAGp5.data}};\nconst putaway = Array.isArray(rawPutaway) ? rawPutaway[0] : rawPutaway;\nconst targetDocId = (putaway && putaway.id) ? putaway.id : \"\";\nconst targetDocNo = (putaway && putaway.to_id) ? putaway.to_id : \"\";\n\nconst inTransitRows = [];\nfor (const r of rows) {\n  const row = {};\n  for (const k in r) { row[k] = r[k]; }\n  row.doc_id = docId;\n  row.doc_no = docNo;\n  row.target_doc_type = targetDocId ? \"Putaway\" : \"\";\n  row.target_doc_id = targetDocId;\n  row.target_doc_no = targetDocNo;\n  row.target_doc_line_id = \"\";\n  row.source_transit_id = \"\";\n  inTransitRows.push(row);\n}\n\nreturn {\n  inTransitRows,\n  hasInTransit: inTransitRows.length > 0 ? 1 : 0\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "itrows001",
+                    "name": "inTransitRows",
+                    "title": "inTransitRows",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "itrows002",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "itrows003",
+                    "name": "hasInTransit",
+                    "title": "hasInTransit",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_ITadd",
+              "type": "if",
+              "data": {
+                "title": "IF hasInTransit",
+                "isValidator": true,
+                "nodeName": "IF hasInTransit",
+                "name": "IF hasInTransit",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1790000000201,
+                      "parentId": 1790000000200,
+                      "isTop": true,
+                      "prop": "node.code_node_ITrows.data.hasInTransit",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "hasInTransit",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_ITadd_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "add_node_ITrows",
+                      "type": "add-node",
+                      "data": {
+                        "table_id": {
+                          "source": "In Transit Detail:Table:2080477944160923650",
+                          "rules": {
+                            "collectionId": "2080477944160923650",
+                            "list": [
+                              {
+                                "id": 1790000000301,
+                                "parentId": 1790000000300,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "title": "Add In Transit Detail",
+                        "isValidator": true,
+                        "nodeName": "Add In Transit Detail",
+                        "name": "Add In Transit Detail",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "doc_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.doc_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Document Type"
+                            },
+                            {
+                              "prop": "doc_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.doc_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Document ID"
+                            },
+                            {
+                              "prop": "doc_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.doc_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Document Number"
+                            },
+                            {
+                              "prop": "doc_line_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.doc_line_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Document Line ID"
+                            },
+                            {
+                              "prop": "line_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.line_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Line No"
+                            },
+                            {
+                              "prop": "parent_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.parent_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent ID"
+                            },
+                            {
+                              "prop": "parent_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.parent_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent Number"
+                            },
+                            {
+                              "prop": "parent_line_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.parent_line_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Parent Line ID"
+                            },
+                            {
+                              "prop": "material_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.material_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Item ID"
+                            },
+                            {
+                              "prop": "item_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.item_code}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Code"
+                            },
+                            {
+                              "prop": "item_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.item_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Name"
+                            },
+                            {
+                              "prop": "item_desc",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.item_desc}}",
+                              "valueLabel": "",
+                              "propLabel": "Item Description"
+                            },
+                            {
+                              "prop": "item_uom",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.item_uom}}",
+                              "valueLabel": "",
+                              "propLabel": "UOM"
+                            },
+                            {
+                              "prop": "batch_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.batch_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Batch ID"
+                            },
+                            {
+                              "prop": "handling_unit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.handling_unit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Handling Unit ID"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Plant ID"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "transit_bin",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.transit_bin}}",
+                              "valueLabel": "",
+                              "propLabel": "Transit Bin"
+                            },
+                            {
+                              "prop": "from_plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.from_plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "From Plant ID"
+                            },
+                            {
+                              "prop": "from_bin",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.from_bin}}",
+                              "valueLabel": "",
+                              "propLabel": "From Bin"
+                            },
+                            {
+                              "prop": "from_category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.from_category}}",
+                              "valueLabel": "",
+                              "propLabel": "From Category"
+                            },
+                            {
+                              "prop": "to_plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.to_plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "To Plant ID"
+                            },
+                            {
+                              "prop": "to_bin",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.to_bin}}",
+                              "valueLabel": "",
+                              "propLabel": "To Bin"
+                            },
+                            {
+                              "prop": "to_category",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.to_category}}",
+                              "valueLabel": "",
+                              "propLabel": "To Category"
+                            },
+                            {
+                              "prop": "transit_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.transit_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Transit Quantity"
+                            },
+                            {
+                              "prop": "received_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.received_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Received Quantity"
+                            },
+                            {
+                              "prop": "open_qty",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.open_qty}}",
+                              "valueLabel": "",
+                              "propLabel": "Open Quantity"
+                            },
+                            {
+                              "prop": "status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.status}}",
+                              "valueLabel": "",
+                              "propLabel": "Status"
+                            },
+                            {
+                              "prop": "transit_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.transit_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Transit Date"
+                            },
+                            {
+                              "prop": "remark",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.remark}}",
+                              "valueLabel": "",
+                              "propLabel": "Remark"
+                            },
+                            {
+                              "prop": "target_doc_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.target_doc_type}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Type"
+                            },
+                            {
+                              "prop": "target_doc_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.target_doc_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document ID"
+                            },
+                            {
+                              "prop": "target_doc_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.target_doc_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Number"
+                            },
+                            {
+                              "prop": "target_doc_line_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.target_doc_line_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Target Document Line ID"
+                            },
+                            {
+                              "prop": "source_transit_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ITrows.data.inTransitRows.source_transit_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Source Transit ID"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_ITadd_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
                 }
               ]
             }
