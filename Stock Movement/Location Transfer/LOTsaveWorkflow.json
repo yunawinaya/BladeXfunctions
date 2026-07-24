@@ -3167,6 +3167,46 @@
                               "blocks": []
                             },
                             {
+                              "id": "code_node_LOTreconEnrich",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Enrich Creates",
+                                "isValidator": true,
+                                "nodeName": "Enrich Creates",
+                                "name": "Enrich Creates",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const creates = {{node:code_node_uht83Wzh.data.transitCreates}} || [];\nconst itemsRaw = {{node:search_node_LOTitItemsRecon.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\n// The compute nodes build the ledger rows before items are fetched, so\n// item_code/name/desc arrive empty. Fill them from the item master here.\nconst map = {};\nfor (const it of items) if (it && it.id) map[String(it.id)] = it;\nconst enrichedCreates = creates.map((c) => {\n  const it = map[String(c.material_id)];\n  if (!it) return c;\n  return Object.assign({}, c, {\n    item_code: it.material_code || \"\",\n    item_name: it.material_name || \"\",\n    item_desc: it.material_desc || \"\",\n  });\n});\nreturn { enrichedCreates };\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "enricheda",
+                                    "name": "enrichedCreates",
+                                    "title": "enrichedCreates",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "enrichedi",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
                               "id": "code_node_LOTreconKey",
                               "type": "code-node",
                               "data": {
@@ -4049,7 +4089,7 @@
                                                       "prop": "doc_type",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.doc_type}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.doc_type}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Document Type"
                                                     },
@@ -4057,7 +4097,7 @@
                                                       "prop": "doc_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.doc_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.doc_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Document ID"
                                                     },
@@ -4065,7 +4105,7 @@
                                                       "prop": "doc_no",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.doc_no}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.doc_no}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Document Number"
                                                     },
@@ -4073,7 +4113,7 @@
                                                       "prop": "doc_line_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.doc_line_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.doc_line_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Document Line ID"
                                                     },
@@ -4081,7 +4121,7 @@
                                                       "prop": "line_no",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.line_no}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.line_no}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Line No"
                                                     },
@@ -4089,7 +4129,7 @@
                                                       "prop": "parent_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.parent_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.parent_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Parent ID"
                                                     },
@@ -4097,7 +4137,7 @@
                                                       "prop": "parent_no",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.parent_no}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.parent_no}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Parent Number"
                                                     },
@@ -4105,7 +4145,7 @@
                                                       "prop": "parent_line_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.parent_line_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.parent_line_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Parent Line ID"
                                                     },
@@ -4113,7 +4153,7 @@
                                                       "prop": "material_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.material_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.material_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Item ID"
                                                     },
@@ -4121,7 +4161,7 @@
                                                       "prop": "item_code",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.item_code}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.item_code}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Item Code"
                                                     },
@@ -4129,7 +4169,7 @@
                                                       "prop": "item_name",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.item_name}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.item_name}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Item Name"
                                                     },
@@ -4137,7 +4177,7 @@
                                                       "prop": "item_desc",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.item_desc}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.item_desc}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Item Description"
                                                     },
@@ -4145,7 +4185,7 @@
                                                       "prop": "item_uom",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.item_uom}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.item_uom}}",
                                                       "valueLabel": "",
                                                       "propLabel": "UOM"
                                                     },
@@ -4153,7 +4193,7 @@
                                                       "prop": "batch_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.batch_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.batch_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Batch ID"
                                                     },
@@ -4161,7 +4201,7 @@
                                                       "prop": "handling_unit_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.handling_unit_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.handling_unit_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Handling Unit ID"
                                                     },
@@ -4169,7 +4209,7 @@
                                                       "prop": "plant_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.plant_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.plant_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Plant ID"
                                                     },
@@ -4177,7 +4217,7 @@
                                                       "prop": "organization_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.organization_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.organization_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Organization ID"
                                                     },
@@ -4185,7 +4225,7 @@
                                                       "prop": "transit_bin",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.transit_bin}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.transit_bin}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Transit Bin"
                                                     },
@@ -4193,7 +4233,7 @@
                                                       "prop": "from_plant_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.from_plant_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.from_plant_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "From Plant ID"
                                                     },
@@ -4201,7 +4241,7 @@
                                                       "prop": "from_bin",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.from_bin}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.from_bin}}",
                                                       "valueLabel": "",
                                                       "propLabel": "From Bin"
                                                     },
@@ -4209,7 +4249,7 @@
                                                       "prop": "from_category",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.from_category}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.from_category}}",
                                                       "valueLabel": "",
                                                       "propLabel": "From Category"
                                                     },
@@ -4217,7 +4257,7 @@
                                                       "prop": "to_plant_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.to_plant_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.to_plant_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "To Plant ID"
                                                     },
@@ -4225,7 +4265,7 @@
                                                       "prop": "to_bin",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.to_bin}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.to_bin}}",
                                                       "valueLabel": "",
                                                       "propLabel": "To Bin"
                                                     },
@@ -4233,7 +4273,7 @@
                                                       "prop": "to_category",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.to_category}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.to_category}}",
                                                       "valueLabel": "",
                                                       "propLabel": "To Category"
                                                     },
@@ -4241,7 +4281,7 @@
                                                       "prop": "transit_qty",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.transit_qty}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.transit_qty}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Transit Quantity"
                                                     },
@@ -4249,7 +4289,7 @@
                                                       "prop": "received_qty",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.received_qty}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.received_qty}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Received Quantity"
                                                     },
@@ -4257,7 +4297,7 @@
                                                       "prop": "open_qty",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.open_qty}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.open_qty}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Open Quantity"
                                                     },
@@ -4265,7 +4305,7 @@
                                                       "prop": "status",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.status}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.status}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Status"
                                                     },
@@ -4273,7 +4313,7 @@
                                                       "prop": "transit_date",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.transit_date}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.transit_date}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Transit Date"
                                                     },
@@ -4281,7 +4321,7 @@
                                                       "prop": "received_date",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.received_date}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.received_date}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Received Date"
                                                     },
@@ -4289,7 +4329,7 @@
                                                       "prop": "remark",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.remark}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.remark}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Remark"
                                                     },
@@ -4297,7 +4337,7 @@
                                                       "prop": "target_doc_type",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.target_doc_type}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.target_doc_type}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Target Document Type"
                                                     },
@@ -4305,7 +4345,7 @@
                                                       "prop": "target_doc_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.target_doc_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.target_doc_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Target Document ID"
                                                     },
@@ -4313,7 +4353,7 @@
                                                       "prop": "target_doc_no",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.target_doc_no}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.target_doc_no}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Target Document Number"
                                                     },
@@ -4321,7 +4361,7 @@
                                                       "prop": "target_doc_line_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.target_doc_line_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.target_doc_line_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Target Document Line ID"
                                                     },
@@ -4329,7 +4369,7 @@
                                                       "prop": "source_transit_id",
                                                       "operator": "",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_uht83Wzh.data.transitCreates.source_transit_id}}",
+                                                      "value": "{{node:code_node_LOTreconEnrich.data.enrichedCreates.source_transit_id}}",
                                                       "valueLabel": "",
                                                       "propLabel": "Source Transit ID"
                                                     }
@@ -5634,6 +5674,46 @@
               "blocks": []
             },
             {
+              "id": "code_node_LOTmainEnrich",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Enrich Creates",
+                "isValidator": true,
+                "nodeName": "Enrich Creates",
+                "name": "Enrich Creates",
+                "script": {
+                  "type": "javascript",
+                  "code": "const creates = {{node:code_node_LOTmainCompute.data.transitCreates}} || [];\nconst itemsRaw = {{node:search_node_LOTitItemsMain.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\n// The compute nodes build the ledger rows before items are fetched, so\n// item_code/name/desc arrive empty. Fill them from the item master here.\nconst map = {};\nfor (const it of items) if (it && it.id) map[String(it.id)] = it;\nconst enrichedCreates = creates.map((c) => {\n  const it = map[String(c.material_id)];\n  if (!it) return c;\n  return Object.assign({}, c, {\n    item_code: it.material_code || \"\",\n    item_name: it.material_name || \"\",\n    item_desc: it.material_desc || \"\",\n  });\n});\nreturn { enrichedCreates };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "enricheda",
+                    "name": "enrichedCreates",
+                    "title": "enrichedCreates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "enrichedi",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
               "id": "code_node_LOTmainKey",
               "type": "code-node",
               "data": {
@@ -6516,7 +6596,7 @@
                                       "prop": "doc_type",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.doc_type}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.doc_type}}",
                                       "valueLabel": "",
                                       "propLabel": "Document Type"
                                     },
@@ -6524,7 +6604,7 @@
                                       "prop": "doc_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.doc_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.doc_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Document ID"
                                     },
@@ -6532,7 +6612,7 @@
                                       "prop": "doc_no",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.doc_no}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.doc_no}}",
                                       "valueLabel": "",
                                       "propLabel": "Document Number"
                                     },
@@ -6540,7 +6620,7 @@
                                       "prop": "doc_line_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.doc_line_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.doc_line_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Document Line ID"
                                     },
@@ -6548,7 +6628,7 @@
                                       "prop": "line_no",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.line_no}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.line_no}}",
                                       "valueLabel": "",
                                       "propLabel": "Line No"
                                     },
@@ -6556,7 +6636,7 @@
                                       "prop": "parent_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.parent_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.parent_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Parent ID"
                                     },
@@ -6564,7 +6644,7 @@
                                       "prop": "parent_no",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.parent_no}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.parent_no}}",
                                       "valueLabel": "",
                                       "propLabel": "Parent Number"
                                     },
@@ -6572,7 +6652,7 @@
                                       "prop": "parent_line_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.parent_line_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.parent_line_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Parent Line ID"
                                     },
@@ -6580,7 +6660,7 @@
                                       "prop": "material_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.material_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.material_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Item ID"
                                     },
@@ -6588,7 +6668,7 @@
                                       "prop": "item_code",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.item_code}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.item_code}}",
                                       "valueLabel": "",
                                       "propLabel": "Item Code"
                                     },
@@ -6596,7 +6676,7 @@
                                       "prop": "item_name",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.item_name}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.item_name}}",
                                       "valueLabel": "",
                                       "propLabel": "Item Name"
                                     },
@@ -6604,7 +6684,7 @@
                                       "prop": "item_desc",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.item_desc}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.item_desc}}",
                                       "valueLabel": "",
                                       "propLabel": "Item Description"
                                     },
@@ -6612,7 +6692,7 @@
                                       "prop": "item_uom",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.item_uom}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.item_uom}}",
                                       "valueLabel": "",
                                       "propLabel": "UOM"
                                     },
@@ -6620,7 +6700,7 @@
                                       "prop": "batch_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.batch_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.batch_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Batch ID"
                                     },
@@ -6628,7 +6708,7 @@
                                       "prop": "handling_unit_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.handling_unit_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.handling_unit_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Handling Unit ID"
                                     },
@@ -6636,7 +6716,7 @@
                                       "prop": "plant_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.plant_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.plant_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Plant ID"
                                     },
@@ -6644,7 +6724,7 @@
                                       "prop": "organization_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.organization_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.organization_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Organization ID"
                                     },
@@ -6652,7 +6732,7 @@
                                       "prop": "transit_bin",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.transit_bin}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.transit_bin}}",
                                       "valueLabel": "",
                                       "propLabel": "Transit Bin"
                                     },
@@ -6660,7 +6740,7 @@
                                       "prop": "from_plant_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.from_plant_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.from_plant_id}}",
                                       "valueLabel": "",
                                       "propLabel": "From Plant ID"
                                     },
@@ -6668,7 +6748,7 @@
                                       "prop": "from_bin",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.from_bin}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.from_bin}}",
                                       "valueLabel": "",
                                       "propLabel": "From Bin"
                                     },
@@ -6676,7 +6756,7 @@
                                       "prop": "from_category",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.from_category}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.from_category}}",
                                       "valueLabel": "",
                                       "propLabel": "From Category"
                                     },
@@ -6684,7 +6764,7 @@
                                       "prop": "to_plant_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.to_plant_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.to_plant_id}}",
                                       "valueLabel": "",
                                       "propLabel": "To Plant ID"
                                     },
@@ -6692,7 +6772,7 @@
                                       "prop": "to_bin",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.to_bin}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.to_bin}}",
                                       "valueLabel": "",
                                       "propLabel": "To Bin"
                                     },
@@ -6700,7 +6780,7 @@
                                       "prop": "to_category",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.to_category}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.to_category}}",
                                       "valueLabel": "",
                                       "propLabel": "To Category"
                                     },
@@ -6708,7 +6788,7 @@
                                       "prop": "transit_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.transit_qty}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.transit_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Transit Quantity"
                                     },
@@ -6716,7 +6796,7 @@
                                       "prop": "received_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.received_qty}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.received_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Received Quantity"
                                     },
@@ -6724,7 +6804,7 @@
                                       "prop": "open_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.open_qty}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.open_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Open Quantity"
                                     },
@@ -6732,7 +6812,7 @@
                                       "prop": "status",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.status}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.status}}",
                                       "valueLabel": "",
                                       "propLabel": "Status"
                                     },
@@ -6740,7 +6820,7 @@
                                       "prop": "transit_date",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.transit_date}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.transit_date}}",
                                       "valueLabel": "",
                                       "propLabel": "Transit Date"
                                     },
@@ -6748,7 +6828,7 @@
                                       "prop": "received_date",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.received_date}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.received_date}}",
                                       "valueLabel": "",
                                       "propLabel": "Received Date"
                                     },
@@ -6756,7 +6836,7 @@
                                       "prop": "remark",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.remark}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.remark}}",
                                       "valueLabel": "",
                                       "propLabel": "Remark"
                                     },
@@ -6764,7 +6844,7 @@
                                       "prop": "target_doc_type",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.target_doc_type}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.target_doc_type}}",
                                       "valueLabel": "",
                                       "propLabel": "Target Document Type"
                                     },
@@ -6772,7 +6852,7 @@
                                       "prop": "target_doc_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.target_doc_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.target_doc_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Target Document ID"
                                     },
@@ -6780,7 +6860,7 @@
                                       "prop": "target_doc_no",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.target_doc_no}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.target_doc_no}}",
                                       "valueLabel": "",
                                       "propLabel": "Target Document Number"
                                     },
@@ -6788,7 +6868,7 @@
                                       "prop": "target_doc_line_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.target_doc_line_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.target_doc_line_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Target Document Line ID"
                                     },
@@ -6796,7 +6876,7 @@
                                       "prop": "source_transit_id",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_LOTmainCompute.data.transitCreates.source_transit_id}}",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedCreates.source_transit_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Source Transit ID"
                                     }
