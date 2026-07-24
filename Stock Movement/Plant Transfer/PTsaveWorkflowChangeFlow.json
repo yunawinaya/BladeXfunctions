@@ -806,75 +806,75 @@
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
-{
-  "id": "code_node_PtCancelItemIDs",
-  "type": "code-node",
-  "data": {
-    "language": "javascript",
-    "code": "",
-    "timeout": 30000,
-    "title": "Collect Item IDs (Cancel)",
-    "isValidator": true,
-    "nodeName": "Collect Item IDs (Cancel)",
-    "name": "Collect Item IDs (Cancel)",
-    "script": {
-      "type": "javascript",
-      "code": "// One batched Item fetch for the whole subform (was: one get-node per\n// iteration inside the loop).\nconst rows = {{node:code_node_37LA0tgq.data.allData.stock_movement}} || [];\nconst itemIDs = [...new Set(rows.filter(i => i.item_selection).map(i => i.item_selection))];\nreturn { itemIDs: itemIDs };"
-    },
-    "response_json": [
-      {
-        "key": "litemids",
-        "name": "itemIDs",
-        "title": "Item IDs",
-        "description": "",
-        "bsonType": "any",
-        "isExpand": false,
-        "children": []
-      }
-    ]
-  },
-  "blocks": []
-},
-{
-  "id": "search_node_PtCancelItems",
-  "type": "search-node",
-  "data": {
-    "table_id": {
-      "source": "Item:Table:1901546842240438273",
-      "rules": {
-        "collectionId": "1901546842240438273",
-        "list": [
-          {
-            "isTop": true,
-            "type": "branch",
-            "operator": "all",
-            "level": 1,
-            "children": [
-              {
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_node_PtCancelItemIDs.data.itemIDs}}",
-                "type": "leaf",
-                "level": 2,
-                "propLabel": "Primary Key ID",
-                "operatorLabel": "In"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "condition": {},
-    "limit": 200,
-    "title": "Get Items (Cancel)",
-    "isValidator": true,
-    "nodeName": "Get Items (Cancel)",
-    "name": "Get Items (Cancel)"
-  },
-  "blocks": []
-},
-{
+            {
+              "id": "code_node_PtCancelItemIDs",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Collect Item IDs (Cancel)",
+                "isValidator": true,
+                "nodeName": "Collect Item IDs (Cancel)",
+                "name": "Collect Item IDs (Cancel)",
+                "script": {
+                  "type": "javascript",
+                  "code": "// One batched Item fetch for the whole subform (was: one get-node per\n// iteration inside the loop).\nconst rows = {{node:code_node_37LA0tgq.data.allData.stock_movement}} || [];\nconst itemIDs = [...new Set(rows.filter(i => i.item_selection).map(i => i.item_selection))];\nreturn { itemIDs: itemIDs };"
+                },
+                "response_json": [
+                  {
+                    "key": "litemids",
+                    "name": "itemIDs",
+                    "title": "Item IDs",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_PtCancelItems",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 1,
+                        "children": [
+                          {
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_PtCancelItemIDs.data.itemIDs}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Items (Cancel)",
+                "isValidator": true,
+                "nodeName": "Get Items (Cancel)",
+                "name": "Get Items (Cancel)"
+              },
+              "blocks": []
+            },
+            {
               "id": "loop_CA2XHbYf",
               "type": "loop",
               "data": {
@@ -922,7 +922,7 @@
                 }
               },
               "blocks": [
-{
+                {
                   "id": "code_node_pXRTlLyD",
                   "type": "code-node",
                   "data": {
@@ -1048,7 +1048,7 @@
                           }
                         ]
                       },
-{
+                      {
                         "key": "4ccj2hbx",
                         "name": "doc_date",
                         "title": "doc_date",
@@ -1100,7 +1100,7 @@
                   },
                   "blocks": []
                 },
-{
+                {
                   "id": "loop_Zl523G4W",
                   "type": "loop",
                   "data": {
@@ -1148,7 +1148,7 @@
                     }
                   },
                   "blocks": [
-{
+                    {
                       "id": "code_node_ZIdZYdQE",
                       "type": "code-node",
                       "data": {
@@ -1197,7 +1197,7 @@
                             "bsonType": "string",
                             "isExpand": false
                           },
-{
+                          {
                             "key": "6uixt627",
                             "name": "manufacturing_date",
                             "title": "manufacturing_date",
@@ -1341,7 +1341,7 @@
                               "valueLabel": "",
                               "propLabel": "Batch ID"
                             },
-{
+                            {
                               "prop": "itemData",
                               "operator": "",
                               "valueType": "field",
@@ -1617,7 +1617,7 @@
                               "valueLabel": "",
                               "propLabel": "Expired Date"
                             },
-{
+                            {
                               "prop": "itemData",
                               "operator": "",
                               "valueType": "field",
@@ -3850,7 +3850,7 @@
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
-{
+            {
               "id": "set_cache_node_BGARRinit",
               "type": "set-cache-node",
               "data": {
@@ -3949,7 +3949,7 @@
                         }
                       },
                       "blocks": [
-{
+                        {
                           "id": "code_node_BatchGenPrep",
                           "type": "code-node",
                           "data": {
@@ -3992,7 +3992,7 @@
                                 "isExpand": false,
                                 "children": []
                               },
-{
+                              {
                                 "key": "s6tyslx2",
                                 "name": "document_date",
                                 "title": "document_date",
@@ -4887,7 +4887,7 @@
                                     "condition_type": "ConditionRule"
                                   },
                                   "blocks": [
-{
+                                    {
                                       "id": "loop_yXqauA87",
                                       "type": "loop",
                                       "data": {
@@ -4935,7 +4935,7 @@
                                         }
                                       },
                                       "blocks": [
-{
+                                        {
                                           "id": "code_node_7HzTnOCE",
                                           "type": "code-node",
                                           "data": {
@@ -4992,7 +4992,7 @@
                                                 "bsonType": "string",
                                                 "isExpand": false
                                               },
-{
+                                              {
                                                 "key": "62w34qhg",
                                                 "name": "location_id",
                                                 "title": "location_id",
@@ -5144,7 +5144,7 @@
                                                   "valueLabel": "",
                                                   "propLabel": "Batch ID"
                                                 },
-{
+                                                {
                                                   "prop": "manufacturing_date",
                                                   "operator": "",
                                                   "valueType": "field",
@@ -5396,7 +5396,7 @@
                                                   "valueLabel": "",
                                                   "propLabel": "Doc Date"
                                                 },
-{
+                                                {
                                                   "prop": "unit_price",
                                                   "operator": "",
                                                   "valueType": "field",
@@ -5562,7 +5562,7 @@
                                     "condition_type": "ConditionRule"
                                   },
                                   "blocks": [
-{
+                                    {
                                       "id": "loop_lpu08U43",
                                       "type": "loop",
                                       "data": {
@@ -5610,7 +5610,7 @@
                                         }
                                       },
                                       "blocks": [
-{
+                                        {
                                           "id": "code_node_uRpuU37V",
                                           "type": "code-node",
                                           "data": {
@@ -5667,7 +5667,7 @@
                                                 "bsonType": "string",
                                                 "isExpand": false
                                               },
-{
+                                              {
                                                 "key": "62w34qhg",
                                                 "name": "location_id",
                                                 "title": "location_id",
@@ -5819,7 +5819,7 @@
                                                   "valueLabel": "",
                                                   "propLabel": "Batch ID"
                                                 },
-{
+                                                {
                                                   "prop": "manufacturing_date",
                                                   "operator": "",
                                                   "valueType": "field",
@@ -6071,7 +6071,7 @@
                                                   "valueLabel": "",
                                                   "propLabel": "Doc Date"
                                                 },
-{
+                                                {
                                                   "prop": "unit_price",
                                                   "operator": "",
                                                   "valueType": "field",
@@ -9900,7 +9900,7 @@
                     "condition_type": "ConditionRule"
                   },
                   "blocks": [
-{
+                    {
                       "id": "code_node_PtIssuedRows",
                       "type": "code-node",
                       "data": {
@@ -10034,7 +10034,7 @@
                         }
                       },
                       "blocks": [
-{
+                        {
                           "id": "code_node_poWge4ua",
                           "type": "code-node",
                           "data": {
@@ -10144,7 +10144,7 @@
                                   }
                                 ]
                               },
-{
+                              {
                                 "key": "4ccj2hbx",
                                 "name": "doc_date",
                                 "title": "doc_date",
@@ -10220,7 +10220,7 @@
                           },
                           "blocks": []
                         },
-{
+                        {
                           "id": "loop_HygWYRB0",
                           "type": "loop",
                           "data": {
@@ -10268,7 +10268,7 @@
                             }
                           },
                           "blocks": [
-{
+                            {
                               "id": "code_node_YIGFvmJT",
                               "type": "code-node",
                               "data": {
@@ -10317,7 +10317,7 @@
                                     "bsonType": "string",
                                     "isExpand": false
                                   },
-{
+                                  {
                                     "key": "6uixt627",
                                     "name": "manufacturing_date",
                                     "title": "manufacturing_date",
@@ -10461,7 +10461,7 @@
                                       "valueLabel": "",
                                       "propLabel": "Batch ID"
                                     },
-{
+                                    {
                                       "prop": "itemData",
                                       "operator": "",
                                       "valueType": "field",
@@ -10735,7 +10735,7 @@
                                       "valueLabel": "",
                                       "propLabel": "Expired Date"
                                     },
-{
+                                    {
                                       "prop": "itemData",
                                       "operator": "",
                                       "valueType": "field",
@@ -10916,7 +10916,7 @@
                     "condition_type": "ConditionRule"
                   },
                   "blocks": [
-{
+                    {
                       "id": "set_cache_node_kGHbHPgt",
                       "type": "set-cache-node",
                       "data": {
@@ -11050,7 +11050,7 @@
                         }
                       },
                       "blocks": [
-{
+                        {
                           "id": "code_node_oO9ISt7e",
                           "type": "code-node",
                           "data": {
@@ -11126,7 +11126,7 @@
                                 "isExpand": false,
                                 "children": []
                               },
-{
+                              {
                                 "key": "99vo1mho",
                                 "name": "subFormItem",
                                 "title": "subFormItem",
@@ -11148,7 +11148,7 @@
                           },
                           "blocks": []
                         },
-{
+                        {
                           "id": "if__RbDzWQ0",
                           "type": "if",
                           "data": {
@@ -11250,7 +11250,7 @@
                                   },
                                   "blocks": []
                                 },
-{
+                                {
                                   "id": "set_cache_node_l6IBFxOV",
                                   "type": "set-cache-node",
                                   "data": {
@@ -11316,7 +11316,7 @@
                                     }
                                   },
                                   "blocks": [
-{
+                                    {
                                       "id": "code_node_CdNEX3lE",
                                       "type": "code-node",
                                       "data": {
@@ -11349,7 +11349,7 @@
                                             "isExpand": false,
                                             "children": []
                                           },
-{
+                                          {
                                             "key": "kic9fmig",
                                             "name": "manufacturing_date",
                                             "title": "manufacturing_date",
@@ -12577,7 +12577,7 @@
                     "displayContent": "sdk.form.otherCondition"
                   },
                   "blocks": [
-{
+                    {
                       "id": "code_node_PtCompletedRows",
                       "type": "code-node",
                       "data": {
@@ -12711,7 +12711,7 @@
                         }
                       },
                       "blocks": [
-{
+                        {
                           "id": "code_node_KBlgXeX5",
                           "type": "code-node",
                           "data": {
@@ -12813,7 +12813,7 @@
                                   }
                                 ]
                               },
-{
+                              {
                                 "key": "4ccj2hbx",
                                 "name": "doc_date",
                                 "title": "doc_date",
@@ -12930,7 +12930,7 @@
                           },
                           "blocks": []
                         },
-{
+                        {
                           "id": "loop_HnwWMqFL",
                           "type": "loop",
                           "data": {
@@ -12978,7 +12978,7 @@
                             }
                           },
                           "blocks": [
-{
+                            {
                               "id": "code_node_O0Lhif9c",
                               "type": "code-node",
                               "data": {
@@ -13027,7 +13027,7 @@
                                     "bsonType": "string",
                                     "isExpand": false
                                   },
-{
+                                  {
                                     "key": "6uixt627",
                                     "name": "manufacturing_date",
                                     "title": "manufacturing_date",
@@ -13171,7 +13171,7 @@
                                       "valueLabel": "",
                                       "propLabel": "Batch ID"
                                     },
-{
+                                    {
                                       "prop": "itemData",
                                       "operator": "",
                                       "valueType": "field",
@@ -13484,7 +13484,7 @@
                                           "valueLabel": "",
                                           "propLabel": "Expired Date"
                                         },
-{
+                                        {
                                           "prop": "itemData",
                                           "operator": "",
                                           "valueType": "field",
@@ -13775,7 +13775,7 @@
                                           "valueLabel": "",
                                           "propLabel": "Expired Date"
                                         },
-{
+                                        {
                                           "prop": "itemData",
                                           "operator": "",
                                           "valueType": "field",
@@ -15497,10 +15497,7 @@
                 "nodeName": "IF Issued (Reorder)",
                 "name": "IF Issued (Reorder)",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -15524,9 +15521,7 @@
                 {
                   "id": "if_block_ReorderPtTrue",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "workflow_node_ReorderPtIssued",
@@ -15590,9 +15585,7 @@
                 {
                   "id": "if_block_ReorderPtFalse",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
