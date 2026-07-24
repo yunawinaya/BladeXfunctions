@@ -5889,9 +5889,7 @@
                             {
                               "id": "ifBlock_ITstage_t",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "get_cache_node_ITget",
@@ -5970,9 +5968,7 @@
                             {
                               "id": "ifBlock_ITstage_f",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -6309,6 +6305,40 @@
               "blocks": []
             },
             {
+              "id": "get_node_ITgrLines",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1790000006001,
+                        "parentId": 1790000006000,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{node:code_node_UQWzCg37.data.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get GR Lines",
+                "isValidator": true,
+                "nodeName": "Get GR Lines",
+                "name": "Get GR Lines"
+              },
+              "blocks": []
+            },
+            {
               "id": "if_yBDvMDfH",
               "type": "if",
               "data": {
@@ -6472,7 +6502,7 @@
                         "name": "Putaway Data Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\nconst putAwayLineItemData = ((__v)=>{try{return JSON.parse(__v)}catch(__e){return null}})({{node:get_cache_node_d6mMkXQd.data}}) || [];\nconst putAwayPrefixID = {{node:get_node_xUdzlNqh.data.data.id}} || \"\";\n\nconst putawayData = {\n  plant_id: allData.plant_id,\n  to_id: \"issued\",\n  to_id_type: putAwayPrefixID,\n  movement_type: \"Putaway\",\n  ref_doc_type: \"Goods Receiving\",\n  gr_no: allData.id,\n  receiving_no: allData.gr_no,\n  supplier_id: allData.supplier_name,\n  created_by: allData.gr_received_by,\n  assigned_to: allData.assigned_to,\n  created_at: new Date().toISOString().split(\"T\")[0],\n  organization_id: allData.organization_id,\n  to_status: \"Created\",\n  table_putaway_item: putAwayLineItemData,\n};\n\nreturn {\n  putawayData,\n  isAssignedTo : putawayData?.assigned_to?.length > 0 ? 1 : 0\n}"
+                          "code": "const page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\nconst putAwayLineItemData = ((__v)=>{try{return JSON.parse(__v)}catch(__e){return null}})({{node:get_cache_node_d6mMkXQd.data}}) || [];\nconst putAwayPrefixID = {{node:get_node_xUdzlNqh.data.data.id}} || \"\";\n\n// code_node_7kcbaray runs inside the subform loop, where the add-node response\n// still carries no subform row ids -- so grItem.id is undefined and gr_line_id\n// was always written as \"\". Resolve it here instead, from the persisted GR, by\n// the same table_gr position the loop walked (parent_index).\nconst grLinesRaw = {{node:get_node_ITgrLines.data.data}};\nconst grLinesRec = Array.isArray(grLinesRaw) ? grLinesRaw[0] : grLinesRaw;\nconst grLines = (grLinesRec && grLinesRec.table_gr) ? grLinesRec.table_gr : [];\nfor (const line of putAwayLineItemData) {\n  if (!line.gr_line_id) {\n    const srcLine = grLines[line.parent_index];\n    line.gr_line_id = (srcLine && srcLine.id) ? srcLine.id : \"\";\n  }\n}\n\nconst putawayData = {\n  plant_id: allData.plant_id,\n  to_id: \"issued\",\n  to_id_type: putAwayPrefixID,\n  movement_type: \"Putaway\",\n  ref_doc_type: \"Goods Receiving\",\n  gr_no: allData.id,\n  receiving_no: allData.gr_no,\n  supplier_id: allData.supplier_name,\n  created_by: allData.gr_received_by,\n  assigned_to: allData.assigned_to,\n  created_at: new Date().toISOString().split(\"T\")[0],\n  organization_id: allData.organization_id,\n  to_status: \"Created\",\n  table_putaway_item: putAwayLineItemData,\n};\n\nreturn {\n  putawayData,\n  isAssignedTo : putawayData?.assigned_to?.length > 0 ? 1 : 0\n}"
                         },
                         "response_json": [
                           {
@@ -6985,7 +7015,7 @@
                 "name": "In Transit Rows",
                 "script": {
                   "type": "javascript",
-                  "code": "const rows = ((__v)=>{try{return JSON.parse(__v)}catch(__e){return null}})({{node:get_cache_node_ITfinal.data}}) || [];\n\nconst docId = {{node:code_node_UQWzCg37.data.id}} || \"\";\nconst docNo = {{node:code_node_UQWzCg37.data.gr_no}} || \"\";\n\n// add_node_RTuMAGp5 lives inside IF Auto Create Putaway. When that branch did not\n// run the reference resolves to null rather than erroring, so target_doc_* stay\n// empty and are stamped later, at consumption.\nconst rawPutaway = {{node:add_node_RTuMAGp5.data}};\nconst putaway = Array.isArray(rawPutaway) ? rawPutaway[0] : rawPutaway;\nconst targetDocId = (putaway && putaway.id) ? putaway.id : \"\";\nconst targetDocNo = (putaway && putaway.to_id) ? putaway.to_id : \"\";\n\nconst inTransitRows = [];\nfor (const r of rows) {\n  const row = {};\n  for (const k in r) { row[k] = r[k]; }\n  row.doc_id = docId;\n  row.doc_no = docNo;\n  row.target_doc_type = targetDocId ? \"Putaway\" : \"\";\n  row.target_doc_id = targetDocId;\n  row.target_doc_no = targetDocNo;\n  row.target_doc_line_id = \"\";\n  row.source_transit_id = \"\";\n  inTransitRows.push(row);\n}\n\nreturn {\n  inTransitRows,\n  hasInTransit: inTransitRows.length > 0 ? 1 : 0\n};\n"
+                  "code": "const rows = ((__v)=>{try{return JSON.parse(__v)}catch(__e){return null}})({{node:get_cache_node_ITfinal.data}}) || [];\n\n// The add-node response carries no subform row ids, so grItem.id is undefined\n// during the loop. Re-read the persisted GR and resolve each row by its\n// position in the SAME table_gr the loop walked. A positional key is unsafe to\n// persist, which is exactly why it is resolved to a real id here and now.\nconst grRaw = {{node:get_node_ITgrLines.data.data}};\nconst grRec = Array.isArray(grRaw) ? grRaw[0] : grRaw;\nconst grLines = (grRec && grRec.table_gr) ? grRec.table_gr : [];\n\nconst docId = {{node:code_node_UQWzCg37.data.id}} || \"\";\nconst docNo = {{node:code_node_UQWzCg37.data.gr_no}} || \"\";\n\n// add_node_RTuMAGp5 lives inside IF Auto Create Putaway. When that branch did not\n// run the reference resolves to null rather than erroring, so target_doc_* stay\n// empty and are stamped later, at consumption.\nconst rawPutaway = {{node:add_node_RTuMAGp5.data}};\nconst putaway = Array.isArray(rawPutaway) ? rawPutaway[0] : rawPutaway;\nconst targetDocId = (putaway && putaway.id) ? putaway.id : \"\";\nconst targetDocNo = (putaway && putaway.to_id) ? putaway.to_id : \"\";\n\nconst inTransitRows = [];\nfor (const r of rows) {\n  const row = {};\n  for (const k in r) { row[k] = r[k]; }\n  row.doc_id = docId;\n  row.doc_no = docNo;\n  if (!row.doc_line_id) {\n    const src = grLines[row.line_no];\n    row.doc_line_id = (src && src.id) ? src.id : \"\";\n  }\n  row.target_doc_type = targetDocId ? \"Putaway\" : \"\";\n  row.target_doc_id = targetDocId;\n  row.target_doc_no = targetDocNo;\n  row.target_doc_line_id = \"\";\n  row.source_transit_id = \"\";\n  inTransitRows.push(row);\n}\n\nreturn {\n  inTransitRows,\n  hasInTransit: inTransitRows.length > 0 ? 1 : 0\n};\n"
                 },
                 "response_json": [
                   {
@@ -7053,9 +7083,7 @@
                 {
                   "id": "ifBlock_ITadd_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "add_node_ITrows",
@@ -7378,9 +7406,7 @@
                 {
                   "id": "ifBlock_ITadd_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
