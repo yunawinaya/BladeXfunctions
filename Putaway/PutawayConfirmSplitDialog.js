@@ -10,14 +10,21 @@ const setPutawayItemData = async (
   index,
   selectSerialNumber = [],
 ) => {
+  // A default parameter only applies to `undefined`, not `null` -- and the form
+  // stores select_serial_number as null on non-serialised lines, so it arrives
+  // here as null and slips straight past the default.
+  const serialNumbers = Array.isArray(selectSerialNumber)
+    ? selectSerialNumber
+    : [];
+
   return {
     line_index: lineIndex,
     item_code: itemData.item_code,
     item_name: itemData.item_name,
     item_desc: itemData.item_desc,
     batch_no: itemData.batch_no,
-    serial_numbers: JSON.stringify(selectSerialNumber.join("\n")),
-    select_serial_number: selectSerialNumber,
+    serial_numbers: JSON.stringify(serialNumbers.join("\n")),
+    select_serial_number: serialNumbers,
     source_inv_category: itemData.source_inv_category,
     target_inv_category: itemData.target_inv_category,
     received_qty: parentOrChild === "Parent" ? itemData.received_qty : 0,
