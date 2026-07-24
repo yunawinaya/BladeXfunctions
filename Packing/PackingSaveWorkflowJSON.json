@@ -272,7 +272,7 @@
                 "name": "headerCalculation",
                 "script": {
                   "type": "javascript",
-                  "code": "const data = {{workflowparams:entry}};\nconst packingMode = data.packing_mode;\nconst tableHU = {{node:code_node_7u6VSG8X.data.table_hu}} || [];\n\n// total_item_qty: sum of each row's rolled-up total_quantity.\n// Row total_quantity already includes nested_hu children\n// (PackingPickItemToHU sets it from merged temp_data).\ndata.total_item_qty = tableHU.reduce(\n  (total, row) => total + (parseFloat(row.total_quantity) || 0),\n  0,\n);\n\n// total_hu_count: packing-mode dependent.\nif (packingMode === \"Basic\") {\n  data.total_hu_count = tableHU.reduce(\n    (total, row) => total + (parseInt(row.hu_quantity) || 0),\n    0,\n  );\n} else {\n  data.total_hu_count = tableHU.length;\n}\n\n// total_item_count: distinct item_ids across every row's temp_data.\n// Flatten nested_hu children so their items contribute too.\nconst distinctItemIds = new Set();\nfor (const row of tableHU) {\n  let entries;\n  try {\n    entries = JSON.parse(row.temp_data || \"[]\");\n  } catch (_) {\n    entries = [];\n  }\n  for (const e of entries) {\n    if (e && e.type === \"nested_hu\") {\n      for (const c of e.children || []) {\n        if (c.item_id) distinctItemIds.add(c.item_id);\n      }\n    } else if (e && e.item_id) {\n      distinctItemIds.add(e.item_id);\n    }\n  }\n}\ndata.total_item_count = distinctItemIds.size;\n\ndata.table_hu = tableHU;\n\nreturn {\n  entry: data,\n  entryId: data.id,\n};\n"
+                  "code": "const data = {{workflowparams:entry}};\nconst packingMode = data.packing_mode;\nconst tableHU = {{node:code_node_7u6VSG8X.data.table_hu}} || [];\n\n// total_item_qty: sum of each row's rolled-up total_quantity.\n// Row total_quantity already includes nested_hu children\n// (PackingPickItemToHU sets it from merged temp_data).\n// Raw float sums (0.1 + 0.2) can land on values a decimal column with a\n// multipleOf constraint rejects, and this workflow has no formatNumber node.\ndata.total_item_qty = parseFloat(\n  tableHU\n    .reduce((total, row) => total + (parseFloat(row.total_quantity) || 0), 0)\n    .toFixed(3),\n);\n\n// total_hu_count: packing-mode dependent.\nif (packingMode === \"Basic\") {\n  data.total_hu_count = tableHU.reduce(\n    (total, row) => total + (parseInt(row.hu_quantity) || 0),\n    0,\n  );\n} else {\n  data.total_hu_count = tableHU.length;\n}\n\n// total_item_count: distinct item_ids across every row's temp_data.\n// Flatten nested_hu children so their items contribute too.\nconst distinctItemIds = new Set();\nfor (const row of tableHU) {\n  let entries;\n  try {\n    entries = JSON.parse(row.temp_data || \"[]\");\n  } catch (_) {\n    entries = [];\n  }\n  for (const e of entries) {\n    if (e && e.type === \"nested_hu\") {\n      for (const c of e.children || []) {\n        if (c.item_id) distinctItemIds.add(c.item_id);\n      }\n    } else if (e && e.item_id) {\n      distinctItemIds.add(e.item_id);\n    }\n  }\n}\ndata.total_item_count = distinctItemIds.size;\n\ndata.table_hu = tableHU;\n\nreturn {\n  entry: data,\n  entryId: data.id,\n};\n"
                 },
                 "response_json": [
                   {
@@ -338,6 +338,128 @@
                     "condition_type": "ConditionRule"
                   },
                   "blocks": [
+                    {
+                      "id": "code_node_PkFullChk",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Validate Fully Packed",
+                        "isValidator": true,
+                        "nodeName": "Validate Fully Packed",
+                        "name": "Validate Fully Packed",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const data = {{node:code_node_CYy1gmHf.data.entry}};\nconst EPS = 0.001;\nconst sourceRows = data.table_item_source || [];\nconst tableHU = data.table_hu || [];\n\n// Packed qty per source line, read from the HU ledger (table_hu temp_data)\n// rather than the picked_qty scalar, so a stale or edited scalar can't wave a\n// short pack through. This is the same projection PackingRecomputeSource runs\n// client-side — deliberately NOT flattening nested_hu children, whose\n// line_item_id points at table_hu_source rows, not table_item_source rows.\nconst packedByLine = {};\nfor (const row of tableHU) {\n  let entries;\n  try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n  for (const e of entries) {\n    // nested_hu entries and pre-existing-HU items carry no source line.\n    if (!e || !e.line_item_id) continue;\n    packedByLine[e.line_item_id] =\n      (packedByLine[e.line_item_id] || 0) + (parseFloat(e.total_quantity) || 0);\n  }\n}\n\nconst errors = [];\nfor (const r of sourceRows) {\n  if (!r) continue;\n  const label = r.item_name || r.item_code || r.id || \"(?)\";\n  const required = parseFloat(r.total_quantity) || 0;\n  if (required <= 0) continue;\n\n  // Rows with no stable id can't be attributed back; fall back to the scalar.\n  if (!r.id) {\n    const remaining = parseFloat(r.remaining_qty) || 0;\n    if (remaining > EPS) errors.push(label + \": \" + remaining + \" still unpacked\");\n    continue;\n  }\n\n  const packed = packedByLine[r.id] || 0;\n  if (Math.abs(required - packed) > EPS) {\n    errors.push(label + \": required \" + required + \", packed \" + packed);\n  }\n}\n\nconst shown = errors.slice(0, 10).join(\"\\n\");\nconst more = errors.length > 10 ? \"\\n(+\" + (errors.length - 10) + \" more)\" : \"\";\n\nreturn {\n  notFullyPacked: errors.length > 0 ? 1 : 0,\n  packedMessage:\n    errors.length > 0\n      ? \"Cannot complete packing — \" + errors.length +\n        \" line(s) not fully packed:\\n\" + shown + more\n      : \"\",\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "pk9fullchk",
+                            "name": "notFullyPacked",
+                            "title": "notFullyPacked",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "pk9fullmsg",
+                            "name": "packedMessage",
+                            "title": "packedMessage",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_PkFullChk",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Not Fully Packed",
+                        "isValidator": true,
+                        "nodeName": "IF Not Fully Packed",
+                        "name": "IF Not Fully Packed",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1,
+                              "parentId": 0,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "code": "'{{node:code_node_PkFullChk.data.notFullyPacked}}' == '1'",
+                          "type": "javascript"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_PkFullChk_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "return_node_PkFullChk",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "errorStatus",
+                                      "propLabel": "Error Status",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "\"fullyPacked\"",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PkFullChk.data.packedMessage}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0,
+                                "title": "Return Not Fully Packed",
+                                "isValidator": true,
+                                "nodeName": "Return Not Fully Packed",
+                                "name": "Return Not Fully Packed"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_PkFullChk_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
                     {
                       "id": "condition_all_node_Pj0YTmtu",
                       "type": "condition-all-node",
@@ -464,7 +586,7 @@
                                   }
                                 },
                                 "condition": {},
-                                "limit": 100,
+                                "limit": 500,
                                 "title": "Get GD",
                                 "isValidator": true,
                                 "nodeName": "Get GD",
@@ -758,7 +880,7 @@
                                   }
                                 },
                                 "condition": {},
-                                "limit": 100,
+                                "limit": 500,
                                 "title": "Get GD Lines",
                                 "isValidator": true,
                                 "nodeName": "Get GD Lines",
@@ -779,7 +901,7 @@
                                 "name": "Collect Referenced IDs",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_CYy1gmHf.data.entry}};\nconst gdLines = {{node:search_node_3K98XCZJ.data.data}} || [];\n\nconst locationIds = new Set();\nconst batchIds = new Set();\nconst huIds = new Set();\n\n// From packing.table_hu (DB-recorded completed rows)\nfor (const row of allData.table_hu || []) {\n  if (row.location_id) locationIds.add(row.location_id);\n  if (row.handling_unit_id) huIds.add(row.handling_unit_id);\n\n  let entries;\n  try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n  for (const e of entries) {\n    if (e && e.type === \"nested_hu\") {\n      if (e.nested_hu_id) huIds.add(e.nested_hu_id);\n      for (const c of e.children || []) {\n        // Packing temp_data uses bin_location / batch_no (form relation names).\n        if (c.bin_location) locationIds.add(c.bin_location);\n        if (c.batch_no) batchIds.add(c.batch_no);\n      }\n    } else if (e) {\n      if (e.bin_location) locationIds.add(e.bin_location);\n      if (e.batch_no) batchIds.add(e.batch_no);\n    }\n  }\n}\n\n// From existing GD line temp_qty_data / temp_hu_data\nfor (const line of gdLines) {\n  let tqd, thd;\n  try { tqd = JSON.parse(line.temp_qty_data || \"[]\"); } catch (_) { tqd = []; }\n  try { thd = JSON.parse(line.temp_hu_data || \"[]\"); } catch (_) { thd = []; }\n  for (const entry of tqd) {\n    if (entry.location_id) locationIds.add(entry.location_id);\n    if (entry.batch_id) batchIds.add(entry.batch_id);\n    if (entry.handling_unit_id) huIds.add(entry.handling_unit_id);\n  }\n  for (const entry of thd) {\n    if (entry.location_id) locationIds.add(entry.location_id);\n    if (entry.batch_id) batchIds.add(entry.batch_id);\n    if (entry.handling_unit_id) huIds.add(entry.handling_unit_id);\n  }\n}\n\nreturn {\n  locationIds: Array.from(locationIds),\n  batchIds: Array.from(batchIds),\n  huIds: Array.from(huIds),\n};\n"
+                                  "code": "const allData = {{node:code_node_CYy1gmHf.data.entry}};\nconst gdLines = {{node:search_node_3K98XCZJ.data.data}} || [];\n\nconst locationIds = new Set();\nconst batchIds = new Set();\nconst huIds = new Set();\nconst uomIds = new Set();\n\n// From packing.table_hu (DB-recorded completed rows)\nfor (const row of allData.table_hu || []) {\n  if (row.location_id) locationIds.add(row.location_id);\n  if (row.handling_unit_id) huIds.add(row.handling_unit_id);\n\n  let entries;\n  try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n  for (const e of entries) {\n    if (e && e.type === \"nested_hu\") {\n      if (e.nested_hu_id) huIds.add(e.nested_hu_id);\n      for (const c of e.children || []) {\n        // Packing temp_data uses bin_location / batch_no (form relation names).\n        if (c.bin_location) locationIds.add(c.bin_location);\n        if (c.batch_no) batchIds.add(c.batch_no);\n      }\n    } else if (e) {\n      if (e.bin_location) locationIds.add(e.bin_location);\n      if (e.batch_no) batchIds.add(e.batch_no);\n    }\n  }\n}\n\n// From existing GD line temp_qty_data / temp_hu_data\nfor (const line of gdLines) {\n  // view_stock needs the UOM *name*; the line only carries the UOM id.\n  if (line.gd_order_uom_id) uomIds.add(line.gd_order_uom_id);\n  let tqd, thd;\n  try { tqd = JSON.parse(line.temp_qty_data || \"[]\"); } catch (_) { tqd = []; }\n  try { thd = JSON.parse(line.temp_hu_data || \"[]\"); } catch (_) { thd = []; }\n  for (const entry of tqd) {\n    if (entry.location_id) locationIds.add(entry.location_id);\n    if (entry.batch_id) batchIds.add(entry.batch_id);\n    if (entry.handling_unit_id) huIds.add(entry.handling_unit_id);\n  }\n  for (const entry of thd) {\n    if (entry.location_id) locationIds.add(entry.location_id);\n    if (entry.batch_id) batchIds.add(entry.batch_id);\n    if (entry.handling_unit_id) huIds.add(entry.handling_unit_id);\n  }\n}\n\nreturn {\n  locationIds: Array.from(locationIds),\n  batchIds: Array.from(batchIds),\n  huIds: Array.from(huIds),\n  uomIds: Array.from(uomIds),\n};\n"
                                 },
                                 "response_json": [
                                   {
@@ -841,109 +963,261 @@
                                         "children": []
                                       }
                                     ]
+                                  },
+                                  {
+                                    "key": "u0m1dsq7",
+                                    "name": "uomIds",
+                                    "title": "uomIds",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "u0m1item",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
                                   }
                                 ]
                               },
                               "blocks": []
                             },
                             {
-                              "id": "search_node_UsQpPGhM",
-                              "type": "search-node",
+                              "id": "condition_all_pk_lookups",
+                              "type": "condition-all-node",
                               "data": {
-                                "table_id": {
-                                  "source": "Bin Location:Table:1902282127538507778",
-                                  "rules": {
-                                    "collectionId": "1902282127538507778",
-                                    "list": [
-                                      {
-                                        "id": 1776851128586,
-                                        "parentId": 1776851128585,
-                                        "isTop": true,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_wYvZn1UF.data.locationIds}}",
-                                        "type": "leaf",
-                                        "level": 1,
-                                        "propLabel": "主键ID",
-                                        "valueLabel": "",
-                                        "operatorLabel": "In"
-                                      }
-                                    ]
-                                  }
+                                "title": "Parallel Lookups",
+                                "filter": {
+                                  "list": []
                                 },
-                                "condition": {},
-                                "limit": 100,
-                                "title": "Get Bin Location",
-                                "isValidator": true,
-                                "nodeName": "Get Bin Location",
-                                "name": "Get Bin Location"
-                              },
-                              "blocks": []
-                            },
-                            {
-                              "id": "search_node_Nc4I5K4Y",
-                              "type": "search-node",
-                              "data": {
-                                "table_id": {
-                                  "source": "Batch:Table:1902719754154655746",
-                                  "rules": {
-                                    "collectionId": "1902719754154655746",
-                                    "list": [
-                                      {
-                                        "id": 1776851130621,
-                                        "parentId": 1776851130620,
-                                        "isTop": true,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_wYvZn1UF.data.batchIds}}",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
+                                "expression": {
+                                  "code": ""
                                 },
-                                "condition": {},
-                                "limit": 100,
-                                "title": "Get Batches",
-                                "isValidator": true,
-                                "nodeName": "Get Batches",
-                                "name": "Get Batches"
+                                "displayContent": "sdk.form.setCondition"
                               },
-                              "blocks": []
-                            },
-                            {
-                              "id": "search_node_I45K13Jv",
-                              "type": "search-node",
-                              "data": {
-                                "table_id": {
-                                  "source": "Handling Unit:Table:2036736671686529026",
-                                  "rules": {
-                                    "collectionId": "2036736671686529026",
-                                    "list": [
-                                      {
-                                        "id": 1776851148376,
-                                        "parentId": 1776851148375,
-                                        "isTop": true,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_wYvZn1UF.data.huIds}}",
-                                        "type": "leaf",
-                                        "level": 1
-                                      }
-                                    ]
-                                  }
+                              "blocks": [
+                                {
+                                  "id": "condition_all_item_pk_bin",
+                                  "type": "condition-all-node-item",
+                                  "data": {
+                                    "title": "Bin Location",
+                                    "filter": {
+                                      "list": []
+                                    },
+                                    "expression": {
+                                      "code": "",
+                                      "type": "javascript"
+                                    },
+                                    "displayContent": "sdk.form.setCondition",
+                                    "isValidator": true,
+                                    "nodeName": "Bin Location",
+                                    "name": "Bin Location",
+                                    "condition_type": "ConditionRule"
+                                  },
+                                  "blocks": [
+                                                                {
+                                      "id": "search_node_UsQpPGhM",
+                                      "type": "search-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Bin Location:Table:1902282127538507778",
+                                          "rules": {
+                                            "collectionId": "1902282127538507778",
+                                            "list": [
+                                              {
+                                                "id": 1776851128586,
+                                                "parentId": 1776851128585,
+                                                "isTop": true,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_wYvZn1UF.data.locationIds}}",
+                                                "type": "leaf",
+                                                "level": 1,
+                                                "propLabel": "主键ID",
+                                                "valueLabel": "",
+                                                "operatorLabel": "In"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "limit": 500,
+                                        "title": "Get Bin Location",
+                                        "isValidator": true,
+                                        "nodeName": "Get Bin Location",
+                                        "name": "Get Bin Location"
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
                                 },
-                                "condition": {},
-                                "limit": 100,
-                                "title": "Get HUs",
-                                "isValidator": true,
-                                "nodeName": "Get HUs",
-                                "name": "Get HUs"
-                              },
-                              "blocks": []
+                                {
+                                  "id": "condition_all_item_pk_batch",
+                                  "type": "condition-all-node-item",
+                                  "data": {
+                                    "title": "Batches",
+                                    "filter": {
+                                      "list": []
+                                    },
+                                    "expression": {
+                                      "code": "",
+                                      "type": "javascript"
+                                    },
+                                    "displayContent": "sdk.form.setCondition",
+                                    "isValidator": true,
+                                    "nodeName": "Batches",
+                                    "name": "Batches",
+                                    "condition_type": "ConditionRule"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "search_node_Nc4I5K4Y",
+                                      "type": "search-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Batch:Table:1902719754154655746",
+                                          "rules": {
+                                            "collectionId": "1902719754154655746",
+                                            "list": [
+                                              {
+                                                "id": 1776851130621,
+                                                "parentId": 1776851130620,
+                                                "isTop": true,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_wYvZn1UF.data.batchIds}}",
+                                                "type": "leaf",
+                                                "level": 1
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "limit": 500,
+                                        "title": "Get Batches",
+                                        "isValidator": true,
+                                        "nodeName": "Get Batches",
+                                        "name": "Get Batches"
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "condition_all_item_pk_hu",
+                                  "type": "condition-all-node-item",
+                                  "data": {
+                                    "title": "HUs",
+                                    "filter": {
+                                      "list": []
+                                    },
+                                    "expression": {
+                                      "code": "",
+                                      "type": "javascript"
+                                    },
+                                    "displayContent": "sdk.form.setCondition",
+                                    "isValidator": true,
+                                    "nodeName": "HUs",
+                                    "name": "HUs",
+                                    "condition_type": "ConditionRule"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "search_node_I45K13Jv",
+                                      "type": "search-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Handling Unit:Table:2036736671686529026",
+                                          "rules": {
+                                            "collectionId": "2036736671686529026",
+                                            "list": [
+                                              {
+                                                "id": 1776851148376,
+                                                "parentId": 1776851148375,
+                                                "isTop": true,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_wYvZn1UF.data.huIds}}",
+                                                "type": "leaf",
+                                                "level": 1
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "limit": 500,
+                                        "title": "Get HUs",
+                                        "isValidator": true,
+                                        "nodeName": "Get HUs",
+                                        "name": "Get HUs"
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "condition_all_item_pk_uom",
+                                  "type": "condition-all-node-item",
+                                  "data": {
+                                    "title": "UOMs",
+                                    "filter": {
+                                      "list": []
+                                    },
+                                    "expression": {
+                                      "code": "",
+                                      "type": "javascript"
+                                    },
+                                    "displayContent": "sdk.form.setCondition",
+                                    "isValidator": true,
+                                    "nodeName": "UOMs",
+                                    "name": "UOMs",
+                                    "condition_type": "ConditionRule"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "search_node_UomQ7pKx4",
+                                      "type": "search-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "UOM:Table:1901805375573839874",
+                                          "rules": {
+                                            "collectionId": "1901805375573839874",
+                                            "list": [
+                                              {
+                                                "id": 1776851160001,
+                                                "parentId": 1776851160000,
+                                                "isTop": true,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_wYvZn1UF.data.uomIds}}",
+                                                "type": "leaf",
+                                                "level": 1
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "limit": 500,
+                                        "title": "Get UOMs",
+                                        "isValidator": true,
+                                        "nodeName": "Get UOMs",
+                                        "name": "Get UOMs"
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                }
+                              ]
                             },
                             {
                               "id": "code_node_nB1MhwgG",
@@ -958,7 +1232,7 @@
                                 "name": "Build GD Line Updates",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const allData = {{node:code_node_CYy1gmHf.data.entry}};\nconst gdLines = {{node:search_node_3K98XCZJ.data.data}} || [];\nconst locations = {{node:search_node_UsQpPGhM.data.data}} || [];\nconst batches = {{node:search_node_Nc4I5K4Y.data.data}} || [];\nconst hus = {{node:search_node_I45K13Jv.data.data}} || [];\n\nconst packingId = allData.id || \"\";\n\nconst flattenTempData = (tempData) => {\n  const out = [];\n  for (const e of tempData || []) {\n    if (e && e.type === \"nested_hu\") {\n      for (const c of e.children || []) out.push(c);\n    } else if (e) {\n      out.push(e);\n    }\n  }\n  return out;\n};\n\n// Patches now carry qty so we can split GD entries across multiple HUs correctly.\nconst buildGdTempQtyPatches = (completedRows) => {\n  const patches = [];\n  for (const row of completedRows || []) {\n    if (row.hu_row_type === \"locked\") continue;\n    const huId = row.handling_unit_id;\n    const huBin = row.location_id;\n    if (!huId || !huBin) continue;\n    let entries;\n    try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n    // Only process direct items — nested_hu children remain tagged at their\n    // child-HU level in GD.temp_qty_data (they were set there during GD picking;\n    // Packing only updates their handling_unit.parent_hu_id, not the GD line).\n    for (const e of entries) {\n      if (!e) continue;\n      if (e.type === \"nested_hu\") continue;\n      if (!e.gd_line_id) continue;\n      patches.push({\n        match: {\n          gd_line_id: e.gd_line_id,\n          material_id: e.item_id,\n          // Packing temp_data uses bin_location / batch_no (form relation names).\n          // Values are the bin id / batch id, matching GD temp_qty_data's\n          // location_id / batch_id on the comparison side.\n          batch_id: e.batch_no || null,\n          bin_location: e.bin_location,\n        },\n        patch: {\n          handling_unit_id: huId,\n          bin_location: huBin,\n          qty: parseFloat(e.total_quantity) || 0,\n        },\n        _remainingQty: parseFloat(e.total_quantity) || 0,\n      });\n    }\n  }\n  return patches;\n};\n\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n\nconst buildViewStock = (args) => {\n  const { tempQtyData = [], gdUom = \"\", locationMap = {}, batchMap = {}, huNoMap = {} } = args || {};\n  const looseEntries = [];\n  const huEntries = [];\n  // temp_qty_data already categorizes loose vs HU via handling_unit_id — each\n  // HU-tagged entry mirrors a temp_hu_data row, so iterating both double-counts.\n  for (const e of tempQtyData) {\n    const qty = parseFloat(e.gd_quantity != null ? e.gd_quantity : (e.qty != null ? e.qty : e.quantity) || 0) || 0;\n    if (qty <= 0) continue;\n    const row = { huId: e.handling_unit_id || \"\", batchId: e.batch_id || null, locationId: e.location_id, qty };\n    (row.huId ? huEntries : looseEntries).push(row);\n  }\n  const looseTotal = roundQty(looseEntries.reduce((s, e) => s + e.qty, 0));\n  const huTotal = roundQty(huEntries.reduce((s, e) => s + e.qty, 0));\n  const grandTotal = roundQty(looseTotal + huTotal);\n  const formatLooseLine = (e, i) => {\n    const name = locationMap[e.locationId] || e.locationId || \"(?)\";\n    let s = (i + 1) + \". \" + name + \": \" + e.qty + \" \" + gdUom;\n    if (e.batchId) s += \"\\n[Batch: \" + (batchMap[e.batchId] || e.batchId) + \"]\";\n    return s;\n  };\n  const formatHuLine = (e, i) => {\n    const name = huNoMap[e.huId] || e.huId || \"(?)\";\n    let s = (i + 1) + \". \" + name + \": \" + e.qty + \" \" + gdUom;\n    if (e.batchId) s += \"\\n   [Batch: \" + (batchMap[e.batchId] || e.batchId) + \"]\";\n    return s;\n  };\n  const hasLoose = looseEntries.length > 0;\n  const hasHu = huEntries.length > 0;\n  if (!hasLoose && !hasHu) return \"\";\n  if (hasLoose && hasHu) {\n    let out = \"Total: \" + grandTotal + \" \" + gdUom + \"\\n\\n\";\n    out += \"LOOSE STOCK:\\n\";\n    out += looseEntries.map(formatLooseLine).join(\"\\n\");\n    out += \"\\n\\nHANDLING UNIT:\\n\";\n    out += huEntries.map(formatHuLine).join(\"\\n\");\n    return out;\n  }\n  if (hasHu) {\n    let out = \"Total: \" + huTotal + \" \" + gdUom + \"\\n\\nHANDLING UNIT:\\n\";\n    out += huEntries.map(formatHuLine).join(\"\\n\");\n    return out;\n  }\n  let out = \"Total: \" + looseTotal + \" \" + gdUom + \"\\n\\nDETAILS:\\n\";\n  out += looseEntries.map(formatLooseLine).join(\"\\n\");\n  return out;\n};\n\nconst locationMap = {};\nfor (const loc of locations) locationMap[loc.id] = loc.bin_location_combine || loc.name || loc.id;\nconst batchMap = {};\nfor (const b of batches) batchMap[b.id] = b.batch_number || b.name || b.id;\nconst huNoMap = {};\nfor (const hu of hus) huNoMap[hu.id] = hu.handling_no || hu.id;\n\nconst patches = buildGdTempQtyPatches(allData.table_hu || []);\nconst patchesByLine = {};\nfor (const p of patches) {\n  if (!patchesByLine[p.match.gd_line_id]) patchesByLine[p.match.gd_line_id] = [];\n  patchesByLine[p.match.gd_line_id].push(p);\n}\n\nconst updatedGdLines = [];\nfor (const line of gdLines) {\n  const linePatches = patchesByLine[line.id];\n  if (!linePatches || linePatches.length === 0) continue;\n  const originalTempQtyData = line.temp_qty_data || \"[]\";\n  const originalTempHuData = line.temp_hu_data || \"[]\";\n\n  let tqd;\n  try { tqd = JSON.parse(originalTempQtyData); } catch (_) { tqd = []; }\n\n  const newlyPackedTempHuEntries = [];\n  const updatedTqd = [];\n\n  for (const entry of tqd) {\n    // HU-tagged entries are untouched — they came from earlier GD picking.\n    if (entry.handling_unit_id && entry.handling_unit_id !== \"\") {\n      updatedTqd.push(entry);\n      continue;\n    }\n\n    const entryQty = parseFloat(entry.gd_quantity || 0);\n\n    // Find all patches that match on (material, batch, location) — entry may\n    // split across multiple HUs.\n    const matching = linePatches.filter((p) =>\n      String(p.match.material_id) === String(entry.material_id) &&\n      String(p.match.batch_id || \"\") === String(entry.batch_id || \"\") &&\n      String(p.match.bin_location || \"\") === String(entry.location_id || \"\")\n    );\n\n    if (matching.length === 0) {\n      updatedTqd.push(entry);\n      continue;\n    }\n\n    let remainingEntryQty = entryQty;\n    for (const p of matching) {\n      if (p._remainingQty <= 0) continue;\n      if (remainingEntryQty <= 0) break;\n      const claim = Math.min(remainingEntryQty, p._remainingQty);\n      if (claim <= 0) continue;\n\n      updatedTqd.push(Object.assign({}, entry, {\n        handling_unit_id: p.patch.handling_unit_id,\n        location_id: p.patch.bin_location,\n        gd_quantity: claim,\n      }));\n      newlyPackedTempHuEntries.push({\n        row_type: \"item\",\n        handling_unit_id: p.patch.handling_unit_id,\n        material_id: entry.material_id,\n        location_id: p.patch.bin_location,\n        batch_id: entry.batch_id || null,\n        balance_id: entry.balance_id || \"\",\n        deliver_quantity: claim,\n        item_quantity: claim,\n      });\n\n      remainingEntryQty = roundQty(remainingEntryQty - claim);\n      p._remainingQty = roundQty(p._remainingQty - claim);\n    }\n\n    // Anything not claimed by patches stays as loose at the original location.\n    if (remainingEntryQty > 0) {\n      updatedTqd.push(Object.assign({}, entry, { gd_quantity: remainingEntryQty }));\n    }\n  }\n\n  // Merge newly-packed temp_hu_data entries with any existing ones, dedup by 5-tuple.\n  let existingTempHu;\n  try { existingTempHu = JSON.parse(originalTempHuData); } catch (_) { existingTempHu = []; }\n  const seen = new Set();\n  for (const h of existingTempHu) {\n    const k = h.material_id + \"|\" + (h.batch_id || \"\") + \"|\" + (h.location_id || \"\") + \"|\" + (h.handling_unit_id || \"\") + \"|\" + (h.balance_id || \"\");\n    seen.add(k);\n  }\n  const additions = [];\n  for (const h of newlyPackedTempHuEntries) {\n    const k = h.material_id + \"|\" + (h.batch_id || \"\") + \"|\" + (h.location_id || \"\") + \"|\" + (h.handling_unit_id || \"\") + \"|\" + (h.balance_id || \"\");\n    if (seen.has(k)) {\n      // Aggregate deliver_quantity on the existing entry\n      const existing = existingTempHu.find((x) => (x.material_id + \"|\" + (x.batch_id || \"\") + \"|\" + (x.location_id || \"\") + \"|\" + (x.handling_unit_id || \"\") + \"|\" + (x.balance_id || \"\")) === k);\n      if (existing) {\n        existing.deliver_quantity = roundQty((parseFloat(existing.deliver_quantity) || 0) + h.deliver_quantity);\n        existing.item_quantity = roundQty((parseFloat(existing.item_quantity) || 0) + h.item_quantity);\n      }\n      continue;\n    }\n    seen.add(k);\n    additions.push(h);\n  }\n  const mergedTempHuData = existingTempHu.concat(additions);\n\n  // GD line fields like item_uom are usually IDs; the previous view_stock\n  // string (set by GD allocation/picking) carries the UOM *name*.\n  const extractUomFromViewStock = (vs) => {\n    if (!vs) return null;\n    const m = vs.match(/Total:\\s*[\\d.]+\\s+(\\w+)/);\n    return m && m[1] ? m[1] : null;\n  };\n  const gdUom = extractUomFromViewStock(line.view_stock) || line.item_uom_name || line.gd_order_uom || line.item_uom || \"PCS\";\n  const viewStock = buildViewStock({\n    tempQtyData: updatedTqd,\n    gdUom,\n    locationMap,\n    batchMap,\n    huNoMap,\n  });\n\n  updatedGdLines.push({\n    id: line.id,\n    temp_qty_data: JSON.stringify(updatedTqd),\n    prev_temp_qty_data: originalTempQtyData,\n    temp_hu_data: JSON.stringify(mergedTempHuData),\n    prev_temp_hu_data: originalTempHuData,\n    view_stock: viewStock,\n    packing_id: packingId,\n  });\n}\n\nreturn { updatedGdLines };\n"
+                                  "code": "const allData = {{node:code_node_CYy1gmHf.data.entry}};\nconst gdLines = {{node:search_node_3K98XCZJ.data.data}} || [];\nconst locations = {{node:search_node_UsQpPGhM.data.data}} || [];\nconst batches = {{node:search_node_Nc4I5K4Y.data.data}} || [];\nconst hus = {{node:search_node_I45K13Jv.data.data}} || [];\nconst uoms = {{node:search_node_UomQ7pKx4.data.data}} || [];\n\n// Patches now carry qty so we can split GD entries across multiple HUs correctly.\nconst buildGdTempQtyPatches = (completedRows) => {\n  const patches = [];\n  for (const row of completedRows || []) {\n    if (row.hu_row_type === \"locked\") continue;\n    const huId = row.handling_unit_id;\n    const huBin = row.location_id;\n    if (!huId || !huBin) continue;\n    let entries;\n    try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n    // Only process direct items — nested_hu children remain tagged at their\n    // child-HU level in GD.temp_qty_data (they were set there during GD picking;\n    // Packing only updates their handling_unit.parent_hu_id, not the GD line).\n    for (const e of entries) {\n      if (!e) continue;\n      if (e.type === \"nested_hu\") continue;\n      if (!e.gd_line_id) continue;\n      patches.push({\n        match: {\n          gd_line_id: e.gd_line_id,\n          material_id: e.item_id,\n          // Packing temp_data uses bin_location / batch_no (form relation names).\n          // Values are the bin id / batch id, matching GD temp_qty_data's\n          // location_id / batch_id on the comparison side.\n          batch_id: e.batch_no || null,\n          bin_location: e.bin_location,\n        },\n        patch: {\n          handling_unit_id: huId,\n          bin_location: huBin,\n          qty: parseFloat(e.total_quantity) || 0,\n        },\n        _remainingQty: parseFloat(e.total_quantity) || 0,\n      });\n    }\n  }\n  return patches;\n};\n\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n\n// temp_hu_data identity: (material, batch, location, HU, balance). handling_no\n// is descriptive only and must NOT take part in the key.\nconst huKey = (h) =>\n  (h.material_id || \"\") + \"|\" + (h.batch_id || \"\") + \"|\" + (h.location_id || \"\") +\n  \"|\" + (h.handling_unit_id || \"\") + \"|\" + (h.balance_id || \"\");\n\nconst buildViewStock = (args) => {\n  const { tempQtyData = [], gdUom = \"\", locationMap = {}, batchMap = {}, huNoMap = {} } = args || {};\n  const looseEntries = [];\n  const huEntries = [];\n  // temp_qty_data already categorizes loose vs HU via handling_unit_id — each\n  // HU-tagged entry mirrors a temp_hu_data row, so iterating both double-counts.\n  for (const e of tempQtyData) {\n    const qty = parseFloat(e.gd_quantity != null ? e.gd_quantity : (e.qty != null ? e.qty : e.quantity) || 0) || 0;\n    if (qty <= 0) continue;\n    const row = { huId: e.handling_unit_id || \"\", batchId: e.batch_id || null, locationId: e.location_id, qty };\n    (row.huId ? huEntries : looseEntries).push(row);\n  }\n  const looseTotal = roundQty(looseEntries.reduce((s, e) => s + e.qty, 0));\n  const huTotal = roundQty(huEntries.reduce((s, e) => s + e.qty, 0));\n  const grandTotal = roundQty(looseTotal + huTotal);\n  const formatLooseLine = (e, i) => {\n    const name = locationMap[e.locationId] || e.locationId || \"(?)\";\n    let s = (i + 1) + \". \" + name + \": \" + e.qty + \" \" + gdUom;\n    if (e.batchId) s += \"\\n[Batch: \" + (batchMap[e.batchId] || e.batchId) + \"]\";\n    return s;\n  };\n  const formatHuLine = (e, i) => {\n    const name = huNoMap[e.huId] || e.huId || \"(?)\";\n    let s = (i + 1) + \". \" + name + \": \" + e.qty + \" \" + gdUom;\n    if (e.batchId) s += \"\\n   [Batch: \" + (batchMap[e.batchId] || e.batchId) + \"]\";\n    return s;\n  };\n  const hasLoose = looseEntries.length > 0;\n  const hasHu = huEntries.length > 0;\n  if (!hasLoose && !hasHu) return \"\";\n  if (hasLoose && hasHu) {\n    let out = \"Total: \" + grandTotal + \" \" + gdUom + \"\\n\\n\";\n    out += \"LOOSE STOCK:\\n\";\n    out += looseEntries.map(formatLooseLine).join(\"\\n\");\n    out += \"\\n\\nHANDLING UNIT:\\n\";\n    out += huEntries.map(formatHuLine).join(\"\\n\");\n    return out;\n  }\n  if (hasHu) {\n    let out = \"Total: \" + huTotal + \" \" + gdUom + \"\\n\\nHANDLING UNIT:\\n\";\n    out += huEntries.map(formatHuLine).join(\"\\n\");\n    return out;\n  }\n  let out = \"Total: \" + looseTotal + \" \" + gdUom + \"\\n\\nDETAILS:\\n\";\n  out += looseEntries.map(formatLooseLine).join(\"\\n\");\n  return out;\n};\n\n// GD line uom columns are IDs (gd_order_uom_id / good_delivery_uom_id), so the\n// display name comes from the UOM fetch. The previous view_stock string (set by\n// GD allocation/picking) carries the name too and serves as the fallback.\nconst extractUomFromViewStock = (vs) => {\n  if (!vs) return null;\n  const m = vs.match(/Total:\\s*[\\d.]+\\s+(\\w+)/);\n  return m && m[1] ? m[1] : null;\n};\n\nconst locationMap = {};\nfor (const loc of locations) locationMap[loc.id] = loc.bin_location_combine || loc.name || loc.id;\nconst batchMap = {};\nfor (const b of batches) batchMap[b.id] = b.batch_number || b.name || b.id;\nconst huNoMap = {};\nconst huNoRawMap = {};\nfor (const hu of hus) {\n  huNoRawMap[hu.id] = hu.handling_no || \"\";\n  huNoMap[hu.id] = hu.handling_no || hu.id;\n}\nconst uomMap = {};\nfor (const u of uoms) uomMap[u.id] = u.uom_name || \"\";\n\nconst patches = buildGdTempQtyPatches(allData.table_hu || []);\nconst patchesByLine = {};\nfor (const p of patches) {\n  if (!patchesByLine[p.match.gd_line_id]) patchesByLine[p.match.gd_line_id] = [];\n  patchesByLine[p.match.gd_line_id].push(p);\n}\n\nconst updatedGdLines = [];\nfor (const line of gdLines) {\n  const originalTempQtyData = line.temp_qty_data || \"[]\";\n  const originalTempHuData = line.temp_hu_data || \"[]\";\n  const linePatches = patchesByLine[line.id];\n\n  // No patches still means \"packed\" — whole-HU (locked) rows were already\n  // HU-tagged at pick time, so they legitimately produce none. Emit the line\n  // untouched so the update-node still stamps packing_status / packing_no.\n  if (!linePatches || linePatches.length === 0) {\n    updatedGdLines.push({\n      id: line.id,\n      temp_qty_data: originalTempQtyData,\n      prev_temp_qty_data: originalTempQtyData,\n      temp_hu_data: originalTempHuData,\n      view_stock: line.view_stock || \"\",\n    });\n    continue;\n  }\n\n  let tqd;\n  try { tqd = JSON.parse(originalTempQtyData); } catch (_) { tqd = []; }\n\n  const newlyPackedTempHuEntries = [];\n  const updatedTqd = [];\n\n  for (const entry of tqd) {\n    // HU-tagged entries are untouched — they came from earlier GD picking.\n    if (entry.handling_unit_id && entry.handling_unit_id !== \"\") {\n      updatedTqd.push(entry);\n      continue;\n    }\n\n    const entryQty = parseFloat(entry.gd_quantity || 0);\n\n    // Find all patches that match on (material, batch, location) — entry may\n    // split across multiple HUs.\n    const matching = linePatches.filter((p) =>\n      String(p.match.material_id) === String(entry.material_id) &&\n      String(p.match.batch_id || \"\") === String(entry.batch_id || \"\") &&\n      String(p.match.bin_location || \"\") === String(entry.location_id || \"\")\n    );\n\n    if (matching.length === 0) {\n      updatedTqd.push(entry);\n      continue;\n    }\n\n    let remainingEntryQty = entryQty;\n    for (const p of matching) {\n      if (p._remainingQty <= 0) continue;\n      if (remainingEntryQty <= 0) break;\n      const claim = Math.min(remainingEntryQty, p._remainingQty);\n      if (claim <= 0) continue;\n\n      updatedTqd.push(Object.assign({}, entry, {\n        handling_unit_id: p.patch.handling_unit_id,\n        location_id: p.patch.bin_location,\n        gd_quantity: claim,\n      }));\n      newlyPackedTempHuEntries.push({\n        row_type: \"item\",\n        handling_unit_id: p.patch.handling_unit_id,\n        handling_no: huNoRawMap[p.patch.handling_unit_id] || \"\",\n        material_id: entry.material_id,\n        location_id: p.patch.bin_location,\n        batch_id: entry.batch_id || null,\n        balance_id: entry.balance_id || \"\",\n        deliver_quantity: claim,\n        item_quantity: claim,\n      });\n\n      remainingEntryQty = roundQty(remainingEntryQty - claim);\n      p._remainingQty = roundQty(p._remainingQty - claim);\n    }\n\n    // Anything not claimed by patches stays as loose at the original location.\n    if (remainingEntryQty > 0) {\n      updatedTqd.push(Object.assign({}, entry, { gd_quantity: remainingEntryQty }));\n    }\n  }\n\n  // Merge newly-packed temp_hu_data entries into the existing ones, keyed by\n  // the 5-tuple. Keyed lookups must cover entries added earlier in THIS loop,\n  // not just the pre-existing array — otherwise a second newly-packed entry\n  // with the same key is silently dropped and its qty disappears.\n  let existingTempHu;\n  try { existingTempHu = JSON.parse(originalTempHuData); } catch (_) { existingTempHu = []; }\n  const mergedTempHuData = existingTempHu.slice();\n  const entryByKey = new Map();\n  for (const h of mergedTempHuData) {\n    const k = huKey(h);\n    if (!entryByKey.has(k)) entryByKey.set(k, h);\n  }\n  for (const h of newlyPackedTempHuEntries) {\n    const k = huKey(h);\n    const target = entryByKey.get(k);\n    if (target) {\n      target.deliver_quantity = roundQty((parseFloat(target.deliver_quantity) || 0) + h.deliver_quantity);\n      target.item_quantity = roundQty((parseFloat(target.item_quantity) || 0) + h.item_quantity);\n      if (!target.handling_no && h.handling_no) target.handling_no = h.handling_no;\n      continue;\n    }\n    mergedTempHuData.push(h);\n    entryByKey.set(k, h);\n  }\n\n  const gdUom = uomMap[line.gd_order_uom_id] || extractUomFromViewStock(line.view_stock) || \"\";\n  const viewStock = buildViewStock({\n    tempQtyData: updatedTqd,\n    gdUom,\n    locationMap,\n    batchMap,\n    huNoMap,\n  });\n\n  updatedGdLines.push({\n    id: line.id,\n    temp_qty_data: JSON.stringify(updatedTqd),\n    prev_temp_qty_data: originalTempQtyData,\n    temp_hu_data: JSON.stringify(mergedTempHuData),\n    view_stock: viewStock,\n  });\n}\n\nreturn { updatedGdLines };\n"
                                 },
                                 "response_json": [
                                   {
@@ -1123,14 +1397,6 @@
                                       "value": "{{node:code_node_nB1MhwgG.data.updatedGdLines.temp_hu_data}}",
                                       "valueLabel": "",
                                       "propLabel": "Temp HU Data"
-                                    },
-                                    {
-                                      "prop": "prev_temp_hu_data",
-                                      "operator": "",
-                                      "valueType": "field",
-                                      "value": "{{node:code_node_nB1MhwgG.data.updatedGdLines.prev_temp_hu_data}}",
-                                      "valueLabel": "",
-                                      "propLabel": "Prev Temp HU Data"
                                     }
                                   ]
                                 }
@@ -1189,7 +1455,7 @@
                                 "response_json": [
                                   {
                                     "key": "la3omkun",
-                                    "name": "uniqueGDIds",
+                                    "name": "uniqueTOIds",
                                     "title": "",
                                     "description": "",
                                     "bsonType": "array",
@@ -1208,7 +1474,7 @@
                                   },
                                   {
                                     "key": "kemppoex",
-                                    "name": "uniqueGDLineIds",
+                                    "name": "uniqueTOLineIds",
                                     "title": "",
                                     "description": "",
                                     "bsonType": "array",
@@ -1338,82 +1604,13 @@
                       ]
                     },
                     {
-                      "id": "get_node_nqe6SJFz",
-                      "type": "get-node",
-                      "data": {
-                        "table_id": {
-                          "source": "Goods Delivery:Table:1902054888473481218",
-                          "rules": {
-                            "collectionId": "1902054888473481218",
-                            "list": [
-                              {
-                                "id": 1776852814326,
-                                "parentId": 1776852814325,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "equal",
-                                "valueType": "field",
-                                "value": "{{workflowparams:entry.gd_id}}",
-                                "type": "leaf",
-                                "level": 1
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "title": "Get GD",
-                        "isValidator": true,
-                        "nodeName": "Get GD",
-                        "name": "Get GD"
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "code_node_GKPcKOcF",
-                      "type": "code-node",
-                      "data": {
-                        "language": "javascript",
-                        "code": "",
-                        "timeout": 30000,
-                        "title": "Prepare GD Data",
-                        "isValidator": true,
-                        "nodeName": "Prepare GD Data",
-                        "name": "Prepare GD Data",
-                        "script": {
-                          "type": "javascript",
-                          "code": "const entry = {{workflowparams:entry}};\nconst gdData = {{node:get_node_nqe6SJFz.data.data}} || null;\n\nreturn {\n  shouldCallGdWorkflow: (gdData && gdData.id) ? 1 : 0,\n  gdData,\n};\n"
-                        },
-                        "response_json": [
-                          {
-                            "key": "ywtzeev3",
-                            "name": "shouldCallGdWorkflow",
-                            "title": "shouldCallGdWorkflow",
-                            "description": "",
-                            "bsonType": "int",
-                            "isExpand": false,
-                            "children": []
-                          },
-                          {
-                            "key": "6luyhcig",
-                            "name": "gdData",
-                            "title": "gdData",
-                            "description": "",
-                            "bsonType": "any",
-                            "isExpand": false,
-                            "children": []
-                          }
-                        ]
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "if_pREvKW2i",
+                      "id": "if_PkHasGd",
                       "type": "if",
                       "data": {
-                        "title": "IF runWorkflow",
+                        "title": "IF Has GD",
                         "isValidator": true,
-                        "nodeName": "IF runWorkflow",
-                        "name": "IF runWorkflow",
+                        "nodeName": "IF Has GD",
+                        "name": "IF Has GD",
                         "condition_type": "Expression",
                         "filter": {
                           "list": [
@@ -1431,163 +1628,277 @@
                           ]
                         },
                         "expression": {
-                          "code": "'{{node:code_node_GKPcKOcF.data.shouldCallGdWorkflow}}' == '1'",
+                          "code": "'{{workflowparams:entry.gd_id}}' != ''",
                           "type": "javascript"
                         }
                       },
                       "blocks": [
                         {
-                          "id": "if_block_vsHEPUFN",
+                          "id": "if_block_PkHasGd_t",
                           "type": "ifBlock",
                           "data": { "title": "true" },
                           "blocks": [
                             {
-                              "id": "workflow_node_tAWfF7CE",
-                              "type": "workflow-node",
+                              "id": "get_node_nqe6SJFz",
+                              "type": "get-node",
                               "data": {
-                                "workflow_id": "",
-                                "workflow_name": "",
-                                "input_params": {},
-                                "title": "Run GD Workflow",
-                                "isValidator": true,
-                                "nodeName": "Run GD Workflow",
-                                "name": "Run GD Workflow",
-                                "workflow": {
-                                  "source": "GOODS_DELIVERY:Workflow:2017151544868491265",
+                                "table_id": {
+                                  "source": "Goods Delivery:Table:1902054888473481218",
                                   "rules": {
-                                    "collectionId": "2017151544868491265",
+                                    "collectionId": "1902054888473481218",
                                     "list": [
                                       {
-                                        "id": 1723795236686,
-                                        "parentId": 1723795236685,
+                                        "id": 1776852814326,
+                                        "parentId": 1776852814325,
                                         "isTop": true,
-                                        "prop": "",
-                                        "operator": "",
-                                        "valueType": "",
-                                        "value": "",
+                                        "prop": "id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{workflowparams:entry.gd_id}}",
                                         "type": "leaf",
                                         "level": 1
                                       }
                                     ]
                                   }
                                 },
-                                "remote": true,
-                                "remoteType": "innerdatasource",
-                                "body_params": {
-                                  "list": [
-                                    {
-                                      "prop": "allData",
-                                      "propLabel": "allData",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "field",
-                                      "valueTypeLabel": "",
-                                      "value": "{{node:code_node_GKPcKOcF.data.gdData}}",
-                                      "valueLabel": ""
-                                    },
-                                    {
-                                      "prop": "saveAs",
-                                      "propLabel": "saveAs",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "value",
-                                      "valueTypeLabel": "",
-                                      "value": "Created",
-                                      "valueLabel": ""
-                                    },
-                                    {
-                                      "prop": "pageStatus",
-                                      "propLabel": "pageStatus",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "value",
-                                      "valueTypeLabel": "",
-                                      "value": "Edit",
-                                      "valueLabel": ""
-                                    },
-                                    {
-                                      "prop": "isPicking",
-                                      "propLabel": "isPicking",
-                                      "operator": "",
-                                      "operatorLabel": "",
-                                      "valueType": "value",
-                                      "valueTypeLabel": "",
-                                      "value": "Yes",
-                                      "valueLabel": ""
-                                    },
-                                    {
-                                      "prop": "isPacking",
-                                      "operator": "",
-                                      "valueType": "value",
-                                      "value": 1,
-                                      "valueLabel": "",
-                                      "propLabel": "isPacking"
-                                    }
-                                  ]
-                                }
+                                "condition": {},
+                                "title": "Get GD",
+                                "isValidator": true,
+                                "nodeName": "Get GD",
+                                "name": "Get GD"
                               },
                               "blocks": []
                             },
                             {
-                              "id": "if_6BaIrXu7",
+                              "id": "code_node_GKPcKOcF",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Prepare GD Data",
+                                "isValidator": true,
+                                "nodeName": "Prepare GD Data",
+                                "name": "Prepare GD Data",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const entry = {{workflowparams:entry}};\nconst gdData = {{node:get_node_nqe6SJFz.data.data}} || null;\n\nreturn {\n  shouldCallGdWorkflow: (gdData && gdData.id) ? 1 : 0,\n  gdData,\n};\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "ywtzeev3",
+                                    "name": "shouldCallGdWorkflow",
+                                    "title": "shouldCallGdWorkflow",
+                                    "description": "",
+                                    "bsonType": "int",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "6luyhcig",
+                                    "name": "gdData",
+                                    "title": "gdData",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "if_pREvKW2i",
                               "type": "if",
                               "data": {
-                                "title": "IF Error",
+                                "title": "IF runWorkflow",
                                 "isValidator": true,
-                                "nodeName": "IF Error",
-                                "name": "IF Error",
+                                "nodeName": "IF runWorkflow",
+                                "name": "IF runWorkflow",
                                 "condition_type": "Expression",
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 1,
+                                      "parentId": 0,
+                                      "isTop": true,
+                                      "prop": "",
+                                      "operator": "",
+                                      "valueType": "",
+                                      "value": "",
+                                      "type": "leaf",
+                                      "level": 1
+                                    }
+                                  ]
+                                },
                                 "expression": {
-                                  "type": "javascript",
-                                  "code": "'{{node:workflow_node_tAWfF7CE.data.code}}' == '400'"
+                                  "code": "'{{node:code_node_GKPcKOcF.data.shouldCallGdWorkflow}}' == '1'",
+                                  "type": "javascript"
                                 }
                               },
                               "blocks": [
                                 {
-                                  "id": "if_block_Tj54u9js",
+                                  "id": "if_block_vsHEPUFN",
                                   "type": "ifBlock",
                                   "data": { "title": "true" },
                                   "blocks": [
                                     {
-                                      "id": "return_node_Xx3aE4Am",
-                                      "type": "return-node",
+                                      "id": "workflow_node_tAWfF7CE",
+                                      "type": "workflow-node",
                                       "data": {
-                                        "return_data": {},
-                                        "status_code": 200,
-                                        "title": "Return Data",
+                                        "workflow_id": "",
+                                        "workflow_name": "",
+                                        "input_params": {},
+                                        "title": "Run GD Workflow",
                                         "isValidator": true,
-                                        "nodeName": "Return Data",
-                                        "name": "Return Data",
-                                        "response_value": {
+                                        "nodeName": "Run GD Workflow",
+                                        "name": "Run GD Workflow",
+                                        "workflow": {
+                                          "source": "GOODS_DELIVERY:Workflow:2017151544868491265",
+                                          "rules": {
+                                            "collectionId": "2017151544868491265",
+                                            "list": [
+                                              {
+                                                "id": 1723795236686,
+                                                "parentId": 1723795236685,
+                                                "isTop": true,
+                                                "prop": "",
+                                                "operator": "",
+                                                "valueType": "",
+                                                "value": "",
+                                                "type": "leaf",
+                                                "level": 1
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "remote": true,
+                                        "remoteType": "innerdatasource",
+                                        "body_params": {
                                           "list": [
                                             {
-                                              "prop": "errorStatus",
-                                              "propLabel": "Error Status",
+                                              "prop": "allData",
+                                              "propLabel": "allData",
+                                              "operator": "",
+                                              "operatorLabel": "",
+                                              "valueType": "field",
+                                              "valueTypeLabel": "",
+                                              "value": "{{node:code_node_GKPcKOcF.data.gdData}}",
+                                              "valueLabel": ""
+                                            },
+                                            {
+                                              "prop": "saveAs",
+                                              "propLabel": "saveAs",
                                               "operator": "",
                                               "operatorLabel": "",
                                               "valueType": "value",
                                               "valueTypeLabel": "",
-                                              "value": "400",
+                                              "value": "Created",
                                               "valueLabel": ""
                                             },
                                             {
-                                              "prop": "message",
+                                              "prop": "pageStatus",
+                                              "propLabel": "pageStatus",
                                               "operator": "",
-                                              "valueType": "field",
-                                              "value": "{{node:workflow_node_tAWfF7CE.data.message}}",
+                                              "operatorLabel": "",
+                                              "valueType": "value",
+                                              "valueTypeLabel": "",
+                                              "value": "Edit",
+                                              "valueLabel": ""
+                                            },
+                                            {
+                                              "prop": "isPicking",
+                                              "propLabel": "isPicking",
+                                              "operator": "",
+                                              "operatorLabel": "",
+                                              "valueType": "value",
+                                              "valueTypeLabel": "",
+                                              "value": "Yes",
+                                              "valueLabel": ""
+                                            },
+                                            {
+                                              "prop": "isPacking",
+                                              "operator": "",
+                                              "valueType": "value",
+                                              "value": 1,
                                               "valueLabel": "",
-                                              "propLabel": "Message"
+                                              "propLabel": "isPacking"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "if_6BaIrXu7",
+                                      "type": "if",
+                                      "data": {
+                                        "title": "IF Error",
+                                        "isValidator": true,
+                                        "nodeName": "IF Error",
+                                        "name": "IF Error",
+                                        "condition_type": "Expression",
+                                        "expression": {
+                                          "type": "javascript",
+                                          "code": "'{{node:workflow_node_tAWfF7CE.data.code}}' == '400'"
+                                        }
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "if_block_Tj54u9js",
+                                          "type": "ifBlock",
+                                          "data": { "title": "true" },
+                                          "blocks": [
+                                            {
+                                              "id": "return_node_Xx3aE4Am",
+                                              "type": "return-node",
+                                              "data": {
+                                                "return_data": {},
+                                                "status_code": 200,
+                                                "title": "Return Data",
+                                                "isValidator": true,
+                                                "nodeName": "Return Data",
+                                                "name": "Return Data",
+                                                "response_value": {
+                                                  "list": [
+                                                    {
+                                                      "prop": "errorStatus",
+                                                      "propLabel": "Error Status",
+                                                      "operator": "",
+                                                      "operatorLabel": "",
+                                                      "valueType": "value",
+                                                      "valueTypeLabel": "",
+                                                      "value": "400",
+                                                      "valueLabel": ""
+                                                    },
+                                                    {
+                                                      "prop": "message",
+                                                      "operator": "",
+                                                      "valueType": "field",
+                                                      "value": "{{node:workflow_node_tAWfF7CE.data.message}}",
+                                                      "valueLabel": "",
+                                                      "propLabel": "Message"
+                                                    }
+                                                  ]
+                                                },
+                                                "return_raw_data": 0
+                                              },
+                                              "blocks": []
                                             }
                                           ]
                                         },
-                                        "return_raw_data": 0
-                                      },
-                                      "blocks": []
+                                        {
+                                          "id": "if_block_iOLpZDxi",
+                                          "type": "ifBlock",
+                                          "data": { "title": "false" },
+                                          "blocks": []
+                                        }
+                                      ]
                                     }
                                   ]
                                 },
                                 {
-                                  "id": "if_block_iOLpZDxi",
+                                  "id": "if_block_Sl2O0nZM",
                                   "type": "ifBlock",
                                   "data": { "title": "false" },
                                   "blocks": []
@@ -1597,7 +1908,7 @@
                           ]
                         },
                         {
-                          "id": "if_block_Sl2O0nZM",
+                          "id": "if_block_PkHasGd_f",
                           "type": "ifBlock",
                           "data": { "title": "false" },
                           "blocks": []
@@ -1819,7 +2130,7 @@
                                       "prop": "total_hu_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_hu_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_hu_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Packing Count"
                                     },
@@ -1827,7 +2138,7 @@
                                       "prop": "total_item_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Count"
                                     },
@@ -1835,7 +2146,7 @@
                                       "prop": "total_item_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_qty}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Quantity"
                                     },
@@ -2316,7 +2627,7 @@
                                 "name": "Process SO Created Status",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}}\nconst tableItems = data.table_items || [];\nconst packingMode = data.packing_mode;\n\nlet uniqueSOIds\nlet uniqueSOLineIds\n\nif (packingMode === \"Basic\") {\n  //filter duplicated so_id\n  uniqueSOIds = [...new Set(tableItems.map((item) => item.so_id))];\n\n  //filter duplicated so_line_id\n  uniqueSOLineIds = [...new Set(tableItems.map((item) => item.so_line_id)),\n  ];\n}\n\nreturn {\n  uniqueSOIds: uniqueSOIds,\n  uniqueSOLineIds: uniqueSOLineIds\n}"
+                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}};\nconst sourceRows = data.table_item_source || [];\nconst tableHU = data.table_hu || [];\n\n// Line refs come from table_item_source (the full list of lines this packing\n// covers, populated in every packing_mode). table_hu temp_data is the fallback\n// for rows the source table no longer carries.\nconst collectLineIds = (field) => {\n  const ids = new Set();\n  for (const r of sourceRows) {\n    if (r && r[field]) ids.add(r[field]);\n  }\n  if (ids.size === 0) {\n    for (const row of tableHU) {\n      let entries;\n      try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n      for (const e of entries) {\n        if (e && e.type === \"nested_hu\") {\n          for (const c of e.children || []) {\n            if (c && c[field]) ids.add(c[field]);\n          }\n        } else if (e && e[field]) {\n          ids.add(e[field]);\n        }\n      }\n    }\n  }\n  return Array.from(ids);\n};\n\nreturn {\n  uniqueSOIds: [data.so_id].filter(Boolean),\n  uniqueSOLineIds: collectLineIds(\"so_line_id\"),\n};\n"
                                 },
                                 "response_json": [
                                   {
@@ -2511,7 +2822,7 @@
                                 "name": "Process GD Created Status",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}}\nconst tableItems = data.table_items || [];\nconst packingMode = data.packing_mode;\n\nlet uniqueGDIds\nlet uniqueGDLineIds\n\nif (packingMode === \"Basic\") {\n  //filter duplicated gd_id\n  uniqueGDIds = [...new Set(tableItems.map((item) => item.gd_id))];\n\n  //filter duplicated gd_line_id\n  uniqueGDLineIds = [...new Set(tableItems.map((item) => item.gd_line_id)),\n  ];\n}\n\nreturn {\n  uniqueGDIds: uniqueGDIds,\n  uniqueGDLineIds: uniqueGDLineIds\n}"
+                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}};\nconst sourceRows = data.table_item_source || [];\nconst tableHU = data.table_hu || [];\n\n// Line refs come from table_item_source (the full list of lines this packing\n// covers, populated in every packing_mode). table_hu temp_data is the fallback\n// for rows the source table no longer carries.\nconst collectLineIds = (field) => {\n  const ids = new Set();\n  for (const r of sourceRows) {\n    if (r && r[field]) ids.add(r[field]);\n  }\n  if (ids.size === 0) {\n    for (const row of tableHU) {\n      let entries;\n      try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n      for (const e of entries) {\n        if (e && e.type === \"nested_hu\") {\n          for (const c of e.children || []) {\n            if (c && c[field]) ids.add(c[field]);\n          }\n        } else if (e && e[field]) {\n          ids.add(e[field]);\n        }\n      }\n    }\n  }\n  return Array.from(ids);\n};\n\nreturn {\n  uniqueGDIds: [data.gd_id].filter(Boolean),\n  uniqueGDLineIds: collectLineIds(\"gd_line_id\"),\n};\n"
                                 },
                                 "response_json": [
                                   {
@@ -2707,12 +3018,12 @@
                                 "name": "Process TO Created Status",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}}\nconst tableItems = data.table_items || [];\nconst packingMode = data.packing_mode;\n\nlet uniqueTOIds\nlet uniqueTOLineIds\n\nif (packingMode === \"Basic\") {\n  //filter duplicated to_id\n  uniqueTOIds = [...new Set(tableItems.map((item) => item.to_id))];\n\n  //filter duplicated to_line_id\n  uniqueTOLineIds = [...new Set(tableItems.map((item) => item.to_line_id)),\n  ];\n}\n\nreturn {\n  uniqueTOIds: uniqueTOIds,\n  uniqueTOLineIds: uniqueTOLineIds\n}"
+                                  "code": "const data = {{node:code_node_CYy1gmHf.data.entry}};\nconst sourceRows = data.table_item_source || [];\nconst tableHU = data.table_hu || [];\n\n// Line refs come from table_item_source (the full list of lines this packing\n// covers, populated in every packing_mode). table_hu temp_data is the fallback\n// for rows the source table no longer carries.\nconst collectLineIds = (field) => {\n  const ids = new Set();\n  for (const r of sourceRows) {\n    if (r && r[field]) ids.add(r[field]);\n  }\n  if (ids.size === 0) {\n    for (const row of tableHU) {\n      let entries;\n      try { entries = JSON.parse(row.temp_data || \"[]\"); } catch (_) { entries = []; }\n      for (const e of entries) {\n        if (e && e.type === \"nested_hu\") {\n          for (const c of e.children || []) {\n            if (c && c[field]) ids.add(c[field]);\n          }\n        } else if (e && e[field]) {\n          ids.add(e[field]);\n        }\n      }\n    }\n  }\n  return Array.from(ids);\n};\n\nreturn {\n  uniqueTOIds: [data.to_id].filter(Boolean),\n  uniqueTOLineIds: collectLineIds(\"to_line_id\"),\n};\n"
                                 },
                                 "response_json": [
                                   {
                                     "key": "la3omkun",
-                                    "name": "uniqueGDIds",
+                                    "name": "uniqueTOIds",
                                     "title": "",
                                     "description": "",
                                     "bsonType": "array",
@@ -2731,7 +3042,7 @@
                                   },
                                   {
                                     "key": "kemppoex",
-                                    "name": "uniqueGDLineIds",
+                                    "name": "uniqueTOLineIds",
                                     "title": "",
                                     "description": "",
                                     "bsonType": "array",
@@ -2768,7 +3079,7 @@
                                         "prop": "id",
                                         "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{node:code_node_LqhE1mWf.data.uniqueGDIds}}",
+                                        "value": "{{node:code_node_LqhE1mWf.data.uniqueTOIds}}",
                                         "type": "leaf",
                                         "level": 1,
                                         "propLabel": "主键ID",
@@ -2816,7 +3127,7 @@
                                         "prop": "id",
                                         "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{node:code_node_LqhE1mWf.data.uniqueGDLineIds}}",
+                                        "value": "{{node:code_node_LqhE1mWf.data.uniqueTOLineIds}}",
                                         "type": "leaf",
                                         "level": 1,
                                         "propLabel": "主键ID",
@@ -3075,7 +3386,7 @@
                                       "prop": "total_hu_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_hu_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_hu_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Packing Count"
                                     },
@@ -3083,7 +3394,7 @@
                                       "prop": "total_item_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Count"
                                     },
@@ -3091,7 +3402,7 @@
                                       "prop": "total_item_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_qty}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Quantity"
                                     },
@@ -3733,7 +4044,7 @@
                                       "prop": "total_hu_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_hu_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_hu_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Packing Count"
                                     },
@@ -3741,7 +4052,7 @@
                                       "prop": "total_item_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Count"
                                     },
@@ -3749,7 +4060,7 @@
                                       "prop": "total_item_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_qty}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Quantity"
                                     },
@@ -4029,7 +4340,7 @@
                                       "prop": "total_hu_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_hu_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_hu_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Packing Count"
                                     },
@@ -4037,7 +4348,7 @@
                                       "prop": "total_item_count",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_count}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_count}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Count"
                                     },
@@ -4045,7 +4356,7 @@
                                       "prop": "total_item_qty",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{workflowparams:entry.total_item_qty}}",
+                                      "value": "{{node:code_node_CYy1gmHf.data.entry.total_item_qty}}",
                                       "valueLabel": "",
                                       "propLabel": "Total Item Quantity"
                                     },
@@ -4227,7 +4538,7 @@
                       "operatorLabel": "",
                       "valueType": "field",
                       "valueTypeLabel": "",
-                      "value": "{{node:workflow_node_h2UYhkit.data.data.status}}",
+                      "value": "{{node:workflow_node_avzlyNuL.data.data.status}}",
                       "valueLabel": "",
                       "prop": "status"
                     },
@@ -4235,7 +4546,7 @@
                       "prop": "message",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:workflow_node_bqpDGhP2.data.data.message}}",
+                      "value": "{{node:workflow_node_avzlyNuL.data.data.message}}",
                       "valueLabel": "",
                       "propLabel": "message"
                     },
