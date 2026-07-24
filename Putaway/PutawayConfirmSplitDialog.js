@@ -42,6 +42,17 @@ const setPutawayItemData = async (
     total_price: itemData.total_price,
     qi_no: itemData.qi_no,
     is_serialized_item: itemData.is_serialized_item,
+    // Carried through explicitly. This function rebuilds EVERY row of the table,
+    // including untouched ones, so any field omitted here is silently destroyed
+    // document-wide the moment a single line is split.
+    gr_line_id: itemData.gr_line_id || "",
+    // A handling unit is one physical pallet and cannot land in two bins, so the
+    // children of a split never inherit it -- only untouched and parent rows keep
+    // it. Without this, an HU line elsewhere in the document loses hu_data, its
+    // handling unit is never relocated, and its stock is added as loose.
+    hu_data: parentOrChild === "Child" ? "" : itemData.hu_data || "",
+    handling_unit_id:
+      parentOrChild === "Child" ? "" : itemData.handling_unit_id || "",
   };
 };
 
@@ -177,7 +188,14 @@ const setPutawayItemData = async (
             false,
           );
         }
-        this.disabled([`table_putaway_item.${index}.button_split`], false);
+        // Re-enable only for rows without a handling unit, mirroring
+        // disableSplitForHUItems in PutawayOnMounted.js. An unconditional enable
+        // here would hand the split button back to HU rows after any other line
+        // was split, defeating the HU-cannot-split rule.
+        this.disabled(
+          [`table_putaway_item.${index}.button_split`],
+          !!(paItem.hu_data && paItem.hu_data !== ""),
+        );
 
         if (paItem.is_serialized_item === 1) {
           this.disabled(
