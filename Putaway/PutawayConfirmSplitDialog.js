@@ -8,7 +8,7 @@ const setPutawayItemData = async (
   isSplit,
   parentOrChild,
   index,
-  selectSerialNumber = []
+  selectSerialNumber = [],
 ) => {
   return {
     line_index: lineIndex,
@@ -16,7 +16,7 @@ const setPutawayItemData = async (
     item_name: itemData.item_name,
     item_desc: itemData.item_desc,
     batch_no: itemData.batch_no,
-    serial_numbers: selectSerialNumber,
+    serial_numbers: JSON.stringify(selectSerialNumber.join("\n")),
     select_serial_number: selectSerialNumber,
     source_inv_category: itemData.source_inv_category,
     target_inv_category: itemData.target_inv_category,
@@ -55,18 +55,20 @@ const setPutawayItemData = async (
     const totalStoreInQty = parseFloat(
       tableSplit
         .reduce((sum, item) => sum + (parseFloat(item.store_in_qty) || 0), 0)
-        .toFixed(3)
+        .toFixed(3),
     );
 
     if (totalStoreInQty !== splitDialogData.qty_to_putaway) {
       throw new Error(
-        "Total store in quantity must be equal to pending putaway quantity."
+        "Total store in quantity must be equal to pending putaway quantity.",
       );
     }
 
     const rowIndex = splitDialogData.rowIndex;
 
     const latestPutawaytItem = [];
+
+    console.log("save split tablePutawayItem", tablePutawayItem);
 
     for (const [index, paItem] of tablePutawayItem.entries()) {
       if (index === rowIndex) {
@@ -75,11 +77,12 @@ const setPutawayItemData = async (
           paItem.parent_index + 1,
           totalStoreInQty,
           "",
+          "",
           paItem.remark,
           "Yes",
           "Parent",
           index,
-          paItem.select_serial_number
+          paItem.select_serial_number,
         );
         latestPutawaytItem.push(parentItem);
 
@@ -94,7 +97,7 @@ const setPutawayItemData = async (
             "No",
             "Child",
             index,
-            dialogItem.select_serial_number
+            dialogItem.select_serial_number,
           );
           latestPutawaytItem.push(childItem);
         }
@@ -109,7 +112,7 @@ const setPutawayItemData = async (
           paItem.is_split,
           paItem.parent_or_child,
           paItem.parent_index,
-          paItem.select_serial_number
+          paItem.select_serial_number,
         );
         latestPutawaytItem.push(parentItem);
       }
@@ -142,7 +145,7 @@ const setPutawayItemData = async (
             `table_putaway_item.${index}.target_location`,
             `table_putaway_item.${index}.remark`,
           ],
-          true
+          true,
         );
 
         this.setData({
@@ -153,7 +156,7 @@ const setPutawayItemData = async (
         if (!paItem.qi_no || paItem.qi_no === null) {
           this.disabled(
             [`table_putaway_item.${index}.target_inv_category`],
-            false
+            false,
           );
         }
         this.disabled([`table_putaway_item.${index}.button_split`], true);
@@ -164,14 +167,14 @@ const setPutawayItemData = async (
               `table_putaway_item.${index}.select_serial_number`,
               `table_putaway_item.${index}.putaway_qty`,
             ],
-            true
+            true,
           );
         }
       } else {
         if (!paItem.qi_no || paItem.qi_no === null) {
           this.disabled(
             [`table_putaway_item.${index}.target_inv_category`],
-            false
+            false,
           );
         }
         this.disabled([`table_putaway_item.${index}.button_split`], false);
@@ -182,7 +185,7 @@ const setPutawayItemData = async (
               `table_putaway_item.${index}.select_serial_number`,
               `table_putaway_item.${index}.putaway_qty`,
             ],
-            false
+            false,
           );
         }
       }

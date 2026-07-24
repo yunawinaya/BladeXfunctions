@@ -5,12 +5,12 @@
   const rowIndex = data.rowIndex;
   const uom = this.getValue(`table_putaway_item.${rowIndex}.item_uom`);
   const isSerializedItem = this.getValue(
-    `table_putaway_item.${rowIndex}.is_serialized_item`
+    `table_putaway_item.${rowIndex}.is_serialized_item`,
   );
 
   if (isSerializedItem === 1 && noOfSplit > qtyToPutaway) {
     this.$message.error(
-      "Number of split cannot be greater than quantity to putaway for serialized item"
+      "Number of split cannot be greater than quantity to putaway for serialized item",
     );
     return;
   }
@@ -36,12 +36,12 @@
       [`split_dialog.table_split.store_in_qty`]: 0,
     });
     const serialNumbers = this.getValue(
-      `table_putaway_item.${rowIndex}.select_serial_number`
+      `table_putaway_item.${rowIndex}.select_serial_number`,
     );
     for (let i = 0; i < noOfSplit; i++) {
       await this.setOptionData(
         `split_dialog.table_split.${i}.select_serial_number`,
-        serialNumbers
+        serialNumbers,
       );
     }
   }
