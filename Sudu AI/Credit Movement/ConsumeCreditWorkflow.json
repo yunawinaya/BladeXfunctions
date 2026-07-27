@@ -167,7 +167,7 @@
         "name": "Compute Consumption",
         "script": {
           "type": "javascript",
-          "code": "const customer = {{node:get_node_cc_customer.data.data}} || {};\nconst amount = parseFloat({{workflowparams:credit_consume}}) || 0;\n\nconst subBefore = parseFloat(customer.monthly_remain_credit) || 0;\nconst reloadBefore = parseFloat(customer.flex_remain_credit) || 0;\n\n// Bucket rule preserved exactly from the original workflow: the reload bucket is\n// used only once the subscription bucket is exhausted AND reload has something.\n// Balances are allowed to go negative - there is deliberately no sufficiency check.\nconst source = (subBefore <= 0 && reloadBefore > 0) ? 'Flex' : 'Month';\n\nconst subAfter = source === 'Month' ? subBefore - amount : subBefore;\nconst reloadAfter = source === 'Flex' ? reloadBefore - amount : reloadBefore;\n\nconst movement = {\n  customer_id: customer.id,\n  transaction_type: 'AI Usage',\n  ai_credit_source: source,\n  ai_credit_amount: Math.round(amount),\n  monthly_previous_balance: Math.round(subBefore),\n  monthly_balance_after: Math.round(subAfter),\n  flex_previous_balance: Math.round(reloadBefore),\n  flex_balance_after: Math.round(reloadAfter),\n  dealer_id: '',\n  agent_id: '',\n};\n\nreturn {\n  customerId: customer.id,\n  source,\n  amount: Math.round(amount),\n  subBefore: Math.round(subBefore),\n  subAfter: Math.round(subAfter),\n  reloadBefore: Math.round(reloadBefore),\n  reloadAfter: Math.round(reloadAfter),\n  movement,\n};"
+          "code": "const customer = {{node:get_node_cc_customer.data.data}} || {};\n// The atomic Update Balances node subtracts this exact integer from the chosen\n// bucket, so round ONCE here and reuse the rounded value everywhere - otherwise\n// the movement audit row (amount / previous / after) drifts from the real DB\n// balance whenever credit_consume arrives fractional.\nconst amount = Math.round(parseFloat({{workflowparams:credit_consume}}) || 0);\n\nconst subBefore = parseFloat(customer.monthly_remain_credit) || 0;\nconst reloadBefore = parseFloat(customer.flex_remain_credit) || 0;\n\n// Bucket rule preserved exactly from the original workflow: the reload bucket is\n// used only once the subscription bucket is exhausted AND reload has something.\n// Balances are allowed to go negative - there is deliberately no sufficiency check.\nconst source = (subBefore <= 0 && reloadBefore > 0) ? 'Flex' : 'Month';\n\n// Deltas fed to the atomic node as minus(...) formulas. Exactly one is non-zero;\n// the untouched bucket takes minus(0), a no-op, so a single atomic node covers\n// both branches without an if-node.\nconst monthlyDelta = source === 'Month' ? amount : 0;\nconst flexDelta = source === 'Flex' ? amount : 0;\n\n// Projected balances - where the atomic node lands assuming the stored balance\n// is still the one we just read. Under concurrent consumption the DB value is\n// authoritative and these are best-effort audit/response values.\nconst subAfter = subBefore - monthlyDelta;\nconst reloadAfter = reloadBefore - flexDelta;\n\nconst movement = {\n  customer_id: customer.id,\n  transaction_type: 'AI Usage',\n  ai_credit_source: source,\n  ai_credit_amount: amount,\n  monthly_previous_balance: Math.round(subBefore),\n  monthly_balance_after: Math.round(subAfter),\n  flex_previous_balance: Math.round(reloadBefore),\n  flex_balance_after: Math.round(reloadAfter),\n  dealer_id: '',\n  agent_id: '',\n};\n\nreturn {\n  customerId: customer.id,\n  source,\n  amount,\n  monthlyDelta,\n  flexDelta,\n  subBefore: Math.round(subBefore),\n  subAfter: Math.round(subAfter),\n  reloadBefore: Math.round(reloadBefore),\n  reloadAfter: Math.round(reloadAfter),\n  movement,\n};"
         },
         "response_json": [
           {
@@ -241,14 +241,32 @@
             "bsonType": "any",
             "isExpand": false,
             "children": []
+          },
+          {
+            "key": "kmpute8",
+            "name": "monthlyDelta",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kmpute9",
+            "name": "flexDelta",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
       "blocks": []
     },
     {
-      "id": "update_node_cc_customer",
-      "type": "update-node",
+      "id": "atomic_count_node_cc_customer",
+      "type": "atomic-count-node",
       "data": {
         "table_id": {
           "source": "Sudu Customer:Table:1983717165334331394",
@@ -282,31 +300,35 @@
           "modelName": "",
           "list": [
             {
-              "prop": "id",
-              "valueType": "field",
-              "value": "{{node:code_cc_compute.data.customerId}}",
-              "operator": "",
-              "valueLabel": "",
-              "propLabel": "主键ID"
-            },
-            {
               "prop": "monthly_remain_credit",
-              "valueType": "field",
-              "value": "{{node:code_cc_compute.data.subAfter}}",
+              "propLabel": "Sub Remain Credit",
               "operator": "",
-              "valueLabel": "",
-              "propLabel": "Sub Remain Credit"
+              "operatorLabel": "",
+              "valueType": "formula",
+              "valueTypeLabel": "",
+              "value": "minus({{node:code_cc_compute.data.monthlyDelta}})",
+              "valueLabel": ""
             },
             {
               "prop": "flex_remain_credit",
-              "valueType": "field",
-              "value": "{{node:code_cc_compute.data.reloadAfter}}",
+              "propLabel": "Reload Remain Credit",
               "operator": "",
-              "valueLabel": "",
-              "propLabel": "Reload Remain Credit"
+              "operatorLabel": "",
+              "valueType": "formula",
+              "valueTypeLabel": "",
+              "value": "minus({{node:code_cc_compute.data.flexDelta}})",
+              "valueLabel": ""
             }
           ]
-        }
+        },
+        "sorts": [],
+        "is_custom_error": 0,
+        "err_lock_acquire_failed": "",
+        "err_config_invalid": "",
+        "err_data_not_found": "",
+        "err_stock_insufficient": "",
+        "err_concurrent_conflict": "",
+        "err_deduct_incomplete": ""
       },
       "blocks": []
     },
