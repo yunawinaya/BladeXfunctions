@@ -490,6 +490,15 @@
         const allHUs = responseHU.data || [];
         const huTableData = [];
 
+        // HUs this GD line is ALREADY allocated to. A packed HU is normally
+        // excluded from selection (see below), but the line's own existing
+        // allocation has to stay visible — otherwise re-opening the dialog on a
+        // packed line shows zero allocation and confirming writes back empty.
+        const ownAllocatedHuIds = new Set();
+        for (const t of parseTempQtyData(tempHuDataStr)) {
+          if (t && t.handling_unit_id) ownAllocatedHuIds.add(t.handling_unit_id);
+        }
+
         // Fetch cross-GD HU reservations for display deduction
         const huReservationRes = await db
           .collection("on_reserved_gd")
@@ -523,7 +532,10 @@
           // doc — exclude it from selectable rows. Its qty already lives in
           // item_balance.reserved_qty, so it's not in the loose (unrestricted)
           // pool and needs no separate deduction.
-          if (hu.packing_id) continue;
+          // Exception: an HU this line already holds an allocation in. That qty
+          // is reserved for THIS GD, so showing it re-offers nothing — it just
+          // lets the existing allocation render instead of silently vanishing.
+          if (hu.packing_id && !ownAllocatedHuIds.has(hu.id)) continue;
 
           const itemsToShow =
             splitPolicy === "ALLOW_SPLIT"
