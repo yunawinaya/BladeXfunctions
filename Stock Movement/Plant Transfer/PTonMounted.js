@@ -521,10 +521,16 @@ const hideBatchAdd = () => {
           data.stock_movement_status === "Created" &&
           movementType === "Plant Transfer (Receiving)"
         ) {
-          this.disabled(
-            ["issuing_operation_faci", "stock_movement.received_quantity"],
-            true,
-          );
+          // received_quantity is now editable so the receiving plant can accept a
+          // partial transfer; completing part spawns a leftover Created child and
+          // keeps the issuing parent In Progress. HU lines stay whole-only (a
+          // handling unit can't be split) — locked here per row.
+          this.disabled(["issuing_operation_faci"], true);
+          (data.stock_movement || []).forEach((row, i) => {
+            if (row.handling_unit_id) {
+              this.disabled([`stock_movement.${i}.received_quantity`], true);
+            }
+          });
           await filterPTReceivingCategory();
           await displayManufacturingAndExpiredDate(
             data.stock_movement_status,
@@ -574,6 +580,36 @@ const hideBatchAdd = () => {
             ],
             true,
           );
+        }
+
+        // Once the receiving plant has (partially) received this transfer, a
+        // Completed receiving child exists. Editing the issuing parent from here
+        // would rebuild and clobber the outstanding leftover child, so lock the
+        // whole form (policy A). The server enforces the same via a 400 guard.
+        if (
+          data.stock_movement_status === "In Progress" &&
+          data.movement_type === "Plant Transfer" &&
+          data.id
+        ) {
+          try {
+            const receivedChild = await db
+              .collection("plant_transfer")
+              .where({
+                parent_id: data.id,
+                movement_type: "Plant Transfer (Receiving)",
+                stock_movement_status: "Completed",
+                is_deleted: 0,
+              })
+              .get();
+            if (receivedChild?.data?.length > 0) {
+              editDisabledField();
+              this.$message?.info?.(
+                "This Plant Transfer has been partially received and is now read-only.",
+              );
+            }
+          } catch (e) {
+            console.error("PT received-child check failed:", e);
+          }
         }
 
         if (data.stock_movement_status === "Draft") {
