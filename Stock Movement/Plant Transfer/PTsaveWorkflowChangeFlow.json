@@ -12133,6 +12133,40 @@
                       ]
                     },
                     {
+                      "id": "get_node_PTissLines",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Plant Transfer:Table:2025846960482627586",
+                          "rules": {
+                            "collectionId": "2025846960482627586",
+                            "list": [
+                              {
+                                "id": 1790100000200,
+                                "parentId": 1790100000201,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_PtIssuedRows.data.header.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get Persisted SM Lines",
+                        "isValidator": true,
+                        "nodeName": "Get Persisted SM Lines",
+                        "name": "Get Persisted SM Lines"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "code_node_PTissLedger",
                       "type": "code-node",
                       "data": {
@@ -12145,7 +12179,7 @@
                         "name": "Stage In Transit Ledger",
                         "script": {
                           "type": "javascript",
-                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\nconst allData = {{node:code_node_PtIssuedRows.data.header}};\nconst receivingBin = {{node:get_node_WtFOLdKB.data.data.id}};\nconst itemsRaw = {{node:search_node_PtIssuedItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemMap = {};\nfor (const it of items) if (it && it.id) itemMap[String(it.id)] = it;\n\nconst lines = allData.stock_movement || [];\nconst issuingPlant = allData.issuing_operation_faci;\nconst receivingPlant = allData.receiving_operation_faci;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// One in_transit_detail row per staged balance entry. Owner = this issuing PT;\n// the receiving child(ren) consume it on completion (searched by doc_id == parent).\nconst creates = [];\nfor (const line of lines) {\n  const index = (parseInt(line.line_index, 10) || 1) - 1;\n  const mat = line.item_selection; if (!mat) continue;\n  const it = itemMap[String(mat)] || {};\n  const uom = it.based_uom || line.quantity_uom || line.received_quantity_uom;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  entries = entries.filter((b) => b.sm_quantity && parseFloat(b.sm_quantity) > 0);\n  if (entries.length === 0) {\n    entries = (allData.balance_index || []).filter(\n      (b) => String(b.row_index) === String(index) && b.sm_quantity && parseFloat(b.sm_quantity) > 0\n    );\n  }\n  for (const b of entries) {\n    const qty = roundQty(b.sm_quantity); if (qty <= 0) continue;\n    const cat = b.category || \"Unrestricted\";\n    creates.push({\n      doc_type: \"Plant Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: line.id || \"\", line_no: line.line_index,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n      material_id: mat, item_code: it.material_code || \"\", item_name: it.material_name || \"\", item_desc: it.material_desc || \"\",\n      item_uom: uom, batch_id: b.batch_id || null, handling_unit_id: b.handling_unit_id || null,\n      plant_id: receivingPlant, organization_id: allData.organization_id, transit_bin: receivingBin,\n      from_plant_id: issuingPlant, from_bin: b.location_id, from_category: cat,\n      to_plant_id: receivingPlant, to_bin: null, to_category: cat,\n      transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n      status: \"In Transit\", transit_date: docDate, received_date: null, remark: line.item_remark || \"\",\n      target_doc_type: \"\", target_doc_id: \"\", target_doc_no: \"\", target_doc_line_id: \"\", source_transit_id: \"\",\n    });\n  }\n}\nreturn { transitCreates: creates, hasTransitCreates: creates.length > 0 ? 1 : 0 };\n"
+                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\nconst allData = {{node:code_node_PtIssuedRows.data.header}};\nconst receivingBin = {{node:get_node_WtFOLdKB.data.data.id}};\nconst itemsRaw = {{node:search_node_PtIssuedItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemMap = {};\nfor (const it of items) if (it && it.id) itemMap[String(it.id)] = it;\n\n// doc_line_id fix (same class as GR): the add-node response carries no subform\n// row ids, so line.id is empty on a fresh (Add) save. Re-read the persisted doc\n// and resolve each line's id by its persisted line_index.\nconst persistedRaw = {{node:get_node_PTissLines.data.data}};\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\nconst persistedLines = (persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : [];\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\n\nconst lines = allData.stock_movement || [];\nconst issuingPlant = allData.issuing_operation_faci;\nconst receivingPlant = allData.receiving_operation_faci;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// One in_transit_detail row per staged balance entry. Owner = this issuing PT;\n// the receiving child(ren) consume it on completion (searched by doc_id == parent).\nconst creates = [];\nfor (const line of lines) {\n  const index = (parseInt(line.line_index, 10) || 1) - 1;\n  const mat = line.item_selection; if (!mat) continue;\n  const it = itemMap[String(mat)] || {};\n  const uom = it.based_uom || line.quantity_uom || line.received_quantity_uom;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  entries = entries.filter((b) => b.sm_quantity && parseFloat(b.sm_quantity) > 0);\n  if (entries.length === 0) {\n    entries = (allData.balance_index || []).filter(\n      (b) => String(b.row_index) === String(index) && b.sm_quantity && parseFloat(b.sm_quantity) > 0\n    );\n  }\n  for (const b of entries) {\n    const qty = roundQty(b.sm_quantity); if (qty <= 0) continue;\n    const cat = b.category || \"Unrestricted\";\n    creates.push({\n      doc_type: \"Plant Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\", line_no: line.line_index,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n      material_id: mat, item_code: it.material_code || \"\", item_name: it.material_name || \"\", item_desc: it.material_desc || \"\",\n      item_uom: uom, batch_id: b.batch_id || null, handling_unit_id: b.handling_unit_id || null,\n      plant_id: receivingPlant, organization_id: allData.organization_id, transit_bin: receivingBin,\n      from_plant_id: issuingPlant, from_bin: b.location_id, from_category: cat,\n      to_plant_id: receivingPlant, to_bin: null, to_category: cat,\n      transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n      status: \"In Transit\", transit_date: docDate, received_date: null, remark: line.item_remark || \"\",\n      target_doc_type: \"\", target_doc_id: \"\", target_doc_no: \"\", target_doc_line_id: \"\", source_transit_id: \"\",\n    });\n  }\n}\nreturn { transitCreates: creates, hasTransitCreates: creates.length > 0 ? 1 : 0 };\n"
                         },
                         "response_json": [
                           {
