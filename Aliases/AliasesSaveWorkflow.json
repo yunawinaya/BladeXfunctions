@@ -1805,7 +1805,7 @@
                 "name": "Alias ID",
                 "script": {
                   "type": "javascript",
-                  "code": "const actionType = {{workflowparams:data.action_type}}\nconst id = actionType === 'Create' ? {{node:add_node_xfT2e5od.data.id}} : {{workflowparams:data.id}}\n\nreturn {\n  id\n}"
+                  "code": "const actionType = {{workflowparams:data.action_type}};\nconst rawId = actionType === 'Create' ? {{node:add_node_xfT2e5od.data.id}} : {{workflowparams:data.id}};\n\n// add-node returns data.id as an ARRAY of inserted ids, and the form may also\n// hand back data.id as a single-element array - always collapse to a scalar.\nlet value = Array.isArray(rawId) ? rawId[0] : rawId;\nif (value && typeof value === 'object') {\n  value = value.id;\n}\n\nconst id = (value === null || value === undefined) ? '' : String(value);\n\nreturn {\n  id\n}"
                 },
                 "response_json": [
                   {
