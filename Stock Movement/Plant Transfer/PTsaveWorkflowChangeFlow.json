@@ -836,43 +836,626 @@
               "blocks": []
             },
             {
-              "id": "search_node_PtCancelItems",
-              "type": "search-node",
+              "id": "condition_all_PTcancelCtx",
+              "type": "condition-all-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "level": 1,
-                        "children": [
-                          {
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_PtCancelItemIDs.data.itemIDs}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Primary Key ID",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    ]
-                  }
+                "title": "Parallel Branch",
+                "filter": {
+                  "list": []
                 },
-                "condition": {},
-                "limit": 200,
-                "title": "Get Items (Cancel)",
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "condition_all_item_PTcancelItems",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Items",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1790200000100,
+                          "parentId": 1790200000099,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": ""
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Items",
+                    "name": "Items",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_PtCancelItems",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Item:Table:1901546842240438273",
+                          "rules": {
+                            "collectionId": "1901546842240438273",
+                            "list": [
+                              {
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_PtCancelItemIDs.data.itemIDs}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Primary Key ID",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 200,
+                        "title": "Get Items (Cancel)",
+                        "isValidator": true,
+                        "nodeName": "Get Items (Cancel)",
+                        "name": "Get Items (Cancel)"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_all_item_PTcancelSetup",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "PT Setup",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1790200000100,
+                          "parentId": 1790200000099,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": ""
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "PT Setup",
+                    "name": "PT Setup",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "get_node_PTcancelSetup",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Plant Transfer Setup:Table:2026217265759727617",
+                          "rules": {
+                            "collectionId": "2026217265759727617",
+                            "list": [
+                              {
+                                "id": 1790200000002,
+                                "parentId": 1790200000001,
+                                "isTop": true,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{node:code_node_37LA0tgq.data.allData.organization_id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "Organization ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get Plant Transfer Setup (Cancel)",
+                        "isValidator": true,
+                        "nodeName": "Get Plant Transfer Setup (Cancel)",
+                        "name": "Get Plant Transfer Setup (Cancel)"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_all_item_PTcancelBin",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Receiving Default Bin",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1790200000100,
+                          "parentId": 1790200000099,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": ""
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Receiving Default Bin",
+                    "name": "Receiving Default Bin",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "get_node_PTcancelStorLoc",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Storage Location:Table:1986694920453566466",
+                          "rules": {
+                            "collectionId": "1986694920453566466",
+                            "list": [
+                              {
+                                "id": 1790200000010,
+                                "parentId": 1790200000009,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1790200000011,
+                                    "parentId": 1790200000010,
+                                    "isTop": false,
+                                    "prop": "plant_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Plant",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1790200000012,
+                                    "parentId": 1790200000010,
+                                    "isTop": false,
+                                    "prop": "is_default",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Default Storage Location",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1790200000013,
+                                    "parentId": 1790200000010,
+                                    "isTop": false,
+                                    "prop": "storage_status",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Active",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1790200000014,
+                                    "parentId": 1790200000010,
+                                    "isTop": false,
+                                    "prop": "location_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Common",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Location Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get Receiving Default Storage Location (Cancel)",
+                        "isValidator": true,
+                        "nodeName": "Get Receiving Default Storage Location (Cancel)",
+                        "name": "Get Receiving Default Storage Location (Cancel)"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "get_node_PTcancelBin",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Bin Location:Table:1902282127538507778",
+                          "rules": {
+                            "collectionId": "1902282127538507778",
+                            "list": [
+                              {
+                                "id": 1790200000020,
+                                "parentId": 1790200000019,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1790200000021,
+                                    "parentId": 1790200000020,
+                                    "isTop": false,
+                                    "prop": "plant_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_37LA0tgq.data.allData.receiving_operation_faci}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Plant",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1790200000022,
+                                    "parentId": 1790200000020,
+                                    "isTop": false,
+                                    "prop": "storage_location_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{node:get_node_PTcancelStorLoc.data.data.id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Storage Location",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1790200000023,
+                                    "parentId": 1790200000020,
+                                    "isTop": false,
+                                    "prop": "is_default",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Default Receiving Location",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1790200000024,
+                                    "parentId": 1790200000020,
+                                    "isTop": false,
+                                    "prop": "bin_status",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Active",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get Receiving Default Bin (Cancel)",
+                        "isValidator": true,
+                        "nodeName": "Get Receiving Default Bin (Cancel)",
+                        "name": "Get Receiving Default Bin (Cancel)"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_all_item_PTcancelChild",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Receiving Child",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1790200000100,
+                          "parentId": 1790200000099,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": ""
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Receiving Child",
+                    "name": "Receiving Child",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_PTcancelChild",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Plant Transfer:Table:2025846960482627586",
+                          "rules": {
+                            "collectionId": "2025846960482627586",
+                            "list": [
+                              {
+                                "id": 1790100000091,
+                                "parentId": 1790100000090,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1790100000077,
+                                    "parentId": 1790100000091,
+                                    "isTop": false,
+                                    "prop": "parent_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_37LA0tgq.data.allData.id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Parent ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 1790100000084,
+                                    "parentId": 1790100000091,
+                                    "isTop": false,
+                                    "prop": "movement_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Plant Transfer (Receiving)",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Movement Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1000,
+                        "title": "Get Receiving Child",
+                        "isValidator": true,
+                        "nodeName": "Get Receiving Child",
+                        "name": "Get Receiving Child"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_node_PTcancelChildFlag",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Child Flag & Cancel Guard",
                 "isValidator": true,
-                "nodeName": "Get Items (Cancel)",
-                "name": "Get Items (Cancel)"
+                "nodeName": "Child Flag & Cancel Guard",
+                "name": "Child Flag & Cancel Guard",
+                "script": {
+                  "type": "javascript",
+                  "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst rows = {{node:search_node_PTcancelChild.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\n\n// code_node_37LA0tgq rewrites allData.stock_movement_no to the literal \"issued\" for\n// any auto-numbered document whose status is not \"Created\", so read the real number\n// off the re-read record. This feeds both the \"-Cancelled\" rename and the reversal\n// movements' trx_no.\nconst rawDoc = {{node:get_node_ulAJ3pZj.data.data}};\nconst doc = Array.isArray(rawDoc) ? rawDoc[0] : rawDoc;\nconst docNo = (doc && doc.stock_movement_no) || \"\";\n\n// Free the number for reuse. Idempotent -- a re-cancel must not stack suffixes -- and\n// an unresolved placeholder is left alone rather than becoming \"issued-Cancelled\".\nconst cancelNo = (no) =>\n  !no || no === \"issued\" || no === \"draft\" || no.endsWith(\"-Cancelled\")\n    ? no || \"\"\n    : no + \"-Cancelled\";\n\n// Only a still-live Created receiving child is orphaned by cancelling the parent;\n// historical Completed children (from partial receipts) are left as-is.\nconst child = arr.find((c) => c && c.stock_movement_status === \"Created\") || null;\n\n// Guards -- evaluated before ANY inventory write. Inventory at In Progress is identical\n// to Issued (source already subtracted, stock parked as In Transit at the receiving\n// plant's default bin), so both reverse through the same path; nothing else may.\nconst status = allData.stock_movement_status;\nconst movementType = allData.movement_type;\nlet cancelBlocked = 0;\nlet blockMessage = \"\";\n\nif (movementType === \"Plant Transfer (Receiving)\") {\n  // Cancelling a child on its own would strand the In Transit stock with no owner.\n  cancelBlocked = 1;\n  blockMessage = \"A receiving Plant Transfer cannot be cancelled on its own. Cancel the issuing Plant Transfer instead.\";\n} else if (status !== \"Issued\" && status !== \"In Progress\") {\n  cancelBlocked = 1;\n  blockMessage = \"Only Issued or In Progress Plant Transfers can be cancelled. This document is \" + status + \".\";\n} else if (arr.some((c) => c && c.stock_movement_status === \"Completed\")) {\n  // A Completed receiving child means the receiving plant already took part of the\n  // stock, so reversing the full sent quantity would subtract In Transit that is no\n  // longer there -- and the loop has no rollback, so it would partial-commit.\n  cancelBlocked = 1;\n  blockMessage = \"This Plant Transfer has already been received (in full or in part) and can no longer be cancelled.\";\n}\n\nreturn {\n  hasChild: child ? 1 : 0,\n  childId: child ? child.id : \"\",\n  cancelBlocked: cancelBlocked,\n  blockMessage: blockMessage,\n  docNo: docNo,\n  cancelledDocNo: cancelNo(docNo),\n  cancelledChildNo: cancelNo(child ? child.stock_movement_no : \"\"),\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "hasChilds",
+                    "name": "hasChild",
+                    "title": "hasChild",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "childIds",
+                    "name": "childId",
+                    "title": "childId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cnclblkd",
+                    "name": "cancelBlocked",
+                    "title": "cancelBlocked",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cnclblmsg",
+                    "name": "blockMessage",
+                    "title": "blockMessage",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "cncldocno",
+                    "name": "docNo",
+                    "title": "docNo",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "cncldocnox",
+                    "name": "cancelledDocNo",
+                    "title": "cancelledDocNo",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "cnclchldno",
+                    "name": "cancelledChildNo",
+                    "title": "cancelledChildNo",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
               },
               "blocks": []
+            },
+            {
+              "id": "if_PTcancelGuard",
+              "type": "if",
+              "data": {
+                "title": "IF Cancel Blocked",
+                "isValidator": true,
+                "nodeName": "IF Cancel Blocked",
+                "name": "IF Cancel Blocked",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1790200000031,
+                      "parentId": 1790200000030,
+                      "isTop": true,
+                      "prop": "node.code_node_PTcancelChildFlag.data.cancelBlocked",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "cancelBlocked",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_PTcancelGuardTrue",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "return_node_PTcancelGuard",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "operator": "",
+                              "valueType": "value",
+                              "value": "400",
+                              "valueLabel": "",
+                              "propLabel": "code"
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PTcancelChildFlag.data.blockMessage}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_PTcancelGuardFalse",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
             },
             {
               "id": "code_node_PTcancelCompute",
@@ -887,7 +1470,7 @@
                 "name": "Compute Cancel Movements",
                 "script": {
                   "type": "javascript",
-                  "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst allData = {{node:code_node_37LA0tgq.data.allData}};\nconst receivingDefaultLoc = {{node:get_node_WtFOLdKB.data.data.id}};\nconst lines = allData.stock_movement || [];\nconst issuingPlant = allData.issuing_operation_faci;\nconst receivingPlant = allData.receiving_operation_faci;\n\n// Reverse the In-Progress staged state, cross-plant: subtract In Transit at the\n// receiving default bin (receiving plant), add back at the source bin (issuing\n// plant). Behaviour-preserving stage-1 flatten: addCategory keeps the prior\n// hardcoded \"Unrestricted\".\nconst movements = [];\nconst materialSet = {};\nfor (const line of lines) {\n  const index = (parseInt(line.line_index, 10) || 1) - 1;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  entries = entries.filter((b) => b.sm_quantity && parseFloat(b.sm_quantity) > 0);\n  if (entries.length === 0) {\n    entries = (allData.balance_index || []).filter(\n      (b) => String(b.row_index) === String(index) && b.sm_quantity && parseFloat(b.sm_quantity) > 0\n    );\n  }\n  for (const b of entries) {\n    const qty = roundQty(b.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = line.item_selection;\n    materialSet[mat] = true;\n    movements.push({\n      material_id: mat, batch_id: b.batch_id || null, quantity: qty,\n      material_uom: line.quantity_uom || line.received_quantity_uom,\n      manufacturing_date: b.manufacturing_date || null, expired_date: b.expired_date || null,\n      handling_unit_id: b.handling_unit_id || null,\n      subtractPlant: receivingPlant, subtractCategory: \"In Transit\", subtractLocation: receivingDefaultLoc,\n      addPlant: issuingPlant, addCategory: b.category || \"Unrestricted\", addLocation: b.location_id,\n    });\n  }\n}\nreturn {\n  movements, movementsLength: movements.length, materialIds: Object.keys(materialSet),\n  issuing_plant: issuingPlant, receiving_plant: receivingPlant,\n  organization_id: allData.organization_id, stock_movement_no: allData.stock_movement_no,\n  doc_date: allData.issue_date,\n};\n"
+                  "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst allData = {{node:code_node_37LA0tgq.data.allData}};\nconst receivingDefaultLoc = {{node:get_node_PTcancelBin.data.data.id}};\n// Real document number, not the \"issued\" placeholder allData carries here.\nconst docNo = {{node:code_node_PTcancelChildFlag.data.docNo}};\nconst lines = allData.stock_movement || [];\nconst issuingPlant = allData.issuing_operation_faci;\nconst receivingPlant = allData.receiving_operation_faci;\n\n// Reverse the In-Progress staged state, cross-plant: subtract In Transit at the\n// receiving default bin (receiving plant), add back at the source bin (issuing\n// plant). Behaviour-preserving stage-1 flatten: addCategory keeps the prior\n// hardcoded \"Unrestricted\".\nconst movements = [];\nconst materialSet = {};\nfor (const line of lines) {\n  const index = (parseInt(line.line_index, 10) || 1) - 1;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  entries = entries.filter((b) => b.sm_quantity && parseFloat(b.sm_quantity) > 0);\n  if (entries.length === 0) {\n    entries = (allData.balance_index || []).filter(\n      (b) => String(b.row_index) === String(index) && b.sm_quantity && parseFloat(b.sm_quantity) > 0\n    );\n  }\n  for (const b of entries) {\n    const qty = roundQty(b.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = line.item_selection;\n    materialSet[mat] = true;\n    movements.push({\n      material_id: mat, batch_id: b.batch_id || null, quantity: qty,\n      material_uom: line.quantity_uom || line.received_quantity_uom,\n      manufacturing_date: b.manufacturing_date || null, expired_date: b.expired_date || null,\n      handling_unit_id: b.handling_unit_id || null,\n      subtractPlant: receivingPlant, subtractCategory: \"In Transit\", subtractLocation: receivingDefaultLoc,\n      addPlant: issuingPlant, addCategory: b.category || \"Unrestricted\", addLocation: b.location_id,\n    });\n  }\n}\nreturn {\n  movements, movementsLength: movements.length, materialIds: Object.keys(materialSet),\n  issuing_plant: issuingPlant, receiving_plant: receivingPlant,\n  organization_id: allData.organization_id, stock_movement_no: docNo,\n  doc_date: allData.issue_date,\n};\n"
                 },
                 "response_json": [
                   {
@@ -1987,106 +2570,6 @@
               ]
             },
             {
-              "id": "search_node_PTcancelChild",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "Plant Transfer:Table:2025846960482627586",
-                  "rules": {
-                    "collectionId": "2025846960482627586",
-                    "list": [
-                      {
-                        "id": 1790100000091,
-                        "parentId": 1790100000090,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1790100000077,
-                            "parentId": 1790100000091,
-                            "isTop": false,
-                            "prop": "parent_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{node:code_node_37LA0tgq.data.allData.id}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Parent ID",
-                            "valueLabel": "",
-                            "operatorLabel": "equal"
-                          },
-                          {
-                            "id": 1790100000084,
-                            "parentId": 1790100000091,
-                            "isTop": false,
-                            "prop": "movement_type",
-                            "operator": "equal",
-                            "valueType": "value",
-                            "value": "Plant Transfer (Receiving)",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Movement Type",
-                            "valueLabel": "",
-                            "operatorLabel": "equal"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 1000,
-                "title": "Get Receiving Child",
-                "isValidator": true,
-                "nodeName": "Get Receiving Child",
-                "name": "Get Receiving Child"
-              },
-              "blocks": []
-            },
-            {
-              "id": "code_node_PTcancelChildFlag",
-              "type": "code-node",
-              "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Child Flag",
-                "isValidator": true,
-                "nodeName": "Child Flag",
-                "name": "Child Flag",
-                "script": {
-                  "type": "javascript",
-                  "code": "const rows = {{node:search_node_PTcancelChild.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\n// Only a still-live Created receiving child is orphaned by cancelling the parent;\n// historical Completed children (from partial receipts) are left as-is.\nconst child = arr.find((c) => c && c.stock_movement_status === \"Created\") || null;\nreturn { hasChild: child ? 1 : 0, childId: child ? child.id : \"\" };\n"
-                },
-                "response_json": [
-                  {
-                    "key": "hasChilds",
-                    "name": "hasChild",
-                    "title": "hasChild",
-                    "description": "",
-                    "bsonType": "int",
-                    "isExpand": false,
-                    "children": []
-                  },
-                  {
-                    "key": "childIds",
-                    "name": "childId",
-                    "title": "childId",
-                    "description": "",
-                    "bsonType": "string",
-                    "isExpand": false,
-                    "children": []
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
               "id": "if_PTcancelChild",
               "type": "if",
               "data": {
@@ -2172,6 +2655,14 @@
                               "value": "Cancelled",
                               "valueLabel": "",
                               "propLabel": "Status"
+                            },
+                            {
+                              "prop": "stock_movement_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PTcancelChildFlag.data.cancelledChildNo}}",
+                              "valueLabel": "",
+                              "propLabel": "Stock Movement No"
                             }
                           ]
                         }
@@ -2231,7 +2722,7 @@
                             "prop": "location_id",
                             "operator": "numberEqual",
                             "valueType": "field",
-                            "value": "{{node:get_node_WtFOLdKB.data.data.id}}",
+                            "value": "{{node:get_node_PTcancelBin.data.data.id}}",
                             "type": "leaf",
                             "level": 2,
                             "propLabel": "Bin Location",
@@ -2273,7 +2764,7 @@
                           "id": 1777970001001,
                           "parentId": 1777970001000,
                           "isTop": true,
-                          "prop": "node.get_node_tt0natxw.data.data.generate_new_batch",
+                          "prop": "node.get_node_PTcancelSetup.data.data.generate_new_batch",
                           "operator": "numberEqual",
                           "valueType": "value",
                           "value": 0,
@@ -2719,7 +3210,7 @@
                         "name": "Aggregate Cancel HU Unloads",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst receivingPlantId = allData.receiving_operation_faci;\nconst receivingDefaultLoc = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receivingDefaultStorage = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nlet husAtReceiving = {{node:search_node_JXM2g1CY.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Find new HU via transfer_source_hu_id linkage\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h]));\n\n// Empty the new HU at receiving plant default bin\nconst unloadMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  // Prefer temp_qty_data per line; fall back to balance_index entries for this row\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  const lineUom = (smRow && (smRow.received_quantity_uom || smRow.quantity_uom)) || \"\";\n\n  for (const entry of entries) {\n    const sourceHuId = entry.handling_unit_id;\n    if (!sourceHuId) continue;\n    const qty = parseFloat(entry.sm_quantity || 0);\n    if (qty <= 0) continue;\n\n    const newHu = huBySource.get(sourceHuId);\n    if (!newHu) continue;  // defensive — new HU not at default; skip\n\n    if (!unloadMap.has(newHu.id)) {\n      unloadMap.set(newHu.id, {\n        handling_unit_id: newHu.id,\n        plant_id: receivingPlantId,\n        organization_id: organizationId,\n        location_id: receivingDefaultLoc,\n        storage_location_id: receivingDefaultStorage,\n        items: [],\n      });\n    }\n    unloadMap.get(newHu.id).items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom || lineUom,\n      balance_id: \"\",\n      batch_id: entry.batch_id || \"\",\n      quantity: qty,\n    });\n  }\n}\n\nconst huUnloads = Array.from(unloadMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huUnloads: huUnloads, huUnloadsLength: huUnloads.length };"
+                          "code": "const allData = {{node:code_node_37LA0tgq.data.allData}};\nconst stockMovement = allData.stock_movement || [];\nconst balanceIndex = allData.balance_index || [];\nconst organizationId = allData.organization_id;\nconst receivingPlantId = allData.receiving_operation_faci;\nconst receivingDefaultLoc = {{node:get_node_PTcancelBin.data.data.id}};\nconst receivingDefaultStorage = {{node:get_node_PTcancelBin.data.data.storage_location_id}};\n\nlet husAtReceiving = {{node:search_node_JXM2g1CY.data.data}} || [];\nif (!Array.isArray(husAtReceiving)) husAtReceiving = [husAtReceiving];\n\n// Find new HU via transfer_source_hu_id linkage\nconst huBySource = new Map(husAtReceiving.map((h) => [h.transfer_source_hu_id, h]));\n\n// Empty the new HU at receiving plant default bin\nconst unloadMap = new Map();\nfor (const [idx, smRow] of stockMovement.entries()) {\n  // Prefer temp_qty_data per line; fall back to balance_index entries for this row\n  let entries = [];\n  try {\n    entries = JSON.parse(smRow.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries) || entries.length === 0) {\n    entries = balanceIndex.filter(\n      (b) => String(b.row_index) === String(idx)\n    );\n  }\n\n  const lineUom = (smRow && (smRow.received_quantity_uom || smRow.quantity_uom)) || \"\";\n\n  for (const entry of entries) {\n    const sourceHuId = entry.handling_unit_id;\n    if (!sourceHuId) continue;\n    const qty = parseFloat(entry.sm_quantity || 0);\n    if (qty <= 0) continue;\n\n    const newHu = huBySource.get(sourceHuId);\n    if (!newHu) continue;  // defensive — new HU not at default; skip\n\n    if (!unloadMap.has(newHu.id)) {\n      unloadMap.set(newHu.id, {\n        handling_unit_id: newHu.id,\n        plant_id: receivingPlantId,\n        organization_id: organizationId,\n        location_id: receivingDefaultLoc,\n        storage_location_id: receivingDefaultStorage,\n        items: [],\n      });\n    }\n    unloadMap.get(newHu.id).items.push({\n      material_id: entry.material_id,\n      material_uom: entry.material_uom || lineUom,\n      balance_id: \"\",\n      batch_id: entry.batch_id || \"\",\n      quantity: qty,\n    });\n  }\n}\n\nconst huUnloads = Array.from(unloadMap.values()).map((u) => ({\n  handling_unit_id: u.handling_unit_id,\n  plant_id: u.plant_id,\n  organization_id: u.organization_id,\n  location_id: u.location_id,\n  storage_location_id: u.storage_location_id,\n  table_hu_items: u.items,\n}));\n\nreturn { huUnloads: huUnloads, huUnloadsLength: huUnloads.length };"
                         },
                         "response_json": [
                           {
@@ -3588,6 +4079,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Stock Movement Status"
+                    },
+                    {
+                      "prop": "stock_movement_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_PTcancelChildFlag.data.cancelledDocNo}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Stock Movement No"
                     }
                   ]
                 }

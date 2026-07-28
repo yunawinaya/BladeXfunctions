@@ -547,9 +547,13 @@ const hideBatchAdd = () => {
           await isGenerateBatch(organizationId);
         }
 
+        // Terminal statuses are read-only. Cancelled belongs here too: its inventory
+        // reversal has already run, so the lines must not be editable even though no
+        // save button is rendered for that status.
         if (
           data.stock_movement_status === "Completed" ||
-          data.stock_movement_status === "Fully Posted"
+          data.stock_movement_status === "Fully Posted" ||
+          data.stock_movement_status === "Cancelled"
         ) {
           editDisabledField();
           if (movementType === "Plant Transfer (Receiving)") {
