@@ -399,16 +399,55 @@ const setStorageLocation = async (plantID) => {
 const handleBinLocation = async (defaultBin, defaultStorageLocation) => {
   try {
     if (defaultBin && defaultStorageLocation) {
-      this.setData({
-        [`stock_movement.storage_location_id`]: defaultStorageLocation,
-        [`stock_movement.location_id`]: defaultBin,
+      // Default only the rows that have no bin yet. The whole-column form of
+      // this setData overwrites EVERY row, which would wipe the per-row bins a
+      // user picked when splitting a line and saved.
+      const rows = this.getValue("stock_movement") || [];
+      const updates = {};
+
+      rows.forEach((row, index) => {
+        if (!row.storage_location_id) {
+          updates[`stock_movement.${index}.storage_location_id`] =
+            defaultStorageLocation;
+        }
+        if (!row.location_id) {
+          updates[`stock_movement.${index}.location_id`] = defaultBin;
+        }
       });
+
+      if (Object.keys(updates).length > 0) {
+        this.setData(updates);
+      }
     }
     this.disabled(`stock_movement.storage_location_id`, false);
     this.disabled(`stock_movement.location_id`, false);
   } catch (error) {
     console.error(error);
     this.$message.error(error.message || "An error occurred");
+  }
+};
+
+// Re-assert the editable state of split rows when a saved document is reopened.
+// The split handlers set this per row, but that only lasts for the session that
+// ran the split.
+const applySplitFieldStates = (stockMovement) => {
+  for (const [index, row] of (stockMovement || []).entries()) {
+    if (row.is_split === "Yes" && row.parent_or_child === "Split-Parent") {
+      this.disabled(
+        [
+          `stock_movement.${index}.received_quantity`,
+          `stock_movement.${index}.storage_location_id`,
+          `stock_movement.${index}.location_id`,
+        ],
+        false,
+      );
+
+      // Defensive: handling-unit lines are blocked from splitting, but a whole
+      // handling unit must never become partially receivable.
+      if (row.handling_unit_id) {
+        this.disabled([`stock_movement.${index}.received_quantity`], true);
+      }
+    }
   }
 };
 
@@ -449,7 +488,9 @@ const isGenerateBatch = async (organizationId) => {
   }
 };
 
-const hideBatchAdd = () => {
+const ROW_ACTION_STYLE_ID = "pt-hide-row-actions";
+
+const hideBatchAddButtons = () => {
   setTimeout(() => {
     const editButtons = document.querySelectorAll(
       ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link",
@@ -457,11 +498,14 @@ const hideBatchAdd = () => {
     editButtons.forEach((button) => {
       button.style.display = "none";
     });
+  }, 500);
+};
 
-    const styleId = "pt-hide-row-actions";
-    if (!document.getElementById(styleId)) {
+const hideRowActions = () => {
+  setTimeout(() => {
+    if (!document.getElementById(ROW_ACTION_STYLE_ID)) {
       const style = document.createElement("style");
-      style.id = styleId;
+      style.id = ROW_ACTION_STYLE_ID;
       style.textContent = `
         .fm-virtual-table__row-cell .scope-action { display: none !important; }
         .fm-virtual-table__row-cell .scope-index { display: flex !important; }
@@ -469,6 +513,18 @@ const hideBatchAdd = () => {
       document.head.appendChild(style);
     }
   }, 500);
+};
+
+// The style above is appended to document.head and never removed, so it leaks
+// across drawer opens: a terminal-status Plant Transfer viewed earlier in the
+// same session would otherwise keep the Split row action hidden here.
+const showRowActions = () => {
+  document.getElementById(ROW_ACTION_STYLE_ID)?.remove();
+};
+
+const hideBatchAdd = () => {
+  hideBatchAddButtons();
+  hideRowActions();
 };
 
 (async () => {
@@ -536,13 +592,17 @@ const hideBatchAdd = () => {
             data.stock_movement_status,
             pageStatus,
           );
+          applySplitFieldStates(data.stock_movement);
           await setStorageLocation(data.issuing_operation_faci);
           setTimeout(async () => {
             await handleBinLocation(
               this.getValue("default_bin"),
               this.getValue("default_storage_location"),
             );
-            hideBatchAdd();
+            // Only the header add/edit links are hidden here — the row actions
+            // must stay visible so the receiver can split a line.
+            hideBatchAddButtons();
+            showRowActions();
           }, 500);
           await isGenerateBatch(organizationId);
         }
