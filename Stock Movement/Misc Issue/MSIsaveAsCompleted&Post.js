@@ -6,81 +6,108 @@ const closeDialog = () => {
   }
 };
 
-const postToAccounting = async (
-  stockMovementId,
-  accIntegrationType,
-  organizationId,
-) => {
-  if (
-    accIntegrationType === "SQL Accounting" &&
-    organizationId &&
-    organizationId !== ""
-  ) {
-    await this.runWorkflow(
-      "1958732352162164738",
-      { key: "value" },
-      async (res) => {
-        if (res.data.status === "running") {
-          await this.runWorkflow(
-            "1910197713380311041",
-            { key: "value" },
-            () => {
-              this.$message.success(
-                "Misc Issue completed and posted successfully.",
-              );
-              closeDialog();
-            },
-            (err) => {
-              console.error("SQL Accounting post error:", err);
-              closeDialog();
-              throw new Error(
-                "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
-              );
-            },
-          );
-        }
-      },
-      (err) => {
-        console.error("SQL Accounting workflow error:", err);
-        this.hideLoading();
-        throw new Error(
-          "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
-        );
-      },
-    );
-  } else if (
-    accIntegrationType === "AutoCount Accounting" &&
-    organizationId &&
-    organizationId !== ""
-  ) {
-    await this.runWorkflow(
-      "1996041187778228226",
-      { sm_id: [stockMovementId] },
-      () => {
-        this.$message.success("Misc Issue completed and posted successfully.");
-        closeDialog();
-      },
-      (err) => {
-        console.error("AutoCount workflow error:", err);
-        closeDialog();
-        throw new Error(
-          "Your AutoCount accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
-        );
-      },
-    );
-  } else if (
-    accIntegrationType === "No Accounting Integration" &&
-    organizationId &&
-    organizationId !== ""
-  ) {
-    await db.collection("sm_misc_issue").doc(stockMovementId).update({
-      stock_movement_status: "Completed",
-      posted_status: "",
-    });
-    this.$message.success("Misc Issue completed and posted successfully.");
-    closeDialog();
+const postToAccounting = async (stockMovementId, organizationId) => {
+  const resAI = await db
+    .collection("accounting_integration")
+    .where({ organization_id: organizationId })
+    .get();
+  const aiData = resAI.data[0];
+
+  if (aiData.acc_integration_type !== "No Accounting Integration") {
+    await db
+      .collection("sm_misc_issue")
+      .doc(stockMovementId)
+      .update({ posted_status: "Pending Post" });
   } else {
-    closeDialog();
+    await db.collection("sm_misc_issue").doc(stockMovementId).update({
+      posted_status: "",
+      stock_movement_status: "Completed",
+    });
+  }
+
+  switch (aiData.acc_integration_type) {
+    case "SQL Accounting":
+      await this.runWorkflow(
+        "1958732352162164738",
+        { key: "value" },
+        async (res) => {
+          if (res.data.status === "running") {
+            await this.runWorkflow(
+              "1910197713380311041",
+              { key: "value" },
+              () => {
+                this.$message.success(
+                  "Misc Issue completed and posted successfully.",
+                );
+                closeDialog();
+              },
+              (err) => {
+                console.error("SQL Accounting post error:", err);
+                this.$message.error(
+                  "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
+                );
+                closeDialog();
+              },
+            );
+          }
+        },
+        (err) => {
+          console.error("SQL Accounting workflow error:", err);
+          this.$message.error(
+            "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
+          );
+          closeDialog();
+        },
+      );
+      break;
+
+    case "AutoCount Accounting":
+      await this.runWorkflow(
+        "1996041187778228226",
+        { sm_id: [stockMovementId] },
+        () => {
+          this.$message.success("Misc Issue completed and posted successfully.");
+          closeDialog();
+        },
+        (err) => {
+          console.error("AutoCount workflow error:", err);
+          this.$message.error(
+            "Your AutoCount accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
+          );
+          closeDialog();
+        },
+      );
+      break;
+
+    case "No Accounting Integration":
+      this.$message.success("Misc Issue completed successfully.");
+      closeDialog();
+      break;
+
+    case "SQL Accounting V2":
+    case "AutoCount Accounting V2":
+      this.$message.success("Misc Issue completed successfully.");
+      closeDialog();
+      await this.runWorkflow(
+        "2013511169625042946",
+        {
+          agent_id: aiData.agent_id,
+          task_type: "post_smi",
+          payload: [stockMovementId],
+          priority: "0",
+        },
+        async (res) => {
+          console.log("成功结果：", res);
+        },
+        (err) => {
+          console.log("失败结果：", err);
+        },
+      );
+      break;
+
+    default:
+      closeDialog();
+      break;
   }
 };
 
@@ -181,16 +208,9 @@ const runCompleteWorkflow = async (data, filterZero) => {
       return;
     }
 
-    // Step 2: Update stock movement with posted status
-    await db.collection("sm_misc_issue").doc(stockMovementId).update({
-      stock_movement_status: "Completed",
-      posted_status: "Pending Post",
-    });
-
-    const accIntegrationType = this.getValue("acc_integration_type");
-
-    // Step 3: Call posting workflow based on accounting integration type
-    await postToAccounting(stockMovementId, accIntegrationType, organizationId);
+    // Step 2: Update posted status and call the posting workflow based on
+    // the organization's accounting integration type
+    await postToAccounting(stockMovementId[0], organizationId);
   } catch (error) {
     this.hideLoading();
     console.error("Error:", error);
