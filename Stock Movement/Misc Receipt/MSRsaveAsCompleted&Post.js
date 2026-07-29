@@ -6,6 +6,190 @@ const closeDialog = () => {
   }
 };
 
+const runSaveWorkflow = async (data, filterZero, organizationId) => {
+  let workflowResult;
+
+  await this.runWorkflow(
+    "2014528394297737217",
+    {
+      allData: data,
+      saveAs: "Completed",
+      pageStatus: data.page_status,
+      filter_zero: filterZero,
+    },
+    async (res) => {
+      workflowResult = res;
+    },
+    (err) => {
+      console.error("Failed to save Misc Receipt:", err);
+      this.hideLoading();
+      workflowResult = err;
+    },
+  );
+
+  if (!workflowResult || !workflowResult.data) {
+    this.hideLoading();
+    this.$message.error("No response from workflow");
+    return;
+  }
+
+  if (
+    workflowResult.data.code === "400" ||
+    workflowResult.data.code === 400 ||
+    workflowResult.data.success === false
+  ) {
+    this.hideLoading();
+    const errorMessage =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Failed to save Misc Receipt";
+    this.$message.error(errorMessage);
+    return;
+  }
+
+  if (
+    workflowResult.data.code === "401" ||
+    workflowResult.data.code === 401 ||
+    workflowResult.data.success === false
+  ) {
+    this.hideLoading();
+    await this.$confirm(
+      workflowResult.data.msg ||
+        workflowResult.data.message ||
+        "Failed to save Misc Receipt",
+      "Confirmation",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      },
+    );
+
+    await runSaveWorkflow(data, "Yes");
+    return;
+  }
+
+  // Step 2: If Completed workflow succeeded, proceed to Post
+  if (
+    workflowResult.data.code === "200" ||
+    workflowResult.data.code === 200 ||
+    workflowResult.data.success === true
+  ) {
+    const stockMovementId = workflowResult.data.id;
+
+    await postToAccounting(stockMovementId, organizationId);
+  } else {
+    this.hideLoading();
+    this.$message.error("Unknown workflow status");
+  }
+};
+
+const postToAccounting = async (stockMovementId, organizationId) => {
+  const resAI = await db
+    .collection("accounting_integration")
+    .where({ organization_id: organizationId })
+    .get();
+  const aiData = resAI.data[0];
+
+  if (aiData.acc_integration_type !== "No Accounting Integration") {
+    await db
+      .collection("sm_misc_receipt")
+      .doc(stockMovementId)
+      .update({ posted_status: "Pending Post" });
+  } else {
+    await db.collection("sm_misc_receipt").doc(stockMovementId).update({
+      posted_status: "",
+      stock_movement_status: "Completed",
+    });
+  }
+
+  switch (aiData.acc_integration_type) {
+    case "SQL Accounting":
+      await this.runWorkflow(
+        "1958732352162164738",
+        { key: "value" },
+        async (res) => {
+          if (res.data.status === "running") {
+            await this.runWorkflow(
+              "2022201099226836993",
+              { smr_id: [stockMovementId] },
+              () => {
+                this.$message.success(
+                  "Misc Receipt completed and posted successfully.",
+                );
+                closeDialog();
+              },
+              (err) => {
+                console.error("SQL Accounting post error:", err);
+                this.$message.error(
+                  "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
+                );
+                closeDialog();
+              },
+            );
+          }
+        },
+        (err) => {
+          console.error("SQL Accounting workflow error:", err);
+          this.$message.error(
+            "Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
+          );
+          closeDialog();
+        },
+      );
+      break;
+
+    case "AutoCount Accounting":
+      await this.runWorkflow(
+        "2026201453795684354",
+        { smr_id: [stockMovementId] },
+        () => {
+          this.$message.success(
+            "Misc Receipt completed and posted successfully.",
+          );
+          closeDialog();
+        },
+        (err) => {
+          console.error("AutoCount workflow error:", err);
+          this.$message.error(
+            "Your AutoCount accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.",
+          );
+          closeDialog();
+        },
+      );
+      break;
+
+    case "No Accounting Integration":
+      this.$message.success("Misc Receipt completed successfully.");
+      closeDialog();
+      break;
+
+    case "SQL Accounting V2":
+    case "AutoCount Accounting V2":
+      this.$message.success("Misc Receipt completed successfully.");
+      closeDialog();
+      await this.runWorkflow(
+        "2013511169625042946",
+        {
+          agent_id: aiData.agent_id,
+          task_type: "post_smr",
+          payload: [stockMovementId],
+          priority: "0",
+        },
+        async (res) => {
+          console.log("成功结果：", res);
+          // this.$message.success("Update Misc Issue successfully.");
+        },
+        (err) => {
+          console.log("失败结果：", err);
+          // this.hideLoading();
+        },
+      );
+      break;
+  }
+};
+
 (async () => {
   try {
     this.showLoading("Saving Misc Receipt as Completed & Posting...");
@@ -17,68 +201,7 @@ const closeDialog = () => {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
     }
 
-    let workflowResult;
-
-    // Step 1: Run the Completed workflow
-    await this.runWorkflow(
-      "2014528394297737217",
-      { allData: data, saveAs: "Completed", pageStatus: data.page_status },
-      async (res) => {
-        workflowResult = res;
-      },
-      (err) => {
-        console.error("Failed to save Misc Receipt:", err);
-        this.hideLoading();
-        workflowResult = err;
-      },
-    );
-
-    if (!workflowResult || !workflowResult.data) {
-      this.hideLoading();
-      this.$message.error("No response from workflow");
-      return;
-    }
-
-    if (
-      workflowResult.data.code === "400" ||
-      workflowResult.data.code === 400 ||
-      workflowResult.data.success === false
-    ) {
-      this.hideLoading();
-      const errorMessage =
-        workflowResult.data.msg ||
-        workflowResult.data.message ||
-        "Failed to save Misc Receipt";
-      this.$message.error(errorMessage);
-      return;
-    }
-
-    // Step 2: If Completed workflow succeeded, proceed to Post
-    if (
-      workflowResult.data.code === "200" ||
-      workflowResult.data.code === 200 ||
-      workflowResult.data.success === true
-    ) {
-      const stockMovementId = workflowResult.data.id;
-
-      // Update stock movement with posted status
-      await db.collection("sm_misc_receipt").doc(stockMovementId).update({
-        stock_movement_status: "Completed",
-        posted_status: "Pending Post",
-      });
-
-      const accIntegrationType = this.getValue("acc_integration_type");
-
-      // Step 3: Call posting workflow based on accounting integration type
-      await postToAccounting(
-        stockMovementId,
-        accIntegrationType,
-        organizationId,
-      );
-    } else {
-      this.hideLoading();
-      this.$message.error("Unknown workflow status");
-    }
+    await runSaveWorkflow(data, "No", organizationId);
   } catch (error) {
     this.hideLoading();
     console.error("Error:", error);
