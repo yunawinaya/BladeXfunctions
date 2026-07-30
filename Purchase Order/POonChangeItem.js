@@ -1,3 +1,26 @@
+// Pick the description this supplier has bound to the item on the Item master.
+// Reads table_sup_item_bind (supplier_id / item_description) -- NOT the customer
+// twin. An item may carry several rows for the same supplier: take the first one
+// that actually has a description. Falls back to the item's own material_desc.
+const resolveItemDesc = (item, supplierId) => {
+  const fallback = item?.material_desc || "";
+  if (!supplierId || Array.isArray(supplierId)) return fallback;
+
+  const binds = Array.isArray(item?.table_sup_item_bind)
+    ? item.table_sup_item_bind
+    : [];
+  const wanted = String(supplierId).trim();
+
+  for (const row of binds) {
+    if (!row) continue;
+    if (String(row.supplier_id ?? "").trim() !== wanted) continue;
+    const desc = String(row.item_description ?? "").trim();
+    if (desc) return desc;
+  }
+
+  return fallback;
+};
+
 const resetData = async (rowIndex) => {
   this.setData({
     [`table_po.${rowIndex}.item_name`]: "",
@@ -81,8 +104,10 @@ const resetData = async (rowIndex) => {
             item.discount_uom;
           updates[`table_po.${item.line_index}.item_category_id`] =
             arguments[0].fieldModel.item.item_category;
-          updates[`table_po.${item.line_index}.item_desc`] =
-            arguments[0].fieldModel.item.material_desc;
+          updates[`table_po.${item.line_index}.item_desc`] = resolveItemDesc(
+            arguments[0].fieldModel.item,
+            supplierID,
+          );
           updates[`table_po.${item.line_index}.item_name`] =
             arguments[0].fieldModel.item.material_name;
           updates[`table_po.${item.line_index}.further_description`] =
