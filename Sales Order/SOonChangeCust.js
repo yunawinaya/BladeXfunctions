@@ -188,7 +188,35 @@ const formatAddress = (address, state, country, addressTypeUpperCase) => {
   return formattedAddress;
 };
 
-const fetchLatestPricing = async (result, overwrite) => {
+// Pick the description this customer has bound to the item on the Item master.
+// An item may carry several rows for the same customer -- take the first one
+// that actually has a description. Falls back to the item's own material_desc.
+const resolveItemDesc = (item, customerId) => {
+  const fallback = item?.material_desc || "";
+  if (!customerId || Array.isArray(customerId)) return fallback;
+
+  const binds = Array.isArray(item?.table_cust_item_bind)
+    ? item.table_cust_item_bind
+    : [];
+  const wanted = String(customerId).trim();
+
+  for (const row of binds) {
+    if (!row) continue;
+    if (String(row.customer_id ?? "").trim() !== wanted) continue;
+    const desc = String(row.item_desc ?? "").trim();
+    if (desc) return desc;
+  }
+
+  return fallback;
+};
+
+const fetchLatestPricing = async (
+  result,
+  overwrite,
+  itemById,
+  itemIdByLine,
+  customerId,
+) => {
   const updates = {};
 
   for (const item of result) {
@@ -206,6 +234,16 @@ const fetchLatestPricing = async (result, overwrite) => {
       updates[`table_so.${item.line_index}.so_discount_uom`] =
         item.discount_uom;
       updates[`table_so.${item.line_index}.trigger_calc`] = "Yes";
+
+      // Re-resolve the line description against the new customer's binding.
+      const masterId = itemIdByLine[item.line_index];
+      const master = masterId ? itemById[String(masterId)] : null;
+      if (master) {
+        updates[`table_so.${item.line_index}.so_desc`] = resolveItemDesc(
+          master,
+          customerId,
+        );
+      }
     }
 
     updates[`table_so.${item.line_index}.max_price`] = item.max_price;
@@ -227,6 +265,22 @@ const fetchLatestPricing = async (result, overwrite) => {
       const hasItemID = tableSO.some((item) => item.item_name);
 
       if (hasItemID) {
+        // Line -> item master, needed to re-resolve so_desc for the new
+        // customer. Started here (not awaited) so the single batched fetch
+        // overlaps the pricing workflow round-trip.
+        const itemIdByLine = {};
+        tableSO.forEach((line, index) => {
+          if (line.item_name) itemIdByLine[index] = line.item_name;
+        });
+        const itemIds = [...new Set(Object.values(itemIdByLine))];
+        const itemsPromise = itemIds.length
+          ? db
+              .collection("Item")
+              .filter(new Filter().in("id", itemIds).build())
+              .get()
+              .catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] });
+
         await this.runWorkflow(
           "2067818102244966401",
           {
@@ -249,13 +303,25 @@ const fetchLatestPricing = async (result, overwrite) => {
           },
           async (result) => {
             console.log("result", result);
+
+            const resItems = await itemsPromise;
+            const itemById = {};
+            for (const it of (resItems && resItems.data) || [])
+              itemById[String(it.id)] = it;
+
             if (result.data.needOverwrite === "No")
-              await fetchLatestPricing(result.data.data, "No");
+              await fetchLatestPricing(
+                result.data.data,
+                "No",
+                itemById,
+                itemIdByLine,
+                customerId,
+              );
 
             await this.$confirm(
-              `The customer has been changed. Please choose one: <br><br>Please choose one: <br>
-        <strong>Overwrite:</strong> Replace the price based on the latest customer. <em>(If any)</em><br>
-        <strong>Keep:</strong> Keep the existing item price.`,
+              `The customer has been changed. Please choose one: <br><br>
+        <strong>Overwrite:</strong> Replace the price and description based on the latest customer. <em>(If any)</em><br>
+        <strong>Keep:</strong> Keep the existing item price and description.`,
               "Customer Change Detected",
               {
                 confirmButtonText: "Overwrite",
@@ -266,10 +332,22 @@ const fetchLatestPricing = async (result, overwrite) => {
 
                 beforeClose: async (action, instance, done) => {
                   if (action === "confirm") {
-                    await fetchLatestPricing(result.data.data, "Yes");
+                    await fetchLatestPricing(
+                      result.data.data,
+                      "Yes",
+                      itemById,
+                      itemIdByLine,
+                      customerId,
+                    );
                     done();
                   } else if (action === "cancel") {
-                    await fetchLatestPricing(result.data.data, "No");
+                    await fetchLatestPricing(
+                      result.data.data,
+                      "No",
+                      itemById,
+                      itemIdByLine,
+                      customerId,
+                    );
                     done();
                   } else {
                     done();

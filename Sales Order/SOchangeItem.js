@@ -31,6 +31,29 @@ const resetData = async (rowIndex) => {
   });
 };
 console.log("item_codechange");
+
+// Pick the description this customer has bound to the item on the Item master.
+// An item may carry several rows for the same customer -- take the first one
+// that actually has a description. Falls back to the item's own material_desc.
+const resolveItemDesc = (item, customerId) => {
+  const fallback = item?.material_desc || "";
+  if (!customerId || Array.isArray(customerId)) return fallback;
+
+  const binds = Array.isArray(item?.table_cust_item_bind)
+    ? item.table_cust_item_bind
+    : [];
+  const wanted = String(customerId).trim();
+
+  for (const row of binds) {
+    if (!row) continue;
+    if (String(row.customer_id ?? "").trim() !== wanted) continue;
+    const desc = String(row.item_desc ?? "").trim();
+    if (desc) return desc;
+  }
+
+  return fallback;
+};
+
 const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   if (
     !Array.isArray(table_uom_conversion) ||
@@ -259,8 +282,10 @@ const fetchUnrestrictedQty = async (
             item.discount_uom;
           updates[`table_so.${item.line_index}.item_category_id`] =
             arguments[0].fieldModel.item.item_category;
-          updates[`table_so.${item.line_index}.so_desc`] =
-            arguments[0].fieldModel.item.material_desc;
+          updates[`table_so.${item.line_index}.so_desc`] = resolveItemDesc(
+            arguments[0].fieldModel.item,
+            customerID,
+          );
           updates[`table_so.${item.line_index}.item_id`] =
             arguments[0].fieldModel.item.material_name;
           updates[`table_so.${item.line_index}.custom_fields`] =
