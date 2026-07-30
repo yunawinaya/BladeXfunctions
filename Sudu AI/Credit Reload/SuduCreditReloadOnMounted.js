@@ -11,6 +11,8 @@ const LOCKED_ON_EDIT = [
   'currency_id',
   'exchange_rate',
   'reload_amount',
+  'reload_discount',
+  'reload_discount_uom',
 ];
 
 const PAYMENT_FIELDS = [
