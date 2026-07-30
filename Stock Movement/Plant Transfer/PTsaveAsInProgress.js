@@ -19,6 +19,7 @@ const closeDialog = () => {
       if (id && id !== "") {
         data.id = id;
       }
+      data.stock_movement_status = "Issued";
     }
 
     let workflowResult;
