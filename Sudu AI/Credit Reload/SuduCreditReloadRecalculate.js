@@ -42,9 +42,14 @@ if (discount > 0 && !discountUom) {
   uomDefaulted = true;
 }
 
-if (discountUom && discount > 0) {
-  discountAmount =
-    discountUom === '%' ? round((totalGross * discount) / 100, 2) : round(discount, 2);
+// Named branches, not a ternary with an Amount fallback - an unexpected type must
+// price as nothing rather than quietly as an Amount.
+if (discount > 0) {
+  if (discountUom === '%') {
+    discountAmount = round((totalGross * discount) / 100, 2);
+  } else if (discountUom === 'Amount') {
+    discountAmount = round(discount, 2);
+  }
 }
 
 if (discountAmount > totalGross) {
