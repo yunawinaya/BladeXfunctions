@@ -1002,18 +1002,45 @@
                     "collectionId": "1897577528487428098",
                     "list": [
                       {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
+                        "id": 1784879312422,
+                        "parentId": 1784879312423,
                         "isTop": true,
-                        "prop": "parent_id.code",
-                        "operator": "equal",
-                        "valueType": "value",
-                        "value": "ai_credit_reload_type",
-                        "type": "leaf",
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
                         "level": 1,
-                        "propLabel": "Dictionary Code",
-                        "valueLabel": "",
-                        "operatorLabel": "Equal"
+                        "children": [
+                          {
+                            "id": 1784879041683,
+                            "parentId": 1784879312422,
+                            "isTop": false,
+                            "prop": "code",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "ai_credit_reload_type",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Dictionary Code",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1784879312424,
+                            "parentId": 1784879312422,
+                            "isTop": false,
+                            "prop": "dict_key",
+                            "operator": "notEqual",
+                            "valueType": "value",
+                            "value": "-1",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Dictionary Value",
+                            "valueLabel": "",
+                            "operatorLabel": "Not Equal"
+                          }
+                        ]
                       }
                     ]
                   },
