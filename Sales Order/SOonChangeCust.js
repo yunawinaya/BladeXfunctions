@@ -205,6 +205,7 @@ const fetchLatestPricing = async (result, overwrite) => {
       updates[`table_so.${item.line_index}.so_discount`] = item.discount;
       updates[`table_so.${item.line_index}.so_discount_uom`] =
         item.discount_uom;
+      updates[`table_so.${item.line_index}.trigger_calc`] = "Yes";
     }
 
     updates[`table_so.${item.line_index}.max_price`] = item.max_price;
@@ -218,7 +219,7 @@ const fetchLatestPricing = async (result, overwrite) => {
   try {
     const customerItem = arguments[0]?.fieldModel?.item;
     const customerId = customerItem?.id;
-
+    console.log("customer", customerItem);
     const plantID = this.getValue("plant_name");
 
     const tableSO = this.getValue("table_so");
@@ -248,7 +249,8 @@ const fetchLatestPricing = async (result, overwrite) => {
           },
           async (result) => {
             console.log("result", result);
-            if (result.data.needOverwrite === "No") return;
+            if (result.data.needOverwrite === "No")
+              await fetchLatestPricing(result.data.data, "No");
 
             await this.$confirm(
               `The customer has been changed. Please choose one: <br><br>Please choose one: <br>
