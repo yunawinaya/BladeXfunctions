@@ -1,4 +1,58 @@
 {
+  "request_json": [
+    {
+      "key": "5f4lfo9g",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "gupp039d",
+      "name": "saveAs",
+      "title": "saveAs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "x658pgi7",
+      "name": "pageStatus",
+      "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "idhraujj",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "4cb89crj",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "5322n9oo",
+      "name": "id",
+      "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -9091,7 +9145,7 @@
                               "id": 1736695973613,
                               "parentId": 1736695973612,
                               "isTop": true,
-                              "prop": "node.code_node_37LA0tgq.data.stock_movement_status",
+                              "prop": "node.get_node_1wi90Edk.data.data.stock_movement_status",
                               "operator": "notEqual",
                               "valueType": "value",
                               "value": "Draft",
@@ -10279,7 +10333,7 @@
                             "name": "Subform Preparation",
                             "script": {
                               "type": "javascript",
-                              "code": "const page_status = {{workflowparams:pageStatus}};\nconst stock_movement_status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_5Wstw9z2.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\" && stock_movement_status === \"Draft\") {\n  allData = {{node:get_node_hKyBHbyx.data.data}}\n} else {\n  allData = {{node:code_node_37LA0tgq.data.allData}}\n}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_jkJsjMas.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark2 || null;\nconst remark3 = item.item_remark3 || null;\nconst inventory_category = \"In Transit\";\n\n// Prefer temp_qty_data per line; fall back to balance_index entries scoped to this row\nlet tempDataParsed = [];\ntry {\n  tempDataParsed = JSON.parse(item.temp_qty_data || \"[]\");\n} catch (e) {\n  tempDataParsed = [];\n}\nif (!Array.isArray(tempDataParsed)) tempDataParsed = [];\n\nlet balancesToProcess = tempDataParsed.filter(\n  (b) => b.sm_quantity && parseFloat(b.sm_quantity) > 0\n);\n\nif (balancesToProcess.length === 0) {\n  balancesToProcess = (allData.balance_index || []).filter(\n    (b) =>\n      String(b.row_index) === String(index) &&\n      b.sm_quantity &&\n      parseFloat(b.sm_quantity) > 0\n  );\n}\n\nconst receiving_plant = allData.receiving_operation_faci;\nconst receiving_default_location_id = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receiving_default_storage_location_id = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nreturn {\n  plant_id: plant_id,\n  receiving_plant: receiving_plant,\n  receiving_default_location_id: receiving_default_location_id,\n  receiving_default_storage_location_id: receiving_default_storage_location_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
+                              "code": "const page_status = {{workflowparams:pageStatus}};\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_5Wstw9z2.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else {\n  // Read the re-read that actually ran instead of inferring it from the submitted\n  // status -- if_HkQ99jhp routes on the PERSISTED status, so the two can disagree.\n  // It matters here because code_node_37LA0tgq rewrites allData.stock_movement_no\n  // to the literal 'issued' on this path, so falling through to the submitted data\n  // would stamp 'issued' as the movements' trx_no.\n  const reread = {{node:get_node_hKyBHbyx.data.data}};\n  const rereadDoc = Array.isArray(reread) ? reread[0] : reread;\n  allData = rereadDoc || {{node:code_node_37LA0tgq.data.allData}};\n}\n\nconst subformData = allData.stock_movement;\nconst currentIndexRaw = {{node:get_cache_node_jkJsjMas.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\nconst item = subformData[index];\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark2 || null;\nconst remark3 = item.item_remark3 || null;\nconst inventory_category = \"In Transit\";\n\n// Prefer temp_qty_data per line; fall back to balance_index entries scoped to this row\nlet tempDataParsed = [];\ntry {\n  tempDataParsed = JSON.parse(item.temp_qty_data || \"[]\");\n} catch (e) {\n  tempDataParsed = [];\n}\nif (!Array.isArray(tempDataParsed)) tempDataParsed = [];\n\nlet balancesToProcess = tempDataParsed.filter(\n  (b) => b.sm_quantity && parseFloat(b.sm_quantity) > 0\n);\n\nif (balancesToProcess.length === 0) {\n  balancesToProcess = (allData.balance_index || []).filter(\n    (b) =>\n      String(b.row_index) === String(index) &&\n      b.sm_quantity &&\n      parseFloat(b.sm_quantity) > 0\n  );\n}\n\nconst receiving_plant = allData.receiving_operation_faci;\nconst receiving_default_location_id = {{node:get_node_WtFOLdKB.data.data.id}};\nconst receiving_default_storage_location_id = {{node:get_node_WtFOLdKB.data.data.storage_location_id}};\n\nreturn {\n  plant_id: plant_id,\n  receiving_plant: receiving_plant,\n  receiving_default_location_id: receiving_default_location_id,\n  receiving_default_storage_location_id: receiving_default_storage_location_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess,\n  index: index,\n  nextIndex: index + 1\n};"
                             },
                             "response_json": [
                               {
@@ -16532,7 +16586,7 @@
         "name": "updateItemTransactionDate",
         "script": {
           "type": "javascript",
-          "code": "const page_status = {{workflowparams:pageStatus}}\nconst stock_movement_status = {{node:code_node_37LA0tgq.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_5Wstw9z2.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n\n  if (!allData) {\n    allData = {{node:code_node_37LA0tgq.data.allData}};\n  }\n} else if (page_status === \"Edit\" && stock_movement_status === \"Draft\") {\n  allData = {{node:get_node_hKyBHbyx.data.data}}\n} else {\n  allData = {{node:code_node_37LA0tgq.data.allData}}\n}\n\nconst id = allData?.id || \"\";\n\nconst tableSM = {{node:code_node_37LA0tgq.data.allData.stock_movement}}\n\nconst uniqueItemIds = [\n  ...new Set(\n    tableSM\n      .filter((item) => item.item_selection)\n      .map((item) => item.item_selection),\n  ),\n];\n\nconst date = new Date().toISOString();\nconst updates = [];\n\nfor (const itemId of uniqueItemIds) {\n  updates.push({\n    id: itemId,\n    last_transaction_date: date,\n  });\n}\n\nreturn {\n  updates: updates,\n  id: id,\n};\n"
+          "code": "const page_status = {{workflowparams:pageStatus}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_5Wstw9z2.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n\n  if (!allData) {\n    allData = {{node:code_node_37LA0tgq.data.allData}};\n  }\n} else {\n  // if_HkQ99jhp routes on the PERSISTED status, so the submitted snapshot can no\n  // longer tell which re-read ran. Take whichever one executed -- the branch that\n  // did not run injects null -- and fall back to the submitted data for the paths\n  // that reach neither (a Draft resave in Edit mode).\n  const draftRead = {{node:get_node_hKyBHbyx.data.data}};\n  const dataRead = {{node:get_node_4dlFjR7S.data.data}};\n  const reread = draftRead || dataRead;\n  const rereadDoc = Array.isArray(reread) ? reread[0] : reread;\n  allData = rereadDoc || {{node:code_node_37LA0tgq.data.allData}};\n}\n\nconst id = allData?.id || \"\";\n\nconst tableSM = {{node:code_node_37LA0tgq.data.allData.stock_movement}}\n\nconst uniqueItemIds = [\n  ...new Set(\n    tableSM\n      .filter((item) => item.item_selection)\n      .map((item) => item.item_selection),\n  ),\n];\n\nconst date = new Date().toISOString();\nconst updates = [];\n\nfor (const itemId of uniqueItemIds) {\n  updates.push({\n    id: itemId,\n    last_transaction_date: date,\n  });\n}\n\nreturn {\n  updates: updates,\n  id: id,\n};\n"
         },
         "response_json": [
           {
@@ -16674,59 +16728,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "5f4lfo9g",
-      "name": "allData",
-      "title": "allData",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "gupp039d",
-      "name": "saveAs",
-      "title": "saveAs",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "x658pgi7",
-      "name": "pageStatus",
-      "title": "pageStatus",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [
-    {
-      "key": "idhraujj",
-      "name": "code",
-      "title": "code",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "4cb89crj",
-      "name": "message",
-      "title": "message",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "5322n9oo",
-      "name": "id",
-      "title": "id",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "config": {}
+  "edges": []
 }
