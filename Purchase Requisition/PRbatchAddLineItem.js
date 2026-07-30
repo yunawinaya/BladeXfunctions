@@ -1,3 +1,26 @@
+// Pick the description this supplier has bound to the item on the Item master.
+// Reads table_sup_item_bind (supplier_id / item_description) -- NOT the customer
+// twin. An item may carry several rows for the same supplier: take the first one
+// that actually has a description. Falls back to the item's own material_desc.
+const resolveItemDesc = (item, supplierId) => {
+  const fallback = item?.material_desc || "";
+  if (!supplierId || Array.isArray(supplierId)) return fallback;
+
+  const binds = Array.isArray(item?.table_sup_item_bind)
+    ? item.table_sup_item_bind
+    : [];
+  const wanted = String(supplierId).trim();
+
+  for (const row of binds) {
+    if (!row) continue;
+    if (String(row.supplier_id ?? "").trim() !== wanted) continue;
+    const desc = String(row.item_description ?? "").trim();
+    if (desc) return desc;
+  }
+
+  return fallback;
+};
+
 (async () => {
   const currentItemArray = arguments[0].itemArray;
   const preqLineItems = this.getValue("table_pr");
@@ -28,7 +51,7 @@
     const preqItem = {
       pr_line_material_id: item.id,
       pr_line_material_name: item.material_name,
-      pr_line_material_desc: item.material_desc,
+      pr_line_material_desc: resolveItemDesc(item, supplierID),
       pr_line_unit_price: defaultPurchaseDetail.purchase_unit_price || 0,
       item_category_id: item.item_category,
       pr_line_tax_rate_id: defaultPurchaseDetail.mat_purchase_tax_id || null,
