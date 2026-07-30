@@ -20,6 +20,7 @@ const resetData = async (rowIndex) => {
     [`table_sqt.${rowIndex}.unrestricted_qty`]: 0,
     [`table_sqt.${rowIndex}.base_unrestricted_qty`]: 0,
     [`table_sqt.${rowIndex}.table_uom_conversion`]: "",
+    [`table_sqt.${rowIndex}.further_description`]: "",
   });
 };
 
@@ -33,14 +34,14 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   }
 
   const uomConversion = table_uom_conversion.find(
-    (conv) => conv.alt_uom_id === uom
+    (conv) => conv.alt_uom_id === uom,
   );
 
   if (!uomConversion || !uomConversion.base_qty) {
     return baseQty;
   }
 
-  return Math.round(baseQty / uomConversion.base_qty * 1000) / 1000;
+  return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
 };
 
 const fetchUnrestrictedQty = async (
@@ -49,7 +50,7 @@ const fetchUnrestrictedQty = async (
   serial_number_management,
   stock_control,
   plantId,
-  organizationId
+  organizationId,
 ) => {
   try {
     let totalUnrestrictedQtyBase = 0;
@@ -69,7 +70,7 @@ const fetchUnrestrictedQty = async (
 
         totalUnrestrictedQtyBase = serialBalanceData.reduce(
           (sum, balance) => sum + (balance.unrestricted_qty || 0),
-          0
+          0,
         );
       }
     } else if (
@@ -91,7 +92,7 @@ const fetchUnrestrictedQty = async (
 
         totalUnrestrictedQtyBase = batchBalanceData.reduce(
           (sum, balance) => sum + (balance.unrestricted_qty || 0),
-          0
+          0,
         );
       }
     } else if (
@@ -113,7 +114,7 @@ const fetchUnrestrictedQty = async (
 
         totalUnrestrictedQtyBase = balanceData.reduce(
           (sum, balance) => sum + (balance.unrestricted_qty || 0),
-          0
+          0,
         );
       }
     } else {
@@ -134,7 +135,7 @@ const fetchUnrestrictedQty = async (
   }
   const sqtItem = arguments[0].sqtItem || null;
   const plantId = this.getValue("sqt_plant");
-
+  const customerID = this.getValue("sqt_customer_id");
   let organizationId = this.getVarGlobal("deptParentId");
   if (organizationId === "0") {
     organizationId = this.getVarSystem("deptIds").split(",")[0];
@@ -142,50 +143,85 @@ const fetchUnrestrictedQty = async (
 
   if (arguments[0].fieldModel && !sqtItem) {
     await resetData(rowIndex);
-    console.log(arguments[0]);
+
+    let defaultSalesDetail =
+      arguments[0].fieldModel.item.table_uom_conversion.find(
+        (uom) => uom.sales_default_uom === 1,
+      );
+
+    if (!defaultSalesDetail) {
+      defaultSalesDetail =
+        arguments[0].fieldModel.item.table_uom_conversion.find(
+          (uom) => uom.alt_uom_id === arguments[0].fieldModel.item.based_uom,
+        );
+    }
+
+    await this.runWorkflow(
+      "2067818102244966401",
+      {
+        document_type: "SQT",
+        supp_cust_id: customerID,
+        plant_id: plantId,
+        item_data: [
+          {
+            item_id: arguments[0].value,
+            line_index: rowIndex,
+            uom_id: defaultSalesDetail.alt_uom_id,
+          },
+        ],
+      },
+      async (result) => {
+        console.log("result", result);
+        const updates = {};
+
+        for (const item of result.data.data) {
+          updates[`table_sqt.${item.line_index}.unit_price`] = item.unit_price;
+          updates[`table_sqt.${item.line_index}.sqt_order_uom_id`] =
+            item.uom_id;
+          updates[`table_sqt.${item.line_index}.sqt_taxes_rate_id`] =
+            item.tax_rate;
+          updates[`table_sqt.${item.line_index}.sqt_tax_rate_percent`] =
+            item.tax_percent;
+          updates[`table_sqt.${item.line_index}.from_historical`] =
+            item.from_historical;
+          updates[`table_sqt.${item.line_index}.max_price`] = item.max_price;
+          updates[`table_sqt.${item.line_index}.min_price`] = item.min_price;
+          updates[`table_sqt.${item.line_index}.quantity`] = item.quantity;
+          updates[`table_sqt.${item.line_index}.sqt_discount`] = item.discount;
+          updates[`table_sqt.${item.line_index}.sqt_discount_uom_id`] =
+            item.discount_uom;
+          updates[`table_sqt.${item.line_index}.item_category_id`] =
+            arguments[0].fieldModel.item.item_category;
+          updates[`table_sqt.${item.line_index}.sqt_desc`] =
+            arguments[0].fieldModel.item.material_desc;
+          updates[`table_sqt.${item.line_index}.material_name`] =
+            arguments[0].fieldModel.item.material_name;
+          updates[`table_sqt.${item.line_index}.further_description`] =
+            arguments[0].fieldModel.item.further_description;
+        }
+        await this.setData(updates);
+        await this.triggerEvent("SQTCalculation");
+      },
+      (error) => {
+        console.log("error", error);
+      },
+    );
+
+    this.refreshFieldOptionData([
+      `table_sqt.${rowIndex}.sqt_order_uom_id`,
+      `table_sqt.${rowIndex}.sqt_tax_rate_percent`,
+    ]);
+
     const {
       material_desc,
       material_name,
       based_uom,
-      sales_default_uom,
-      sales_unit_price,
       table_uom_conversion,
-      mat_sales_tax_id,
       item_batch_management,
       serial_number_management,
       stock_control,
       item_category,
     } = arguments[0].fieldModel.item;
-
-    this.setData({
-      [`table_sqt.${rowIndex}.sqt_desc`]: material_desc,
-      [`table_sqt.${rowIndex}.material_name`]: material_name,
-      [`table_sqt.${rowIndex}.unit_price`]: sales_unit_price,
-      [`table_sqt.${rowIndex}.item_category_id`]: item_category,
-    });
-
-    if (mat_sales_tax_id) {
-      this.setData({
-        [`table_sqt.${rowIndex}.sqt_taxes_rate_id`]: mat_sales_tax_id,
-      });
-
-      const taxPercent =
-        arguments[0]?.fieldModel?.item?.sales_tax_percent || null;
-
-      if (taxPercent) {
-        setTimeout(() => {
-          this.setData({
-            [`table_sqt.${rowIndex}.sqt_tax_rate_percent`]: taxPercent,
-          });
-        }, 1000);
-      }
-    }
-
-    this.disabled([`table_sqt.${rowIndex}.sqt_order_uom_id`], false);
-    this.refreshFieldOptionData([
-      `table_sqt.${rowIndex}.sqt_order_uom_id`,
-      `table_sqt.${rowIndex}.sqt_tax_rate_percent`,
-    ]);
 
     const initialQty = await fetchUnrestrictedQty(
       arguments[0].value,
@@ -193,40 +229,22 @@ const fetchUnrestrictedQty = async (
       serial_number_management,
       stock_control,
       plantId,
-      organizationId
+      organizationId,
     );
 
-    if (sales_default_uom) {
-      const finalQty = await convertBaseToAlt(
-        initialQty,
-        table_uom_conversion,
-        sales_default_uom
-      );
-      await this.setData({
-        [`table_sqt.${rowIndex}.sqt_order_uom_id`]: sales_default_uom,
-        [`table_sqt.${rowIndex}.unrestricted_qty`]: parseFloat(
-          finalQty.toFixed(4)
-        ),
-        [`table_sqt.${rowIndex}.base_unrestricted_qty`]: parseFloat(
-          initialQty.toFixed(4)
-        ),
-      });
-    } else {
-      const finalQty = await convertBaseToAlt(
-        initialQty,
-        table_uom_conversion,
-        based_uom
-      );
-      await this.setData({
-        [`table_sqt.${rowIndex}.sqt_order_uom_id`]: based_uom,
-        [`table_sqt.${rowIndex}.unrestricted_qty`]: parseFloat(
-          finalQty.toFixed(4)
-        ),
-        [`table_sqt.${rowIndex}.base_unrestricted_qty`]: parseFloat(
-          initialQty.toFixed(4)
-        ),
-      });
-    }
+    const finalQty = await convertBaseToAlt(
+      initialQty,
+      table_uom_conversion,
+      defaultSalesDetail.alt_uom_id,
+    );
+    await this.setData({
+      [`table_sqt.${rowIndex}.unrestricted_qty`]: parseFloat(
+        finalQty.toFixed(4),
+      ),
+      [`table_sqt.${rowIndex}.base_unrestricted_qty`]: parseFloat(
+        initialQty.toFixed(4),
+      ),
+    });
   } else if (!arguments[0].fieldModel && sqtItem) {
     const rowIndex = arguments[0].index;
     if (sqtItem.material_id) {
@@ -244,20 +262,20 @@ const fetchUnrestrictedQty = async (
           itemData.stock_control,
           itemData.serial_number_management,
           plantId,
-          organizationId
+          organizationId,
         );
 
         const finalQty = await convertBaseToAlt(
           initialQty,
           itemData.table_uom_conversion,
-          sqtItem.sqt_order_uom_id
+          sqtItem.sqt_order_uom_id,
         );
         await this.setData({
           [`table_sqt.${rowIndex}.unrestricted_qty`]: parseFloat(
-            finalQty.toFixed(4)
+            finalQty.toFixed(4),
           ),
           [`table_sqt.${rowIndex}.base_unrestricted_qty`]: parseFloat(
-            initialQty.toFixed(4)
+            initialQty.toFixed(4),
           ),
         });
       }

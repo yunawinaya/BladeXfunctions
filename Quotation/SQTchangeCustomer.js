@@ -1,15 +1,27 @@
-const fetchLatestPricing = async (tableSQT, overwriteMsg) => {
-  for (const [index, sqt] of tableSQT.entries()) {
-    await this.triggerEvent("onBlur_quantity", {
-      row: {
-        material_id: sqt.material_id,
-        sqt_order_uom_id: sqt.sqt_order_uom_id,
-      },
-      rowIndex: index,
-      value: sqt.quantity,
-      overwrite: overwriteMsg,
-    });
+const fetchLatestPricing = async (result, overwrite) => {
+  const updates = {};
+  for (const item of result) {
+    if (overwrite === "Yes") {
+      updates[`table_sqt.${item.line_index}.unit_price`] = item.unit_price;
+      updates[`table_sqt.${item.line_index}.sqt_order_uom_id`] = item.uom_id;
+      updates[`table_sqt.${item.line_index}.sqt_taxes_rate_id`] = item.tax_rate;
+      updates[`table_sqt.${item.line_index}.sqt_tax_rate_percent`] =
+        item.tax_percent;
+      updates[`table_sqt.${item.line_index}.from_historical`] =
+        item.from_historical;
+
+      updates[`table_sqt.${item.line_index}.quantity`] = item.quantity;
+      updates[`table_sqt.${item.line_index}.sqt_discount`] = item.discount;
+      updates[`table_sqt.${item.line_index}.sqt_discount_uom_id`] =
+        item.discount_uom;
+    }
+
+    updates[`table_sqt.${item.line_index}.max_price`] = item.max_price;
+    updates[`table_sqt.${item.line_index}.min_price`] = item.min_price;
   }
+
+  await this.setData(updates);
+  await this.triggerEvent("SQTCalculation");
 };
 
 const resetFormFields = () => {
@@ -18,6 +30,7 @@ const resetFormFields = () => {
     sqt_billing_cp: "",
     sqt_billing_address: "",
     sqt_shipping_address: "",
+    sqt_area_id: "",
     billing_address_line_1: "",
     billing_address_line_2: "",
     billing_address_line_3: "",
@@ -28,7 +41,9 @@ const resetFormFields = () => {
     billing_address_country: "",
     billing_address_name: "",
     billing_address_phone: "",
+    billing_address_fax: "",
     billing_attention: "",
+    billing_address_code: "",
     shipping_address_line_1: "",
     shipping_address_line_2: "",
     shipping_address_line_3: "",
@@ -39,7 +54,9 @@ const resetFormFields = () => {
     shipping_address_country: "",
     shipping_address_name: "",
     shipping_address_phone: "",
+    shipping_address_fax: "",
     shipping_attention: "",
+    shipping_address_code: "",
   });
 };
 
@@ -56,6 +73,7 @@ const setDialogAddressFields = (addressType, address) => {
     [`${addressType}_address_name`]: address.address_name,
     [`${addressType}_address_phone`]: address.address_phone,
     [`${addressType}_attention`]: address.address_attention,
+    [`${addressType}_address_code`]: address.address_code,
   });
 };
 
@@ -66,32 +84,66 @@ const setDialogAddressFields = (addressType, address) => {
 
   if (tableSQT.length > 0) {
     const hasItemID = tableSQT.some((item) => item.material_id);
+    const plantID = this.getValue("sqt_plant");
 
     if (hasItemID) {
-      await this.$confirm(
-        `The customer has been changed. Please choose one: <br><br>Please choose one: <br>
+      await this.runWorkflow(
+        "2067818102244966401",
+        {
+          document_type: "SQT",
+          supp_cust_id: arguments[0].value,
+          plant_id: plantID,
+          item_data: tableSQT.map((item, index) => {
+            return {
+              item_id: item.material_id,
+              unit_price: item.unit_price,
+              line_index: index,
+              uom_id: item.sqt_order_uom_id,
+              tax_rate: item.sqt_taxes_rate_id || null,
+              tax_percent: item.sqt_tax_rate_percent || null,
+              quantity: item.quantity,
+              discount: item.sqt_discount,
+              discount_uom: item.sqt_discount_uom_id,
+            };
+          }),
+        },
+        async (result) => {
+          console.log("result", result);
+
+          if (result.data.needOverwrite === "No")
+            await fetchLatestPricing(result.data.data, "No");
+
+          await this.$confirm(
+            `The customer has been changed. Please choose one: <br><br>Please choose one: <br>
         <strong>Overwrite:</strong> Replace the price based on the latest customer. <em>(If any)</em><br>
         <strong>Keep:</strong> Keep the existing item price.`,
-        "Customer Change Detected",
-        {
-          confirmButtonText: "Overwrite",
-          cancelButtonText: "Keep",
-          dangerouslyUseHTMLString: true,
-          type: "info",
-          distinguishCancelAndClose: true,
+            "Customer Change Detected",
+            {
+              confirmButtonText: "Overwrite",
+              cancelButtonText: "Keep",
+              dangerouslyUseHTMLString: true,
+              type: "info",
+              distinguishCancelAndClose: true,
 
-          beforeClose: async (action, instance, done) => {
-            if (action === "confirm") {
-              await fetchLatestPricing(tableSQT, "Yes - from customer change");
-              done();
-            } else if (action === "cancel") {
-              await fetchLatestPricing(tableSQT, "No - from customer change");
-              done();
-            } else {
-              done();
-            }
-          },
-        }
+              beforeClose: async (action, instance, done) => {
+                if (action === "confirm") {
+                  await fetchLatestPricing(result.data.data, "Yes");
+
+                  done();
+                } else if (action === "cancel") {
+                  await fetchLatestPricing(result.data.data, "No");
+
+                  done();
+                } else {
+                  done();
+                }
+              },
+            },
+          );
+        },
+        (error) => {
+          console.log("error", error);
+        },
       );
     }
   }
@@ -171,7 +223,7 @@ const setDialogAddressFields = (addressType, address) => {
 
       const addresses =
         customerData.address_list?.filter(
-          (address) => address.switch_save_as_default
+          (address) => address.switch_save_as_default,
         ) || [];
 
       addresses.forEach(async (address) => {
@@ -222,7 +274,7 @@ const setDialogAddressFields = (addressType, address) => {
                 .pop() || ""
             ).endsWith(",")
               ? " "
-              : ", "
+              : ", ",
           );
 
         const cityDetails = [
@@ -244,7 +296,7 @@ const setDialogAddressFields = (addressType, address) => {
                 .pop() || ""
             ).endsWith(",")
               ? " "
-              : ", "
+              : ", ",
           );
 
         const addressAttention = address.address_attention
@@ -298,9 +350,8 @@ const setDialogAddressFields = (addressType, address) => {
         sqt_payment_term: customerData.customer_payment_term_id ?? "",
         sales_person_id: customerData.customer_agent_id ?? "",
         price_tag_id: customerData.price_tag_id,
+        sqt_area_id: customerData.customer_area_id ?? "",
       });
     }
   }
-
-  this.disabled("table_sqt", false);
 })();
