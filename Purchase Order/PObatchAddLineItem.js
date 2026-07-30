@@ -1,24 +1,9 @@
-const fetchUomData = async (uomIds) => {
-  try {
-    const resUOM = await Promise.all(
-      uomIds.map((id) =>
-        db.collection("unit_of_measurement").where({ id }).get()
-      )
-    );
-
-    const uomData = resUOM.map((response) => response.data[0]);
-
-    return uomData;
-  } catch (error) {
-    console.error("Error fetching UOM data:", error);
-    return [];
-  }
-};
-
 (async () => {
-  const currentItemArray = this.getValue(`dialog_item_selection.item_array`);
+  const currentItemArray = arguments[0].itemArray;
   const poLineItems = this.getValue("table_po");
   const itemArray = [];
+  const supplierID = this.getValue("po_supplier_id");
+  const plantID = this.getValue("po_plant");
 
   if (currentItemArray.length === 0) {
     this.$alert("Please select at least one item.", "Error", {
@@ -30,15 +15,26 @@ const fetchUomData = async (uomIds) => {
   }
 
   for (const item of currentItemArray) {
+    let defaultPurchaseDetail = item.table_uom_conversion.find(
+      (uom) => uom.purchase_default_uom === 1,
+    );
+
+    if (!defaultPurchaseDetail) {
+      defaultPurchaseDetail = item.table_uom_conversion.find(
+        (uom) => uom.alt_uom_id === item.based_uom,
+      );
+    }
+
     const poItem = {
       item_id: item.id,
       item_name: item.material_name,
       item_desc: item.material_desc,
-      unit_price: item.purchase_unit_price || 0,
+      unit_price: defaultPurchaseDetail.purchase_unit_price || 0,
       item_category_id: item.item_category,
-      tax_preference: item.mat_purchase_tax_id || null,
-      tax_percent: item.purchase_tax_percent || null,
-      quantity_uom: item.purchase_default_uom || item.based_uom,
+      tax_preference: defaultPurchaseDetail.mat_purchase_tax_id || null,
+      tax_percent: defaultPurchaseDetail.purchase_tax_percent || null,
+      quantity_uom: defaultPurchaseDetail.alt_uom_id || null,
+      further_description: item.further_description,
     };
 
     itemArray.push(poItem);
@@ -46,9 +42,6 @@ const fetchUomData = async (uomIds) => {
 
   await this.setData({
     table_po: [...poLineItems, ...itemArray],
-    [`dialog_item_selection.item_array`]: [],
-    [`dialog_item_selection.item_code_array`]: "",
-    [`dialog_item_selection.item_code`]: "",
   });
 
   this.closeDialog("dialog_item_selection");
@@ -56,31 +49,63 @@ const fetchUomData = async (uomIds) => {
   setTimeout(async () => {
     for (const [index, item] of currentItemArray.entries()) {
       const newIndex = poLineItems.length + index;
-      const altUoms = item.table_uom_conversion?.map((data) => data.alt_uom_id);
-      let uomOptions = [];
-
-      const res = await fetchUomData(altUoms);
-      uomOptions.push(...res);
-
-      await this.setOptionData(
-        [`table_po.${newIndex}.quantity_uom`],
-        uomOptions
-      );
-
-      console.log("uomOptions", uomOptions);
       this.setData({
-        [`table_po.${newIndex}.table_uom_conversion`]:
-          JSON.stringify(uomOptions),
         [`table_po.${newIndex}.alt_uom`]: JSON.stringify(
-          item.table_uom_conversion
+          item.table_uom_conversion,
         ),
       });
 
       this.disabled([`table_po.${newIndex}.quantity_uom`], false);
+      this.refreshFieldOptionData([`table_po.${newIndex}.quantity_uom`]);
 
       if (item.mat_purchase_tax_id) {
         this.disabled([`table_po.${newIndex}.tax_percent`], false);
       }
     }
+
+    await this.runWorkflow(
+      "2067818102244966401",
+      {
+        document_type: "PO",
+        supp_cust_id: supplierID,
+        plant_id: plantID,
+        item_data: itemArray.map((item, index) => {
+          return {
+            item_id: item.item_id,
+            unit_price: item.unit_price,
+            line_index: poLineItems.length + index,
+            uom_id: item.quantity_uom,
+            tax_rate: item.tax_preference || null,
+            tax_percent: item.tax_percent || null,
+          };
+        }),
+      },
+      async (result) => {
+        console.log("result", result);
+        const updates = {};
+
+        for (const item of result.data.data) {
+          updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;
+          updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;
+          updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;
+          updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;
+          updates[`table_po.${item.line_index}.from_historical`] =
+            item.from_historical;
+          updates[`table_po.${item.line_index}.max_price`] = item.max_price;
+          updates[`table_po.${item.line_index}.min_price`] = item.min_price;
+          updates[`table_po.${item.line_index}.quantity`] = item.quantity;
+          updates[`table_po.${item.line_index}.moq_qty`] = item.moq;
+          updates[`table_po.${item.line_index}.discount`] = item.discount;
+          updates[`table_po.${item.line_index}.discount_uom`] =
+            item.discount_uom;
+        }
+
+        await this.setData(updates);
+        await this.triggerEvent("POcalculation");
+      },
+      (error) => {
+        console.log("error", error);
+      },
+    );
   }, 50);
 })();
