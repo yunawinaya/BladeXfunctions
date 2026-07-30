@@ -18,24 +18,17 @@ const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   return Math.round(baseQty * uomConversion.alt_qty * 1000) / 1000;
 };
 
-// Find the packing detail row for a UOM. An item may define several packing rows
-// per uom_id, so when a packing UOM is supplied match on the (uom_id,
-// packing_uom_id) pair, which is unique. Otherwise fall back to the first row.
-const getPackingDetail = (table_packing_detail, uom, packingUom) => {
-  if (!Array.isArray(table_packing_detail) || !uom) {
+// Find the packing detail row whose uom_id matches the selected UOM.
+const getPackingDetail = (table_packing_detail, uom) => {
+  if (
+    !Array.isArray(table_packing_detail) ||
+    table_packing_detail.length === 0 ||
+    !uom
+  ) {
     return null;
   }
 
-  const rows = table_packing_detail.filter((conv) => conv.uom_id === uom);
-  if (rows.length === 0) {
-    return null;
-  }
-
-  if (packingUom) {
-    return rows.find((conv) => conv.packing_uom_id === packingUom) || null;
-  }
-
-  return rows[0];
+  return table_packing_detail.find((conv) => conv.uom_id === uom) || null;
 };
 
 // How many base UOM units make up 1 unit of the selected UOM.
@@ -206,26 +199,25 @@ const fetchUnrestrictedQty = async (
       so_tax_preference: defaultSalesDetail.mat_sales_tax_id || null,
       so_tax_percentage: defaultSalesDetail.sales_tax_percent || null,
       so_item_uom: defaultSalesDetail.alt_uom_id || null,
+      custom_fields: item.custom_fields || {},
+      trigger_calc: "No",
+      further_description: item.further_description,
     };
 
     itemArray.push(soItem);
   }
+  console.log("itemArray", itemArray);
 
   await this.setData({
     table_so: [...soLineItems, ...itemArray],
   });
-
-  this.closeDialog("dialog_item_selection");
 
   setTimeout(async () => {
     for (const [index, item] of currentItemArray.entries()) {
       const newIndex = soLineItems.length + index;
 
       this.disabled([`table_so.${newIndex}.so_item_uom`], false);
-      this.refreshFieldOptionData([
-        `table_so.${newIndex}.so_item_uom`,
-        `table_so.${newIndex}.packing_uom`,
-      ]);
+      this.refreshFieldOptionData([`table_so.${newIndex}.so_item_uom`]);
 
       if (item.mat_sales_tax_id) {
         this.disabled([`table_so.${newIndex}.so_tax_percentage`], false);
@@ -315,6 +307,7 @@ const fetchUnrestrictedQty = async (
           updates[`table_so.${item.line_index}.so_discount`] = item.discount;
           updates[`table_so.${item.line_index}.so_discount_uom`] =
             item.discount_uom;
+          updates[`table_so.${item.line_index}.trigger_calc`] = "No";
         }
 
         await this.setData(updates);
