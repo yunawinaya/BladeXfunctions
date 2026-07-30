@@ -1,3 +1,25 @@
+// Pick the description this customer has bound to the item on the Item master.
+// An item may carry several rows for the same customer -- take the first one
+// that actually has a description. Falls back to the item's own material_desc.
+const resolveItemDesc = (item, customerId) => {
+  const fallback = item?.material_desc || "";
+  if (!customerId || Array.isArray(customerId)) return fallback;
+
+  const binds = Array.isArray(item?.table_cust_item_bind)
+    ? item.table_cust_item_bind
+    : [];
+  const wanted = String(customerId).trim();
+
+  for (const row of binds) {
+    if (!row) continue;
+    if (String(row.customer_id ?? "").trim() !== wanted) continue;
+    const desc = String(row.item_desc ?? "").trim();
+    if (desc) return desc;
+  }
+
+  return fallback;
+};
+
 const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {
   if (
     !Array.isArray(table_uom_conversion) ||
@@ -135,7 +157,7 @@ const fetchUnrestrictedQty = async (
     const sqtItem = {
       material_id: item.id,
       material_name: item.material_name,
-      sqt_desc: item.material_desc,
+      sqt_desc: resolveItemDesc(item, customerID),
       unit_price: defaultSalesDetail.sales_unit_price || 0,
       item_category_id: item.item_category,
       sqt_taxes_rate_id: defaultSalesDetail.mat_sales_tax_id || null,
