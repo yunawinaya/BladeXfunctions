@@ -36,7 +36,9 @@ This is a **client-side form change only**. No workflow or schema work is requir
 
 Two bind tables, **one algorithm**.
 
-Both subforms are stored as an **array column directly on the Item record**. Neither has a datasource of its own and there is no `*_sub` collection for either — exactly like `table_uom_conversion`. So reading a binding is always **one Item fetch, never a join**.
+Both subforms are stored as an **array column directly on the Item record**, and neither has a datasource of its own. A fetch of the Item returns them inline, so reading a binding is always **one Item fetch, never a join**.
+
+> An earlier revision of this guide claimed no `*_sub` collection exists for these subforms "exactly like `table_uom_conversion`". That comparison was wrong: `table_uom_conversion` *does* have one, registered as `UOM Conversion(Item):Table:1939885252310573057`, which `UpdateItemWorkflow.json` searches and updates directly. Whether the bind tables have an equivalent has not been confirmed — but it does not matter for this guide, because the array column is returned inline either way and is the only thing you need to read.
 
 A row binds one partner to one description:
 
