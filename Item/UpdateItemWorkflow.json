@@ -1,0 +1,699 @@
+{
+  "request_json": [
+    {
+      "key": "wpar9uhy",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "rhd27fpa",
+      "name": "organization_id",
+      "title": "Organization ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_sY9See2f",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "1. Check File Input",
+        "isValidator": true,
+        "nodeName": "1. Check File Input",
+        "name": "1. Check File Input",
+        "script": {
+          "type": "javascript",
+          "code": "const formData = {{workflowparams:data}};\n\nconst requiredFields = [\n  \"Item Code\",\n  \"UOM\",\n];\n\n// Get only the numeric keys (actual data rows)\nconst updateFile = formData.dialog_update.update_file;\nconst numericKeys = Object.keys(updateFile).filter(\n  (key) => !isNaN(parseInt(key)),\n);\n\nif (numericKeys.length === 0) {\n  return {\n    isValid: false,\n    message: \"No valid numeric keys found in update_file\",\n  };\n}\n\n// Check required fields exist in the first item\nconst firstItem = updateFile[numericKeys[0]];\nconst missingFields = [];\n\nfor (const field of requiredFields) {\n  if (!(field in firstItem)) {\n    missingFields.push(field);\n  }\n}\n\nif (missingFields.length > 0) {\n  return {\n    isValid: false,\n    message: \"These fields are missing: \" + missingFields.join(\",\"),\n  };\n}\n\nreturn {\n  isValid: true,\n  message: \"All validations passed\",\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "lj144p9r",
+            "name": "isValid",
+            "title": "",
+            "description": "",
+            "bsonType": "boolean",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "u9mg36xk",
+            "name": "message",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_k1etup52",
+      "type": "if",
+      "data": {
+        "title": "Validation Failed?",
+        "isValidator": true,
+        "nodeName": "Validation Failed?",
+        "name": "Validation Failed?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "!{{node:code_node_sY9See2f.data.isValid}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_1eNgfN4k",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "end_node_ouiG0BVG",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_sY9See2f.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_9zaxMaeD",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_h0nbfgRx",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "2. Map Updated Data",
+        "isValidator": true,
+        "nodeName": "2. Map Updated Data",
+        "name": "2. Map Updated Data",
+        "script": {
+          "type": "javascript",
+          "code": "const formData = {{workflowparams:data.dialog_update.update_file}};\n\nreturn {\n  updatedData: Object.keys(formData)\n    .filter((key) => !isNaN(parseInt(key)))\n    .map((key) => {\n      const item = formData[key];\n      return {\n        material_code: item[\"Item Code\"],\n        uom_name: item[\"UOM\"],\n        purchase_unit_price: item[\"Purchase Unit Price\"],\n        sales_unit_price: item[\"Sales Unit Price\"],\n        purchase_tax: item[\"Purchase Tax\"],\n        sales_tax: item[\"Sales Tax\"],\n        purchase_tax_percent: item[\"Purchase Tax %\"],\n        sales_tax_percent: item[\"Sales Tax %\"],\n        purchase_min_price: item[\"Purchase Min Price\"],\n        purchase_max_price: item[\"Purchase Max Price\"],\n        sales_min_price: item[\"Sales Min Price\"],\n        sales_max_price: item[\"Sales Max Price\"],\n        sales_price_1: item[\"Sales Price 1\"],\n        sales_price_2: item[\"Sales Price 2\"],\n        sales_price_3: item[\"Sales Price 3\"],\n        sales_price_4: item[\"Sales Price 4\"],\n        sales_price_5: item[\"Sales Price 5\"],\n        sales_price_6: item[\"Sales Price 6\"],\n      };\n    }),\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "9u3s48pz",
+            "name": "updatedData",
+            "title": "Updated Data",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_m9ws9ASy",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Item:Table:1901546842240438273",
+          "rules": {
+            "collectionId": "1901546842240438273",
+            "list": [
+              {
+                "id": 1770110373054,
+                "parentId": 1770110373055,
+                "isTop": true,
+                "type": "branch",
+                "operator": "all",
+                "prop": "",
+                "valueType": "",
+                "value": "",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1770110373056,
+                    "parentId": 1770110373054,
+                    "isTop": false,
+                    "prop": "material_code",
+                    "operator": "equalAny",
+                    "valueType": "field",
+                    "value": "{{node:code_node_h0nbfgRx.data.updatedData.material_code}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Item Code",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal Any"
+                  },
+                  {
+                    "id": 1770110373056,
+                    "parentId": 1770110373054,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{workflowparams:organization_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "3. Get Item Data",
+        "isValidator": true,
+        "nodeName": "3. Get Item Data",
+        "name": "3. Get Item Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_Pv9Bxnth",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Tax Rate:Table:1901979496744079362",
+          "rules": {
+            "collectionId": "1901979496744079362",
+            "list": [
+              {
+                "id": 1785466716394,
+                "parentId": 1785466716395,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1785466716398,
+                    "isTop": false,
+                    "parentId": 1785466716394,
+                    "type": "branch",
+                    "operator": "any",
+                    "level": 2,
+                    "children": [
+                      {
+                        "id": 1785466689205,
+                        "parentId": 1785466716398,
+                        "isTop": false,
+                        "prop": "tax_code",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_node_h0nbfgRx.data.updatedData.purchase_tax}}",
+                        "type": "leaf",
+                        "level": 3,
+                        "propLabel": "Tax Code",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal Any"
+                      },
+                      {
+                        "id": 1785466716399,
+                        "parentId": 1785466716398,
+                        "isTop": false,
+                        "prop": "tax_code",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_node_h0nbfgRx.data.updatedData.sales_tax}}",
+                        "type": "leaf",
+                        "level": 3,
+                        "propLabel": "Tax Code",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal Any"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 1785466716396,
+                    "parentId": 1785466716394,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{workflowparams:organization_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "4. Get Tax Code Data",
+        "isValidator": true,
+        "nodeName": "4. Get Tax Code Data",
+        "name": "4. Get Tax Code Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_vNAH9LEk",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "UOM:Table:1901805375573839874",
+          "rules": {
+            "collectionId": "1901805375573839874",
+            "list": [
+              {
+                "id": 1785466951235,
+                "parentId": 1785466951236,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1785466951236,
+                    "parentId": 1785466951235,
+                    "isTop": false,
+                    "prop": "uom_name",
+                    "operator": "equalAny",
+                    "valueType": "field",
+                    "value": "{{node:code_node_h0nbfgRx.data.updatedData.uom_name}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "UOM Name",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal Any"
+                  },
+                  {
+                    "id": 1785466951237,
+                    "parentId": 1785466951235,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{workflowparams:organization_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "5. Get UOM Data",
+        "isValidator": true,
+        "nodeName": "5. Get UOM Data",
+        "name": "5. Get UOM Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_AkGvE8Wx",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "UOM Conversion(Item):Table:1939885252310573057",
+          "rules": {
+            "collectionId": "1939885252310573057",
+            "list": [
+              {
+                "id": 1785467470163,
+                "parentId": 1785467470164,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1785467470164,
+                    "parentId": 1785467470163,
+                    "isTop": false,
+                    "prop": "Item_id.id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:search_node_m9ws9ASy.data.data.id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  },
+                  {
+                    "id": 1785467470165,
+                    "parentId": 1785467470163,
+                    "isTop": false,
+                    "prop": "alt_uom_id.id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:search_node_vNAH9LEk.data.data.id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "6. Get UOM Conversion Data",
+        "isValidator": true,
+        "nodeName": "6. Get UOM Conversion Data",
+        "name": "6. Get UOM Conversion Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_K2TxPuHY",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "7. Check Item",
+        "isValidator": true,
+        "nodeName": "7. Check Item",
+        "name": "7. Check Item",
+        "script": {
+          "type": "javascript",
+          "code": "const updatedData = {{node:code_node_h0nbfgRx.data.updatedData}};\nconst itemData = {{node:search_node_m9ws9ASy.data.data}};\nconst uomData = {{node:search_node_vNAH9LEk.data.data}};\nconst taxData = {{node:search_node_Pv9Bxnth.data.data}};\nconst uomConversionData = {{node:search_node_AkGvE8Wx.data.data}};\n\n// Use the item's value only when it parses to a real number; otherwise fall\n// back to the master (UOM conversion) value. Prevents a blank/garbage cell\n// (e.g. \"NaN\", \"abc\") from surviving the `||` and producing \"NaN\".\nconst toPrice = (primary, fallback) => {\n  let value = parseFloat(primary);\n  if (Number.isNaN(value)) value = parseFloat(fallback);\n  return Number.isNaN(value) ? \"0.0000\" : value.toFixed(4);\n};\n\nconst updatedItemData = updatedData.map((item) => {\n  const matchedItemData = itemData.find(i => i.material_code === item.material_code);\n  const matchedUOMData = uomData.find(i => i.uom_name === item.uom_name);\n  const matchedUOMConversionData = uomConversionData.find(i => i.alt_uom_id === matchedUOMData.id && i.Item_id === matchedItemData.id);\n  const matchedPurchaseTax = taxData.find(i => i.tax_code === item.purchase_tax);\n  const matchedSalesTax = taxData.find(i => i.tax_code === item.sales_tax);\n\n  return {\n    ...item,\n    id: matchedUOMConversionData ? matchedUOMConversionData.id : null,\n    purchase_unit_price: toPrice(item.purchase_unit_price, matchedUOMConversionData.purchase_unit_price),\n    sales_unit_price: toPrice(item.sales_unit_price, matchedUOMConversionData.sales_unit_price),\n    mat_purchase_tax_id: matchedPurchaseTax ? matchedPurchaseTax.id : matchedUOMConversionData.mat_purchase_tax_id,\n    purchase_max_price: toPrice(item.purchase_max_price, matchedUOMConversionData.purchase_max_price),\n    purchase_min_price: toPrice(item.purchase_min_price, matchedUOMConversionData.purchase_min_price),\n    purchase_tax_percent: item.purchase_tax_percent ?? matchedUOMConversionData.purchase_tax_percent,\n    sales_max_price: toPrice(item.sales_max_price, matchedUOMConversionData.sales_max_price),\n    sales_min_price: toPrice(item.sales_min_price, matchedUOMConversionData.sales_min_price),\n    mat_sales_tax_id: matchedSalesTax ? matchedSalesTax.id : matchedUOMConversionData.mat_sales_tax_id,\n    sales_tax_percent: item.sales_tax_percent ?? matchedUOMConversionData.sales_tax_percent,\n    sales_price_1: toPrice(item.sales_price_1, matchedUOMConversionData.sales_price_1),\n    sales_price_2: toPrice(item.sales_price_2, matchedUOMConversionData.sales_price_2),\n    sales_price_3: toPrice(item.sales_price_3, matchedUOMConversionData.sales_price_3),\n    sales_price_4: toPrice(item.sales_price_4, matchedUOMConversionData.sales_price_4),\n    sales_price_5: toPrice(item.sales_price_5, matchedUOMConversionData.sales_price_5),\n    sales_price_6: toPrice(item.sales_price_6, matchedUOMConversionData.sales_price_6),\n  }\n})\n\nconst missingUOMs = updatedItemData\n  .filter(item => !item.id)\n  .map(item => `${item.material_code} (${item.uom_name})`);\n\nif(missingUOMs.length > 0) {\n  return {\n    status: 'Failed',\n    message: `These record cannot be found: ${missingUOMs.join(', ')}`,\n    updatedItemData: missingUOMs\n  }\n}\n\nreturn {\n  status: 'Success',\n  message: 'All items validated successfully',\n  updatedItemData: updatedItemData\n}"
+        },
+        "response_json": [
+          {
+            "key": "jwmd3vau",
+            "name": "status",
+            "title": "Status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "13k455v7",
+            "name": "message",
+            "title": "Message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "yvts0pmj",
+            "name": "updatedItemData",
+            "title": "Updated Data",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_8hjgX5G2",
+      "type": "if",
+      "data": {
+        "title": "Validation Failed?",
+        "isValidator": true,
+        "nodeName": "Validation Failed?",
+        "name": "Validation Failed?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_K2TxPuHY.data.status}}' == 'Failed'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_j7Yap19e",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "end_node_Q66K8Cfi",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_K2TxPuHY.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_STBtTwT8",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_RwLbb84j",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "UOM Conversion(Item):Table:1939885252310573057",
+          "rules": {
+            "collectionId": "1939885252310573057",
+            "list": [
+              {
+                "id": 1785468461089,
+                "parentId": 1785468461088,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "8. Update Item",
+        "isValidator": true,
+        "nodeName": "8. Update Item",
+        "name": "8. Update Item",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "id",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.id}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
+              "prop": "purchase_unit_price",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.purchase_unit_price}}",
+              "valueLabel": "",
+              "propLabel": "Purchase Unit Price"
+            },
+            {
+              "prop": "purchase_min_price",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.purchase_min_price}}",
+              "valueLabel": "",
+              "propLabel": "Purchase Min Price"
+            },
+            {
+              "prop": "purchase_max_price",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.purchase_max_price}}",
+              "valueLabel": "",
+              "propLabel": "Purchase Max Price"
+            },
+            {
+              "prop": "mat_purchase_tax_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.mat_purchase_tax_id}}",
+              "valueLabel": "",
+              "propLabel": "Purchase Tax Rate"
+            },
+            {
+              "prop": "purchase_tax_percent",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.purchase_tax_percent}}",
+              "valueLabel": "",
+              "propLabel": "Purchase Tax Percent"
+            },
+            {
+              "prop": "sales_unit_price",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_unit_price}}",
+              "valueLabel": "",
+              "propLabel": "Sales Unit Price"
+            },
+            {
+              "prop": "sales_price_1",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_price_1}}",
+              "valueLabel": "",
+              "propLabel": "Price 1"
+            },
+            {
+              "prop": "sales_price_2",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_price_2}}",
+              "valueLabel": "",
+              "propLabel": "Price 2"
+            },
+            {
+              "prop": "sales_price_3",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_price_3}}",
+              "valueLabel": "",
+              "propLabel": "Price 3"
+            },
+            {
+              "prop": "sales_price_4",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_price_4}}",
+              "valueLabel": "",
+              "propLabel": "Price 4"
+            },
+            {
+              "prop": "sales_price_5",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_price_5}}",
+              "valueLabel": "",
+              "propLabel": "Price 5"
+            },
+            {
+              "prop": "sales_price_6",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_price_6}}",
+              "valueLabel": "",
+              "propLabel": "Price 6"
+            },
+            {
+              "prop": "sales_min_price",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_min_price}}",
+              "valueLabel": "",
+              "propLabel": "Sales Min Price"
+            },
+            {
+              "prop": "sales_max_price",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_max_price}}",
+              "valueLabel": "",
+              "propLabel": "Sales Max Price"
+            },
+            {
+              "prop": "mat_sales_tax_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.mat_sales_tax_id}}",
+              "valueLabel": "",
+              "propLabel": "Sales Tax Rate"
+            },
+            {
+              "prop": "sales_tax_percent",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_K2TxPuHY.data.updatedItemData.sales_tax_percent}}",
+              "valueLabel": "",
+              "propLabel": "Sales Tax Percent"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
