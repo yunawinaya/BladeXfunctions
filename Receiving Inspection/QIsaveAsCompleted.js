@@ -16,6 +16,28 @@ const roundPrice = (value) => {
   return parseFloat(parseFloat(value || 0).toFixed(4));
 };
 
+// Quantities written to in_transit_detail must be toFixed(3) STRINGS. The
+// serializer emits full-precision floats that BigDecimal multipleOf rejects,
+// and Number()/parseFloat() do not fix that.
+const qtyStr = (value) => {
+  return Math.max(0, roundQty(value)).toFixed(3);
+};
+
+// Lifted out of processBalanceTable so the ledger writer shares one conversion.
+// Returns undefined when the received UOM has no conversion row, exactly as the
+// original inline version did - callers decide what that means.
+const convertUOMToBase = (quantity, itemData, receivedUom) => {
+  if (receivedUom !== itemData.based_uom) {
+    for (const uom of itemData.table_uom_conversion) {
+      if (receivedUom === uom.alt_uom_id) {
+        return roundQty(quantity * uom.base_qty);
+      }
+    }
+  } else if (receivedUom === itemData.based_uom) {
+    return roundQty(quantity);
+  }
+};
+
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -415,6 +437,9 @@ const createPutAway = async (data, organizationId, putAwaySetupData) => {
       .where({ gr_no: grId, to_status: "Created", is_deleted: 0 })
       .get();
 
+    let putawayId = "";
+    let putawayNo = "";
+
     if (resCurrentPutaway && resCurrentPutaway.data.length > 0) {
       const currentPutaway = resCurrentPutaway.data[0];
 
@@ -434,17 +459,163 @@ const createPutAway = async (data, organizationId, putAwaySetupData) => {
         .collection("transfer_order_putaway")
         .doc(currentPutaway.id)
         .update(currentPutaway);
+
+      putawayId = currentPutaway.id;
+      putawayNo = currentPutaway.to_id || "";
     } else {
-      await db.collection("transfer_order_putaway").add(putawayData);
+      const addResult = await db
+        .collection("transfer_order_putaway")
+        .add(putawayData);
+
+      // Best effort only. On the add path to_id is still the "issued" prefix
+      // sentinel, and the real number is generated server side. Leaving these
+      // blank is safe: code_node_ITmatch re-stamps target_doc_* at consumption.
+      putawayId = addResult?.id || "";
     }
 
     await db
       .collection("goods_receiving")
       .where({ id: grId })
       .update({ putaway_status: "Created" });
+
+    return { grId, putawayId, putawayNo, lines: putAwayLineItemData };
   } catch {
     throw new Error("Error creating putaway.");
   }
+};
+
+// The In Transit ledger (in_transit_detail) is the ownership record behind
+// item_balance.intransit_qty. The GR save workflow writes a row for every line
+// it stages directly; this covers the other producer -- stock released out of
+// Quality Inspection, whose putaway lines are appended to that same putaway
+// record above.
+//
+// Rows are built from putAwayLineItemData itself, not recomputed from
+// table_insp_mat, so the ledger quantity and the quantity the putaway will
+// later demand come from one number and cannot drift apart. The match key on
+// the consuming side (code_node_ITmatch) is (material_id, batch_id, transit_bin).
+const resolveInTransitCollection = async () => {
+  // Some collections resolve only by display name and throw "masterTable is
+  // null" on the physical name, so probe rather than guess.
+  for (const name of ["in_transit_detail", "In Transit Detail"]) {
+    try {
+      await db.collection(name).where({ id: "__probe__" }).get();
+      return name;
+    } catch (probeError) {
+      console.log(`in_transit_detail not addressable as "${name}"`);
+    }
+  }
+  return null;
+};
+
+const createInTransitLedger = async (
+  data,
+  organizationId,
+  putawayCategory,
+  itemMasterMap,
+  putawayRef,
+) => {
+  // Mirrors if_ITstage on the GR side, which gates on the literal "In Transit".
+  if (putawayCategory !== "In Transit") return;
+  if (!putawayRef || !putawayRef.grId) return;
+
+  const lines = putawayRef.lines || [];
+  if (lines.length === 0) return;
+
+  // One row per (item, batch, bin) -- the tuple the consumer matches on.
+  const byTuple = new Map();
+  for (const line of lines) {
+    const itemData = itemMasterMap[line.item_code];
+    if (!itemData) continue;
+
+    const converted = convertUOMToBase(
+      line.qty_to_putaway,
+      itemData,
+      line.item_uom,
+    );
+    const baseQty =
+      converted === undefined || converted === null
+        ? roundQty(line.qty_to_putaway)
+        : converted;
+    if (baseQty <= 0) continue;
+
+    const bin = line.source_bin || "";
+    const batch = line.batch_no || null;
+    const key = `${line.item_code}|${batch || ""}|${bin}`;
+
+    const existing = byTuple.get(key);
+    if (existing) {
+      existing.qty = roundQty(existing.qty + baseQty);
+      continue;
+    }
+
+    byTuple.set(key, {
+      qty: baseQty,
+      itemData,
+      batch,
+      bin,
+      line,
+      lineNo: byTuple.size,
+    });
+  }
+
+  if (byTuple.size === 0) return;
+
+  const collectionName = await resolveInTransitCollection();
+  if (!collectionName) {
+    console.error(
+      "in_transit_detail is not reachable - QI stock will be untracked",
+    );
+    return;
+  }
+
+  const transitDate = new Date().toISOString().split("T")[0];
+
+  for (const entry of byTuple.values()) {
+    const { itemData } = entry;
+    await db.collection(collectionName).add({
+      doc_type: "Goods Receiving",
+      doc_id: putawayRef.grId,
+      doc_no: data.gr_no_display || "",
+      // The GR line id is not carried onto QI released lines, and the PO is not
+      // in scope here either (the putaway line sets po_no to "" for the same
+      // reason). Traceability runs through qi_no on the putaway line instead.
+      doc_line_id: "",
+      line_no: entry.lineNo,
+      parent_id: "",
+      parent_no: "",
+      parent_line_id: "",
+      material_id: entry.line.item_code,
+      item_code: itemData.material_code || "",
+      item_name: itemData.material_name || "",
+      item_desc: itemData.material_desc || "",
+      item_uom: itemData.based_uom || entry.line.item_uom,
+      batch_id: entry.batch,
+      handling_unit_id: "",
+      plant_id: data.plant_id,
+      organization_id: organizationId,
+      transit_bin: entry.bin,
+      from_plant_id: null,
+      from_bin: null,
+      from_category: null,
+      to_plant_id: data.plant_id,
+      to_bin: null,
+      to_category: "Unrestricted",
+      transit_qty: qtyStr(entry.qty),
+      received_qty: qtyStr(0),
+      open_qty: qtyStr(entry.qty),
+      status: "In Transit",
+      transit_date: transitDate,
+      remark: `Released from inspection ${data.inspection_lot_no || ""}`.trim(),
+      target_doc_type: putawayRef.putawayId ? "Putaway" : "",
+      target_doc_id: putawayRef.putawayId || "",
+      target_doc_no: putawayRef.putawayNo || "",
+      target_doc_line_id: "",
+      source_transit_id: "",
+    });
+  }
+
+  console.log(`in_transit_detail: ${byTuple.size} row(s) staged from QI`);
 };
 
 const processSerializedItemMovements = async (
@@ -841,6 +1012,9 @@ const processInventoryMovement = async (data) => {
     const putawayCategory = putAwaySetupData?.category || "In Transit";
     const loadingBayLocation = getLoadingBayLocation(putAwaySetupData);
 
+    // Reused by createInTransitLedger below so it needs no fetches of its own.
+    const itemMasterMap = {};
+
     for (const mat of matData) {
       if (mat.item_id) {
         const resItem = await db
@@ -850,6 +1024,7 @@ const processInventoryMovement = async (data) => {
 
         if (resItem && resItem.data.length > 0) {
           const itemData = resItem.data[0];
+          itemMasterMap[mat.item_id] = itemData;
           const inventoryLocationId = loadingBayLocation || mat.location_id;
 
           // Check if this is a serialized item
@@ -915,7 +1090,27 @@ const processInventoryMovement = async (data) => {
     }
 
     if (putAwaySetupData && putAwaySetupData.putaway_required === 1) {
-      await createPutAway(data, data.organization_id, putAwaySetupData);
+      const putawayRef = await createPutAway(
+        data,
+        data.organization_id,
+        putAwaySetupData,
+      );
+
+      // Deliberately non-fatal. Inventory, balances and the putaway have all
+      // committed by this point, so failing the whole completion over the
+      // ledger would be worse than leaving the stock untracked - and untracked
+      // is a case code_node_ITmatch already skips rather than blocks.
+      try {
+        await createInTransitLedger(
+          data,
+          data.organization_id,
+          putawayCategory,
+          itemMasterMap,
+          putawayRef,
+        );
+      } catch (ledgerError) {
+        console.error("Failed to write in_transit_detail rows", ledgerError);
+      }
     } else if (
       !putAwaySetupData ||
       (putAwaySetupData && putAwaySetupData.putaway_required === 0)
@@ -944,22 +1139,13 @@ const processBalanceTable = async (
     const inventoryLocationId = binLocationId || matData.location_id;
     let latestBalanceData = null;
 
-    const convertUOM = (quantity, itemData, matData) => {
-      if (matData.received_uom !== itemData.based_uom) {
-        for (const uom of itemData.table_uom_conversion) {
-          if (matData.received_uom === uom.alt_uom_id) {
-            return roundQty(quantity * uom.base_qty);
-          }
-        }
-      } else if (matData.received_uom === itemData.based_uom) {
-        return roundQty(quantity);
-      }
-    };
+    const convertUOM = (quantity) =>
+      convertUOMToBase(quantity, itemData, matData.received_uom);
 
     const buildBalanceUpdate = (sourceBalance) => {
-      const passedQty = convertUOM(matData.passed_qty, itemData, matData);
-      const failedQty = convertUOM(matData.failed_qty, itemData, matData);
-      const receivedQty = convertUOM(matData.received_qty, itemData, matData);
+      const passedQty = convertUOM(matData.passed_qty);
+      const failedQty = convertUOM(matData.failed_qty);
+      const receivedQty = convertUOM(matData.received_qty);
 
       const update = {
         block_qty: sourceBalance.block_qty,
