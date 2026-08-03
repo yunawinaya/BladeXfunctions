@@ -1,4 +1,26 @@
 {
+  "request_json": [
+    {
+      "key": "k0025",
+      "name": "allData",
+      "title": "All Data",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "k0026",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -44,9 +66,7 @@
         {
           "id": "if_save_draft_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_draft_check_doc_no",
@@ -205,9 +225,7 @@
                 {
                   "id": "if_draft_failed_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "end_draft_400",
@@ -216,11 +234,7 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": {
-                            "result": {
-                              "type": "string"
-                            }
-                          }
+                          "properties": { "result": { "type": "string" } }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -239,9 +253,7 @@
                 {
                   "id": "if_draft_failed_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -251,9 +263,7 @@
         {
           "id": "if_save_draft_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "code_check_doc_no",
@@ -412,9 +422,7 @@
                 {
                   "id": "if_required_failed_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "end_required_400",
@@ -423,11 +431,7 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": {
-                            "result": {
-                              "type": "string"
-                            }
-                          }
+                          "properties": { "result": { "type": "string" } }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -446,9 +450,7 @@
                 {
                   "id": "if_required_failed_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": [
                     {
                       "id": "code_map_validate_qty",
@@ -596,9 +598,7 @@
                         {
                           "id": "if_qty_passed_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "code_filter_lines",
@@ -691,9 +691,7 @@
                                 {
                                   "id": "if_empty_lines_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "end_empty_401",
@@ -703,9 +701,7 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": {
-                                              "type": "string"
-                                            }
+                                            "result": { "type": "string" }
                                           }
                                         },
                                         "isValidator": true,
@@ -725,9 +721,7 @@
                                 {
                                   "id": "if_empty_lines_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -765,21 +759,15 @@
                                 {
                                   "id": "if_edit_draftcheck_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "cond_all_check",
                                       "type": "condition-all-node",
                                       "data": {
                                         "title": "Check Existing GR and PI",
-                                        "filter": {
-                                          "list": []
-                                        },
-                                        "expression": {
-                                          "code": ""
-                                        },
+                                        "filter": { "list": [] },
+                                        "expression": { "code": "" },
                                         "displayContent": "sdk.form.setCondition"
                                       },
                                       "blocks": [
@@ -1044,9 +1032,7 @@
                                         {
                                           "id": "if_draft_found_t",
                                           "type": "ifBlock",
-                                          "data": {
-                                            "title": "true"
-                                          },
+                                          "data": { "title": "true" },
                                           "blocks": [
                                             {
                                               "id": "end_draft_404",
@@ -1078,9 +1064,7 @@
                                         {
                                           "id": "if_draft_found_f",
                                           "type": "ifBlock",
-                                          "data": {
-                                            "title": "false"
-                                          },
+                                          "data": { "title": "false" },
                                           "blocks": []
                                         }
                                       ]
@@ -1090,9 +1074,7 @@
                                 {
                                   "id": "if_edit_draftcheck_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -1102,9 +1084,7 @@
                         {
                           "id": "if_qty_passed_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": [
                             {
                               "id": "end_qty_401",
@@ -1114,9 +1094,7 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": {
-                                      "type": "string"
-                                    }
+                                    "result": { "type": "string" }
                                   }
                                 },
                                 "isValidator": true,
@@ -1176,9 +1154,7 @@
         {
           "id": "if_pre_issued_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "get_its_pre",
@@ -1363,21 +1339,15 @@
                 {
                   "id": "if_internal_pre_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "po_par_pre_fetch",
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Pre Fetch",
-                        "filter": {
-                          "list": []
-                        },
-                        "expression": {
-                          "code": ""
-                        },
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -1386,13 +1356,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Alias",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Alias",
@@ -1483,13 +1448,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Customer+Currency",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Customer+Currency",
@@ -1572,13 +1532,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Linked SO",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Linked SO",
@@ -1696,9 +1651,7 @@
                         {
                           "id": "if_gate_confirm_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "end_gate_confirm",
@@ -1708,9 +1661,7 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": {
-                                      "type": "string"
-                                    }
+                                    "result": { "type": "string" }
                                   }
                                 },
                                 "isValidator": true,
@@ -1718,10 +1669,7 @@
                                 "name": "结束节点",
                                 "back_data_type": "OutputParams",
                                 "code": "",
-                                "msg": {
-                                  "type": "javascript",
-                                  "code": ""
-                                },
+                                "msg": { "type": "javascript", "code": "" },
                                 "response_value": {
                                   "list": [
                                     {
@@ -1744,9 +1692,7 @@
                         {
                           "id": "if_gate_confirm_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -1756,9 +1702,7 @@
                 {
                   "id": "if_internal_pre_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -1768,9 +1712,7 @@
         {
           "id": "if_pre_issued_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -1788,7 +1730,7 @@
         "name": "Fillback Header Fields",
         "script": {
           "type": "javascript",
-          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.po_status}} == 'Draft' ? {{node:code_draft_check_doc_no.data.entry}} : {{node:code_filter_lines.data.table}};\n\nfor(const [index, poLineItem] of entry.table_po.entries()) {\n  const receivedQty = poLineItem.received_qty === null || poLineItem.received_qty === undefined || poLineItem.received_qty === '' ? 0 : parseFloat(poLineItem.received_qty);\n  const formattedItem = {\n    ...poLineItem,\n    quantity: parseFloat(poLineItem.quantity || 0).toFixed(3),\n    unit_price: parseFloat(poLineItem.unit_price || 0).toFixed(4),\n    gross: parseFloat(poLineItem.gross || 0).toFixed(4),\n    discount: parseFloat(poLineItem.discount || 0).toFixed(4),\n    discount_amount: parseFloat(poLineItem.discount_amount || 0).toFixed(4),\n    tax_amount: parseFloat(poLineItem.tax_amount || 0).toFixed(4),\n    po_amount: parseFloat(poLineItem.po_amount || 0).toFixed(4),\n    min_price: parseFloat(poLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(poLineItem.max_price || 0).toFixed(4),\n    received_qty: receivedQty,\n    outstanding_quantity: (parseFloat(poLineItem.quantity || 0) - receivedQty).toFixed(3),\n    supplier_id: entry.po_supplier_id || \"\",\n    plant_id: entry.po_plant || \"\",\n    payment_term_id: entry.po_payment_terms || \"\",\n    shipping_preference_id: entry.po_shipping_preference || \"\",\n    billing_state_id: entry.billing_address_state || \"\",\n    billing_country_id: entry.billing_address_country || \"\",\n    shipping_state_id: entry.shipping_address_state || \"\",\n    shipping_country_id: entry.shipping_address_country || \"\",\n    item_category_id: poLineItem.item_category_id || \"\",\n    line_index: index + 1,\n    organization_id: entry.organization_id,\n    line_status: !poLineItem.line_status || poLineItem.line_status === '' || poLineItem.line_status === 'Draft' ? entry.po_status : poLineItem.line_status,\n    po_created_by: {{global:nickname}}\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.partially_received = !entry.partially_received || entry.partially_received === '' ? `0 / ${updatedLineItem.length}` : entry.partially_received;\nentry.fully_received = !entry.fully_received || entry.fully_received === '' ? `0 / ${updatedLineItem.length}` : entry.fully_received;\nentry.po_total_gross = parseFloat(entry.po_total_gross || 0).toFixed(4);\nentry.po_total_discount = parseFloat(entry.po_total_discount || 0).toFixed(4);\nentry.po_total_tax = parseFloat(entry.po_total_tax || 0).toFixed(4);\nentry.po_total = parseFloat(entry.po_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\nentry.table_po = updatedLineItem;\n\nreturn { entry };"
+          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.po_status}} == 'Draft' ? {{node:code_draft_check_doc_no.data.entry}} : {{node:code_filter_lines.data.table}};\n\nfor(const [index, poLineItem] of entry.table_po.entries()) {\n  const receivedQty = poLineItem.received_qty === null || poLineItem.received_qty === undefined || poLineItem.received_qty === '' ? 0 : parseFloat(poLineItem.received_qty);\n  const formattedItem = {\n    ...poLineItem,\n    quantity: parseFloat(poLineItem.quantity || 0).toFixed(3),\n    unit_price: parseFloat(poLineItem.unit_price || 0).toFixed(4),\n    gross: parseFloat(poLineItem.gross || 0).toFixed(4),\n    discount: parseFloat(poLineItem.discount || 0).toFixed(4),\n    discount_amount: parseFloat(poLineItem.discount_amount || 0).toFixed(4),\n    tax_amount: parseFloat(poLineItem.tax_amount || 0).toFixed(4),\n    po_amount: parseFloat(poLineItem.po_amount || 0).toFixed(4),\n    min_price: parseFloat(poLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(poLineItem.max_price || 0).toFixed(4),\n    received_qty: receivedQty,\n    outstanding_quantity: (parseFloat(poLineItem.quantity || 0) - receivedQty).toFixed(3),\n    supplier_id: entry.po_supplier_id || \"\",\n    plant_id: entry.po_plant || \"\",\n    payment_term_id: entry.po_payment_terms || \"\",\n    shipping_preference_id: entry.po_shipping_preference || \"\",\n    billing_state_id: entry.billing_address_state || \"\",\n    billing_country_id: entry.billing_address_country || \"\",\n    shipping_state_id: entry.shipping_address_state || \"\",\n    shipping_country_id: entry.shipping_address_country || \"\",\n    item_category_id: poLineItem.item_category_id || \"\",\n    line_index: index + 1,\n    organization_id: entry.organization_id,\n    line_status: !poLineItem.line_status || poLineItem.line_status === '' || poLineItem.line_status === 'Draft' ? entry.po_status : poLineItem.line_status,\n    po_created_by: {{global:nickname}},\n    po_expected_date: poLineItem.po_expected_date ?? entry.po_expected_date\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.partially_received = !entry.partially_received || entry.partially_received === '' ? `0 / ${updatedLineItem.length}` : entry.partially_received;\nentry.fully_received = !entry.fully_received || entry.fully_received === '' ? `0 / ${updatedLineItem.length}` : entry.fully_received;\nentry.po_total_gross = parseFloat(entry.po_total_gross || 0).toFixed(4);\nentry.po_total_discount = parseFloat(entry.po_total_discount || 0).toFixed(4);\nentry.po_total_tax = parseFloat(entry.po_total_tax || 0).toFixed(4);\nentry.po_total = parseFloat(entry.po_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\nentry.table_po = updatedLineItem;\n\nreturn { entry };"
         },
         "response_json": [
           {
@@ -1837,9 +1779,7 @@
         {
           "id": "if_edit_persist_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "update_po",
@@ -2520,9 +2460,7 @@
         {
           "id": "if_edit_persist_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": [
             {
               "id": "add_po",
@@ -3306,9 +3244,7 @@
         {
           "id": "if_issued_downstream_t",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "get_po_full",
@@ -3623,9 +3559,7 @@
                 {
                   "id": "if_onorder_add_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "add_onorder",
@@ -3764,9 +3698,7 @@
                 {
                   "id": "if_onorder_add_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3804,9 +3736,7 @@
                 {
                   "id": "if_onorder_update_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_onorder",
@@ -3893,9 +3823,7 @@
                 {
                   "id": "if_onorder_update_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3933,9 +3861,7 @@
                 {
                   "id": "if_onorder_delete_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "search_onorder_orphans",
@@ -3989,17 +3915,13 @@
                       "id": "delete_onorder",
                       "type": "delete-node",
                       "data": {
-                        "table_id": {
-                          "source": ""
-                        },
+                        "table_id": { "source": "" },
                         "condition": {},
                         "title": "Delete On Order",
                         "isValidator": true,
                         "nodeName": "Delete On Order",
                         "name": "Delete On Order",
-                        "node_ids": [
-                          "search_onorder_orphans"
-                        ]
+                        "node_ids": ["search_onorder_orphans"]
                       },
                       "blocks": []
                     }
@@ -4008,9 +3930,7 @@
                 {
                   "id": "if_onorder_delete_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -4048,9 +3968,7 @@
                 {
                   "id": "if_has_preq_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "search_preq",
@@ -4198,9 +4116,7 @@
                 {
                   "id": "if_has_preq_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -4406,21 +4322,15 @@
                 {
                   "id": "if_internal_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "po_par_so_fetch",
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel SO Fetch",
-                        "filter": {
-                          "list": []
-                        },
-                        "expression": {
-                          "code": ""
-                        },
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -4429,13 +4339,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Existing Linkage",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Existing Linkage",
@@ -4485,13 +4390,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Customer+Currency",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Customer+Currency",
@@ -4574,13 +4474,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Accounting",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Accounting",
@@ -4629,13 +4524,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "SO Rule",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "SO Rule",
@@ -4739,13 +4629,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Addresses",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Addresses",
@@ -4872,12 +4757,8 @@
                               "type": "condition-all-node",
                               "data": {
                                 "title": "Countries/States",
-                                "filter": {
-                                  "list": []
-                                },
-                                "expression": {
-                                  "code": ""
-                                },
+                                "filter": { "list": [] },
+                                "expression": { "code": "" },
                                 "displayContent": "sdk.form.setCondition"
                               },
                               "blocks": [
@@ -4886,9 +4767,7 @@
                                   "type": "condition-all-node-item",
                                   "data": {
                                     "title": "Countries",
-                                    "filter": {
-                                      "list": []
-                                    },
+                                    "filter": { "list": [] },
                                     "expression": {
                                       "code": "",
                                       "type": "javascript"
@@ -4942,9 +4821,7 @@
                                   "type": "condition-all-node-item",
                                   "data": {
                                     "title": "States",
-                                    "filter": {
-                                      "list": []
-                                    },
+                                    "filter": { "list": [] },
                                     "expression": {
                                       "code": "",
                                       "type": "javascript"
@@ -5002,13 +4879,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Shipping Purpose",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Shipping Purpose",
@@ -5057,13 +4929,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Alias+SellerItems",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Alias+SellerItems",
@@ -5218,13 +5085,8 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Linked SO",
-                            "filter": {
-                              "list": []
-                            },
-                            "expression": {
-                              "code": "",
-                              "type": "javascript"
-                            },
+                            "filter": { "list": [] },
+                            "expression": { "code": "", "type": "javascript" },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Linked SO",
@@ -5378,9 +5240,7 @@
                         {
                           "id": "if_do_unlink_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "update_so_unlink",
@@ -5571,9 +5431,7 @@
                         {
                           "id": "if_do_unlink_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -5611,9 +5469,7 @@
                         {
                           "id": "if_so_create_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "wf_create_so",
@@ -5753,9 +5609,7 @@
                                 {
                                   "id": "if_so_ok_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "update_so_source",
@@ -5986,9 +5840,7 @@
                                 {
                                   "id": "if_so_ok_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -6026,9 +5878,7 @@
                                 {
                                   "id": "if_so_failed_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "end_so_fail",
@@ -6038,9 +5888,7 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": {
-                                              "type": "string"
-                                            }
+                                            "result": { "type": "string" }
                                           }
                                         },
                                         "isValidator": true,
@@ -6060,9 +5908,7 @@
                                 {
                                   "id": "if_so_failed_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -6072,9 +5918,7 @@
                         {
                           "id": "if_so_create_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -6112,9 +5956,7 @@
                         {
                           "id": "if_do_update_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "wf_update_so",
@@ -6245,9 +6087,7 @@
                                 {
                                   "id": "if_update_failed_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "end_update_fail",
@@ -6257,9 +6097,7 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": {
-                                              "type": "string"
-                                            }
+                                            "result": { "type": "string" }
                                           }
                                         },
                                         "isValidator": true,
@@ -6293,9 +6131,7 @@
                                 {
                                   "id": "if_update_failed_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -6305,9 +6141,7 @@
                         {
                           "id": "if_do_update_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -6317,9 +6151,7 @@
                 {
                   "id": "if_internal_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -6329,9 +6161,7 @@
         {
           "id": "if_issued_downstream_f",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -6375,10 +6205,7 @@
         "name": "End Node",
         "back_data_type": "OutputParams",
         "code": "",
-        "msg": {
-          "type": "javascript",
-          "code": ""
-        },
+        "msg": { "type": "javascript", "code": "" },
         "response_value": {
           "list": [
             {
@@ -6397,27 +6224,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "k0025",
-      "name": "allData",
-      "title": "All Data",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [
-    {
-      "key": "k0026",
-      "name": "data",
-      "title": "Data",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    }
-  ],
-  "config": {}
+  "edges": []
 }
