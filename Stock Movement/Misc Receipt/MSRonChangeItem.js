@@ -14,6 +14,9 @@ const handleBatchManagement = (itemData, rowIndex) => {
         break;
 
       case "Manual Input":
+        this.setData({
+          [`stock_movement.${rowIndex}.batch_id`]: "",
+        });
         this.disabled(`stock_movement.${rowIndex}.batch_id`, false);
         break;
     }
@@ -52,6 +55,15 @@ const handleManufacturingAndExpiredDate = async () => {
         true,
       );
     }
+
+    console.log("item", item);
+    const amount =
+      parseFloat(item.received_quantity || 0) *
+      parseFloat(item.unit_price || 0);
+    console.log(amount);
+    this.setData({
+      [`stock_movement.${index}.amount`]: amount,
+    });
   }
 };
 
@@ -160,7 +172,11 @@ const handleSerialNumberManagement = async (itemData, rowIndex) => {
     const defaultBin = allData.default_bin;
     const defaultStorageLocation = allData.default_storage_location;
     const itemData = arguments[0]?.fieldModel?.item;
-
+    const itemUOM = itemData.table_uom_conversion.find(
+      (uom) => uom.alt_uom_id === itemData.based_uom,
+    );
+    console.log("allData", allData);
+    console.log("arguments[0]", arguments[0]);
     if (itemData) {
       handleBatchManagement(itemData, rowIndex);
       handleBinLocation(defaultBin, defaultStorageLocation, rowIndex);
@@ -168,13 +184,13 @@ const handleSerialNumberManagement = async (itemData, rowIndex) => {
       await handleUOM(itemData, rowIndex);
       await handleSerialNumberManagement(itemData, rowIndex);
 
-      this.setData({
+      await this.setData({
         [`stock_movement.${rowIndex}.stock_summary`]: "",
         [`stock_movement.${rowIndex}.received_quantity_uom`]:
           itemData.based_uom,
         [`stock_movement.${rowIndex}.item_name`]: itemData.material_name,
         [`stock_movement.${rowIndex}.item_desc`]: itemData.material_desc,
-        [`stock_movement.${rowIndex}.unit_price`]: itemData.purchase_unit_price,
+        [`stock_movement.${rowIndex}.unit_price`]: itemUOM.purchase_unit_price,
       });
 
       await handleManufacturingAndExpiredDate();

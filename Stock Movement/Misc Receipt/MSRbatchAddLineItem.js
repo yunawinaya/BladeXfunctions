@@ -19,6 +19,7 @@ const handleBatchManagement = async (
     const rowIndex = smLineItem.length + index;
 
     if (item.item_batch_management === 1) {
+      console.log("batch", item.batch_number_genaration);
       switch (item.batch_number_genaration) {
         case "According To System Settings":
           this.setData({
@@ -29,6 +30,7 @@ const handleBatchManagement = async (
           break;
 
         case "Manual Input":
+          console.log("batch", item.batch_number_genaration);
           this.disabled(`stock_movement.${rowIndex}.batch_id`, false);
           break;
       }
@@ -175,7 +177,9 @@ const handleSerialNumberManagement = async (currentItemArray, smLineItem) => {
     received_quantity_uom: item.based_uom,
     item_name: item.material_name,
     item_desc: item.material_desc,
-    unit_price: item.purchase_unit_price,
+    unit_price:
+      item.table_uom_conversion.find((uom) => uom.alt_uom_id === item.based_uom)
+        ?.purchase_unit_price || 0,
     item_category: item.item_category,
     is_serialized_item: item.serial_number_management,
   }));
