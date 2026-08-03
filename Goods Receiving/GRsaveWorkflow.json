@@ -704,6 +704,81 @@
           "data": { "title": "true" },
           "blocks": [
             {
+              "id": "code_node_QB3GUnrS",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Extract Item IDs",
+                "isValidator": true,
+                "nodeName": "Extract Item IDs",
+                "name": "Extract Item IDs",
+                "script": {
+                  "type": "javascript",
+                  "code": "const tableData = {{node:code_node_4r2Fv9G5.data.allData.table_gr}} || [];\n\nconst itemIdsSet = new Set();\nfor (const grItem of tableData) {\n  if (grItem.item_id) {\n    itemIdsSet.add(grItem.item_id);\n  }\n}\n\nconst itemIds = Array.from(itemIdsSet);\n\nreturn {\n  itemIds: itemIds,\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "wswuq5n1",
+                    "name": "itemIds",
+                    "title": "itemIds",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "gouhx8w8",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_BwcLu7r7",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 1772618266037,
+                        "parentId": 1772618266036,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_QB3GUnrS.data.itemIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get items",
+                "isValidator": true,
+                "nodeName": "Get items",
+                "name": "Get items"
+              },
+              "blocks": []
+            },
+            {
               "id": "code_node_Ga3BZDyy",
               "type": "code-node",
               "data": {
@@ -985,81 +1060,6 @@
                         "isValidator": true,
                         "nodeName": "Get PO Data",
                         "name": "Get PO Data"
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "code_node_QB3GUnrS",
-                      "type": "code-node",
-                      "data": {
-                        "language": "javascript",
-                        "code": "",
-                        "timeout": 30000,
-                        "title": "Extract Item IDs",
-                        "isValidator": true,
-                        "nodeName": "Extract Item IDs",
-                        "name": "Extract Item IDs",
-                        "script": {
-                          "type": "javascript",
-                          "code": "const tableData = {{node:code_node_4r2Fv9G5.data.allData.table_gr}} || [];\n\nconst itemIdsSet = new Set();\nfor (const grItem of tableData) {\n  if (grItem.item_id) {\n    itemIdsSet.add(grItem.item_id);\n  }\n}\n\nconst itemIds = Array.from(itemIdsSet);\n\nreturn {\n  itemIds: itemIds,\n};\n"
-                        },
-                        "response_json": [
-                          {
-                            "key": "wswuq5n1",
-                            "name": "itemIds",
-                            "title": "itemIds",
-                            "description": "",
-                            "bsonType": "array",
-                            "isExpand": true,
-                            "children": [
-                              {
-                                "key": "gouhx8w8",
-                                "name": "items",
-                                "title": "",
-                                "description": "",
-                                "bsonType": "any",
-                                "isExpand": false,
-                                "isArrayItem": true,
-                                "children": []
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "search_node_BwcLu7r7",
-                      "type": "search-node",
-                      "data": {
-                        "table_id": {
-                          "source": "Item:Table:1901546842240438273",
-                          "rules": {
-                            "collectionId": "1901546842240438273",
-                            "list": [
-                              {
-                                "id": 1772618266037,
-                                "parentId": 1772618266036,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_node_QB3GUnrS.data.itemIds}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "limit": 100,
-                        "title": "Get items",
-                        "isValidator": true,
-                        "nodeName": "Get items",
-                        "name": "Get items"
                       },
                       "blocks": []
                     },
@@ -3306,7 +3306,7 @@
                     "name": "Subform Preparation",
                     "script": {
                       "type": "javascript",
-                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nconst page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\n\n\nconst putawaySetup = {{node:get_node_QBrFrLs9.data.data}} || {};\nconst skipPutaway = ({{workflowparams:skip_putaway}} === 1 || {{workflowparams:skip_putaway}} === \"1\") ? 1 : 0;\nconst subformData = allData.table_gr;\nconst currentIndexRaw = {{node:get_cache_node_5vPHf6xv.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.plant_id;\nconst organization_id = allData.organization_id;\nconst gr_no = allData.gr_no;\nconst doc_date = allData.gr_date;\n\nconst item = subformData[index];\nconst material_id = item.item_id;\nconst material_uom = item.item_uom || item.ordered_uom;\nconst quantity = item.received_qty;\nconst unit_price = item.unit_price;\nlet storage_location_id = item.storage_location_id;\nconst batch_no = item.item_batch_no || null;\nconst remark = item.line_remark_1 || null;\nconst remark2 = item.line_remark_2 || null;\nconst remark3 = item.line_remark_3 || null;\nconst inventory_category = item.inv_category || \"Unrestricted\";\nconst manufacturing_date = item.manufacturing_date || null;\nconst expired_date = item.expired_date || null;\nconst po_no = item.line_po_no || \"\";\nconst po_id = item.line_po_id || \"\";\nconst po_line_id = item.po_line_item_id || \"\";\nconst onOrderQty = roundQty(item.base_received_qty) || roundQty(item.received_qty) || 0;\n\n// === NEW: Split detection fields ===\nconst is_split = item.is_split || \"No\";\nconst parent_or_child = item.parent_or_child || \"Parent\";\nconst parent_index = item.parent_index;\n\n// === UPDATED: skipInventory logic ===\n// Skip if: no material_id OR split parent row\nconst isSplitParent = is_split === \"Yes\" && parent_or_child === \"Parent\";\nconst skipInventory = (!material_id || isSplitParent) ? 1 : 0;\n\n// === NEW: isChild flag for easier branching ===\nconst isChild = parent_or_child === \"Child\" ? 1 : 0;\n\nlet location_id = item.location_id;\n\nif (skipPutaway !== 1 && putawaySetup.putaway_required === 1 && putawaySetup.is_loading_bay === 1 && putawaySetup.default_loading_bay && putawaySetup.default_loading_bay !== \"\") {\n  location_id = putawaySetup.default_loading_bay;\n  storage_location_id = \"\";\n} else if (skipPutaway !== 1 && putawaySetup.putaway_required === 1 && putawaySetup.is_loading_bay === 1) {\n  const storageLocationData = {{node:get_node_njg7cSUu.data.data}};\n  location_id = storageLocationData.table_bin_location?.find((bin) => bin.is_default_bin === 1)?.bin_location_id;\n  storage_location_id = \"\";\n}\n\n// === Derived routing flags for linear (de-duplicated) loop body ===\nconst createsBatch = isSplitParent ? 1 : 0;\nconst updatesPOLine = isChild === 1 ? 0 : 1;\nconst updatesOnOrder = (isSplitParent || (!isSplitParent && isChild === 0 && skipInventory === 0)) ? 1 : 0;\nconst addsInventory = (isChild === 1 || (!isSplitParent && skipInventory === 0)) ? 1 : 0;\n\n// Reservation release gate: subtract the summed created_received_qty reservation\n// only on the FIRST non-Child row of each po_line, so split-parent rows sharing\n// one po_line_item_id release it exactly once (not once per row).\nlet isFirstReservationRow = 0;\nif (po_line_id) {\n  let firstResIdx = -1;\n  for (let __k = 0; __k < subformData.length; __k++) {\n    const __r = subformData[__k];\n    if (__r && __r.parent_or_child !== \"Child\" && (__r.po_line_item_id || \"\") === po_line_id) {\n      firstResIdx = __k;\n      break;\n    }\n  }\n  isFirstReservationRow = (index === firstResIdx) ? 1 : 0;\n}\n\nreturn {\n  skipInventory: skipInventory,\n  plant_id: plant_id,\n  organization_id: organization_id,\n  gr_no: gr_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  quantity: quantity,\n  unit_price: unit_price,\n  storage_location_id: storage_location_id,\n  location_id: location_id,\n  batch_no: batch_no,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  index: index,\n  nextIndex: index + 1,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  po_no: po_no,\n  po_id: po_id,\n  po_line_id: po_line_id,\n  isFirstReservationRow: isFirstReservationRow,\n  onOrderQty: onOrderQty,\n  grData: allData,\n  grItem: item,\n  is_split: is_split,\n  parent_or_child: parent_or_child,\n  parent_index: parent_index,\n  isChild: isChild,\n  isSplitParent: isSplitParent ? 1 : 0,\n  createsBatch: createsBatch,\n  updatesPOLine: updatesPOLine,\n  updatesOnOrder: updatesOnOrder,\n  addsInventory: addsInventory,\n};\n"
+                      "code": "// For quantities - 3 decimal places\nconst roundQty = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(3));\n};\n\nconst page_status = {{workflowparams:pageStatus}};\nconst gr_status = {{node:code_node_4r2Fv9G5.data.gr_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_nGMSu41b.data}};\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_UeM3HpzR.data.data}};\n} else {\n  allData = {{node:code_node_4r2Fv9G5.data.allData}};\n}\n\n\n\nconst putawaySetup = {{node:get_node_QBrFrLs9.data.data}} || {};\nconst skipPutaway = ({{workflowparams:skip_putaway}} === 1 || {{workflowparams:skip_putaway}} === \"1\") ? 1 : 0;\nconst subformData = allData.table_gr;\nconst currentIndexRaw = {{node:get_cache_node_5vPHf6xv.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\n\nconst plant_id = allData.plant_id;\nconst organization_id = allData.organization_id;\nconst gr_no = allData.gr_no;\nconst doc_date = allData.gr_date;\n\nconst item = subformData[index];\nconst material_id = item.item_id;\nconst material_uom = item.item_uom || item.ordered_uom;\nconst quantity = item.received_qty;\nconst unit_price = item.unit_price;\nlet storage_location_id = item.storage_location_id;\nconst batch_no = item.item_batch_no || null;\nconst remark = item.line_remark_1 || null;\nconst remark2 = item.line_remark_2 || null;\nconst remark3 = item.line_remark_3 || null;\nconst inventory_category = item.inv_category || \"Unrestricted\";\nconst manufacturing_date = item.manufacturing_date || null;\nconst expired_date = item.expired_date || null;\nconst po_no = item.line_po_no || \"\";\nconst po_id = item.line_po_id || \"\";\nconst po_line_id = item.po_line_item_id || \"\";\nconst onOrderQty = roundQty(item.base_received_qty) || roundQty(item.received_qty) || 0;\n\n// === NEW: Split detection fields ===\nconst is_split = item.is_split || \"No\";\nconst parent_or_child = item.parent_or_child || \"Parent\";\nconst parent_index = item.parent_index;\n\n// === UPDATED: skipInventory logic ===\n// Skip if: no material_id OR split parent row\nconst isSplitParent = is_split === \"Yes\" && parent_or_child === \"Parent\";\nconst skipInventory = (!material_id || isSplitParent) ? 1 : 0;\n\n// === NEW: isChild flag for easier branching ===\nconst isChild = parent_or_child === \"Child\" ? 1 : 0;\n\nlet location_id = item.location_id;\n\nif (skipPutaway !== 1 && putawaySetup.putaway_required === 1 && putawaySetup.is_loading_bay === 1 && putawaySetup.default_loading_bay && putawaySetup.default_loading_bay !== \"\") {\n  location_id = putawaySetup.default_loading_bay;\n  storage_location_id = \"\";\n} else if (skipPutaway !== 1 && putawaySetup.putaway_required === 1 && putawaySetup.is_loading_bay === 1) {\n  const storageLocationData = {{node:get_node_njg7cSUu.data.data}};\n  location_id = storageLocationData.table_bin_location?.find((bin) => bin.is_default_bin === 1)?.bin_location_id;\n  storage_location_id = \"\";\n}\n\n// === Derived routing flags for linear (de-duplicated) loop body ===\nconst createsBatch = isSplitParent ? 1 : 0;\nconst updatesPOLine = isChild === 1 ? 0 : 1;\nconst updatesOnOrder = (isSplitParent || (!isSplitParent && isChild === 0 && skipInventory === 0)) ? 1 : 0;\nconst addsInventory = (isChild === 1 || (!isSplitParent && skipInventory === 0)) ? 1 : 0;\n\n// Reservation release gate: subtract the summed created_received_qty reservation\n// only on the FIRST non-Child row of each po_line, so split-parent rows sharing\n// one po_line_item_id release it exactly once (not once per row).\nlet isFirstReservationRow = 0;\nif (po_line_id) {\n  let firstResIdx = -1;\n  for (let __k = 0; __k < subformData.length; __k++) {\n    const __r = subformData[__k];\n    if (__r && __r.parent_or_child !== \"Child\" && (__r.po_line_item_id || \"\") === po_line_id) {\n      firstResIdx = __k;\n      break;\n    }\n  }\n  isFirstReservationRow = (index === firstResIdx) ? 1 : 0;\n}\n\n// Resolved from the one up-front search_node_BwcLu7r7 rather than a get-node\n// per row. receivingInspection is exposed as a typed scalar so the branch\n// filter does not have to select through a nested object.\nconst itemMasters = {{node:search_node_BwcLu7r7.data.data}} || [];\nconst itemData = itemMasters.find((it) => it.id === material_id) || null;\nconst receivingInspection = (itemData && itemData.receiving_inspection === 1) ? 1 : 0;\n\nreturn {\n  skipInventory: skipInventory,\n  itemData: itemData,\n  receivingInspection: receivingInspection,\n  plant_id: plant_id,\n  organization_id: organization_id,\n  gr_no: gr_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  quantity: quantity,\n  unit_price: unit_price,\n  storage_location_id: storage_location_id,\n  location_id: location_id,\n  batch_no: batch_no,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  index: index,\n  nextIndex: index + 1,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  po_no: po_no,\n  po_id: po_id,\n  po_line_id: po_line_id,\n  isFirstReservationRow: isFirstReservationRow,\n  onOrderQty: onOrderQty,\n  grData: allData,\n  grItem: item,\n  is_split: is_split,\n  parent_or_child: parent_or_child,\n  parent_index: parent_index,\n  isChild: isChild,\n  isSplitParent: isSplitParent ? 1 : 0,\n  createsBatch: createsBatch,\n  updatesPOLine: updatesPOLine,\n  updatesOnOrder: updatesOnOrder,\n  addsInventory: addsInventory,\n};\n"
                     },
                     "response_json": [
                       {
@@ -3622,6 +3622,24 @@
                         "key": "updatesOnOrder",
                         "name": "updatesOnOrder",
                         "title": "updatesOnOrder",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "grd9itemdata",
+                        "name": "itemData",
+                        "title": "itemData",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "grd9recvinsp",
+                        "name": "receivingInspection",
+                        "title": "receivingInspection",
                         "description": "",
                         "bsonType": "int",
                         "isExpand": false,
@@ -4753,40 +4771,6 @@
                           "blocks": []
                         },
                         {
-                          "id": "get_node_x5DWSZ3z",
-                          "type": "get-node",
-                          "data": {
-                            "table_id": {
-                              "source": "Item:Table:1901546842240438273",
-                              "rules": {
-                                "collectionId": "1901546842240438273",
-                                "list": [
-                                  {
-                                    "id": 1768809950205,
-                                    "parentId": 1768809950204,
-                                    "isTop": true,
-                                    "prop": "id",
-                                    "operator": "in",
-                                    "valueType": "field",
-                                    "value": "{{node:code_node_D9IbUV8t.data.material_id}}",
-                                    "type": "leaf",
-                                    "level": 1,
-                                    "propLabel": "主键ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "In"
-                                  }
-                                ]
-                              }
-                            },
-                            "condition": {},
-                            "title": "Get Item",
-                            "isValidator": true,
-                            "nodeName": "Get Item",
-                            "name": "Get Item"
-                          },
-                          "blocks": []
-                        },
-                        {
                           "id": "code_node_hRG2RgIm",
                           "type": "code-node",
                           "data": {
@@ -4998,7 +4982,7 @@
                                   "prop": "itemData",
                                   "operator": "",
                                   "valueType": "field",
-                                  "value": "{{node:get_node_x5DWSZ3z.data.data}}",
+                                  "value": "{{node:code_node_D9IbUV8t.data.itemData}}",
                                   "valueLabel": "",
                                   "propLabel": "Item Data"
                                 },
@@ -5479,7 +5463,7 @@
                                       "id": 1736695973613,
                                       "parentId": 1772681919569,
                                       "isTop": false,
-                                      "prop": "node.get_node_x5DWSZ3z.data.data.receiving_inspection",
+                                      "prop": "node.code_node_D9IbUV8t.data.receivingInspection",
                                       "operator": "numberEqual",
                                       "valueType": "value",
                                       "value": 1,
@@ -5527,7 +5511,7 @@
                                     "name": "Inspection Data",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "const inspPrefixID = {{node:get_node_inspDocTypeHoist.data.data.id}} || \"\";\nconst grData = {{node:code_node_D9IbUV8t.data.grData}} || {};\nconst grItem ={{node:code_node_D9IbUV8t.data.grItem}} || {};\n\nconst inspectionData = {\n  inspection_lot_no: \"issued\",\n  inspection_lot_no_type: inspPrefixID,\n  goods_receiving_no: grData.id,\n  gr_no_display: grData.gr_no,\n  insp_lot_created_on: new Date().toISOString().split(\"T\")[0],\n  plant_id: grData.plant_id,\n  organization_id: grData.organization_id,\n  inspector_name: grData.created_by,\n  receiving_insp_status: \"Created\",\n  inspection_pass_fail: \"0 / 0\",\n  remarks: \"\",\n  lot_created_by: \"System\",\n  insp_start_time: \"\",\n  insp_end_time: \"\",\n  table_insp_mat: [\n    {\n      item_id: grItem.item_id,\n      item_code: {{node:get_node_x5DWSZ3z.data.data.material_code}},\n      item_name: grItem.item_name || \"\",\n      item_desc: grItem.item_desc || \"\",\n      batch_id: {{node:workflow_node_bThL52BP.data.batchId}} || \"\",\n      received_qty: grItem.received_qty,\n      received_uom: grItem.item_uom,\n      passed_qty: 0,\n      failed_qty: 0,\n      gr_line_no: {{node:code_node_D9IbUV8t.data.nextIndex}},\n      batch_no: grItem.item_batch_no || \"\",\n      total_price: parseFloat({{node:workflow_node_bThL52BP.data.totalPrice}} || 0).toFixed(4),\n      location_id: grItem.location_id,\n      unit_price: parseFloat({{node:workflow_node_bThL52BP.data.unitPrice}} || 0).toFixed(4),\n    },\n  ],\n};\n\nreturn {\n  inspectionData\n}"
+                                      "code": "const inspPrefixID = {{node:get_node_inspDocTypeHoist.data.data.id}} || \"\";\nconst grData = {{node:code_node_D9IbUV8t.data.grData}} || {};\nconst grItem ={{node:code_node_D9IbUV8t.data.grItem}} || {};\n\nconst inspectionData = {\n  inspection_lot_no: \"issued\",\n  inspection_lot_no_type: inspPrefixID,\n  goods_receiving_no: grData.id,\n  gr_no_display: grData.gr_no,\n  insp_lot_created_on: new Date().toISOString().split(\"T\")[0],\n  plant_id: grData.plant_id,\n  organization_id: grData.organization_id,\n  inspector_name: grData.created_by,\n  receiving_insp_status: \"Created\",\n  inspection_pass_fail: \"0 / 0\",\n  remarks: \"\",\n  lot_created_by: \"System\",\n  insp_start_time: \"\",\n  insp_end_time: \"\",\n  table_insp_mat: [\n    {\n      item_id: grItem.item_id,\n      item_code: ({{node:code_node_D9IbUV8t.data.itemData}} || {}).material_code,\n      item_name: grItem.item_name || \"\",\n      item_desc: grItem.item_desc || \"\",\n      batch_id: {{node:workflow_node_bThL52BP.data.batchId}} || \"\",\n      received_qty: grItem.received_qty,\n      received_uom: grItem.item_uom,\n      passed_qty: 0,\n      failed_qty: 0,\n      gr_line_no: {{node:code_node_D9IbUV8t.data.nextIndex}},\n      batch_no: grItem.item_batch_no || \"\",\n      total_price: parseFloat({{node:workflow_node_bThL52BP.data.totalPrice}} || 0).toFixed(4),\n      location_id: grItem.location_id,\n      unit_price: parseFloat({{node:workflow_node_bThL52BP.data.unitPrice}} || 0).toFixed(4),\n    },\n  ],\n};\n\nreturn {\n  inspectionData\n}"
                                     },
                                     "response_json": [
                                       {
@@ -5917,7 +5901,7 @@
                                     "name": "inTransitLineData",
                                     "script": {
                                       "type": "javascript",
-                                      "code": "const inTransitLineData = ((__v)=>{try{return JSON.parse(__v)}catch(__e){return null}})({{node:get_cache_node_ITget.data}}) || [];\nconst item = {{node:code_node_D9IbUV8t.data.grItem}} || {};\nconst itemMaster = {{node:get_node_x5DWSZ3z.data.data}} || {};\n\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n// Quantities go in as toFixed(3) STRINGS. The serializer emits full-precision\n// floats (100 -> 99.99999999999999) that BigDecimal multipleOf rejects, and\n// Number()/parseFloat() do not fix that.\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n\n// Stored in BASE uom so the row reconciles directly against\n// item_balance.intransit_qty, which ADD_INVENTORY writes in base.\nconst baseQty = roundQty(item.base_received_qty || item.received_qty || 0);\n\n// workflow_node_2GqNmp7t only runs under IF hasHuData; otherwise the reference\n// resolves to null rather than erroring.\nconst hasHuData = {{node:code_node_ngFX3hcL.data.hasHuData}} || 0;\nconst newHuId = {{node:workflow_node_2GqNmp7t.data.huId}};\nconst handlingUnitId = hasHuData === 1\n  ? (newHuId || {{node:code_node_ngFX3hcL.data.handling_unit_id}} || \"\")\n  : \"\";\n\n// doc_id / doc_no / target_doc_* are stamped after the loop by code_node_ITrows,\n// where the canonical grId node and the created putaway TO are both available.\nif (baseQty > 0) {\n  inTransitLineData.push({\n    doc_type: \"Goods Receiving\",\n    doc_line_id: item.id || \"\",\n    line_no: {{node:code_node_D9IbUV8t.data.index}},\n    parent_id: {{node:code_node_D9IbUV8t.data.po_id}} || \"\",\n    parent_no: {{node:code_node_D9IbUV8t.data.po_no}} || \"\",\n    parent_line_id: {{node:code_node_D9IbUV8t.data.po_line_id}} || \"\",\n    material_id: {{node:code_node_D9IbUV8t.data.material_id}},\n    item_code: itemMaster.material_code || \"\",\n    item_name: itemMaster.material_name || \"\",\n    item_desc: itemMaster.material_desc || \"\",\n    item_uom: itemMaster.based_uom || item.base_item_uom || item.item_uom,\n    batch_id: {{node:workflow_node_bThL52BP.data.batchId}} || null,\n    handling_unit_id: handlingUnitId,\n    plant_id: {{node:code_node_D9IbUV8t.data.plant_id}},\n    organization_id: {{node:code_node_D9IbUV8t.data.organization_id}},\n    transit_bin: {{node:code_node_D9IbUV8t.data.location_id}},\n    from_plant_id: null,\n    from_bin: null,\n    from_category: null,\n    to_plant_id: {{node:code_node_D9IbUV8t.data.plant_id}},\n    to_bin: null,\n    to_category: \"Unrestricted\",\n    transit_qty: qtyStr(baseQty),\n    received_qty: qtyStr(0),\n    open_qty: qtyStr(baseQty),\n    status: \"In Transit\",\n    transit_date: {{node:code_node_D9IbUV8t.data.doc_date}},\n    remark: item.line_remark_1 || \"\"\n  });\n}\n\nreturn { inTransitLineData };\n"
+                                      "code": "const inTransitLineData = ((__v)=>{try{return JSON.parse(__v)}catch(__e){return null}})({{node:get_cache_node_ITget.data}}) || [];\nconst item = {{node:code_node_D9IbUV8t.data.grItem}} || {};\nconst itemMaster = {{node:code_node_D9IbUV8t.data.itemData}} || {};\n\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n// Quantities go in as toFixed(3) STRINGS. The serializer emits full-precision\n// floats (100 -> 99.99999999999999) that BigDecimal multipleOf rejects, and\n// Number()/parseFloat() do not fix that.\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n\n// Stored in BASE uom so the row reconciles directly against\n// item_balance.intransit_qty, which ADD_INVENTORY writes in base.\nconst baseQty = roundQty(item.base_received_qty || item.received_qty || 0);\n\n// workflow_node_2GqNmp7t only runs under IF hasHuData; otherwise the reference\n// resolves to null rather than erroring.\nconst hasHuData = {{node:code_node_ngFX3hcL.data.hasHuData}} || 0;\nconst newHuId = {{node:workflow_node_2GqNmp7t.data.huId}};\nconst handlingUnitId = hasHuData === 1\n  ? (newHuId || {{node:code_node_ngFX3hcL.data.handling_unit_id}} || \"\")\n  : \"\";\n\n// doc_id / doc_no / target_doc_* are stamped after the loop by code_node_ITrows,\n// where the canonical grId node and the created putaway TO are both available.\nif (baseQty > 0) {\n  inTransitLineData.push({\n    doc_type: \"Goods Receiving\",\n    doc_line_id: item.id || \"\",\n    line_no: {{node:code_node_D9IbUV8t.data.index}},\n    parent_id: {{node:code_node_D9IbUV8t.data.po_id}} || \"\",\n    parent_no: {{node:code_node_D9IbUV8t.data.po_no}} || \"\",\n    parent_line_id: {{node:code_node_D9IbUV8t.data.po_line_id}} || \"\",\n    material_id: {{node:code_node_D9IbUV8t.data.material_id}},\n    item_code: itemMaster.material_code || \"\",\n    item_name: itemMaster.material_name || \"\",\n    item_desc: itemMaster.material_desc || \"\",\n    item_uom: itemMaster.based_uom || item.base_item_uom || item.item_uom,\n    batch_id: {{node:workflow_node_bThL52BP.data.batchId}} || null,\n    handling_unit_id: handlingUnitId,\n    plant_id: {{node:code_node_D9IbUV8t.data.plant_id}},\n    organization_id: {{node:code_node_D9IbUV8t.data.organization_id}},\n    transit_bin: {{node:code_node_D9IbUV8t.data.location_id}},\n    from_plant_id: null,\n    from_bin: null,\n    from_category: null,\n    to_plant_id: {{node:code_node_D9IbUV8t.data.plant_id}},\n    to_bin: null,\n    to_category: \"Unrestricted\",\n    transit_qty: qtyStr(baseQty),\n    received_qty: qtyStr(0),\n    open_qty: qtyStr(baseQty),\n    status: \"In Transit\",\n    transit_date: {{node:code_node_D9IbUV8t.data.doc_date}},\n    remark: item.line_remark_1 || \"\"\n  });\n}\n\nreturn { inTransitLineData };\n"
                                     },
                                     "response_json": [
                                       {
