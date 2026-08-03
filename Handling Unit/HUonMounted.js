@@ -167,6 +167,13 @@ setTimeout(async () => {
         showStatusHTML(data.hu_status);
         showConditionalFields(data);
         editDisabledField();
+
+        console.log("huId", data.id);
+        const huData = await db
+          .collection("handling_unit")
+          .where({ id: data.id })
+          .get();
+        console.log("huData", huData);
         break;
     }
   } catch (error) {
