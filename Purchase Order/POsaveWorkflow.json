@@ -3293,7 +3293,7 @@
                 "name": "On Order Item IDs",
                 "script": {
                   "type": "javascript",
-                  "code": "const tablePO = {{node:get_po_full.data.data.table_po}} || [];\n\nreturn {\n  itemIDs: tablePO.map(item => item.item_id).filter(Boolean)\n}"
+                  "code": "const tablePO = {{node:get_po_full.data.data.table_po}} || [];\n\n// Dedupe: several PO lines routinely carry the same item, and Get Item Data is capped.\n// Sending the same id repeatedly burns rows of that cap for no extra information, and a\n// line whose item falls outside the cap is silently dropped from the reconcile below.\nreturn {\n  itemIDs: [...new Set(tablePO.map(item => item.item_id).filter(Boolean).map(String))]\n}"
                 },
                 "response_json": [
                   {
@@ -3359,7 +3359,7 @@
                   }
                 },
                 "condition": {},
-                "limit": 100,
+                "limit": 1000,
                 "title": "Get Item Data",
                 "isValidator": true,
                 "nodeName": "Get Item Data",
@@ -3388,34 +3388,6 @@
                         "level": 1,
                         "children": [
                           {
-                            "id": 1700000000042,
-                            "parentId": 1700000000041,
-                            "isTop": false,
-                            "prop": "purchase_order_number",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{node:get_po_full.data.data.purchase_order_no}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "PO Number",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1700000000043,
-                            "parentId": 1700000000041,
-                            "isTop": false,
-                            "prop": "plant_id",
-                            "operator": "numberEqual",
-                            "valueType": "field",
-                            "value": "{{node:get_po_full.data.data.po_plant}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Plant ID",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
                             "id": 1700000000044,
                             "parentId": 1700000000041,
                             "isTop": false,
@@ -3428,6 +3400,44 @@
                             "propLabel": "Organization",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1700000000301,
+                            "parentId": 1700000000041,
+                            "isTop": false,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1700000000302,
+                                "parentId": 1700000000301,
+                                "isTop": false,
+                                "prop": "po_id",
+                                "operator": "numberEqual",
+                                "valueType": "field",
+                                "value": "{{node:get_po_full.data.data.id}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "PO ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              },
+                              {
+                                "id": 1700000000042,
+                                "parentId": 1700000000301,
+                                "isTop": false,
+                                "prop": "purchase_order_number",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{node:get_po_full.data.data.purchase_order_no}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "PO Number",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -3435,7 +3445,7 @@
                   }
                 },
                 "condition": {},
-                "limit": 100,
+                "limit": 1000,
                 "title": "Get Existing On Order",
                 "isValidator": true,
                 "nodeName": "Get Existing On Order",
@@ -3456,7 +3466,7 @@
                 "name": "Reconcile On Order",
                 "script": {
                   "type": "javascript",
-                  "code": "const poFull      = {{node:get_po_full.data.data}};\nconst latestLines = (poFull && poFull.table_po) || [];\nconst existing    = {{node:search_onorder.data.data}} || [];\nconst items       = {{node:search_items.data.data}} || [];\nconst pageStatus  = {{workflowparams:allData.page_status}};\n\nconst round3 = (n) => Math.round((parseFloat(n) || 0) * 1000) / 1000;\n\nconst baseQtyFor = (line) => {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  const altQty = parseFloat(line.quantity) || 0;\n  let baseQty = altQty;\n  if (itemData && Array.isArray(itemData.table_uom_conversion) && itemData.table_uom_conversion.length > 0) {\n    const conv = itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(line.quantity_uom));\n    if (conv) baseQty = round3(altQty * parseFloat(conv.base_qty));\n  }\n  return baseQty;\n};\n\nconst desired = [];\nfor (const [index, line] of latestLines.entries()) {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  if (!itemData) continue;\n  desired.push({\n    po_line_id: line.id,\n    purchase_order_number: poFull.purchase_order_no,\n    material_id: line.item_id,\n    purchase_order_line: index + 1,\n    scheduled_qty: baseQtyFor(line),\n    plant_id: poFull.po_plant,\n    organization_id: poFull.organization_id,\n    po_id: poFull.id,\n    parent_id: line.preq_id || null,\n    parent_line_id: line.preq_line_id || null\n  });\n}\n\nconst toAdd = [], toUpdate = [], toDelete = [];\nconst usedExistingIds = new Set();\n\nconst findExisting = (d) => {\n  let m = existing.find(e => e.po_line_id != null && String(e.po_line_id) === String(d.po_line_id) && !usedExistingIds.has(e.id));\n  if (m) return m;\n  return existing.find(e => !usedExistingIds.has(e.id) && String(e.material_id) === String(d.material_id) && Number(e.purchase_order_line) === Number(d.purchase_order_line));\n};\n\nconst isNew = (pageStatus === 'Add' || pageStatus === 'Clone');\n\nfor (const d of desired) {\n  const match = isNew ? null : findExisting(d);\n  if (!match) {\n    toAdd.push({\n      purchase_order_number: d.purchase_order_number,\n      material_id: d.material_id,\n      purchase_order_line: d.purchase_order_line,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: d.scheduled_qty,\n      received_qty: 0,\n      plant_id: d.plant_id,\n      organization_id: d.organization_id,\n      po_id: d.po_id,\n      po_line_id: d.po_line_id,\n      parent_id: d.parent_id,\n      parent_line_id: d.parent_line_id\n    });\n  } else {\n    usedExistingIds.add(match.id);\n    const received = Math.max(0, round3(match.received_qty || 0));\n    const newOpen = Math.max(0, round3(d.scheduled_qty - received));\n    toUpdate.push({\n      id: match.id,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: newOpen,\n      purchase_order_line: d.purchase_order_line,\n      po_line_id: d.po_line_id\n    });\n  }\n}\n\nif (!isNew) {\n  for (const e of existing) {\n    if (!usedExistingIds.has(e.id)) toDelete.push({ id: e.id });\n  }\n}\n\nconst preqIds = (poFull && poFull.preq_id) || [];\nconst hasPreq = Array.isArray(preqIds) && preqIds.length > 0;\n\nreturn { toAdd, toUpdate, toDelete, hasAdds: toAdd.length > 0, hasUpdates: toUpdate.length > 0, hasDeletes: toDelete.length > 0, hasPreq: hasPreq };"
+                  "code": "const poFull      = {{node:get_po_full.data.data}};\nconst latestLines = (poFull && poFull.table_po) || [];\nconst fetched     = {{node:search_onorder.data.data}} || [];\nconst items       = {{node:search_items.data.data}} || [];\n\nconst round3 = (n) => Math.round((parseFloat(n) || 0) * 1000) / 1000;\n\n// The fetch is keyed on po_id OR purchase_order_number, because a PO number is not unique\n// (purchase_order_no_type -9999 is user-typed) and rows written before po_id existed carry\n// none. `mine` is this PO's own rows - the only ones we are ever allowed to delete.\n// `orphan` are unstamped rows under the same number: adoptable, so an edit repairs one\n// instead of adding a second row beside it, but never deleted (it may be a sibling's).\nconst poId = String(poFull.id);\nconst mine = fetched.filter(e => String(e.po_id || '') === poId);\nconst orphan = fetched.filter(e => !e.po_id && String(e.purchase_order_number) === String(poFull.purchase_order_no));\nconst existing = mine.concat(orphan);\n\nconst baseQtyFor = (line) => {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  const altQty = parseFloat(line.quantity) || 0;\n  let baseQty = altQty;\n  if (itemData && Array.isArray(itemData.table_uom_conversion) && itemData.table_uom_conversion.length > 0) {\n    const conv = itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(line.quantity_uom));\n    if (conv) baseQty = round3(altQty * parseFloat(conv.base_qty));\n  }\n  return baseQty;\n};\n\nconst desired = [];\nfor (const [index, line] of latestLines.entries()) {\n  const itemData = items.find(d => String(d.id) === String(line.item_id));\n  if (!itemData) continue;\n  desired.push({\n    po_line_id: line.id,\n    purchase_order_number: poFull.purchase_order_no,\n    material_id: line.item_id,\n    purchase_order_line: index + 1,\n    scheduled_qty: baseQtyFor(line),\n    plant_id: poFull.po_plant,\n    organization_id: poFull.organization_id,\n    po_id: poFull.id,\n    parent_id: line.preq_id || null,\n    parent_line_id: line.preq_line_id || null\n  });\n}\n\nconst toAdd = [], toUpdate = [], toDelete = [];\nconst usedExistingIds = new Set();\n\nconst findExisting = (d) => {\n  let m = existing.find(e => e.po_line_id != null && String(e.po_line_id) === String(d.po_line_id) && !usedExistingIds.has(e.id));\n  if (m) return m;\n  return existing.find(e => !usedExistingIds.has(e.id) && String(e.material_id) === String(d.material_id) && Number(e.purchase_order_line) === Number(d.purchase_order_line));\n};\n\n// No Add/Clone shortcut. `existing` is already scoped to this PO, so on a genuine Add it is\n// empty and every line falls through to toAdd anyway; reconciling uniformly means a re-entry\n// over an already-issued PO updates its own rows instead of laying down a duplicate set.\nfor (const d of desired) {\n  const match = findExisting(d);\n  if (!match) {\n    toAdd.push({\n      purchase_order_number: d.purchase_order_number,\n      material_id: d.material_id,\n      purchase_order_line: d.purchase_order_line,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: d.scheduled_qty,\n      received_qty: 0,\n      plant_id: d.plant_id,\n      organization_id: d.organization_id,\n      po_id: d.po_id,\n      po_line_id: d.po_line_id,\n      parent_id: d.parent_id,\n      parent_line_id: d.parent_line_id\n    });\n  } else {\n    usedExistingIds.add(match.id);\n    const received = Math.max(0, round3(match.received_qty || 0));\n    const newOpen = Math.max(0, round3(d.scheduled_qty - received));\n    // Re-stamp every PO-owned column, not just the quantities: po_plant and the line's item\n    // stay editable while the PO is Issued, and an adopted legacy row has no po_id/po_line_id\n    // at all. received_qty is owned by the GR flow - never write it from here.\n    toUpdate.push({\n      id: match.id,\n      scheduled_qty: d.scheduled_qty,\n      open_qty: newOpen,\n      purchase_order_number: d.purchase_order_number,\n      purchase_order_line: d.purchase_order_line,\n      material_id: d.material_id,\n      plant_id: d.plant_id,\n      organization_id: d.organization_id,\n      po_id: d.po_id,\n      po_line_id: d.po_line_id,\n      parent_id: d.parent_id,\n      parent_line_id: d.parent_line_id\n    });\n  }\n}\n\n// Only rows this PO owns are swept, so an unmatched orphan stays put rather than being\n// deleted out from under whichever PO it really belongs to.\nfor (const e of mine) {\n  if (!usedExistingIds.has(e.id)) toDelete.push({ id: e.id });\n}\n\nconst preqIds = (poFull && poFull.preq_id) || [];\nconst hasPreq = Array.isArray(preqIds) && preqIds.length > 0;\n\nreturn { toAdd, toUpdate, toDelete, hasAdds: toAdd.length > 0, hasUpdates: toUpdate.length > 0, hasDeletes: toDelete.length > 0, hasPreq: hasPreq };"
                 },
                 "response_json": [
                   {
@@ -3812,6 +3822,62 @@
                               "operator": "",
                               "valueLabel": "",
                               "propLabel": "po_line_id"
+                            },
+                            {
+                              "prop": "po_id",
+                              "valueType": "field",
+                              "value": "{{node:code_onorder_diff.data.toUpdate.po_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "po_id"
+                            },
+                            {
+                              "prop": "purchase_order_number",
+                              "valueType": "field",
+                              "value": "{{node:code_onorder_diff.data.toUpdate.purchase_order_number}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "purchase_order_number"
+                            },
+                            {
+                              "prop": "material_id",
+                              "valueType": "field",
+                              "value": "{{node:code_onorder_diff.data.toUpdate.material_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "material_id"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "valueType": "field",
+                              "value": "{{node:code_onorder_diff.data.toUpdate.plant_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "plant_id"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "valueType": "field",
+                              "value": "{{node:code_onorder_diff.data.toUpdate.organization_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "organization_id"
+                            },
+                            {
+                              "prop": "parent_id",
+                              "valueType": "field",
+                              "value": "{{node:code_onorder_diff.data.toUpdate.parent_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "parent_id"
+                            },
+                            {
+                              "prop": "parent_line_id",
+                              "valueType": "field",
+                              "value": "{{node:code_onorder_diff.data.toUpdate.parent_line_id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "parent_line_id"
                             }
                           ]
                         }
@@ -3903,7 +3969,7 @@
                           }
                         },
                         "condition": {},
-                        "limit": 100,
+                        "limit": 1000,
                         "title": "Get Orphan On Order",
                         "isValidator": true,
                         "nodeName": "Get Orphan On Order",
