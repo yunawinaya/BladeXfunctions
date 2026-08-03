@@ -346,6 +346,26 @@ const getBaseQty = (itemData, uom) => {
   return uomConversion && uomConversion.base_qty ? uomConversion.base_qty : 1;
 };
 
+// Find the packing detail row for a UOM. An item may define several packing rows
+// per uom_id, so when a packing UOM is supplied match on the (uom_id,
+// packing_uom_id) pair, which is unique. Otherwise fall back to the first row.
+const getPackingDetail = (table_packing_detail, uom, packingUom) => {
+  if (!Array.isArray(table_packing_detail) || !uom) {
+    return null;
+  }
+
+  const rows = table_packing_detail.filter((conv) => conv.uom_id === uom);
+  if (rows.length === 0) {
+    return null;
+  }
+
+  if (packingUom) {
+    return rows.find((conv) => conv.packing_uom_id === packingUom) || null;
+  }
+
+  return rows[0];
+};
+
 // ============================================================================
 // OPTIMIZED MAIN INVENTORY CHECK FUNCTION
 // ============================================================================
@@ -944,19 +964,28 @@ const checkInventoryWithDuplicates = async (
       const uom = row.good_delivery_uom_id;
       const qty = parseFloat(row.gd_qty) || 0;
 
+      // packing_uom is taken from the SO line (the user can choose it there, and
+      // an item may define several packing rows for the same uom_id). Fall back
+      // to first-match on the item when the source line carries none (older SOs
+      // / other flows) or when its choice does not exist for this GD's UOM,
+      // which happens when the GD delivers in a different UOM.
+      const tpd = rowItemData?.table_packing_detail;
+      const soPackingUom = item.sourceItem?.packing_uom ?? item.packing_uom;
       const packingDetail =
-        (rowItemData?.table_packing_detail || []).find(
-          (p) => p.uom_id === uom,
-        ) || null;
+        getPackingDetail(tpd, uom, soPackingUom || undefined) ||
+        getPackingDetail(tpd, uom);
       const packingConversion = packingDetail?.quantity || 1;
 
-      // weight_conversion is taken from the SO line (the user can manually edit
-      // it there); fall back to deriving it from the item only when the source
-      // line does not carry a value (older SOs / other flows).
+      // weight_conversion is the weight of ONE unit in the line's UOM, so the SO
+      // line's value (which the user can manually edit there) only carries over
+      // while the GD delivers in the SO's UOM - serialized items switch to base
+      // UOM above. Otherwise derive it from the item, whose net_weight is the
+      // weight of one base UOM unit.
       const baseQty = getBaseQty(rowItemData, uom);
       const soWeightConversion =
         item.sourceItem?.weight_conversion ?? item.weight_conversion;
       const weightConversion =
+        String(item.altUOM || "") === String(uom || "") &&
         soWeightConversion !== undefined &&
         soWeightConversion !== null &&
         soWeightConversion !== ""
