@@ -1,4 +1,50 @@
 {
+  "request_json": [
+    {
+      "key": "yzqp8u1g",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "8p58d17g",
+      "name": "saveAs",
+      "title": "saveAs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "uoevu64f",
+      "name": "pageStatus",
+      "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "hpb0ojeu",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "m56ueig4",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -814,8 +860,8 @@
                         "condition": {},
                         "title": "Update HU Draft",
                         "isValidator": true,
-                        "nodeName": "Update HU Data",
-                        "name": "Update HU Data",
+                        "nodeName": "Update HU Draft",
+                        "name": "Update HU Draft",
                         "props": {
                           "modelName": "",
                           "list": [
@@ -1244,57 +1290,47 @@
       ]
     },
     {
+      "id": "return_node_0JpYJy2R",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "operator": "",
+              "valueType": "value",
+              "value": "Handling Unit processed successfully",
+              "valueLabel": "",
+              "propLabel": "message"
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
       "id": "end",
       "type": "end-node",
       "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "yzqp8u1g",
-      "name": "allData",
-      "title": "allData",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "8p58d17g",
-      "name": "saveAs",
-      "title": "saveAs",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "uoevu64f",
-      "name": "pageStatus",
-      "title": "pageStatus",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [
-    {
-      "key": "hpb0ojeu",
-      "name": "code",
-      "title": "code",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "m56ueig4",
-      "name": "message",
-      "title": "message",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "config": {}
+  "edges": []
 }
