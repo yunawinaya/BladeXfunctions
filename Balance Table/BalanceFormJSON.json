@@ -5384,7 +5384,7 @@
                     "elementFxCurrent": "tab_item_batch_balance"
                   },
                   "events": {
-                    "onClick": ""
+                    "onClick": "28q5gqlc"
                   },
                   "name": "Tabs",
                   "key": "vtr3oh28",
@@ -5436,6 +5436,11 @@
     "hideLabel": false,
     "hideErrorMessage": false,
     "eventScript": [
+      {
+        "key": "onFormChange",
+        "name": "onFormChange",
+        "type": "rule"
+      },
       {
         "key": "mounted",
         "name": "mounted",
@@ -5537,12 +5542,18 @@
       {
         "key": "nas79mfa",
         "name": "onBalanceUomChange",
-        "func": "",
+        "func": "// UOM tab > \"Item Balance\": select `balance_uom` (hg3nzlbr) onChange -> refresh grid\n// `table_balance_uom` (jyta6m4r), which is backed by the BALANCE_UOM_CONVERSION workflow.\n(async () => {\n  if (!this.getValue(\"material_id\")) return;\n\n  try {\n    // Let the select's model commit before the grid re-reads {{value:balance_uom}};\n    // without it the refresh can race and re-query with the PREVIOUS uom.\n    await new Promise((resolve) => setTimeout(resolve, 100));\n\n    const grid = await this.getComponent(\"balance_dialog.table_balance_uom\");\n    grid?.refreshChange();\n  } catch (error) {\n    console.error(\"[balance_uom onChange] refresh failed\", error);\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "6v6oq70l",
         "name": "onBatchBalanceUomChange",
+        "func": "// UOM tab > \"Item Batch Balance\": select `batch_balance_uom` (wqhzdo1j) onChange -> refresh\n// grid `table_batch_balance_uom` (w3o8eedj), backed by the BALANCE_UOM_CONVERSION workflow.\n(async () => {\n  if (!this.getValue(\"material_id\")) return;\n\n  try {\n    // Let the select's model commit before the grid re-reads {{value:batch_balance_uom}};\n    // without it the refresh can race and re-query with the PREVIOUS uom.\n    await new Promise((resolve) => setTimeout(resolve, 100));\n\n    const grid = await this.getComponent(\"balance_dialog.table_batch_balance_uom\");\n    grid?.refreshChange();\n  } catch (error) {\n    console.error(\"[batch_balance_uom onChange] refresh failed\", error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "28q5gqlc",
+        "name": "onTabUOMClick",
         "func": "",
         "type": "js"
       }
