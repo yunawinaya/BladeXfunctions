@@ -1,0 +1,107 @@
+2026-08-04 11:21:57.183|INFO |||WORKFLOW_START|2084199011688968193|BALANCE_UOM_CONVERSION
+2026-08-04 11:21:57.184|INFO |start|Start Node|NODE_ID|start
+2026-08-04 11:21:57.184|INFO |start|Start Node|NODE_START|Start Node|start-node|startTime=2026-08-04 11:21:57.184
+2026-08-04 11:21:57.184|INFO |start|Start Node|NODE_INPUT|{"material_id":"2072146685532893186","material_uom":"2018906563477008386","balance_type":"item_balance"}
+2026-08-04 11:21:57.184|INFO |start|Start Node|NODE_COMPLETE|runTime=0ms|endTime=2026-08-04 11:21:57.184
+2026-08-04 11:21:57.184|INFO |start|Start Node|start_END============================================================
+2026-08-04 11:21:57.194|INFO |sql_node_Qb7hK2Rx|Get Converted Balance|NODE_ID|sql_node_Qb7hK2Rx
+2026-08-04 11:21:57.194|INFO |sql_node_Qb7hK2Rx|Get Converted Balance|NODE_START|Get Converted Balance|sql-node|startTime=2026-08-04 11:21:57.184
+2026-08-04 11:21:57.194|INFO |sql_node_Qb7hK2Rx|Get Converted Balance|NODE_INPUT|SELECT
+    'item_balance'                                            AS balance_type,
+    ib.id                                                     AS id,
+    ib.material_id                                            AS material_id,
+    i.material_code                                           AS material_code,
+    u.uom_name                                                AS uom_name,
+    conv.base_qty                                             AS conversion_rate,
+    bl.storage_location_name                                  AS storage_location_name,
+    bl.bin_location_combine                                   AS bin_location_combine,
+    ROUND(ib.unrestricted_qty / NULLIF(conv.base_qty, 0), 3)  AS unrestricted_qty,
+    ROUND(ib.reserved_qty     / NULLIF(conv.base_qty, 0), 3)  AS reserved_qty,
+    ROUND(ib.block_qty        / NULLIF(conv.base_qty, 0), 3)  AS block_qty,
+    ROUND(ib.qualityinsp_qty  / NULLIF(conv.base_qty, 0), 3)  AS qualityinsp_qty,
+    ROUND(ib.intransit_qty    / NULLIF(conv.base_qty, 0), 3)  AS intransit_qty,
+    ROUND(ib.balance_quantity / NULLIF(conv.base_qty, 0), 3)  AS balance_quantity,
+    d.dept_name                                               AS plant_name,
+    NULL                                                      AS batch_number,
+    NULL                                                      AS expired_date,
+    NULL                                                      AS manufacturing_date,
+    NULL                                                      AS remark,
+    NULL                                                      AS remark2,
+    NULL                                                      AS remark3
+FROM item_balance ib
+JOIN item_mji552rc_sub conv
+       ON conv.id = (
+            SELECT c2.id
+            FROM item_mji552rc_sub c2
+            WHERE c2.Item_id    = ib.material_id
+              AND c2.is_deleted = 0
+              AND (c2.id         = '2018906563477008386'
+                OR c2.alt_uom_id = '2018906563477008386')
+            ORDER BY (c2.id = '2018906563477008386') DESC, c2.id
+            LIMIT 1
+          )
+LEFT JOIN item                i  ON i.id  = ib.material_id
+LEFT JOIN unit_of_measurement u  ON u.id  = conv.alt_uom_id
+LEFT JOIN bin_location        bl ON bl.id = ib.location_id
+LEFT JOIN blade_dept          d  ON d.id  = ib.plant_id
+WHERE 'item_balance' <> 'item_batch_balance'
+  AND ib.material_id     = '2072146685532893186'
+  AND ib.is_deleted      = 0
+  AND ib.organization_id = '1123598813738675201'
+
+UNION ALL
+
+SELECT
+    'item_batch_balance',
+    ibb.id,
+    ibb.material_id,
+    i.material_code,
+    u.uom_name,
+    conv.base_qty,
+    bl.storage_location_name,
+    bl.bin_location_combine,
+    ROUND(ibb.unrestricted_qty / NULLIF(conv.base_qty, 0), 3),
+    ROUND(ibb.reserved_qty     / NULLIF(conv.base_qty, 0), 3),
+    ROUND(ibb.block_qty        / NULLIF(conv.base_qty, 0), 3),
+    ROUND(ibb.qualityinsp_qty  / NULLIF(conv.base_qty, 0), 3),
+    ROUND(ibb.intransit_qty    / NULLIF(conv.base_qty, 0), 3),
+    ROUND(ibb.balance_quantity / NULLIF(conv.base_qty, 0), 3),
+    d.dept_name,
+    b.batch_number,
+    b.expired_date,
+    b.manufacturing_date,
+    b.remark,
+    b.remark2,
+    b.remark3
+FROM item_batch_balance ibb
+JOIN item_mji552rc_sub conv
+       ON conv.id = (
+            SELECT c2.id
+            FROM item_mji552rc_sub c2
+            WHERE c2.Item_id    = ibb.material_id
+              AND c2.is_deleted = 0
+              AND (c2.id         = '2018906563477008386'
+                OR c2.alt_uom_id = '2018906563477008386')
+            ORDER BY (c2.id = '2018906563477008386') DESC, c2.id
+            LIMIT 1
+          )
+LEFT JOIN item                i  ON i.id  = ibb.material_id
+LEFT JOIN unit_of_measurement u  ON u.id  = conv.alt_uom_id
+LEFT JOIN bin_location        bl ON bl.id = ibb.location_id
+LEFT JOIN blade_dept          d  ON d.id  = ibb.plant_id
+LEFT JOIN batch               b  ON b.id  = ibb.batch_id
+WHERE 'item_balance' = 'item_batch_balance'
+  AND ibb.material_id     = '2072146685532893186'
+  AND ibb.is_deleted      = 0
+  AND ibb.organization_id = '1123598813738675201'
+
+ORDER BY storage_location_name, bin_location_combine, batch_number;
+2026-08-04 11:21:57.194|INFO |sql_node_Qb7hK2Rx|Get Converted Balance|NODE_OUTPUT|{"code":200,"data":[{"balance_type":"item_balance","id":2072146797734719489,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Common Storage","bin_location_combine":"A1-B1","unrestricted_qty":60.000,"reserved_qty":27.900,"block_qty":0.000,"qualityinsp_qty":0.000,"intransit_qty":0.000,"balance_quantity":87.900,"plant_name":"ASAI HQ"},{"balance_type":"item_balance","id":2072146892823785473,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Common Storage","bin_location_combine":"A1-B2","unrestricted_qty":89.000,"reserved_qty":0.000,"block_qty":0.500,"qualityinsp_qty":0.000,"intransit_qty":0.000,"balance_quantity":89.500,"plant_name":"ASAI HQ"},{"balance_type":"item_balance","id":2080543203676598274,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Common Storage","bin_location_combine":"A1-B3","unrestricted_qty":1.000,"reserved_qty":0.000,"block_qty":0.000,"qualityinsp_qty":0.000,"intransit_qty":1.000,"balance_quantity":2.000,"plant_name":"ASAI HQ"},{"balance_type":"item_balance","id":2077631356893716481,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Hello-1","bin_location_combine":"A1-B1","unrestricted_qty":4.500,"reserved_qty":0.000,"block_qty":0.000,"qualityinsp_qty":0.500,"intransit_qty":5.000,"balance_quantity":10.000,"plant_name":"ASAI Plant 1"},{"balance_type":"item_balance","id":2082010091541045249,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Hello-1","bin_location_combine":"H1-B1","unrestricted_qty":0.500,"reserved_qty":0.000,"block_qty":0.000,"qualityinsp_qty":0.000,"intransit_qty":0.000,"balance_quantity":0.500,"plant_name":"ASAI Plant 1"},{"balance_type":"item_balance","id":2072173310702055425,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Loading Bay","bin_location_combine":"LB-01","unrestricted_qty":0.000,"reserved_qty":0.000,"block_qty":0.000,"qualityinsp_qty":0.000,"intransit_qty":11.000,"balance_quantity":11.000,"plant_name":"ASAI HQ"}],"msg":"操作成功","success":true}
+2026-08-04 11:21:57.194|INFO |sql_node_Qb7hK2Rx|Get Converted Balance|NODE_COMPLETE|runTime=10ms|endTime=2026-08-04 11:21:57.194
+2026-08-04 11:21:57.194|INFO |sql_node_Qb7hK2Rx|Get Converted Balance|sql_node_Qb7hK2Rx_END============================================================
+2026-08-04 11:21:57.208|INFO |end|结束|NODE_ID|end
+2026-08-04 11:21:57.208|INFO |end|结束|NODE_START|结束|end-node|startTime=2026-08-04 11:21:57.194
+2026-08-04 11:21:57.208|INFO |end|结束|NODE_OUTPUT|{"code":200,"data":{"data":[{"balance_type":"item_balance","id":2072146797734719489,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Common Storage","bin_location_combine":"A1-B1","unrestricted_qty":60.000,"reserved_qty":27.900,"block_qty":0.000,"qualityinsp_qty":0.000,"intransit_qty":0.000,"balance_quantity":87.900,"plant_name":"ASAI HQ"},{"balance_type":"item_balance","id":2072146892823785473,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Common Storage","bin_location_combine":"A1-B2","unrestricted_qty":89.000,"reserved_qty":0.000,"block_qty":0.500,"qualityinsp_qty":0.000,"intransit_qty":0.000,"balance_quantity":89.500,"plant_name":"ASAI HQ"},{"balance_type":"item_balance","id":2080543203676598274,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Common Storage","bin_location_combine":"A1-B3","unrestricted_qty":1.000,"reserved_qty":0.000,"block_qty":0.000,"qualityinsp_qty":0.000,"intransit_qty":1.000,"balance_quantity":2.000,"plant_name":"ASAI HQ"},{"balance_type":"item_balance","id":2077631356893716481,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Hello-1","bin_location_combine":"A1-B1","unrestricted_qty":4.500,"reserved_qty":0.000,"block_qty":0.000,"qualityinsp_qty":0.500,"intransit_qty":5.000,"balance_quantity":10.000,"plant_name":"ASAI Plant 1"},{"balance_type":"item_balance","id":2082010091541045249,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Hello-1","bin_location_combine":"H1-B1","unrestricted_qty":0.500,"reserved_qty":0.000,"block_qty":0.000,"qualityinsp_qty":0.000,"intransit_qty":0.000,"balance_quantity":0.500,"plant_name":"ASAI Plant 1"},{"balance_type":"item_balance","id":2072173310702055425,"material_id":2072146685532893186,"material_code":"MOLLY","uom_name":"BOX","conversion_rate":10.000000,"storage_location_name":"Loading Bay","bin_location_combine":"LB-01","unrestricted_qty":0.000,"reserved_qty":0.000,"block_qty":0.000,"qualityinsp_qty":0.000,"intransit_qty":11.000,"balance_quantity":11.000,"plant_name":"ASAI HQ"}]},"msg":"操作成功","success":true}
+2026-08-04 11:21:57.208|INFO |end|结束|WORKFLOW_END|end|totalTime=26ms
+2026-08-04 11:21:57.208|INFO |end|结束|NODE_COMPLETE|runTime=13ms|endTime=2026-08-04 11:21:57.207
+2026-08-04 11:21:57.208|INFO |end|结束|end_END============================================================
