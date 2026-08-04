@@ -44,13 +44,57 @@ const selectTab = (tabName) => {
   }, 100);
 };
 
+// One key shape for every per-balance map in this file (HU-held qty, sibling-line
+// claims, and the balance rows themselves). They are compared against each other,
+// so they must degrade identically on a missing location/batch — hence the single
+// helper rather than three inline template strings.
+const balanceKey = (materialId, locationId, batchId) =>
+  `${materialId}|${locationId || ""}|${batchId || "no_batch"}`;
+
+// Quantities staged by OTHER table_repack lines are not committed to the database
+// yet, so item_balance still reports them as fully available. Without this pass two
+// Load lines can each claim the same stock: line 1 loads 100 of material X from bin
+// A into HU-1, line 2 loads another 100 of the same 100-unit balance into HU-2.
+// Nothing downstream catches it — ROonChangeUnloadQty clamps a row only against its
+// OWN item_quantity, and ROsaveAsCompleted has no aggregate check for Load.
+// Mirrors MSI's otherLinesHuAllocations pass (MSIopenDialogOptimized.js).
+//
+// Load only. Unload/Transfer draw from a specific source HU, and ROsaveAsCompleted
+// already rejects two rows sharing one (seenSourceHuIds); rows on different HUs
+// never draw on the same physical stock even when they share a balance row.
+const buildOtherLineClaims = (tableRepack, rowIndex) => {
+  const claims = new Map();
+  (tableRepack || []).forEach((row, idx) => {
+    if (idx === rowIndex || !row || !row.items_temp_data) return;
+    let parsed;
+    try {
+      parsed = JSON.parse(row.items_temp_data);
+    } catch (e) {
+      console.error(`Error parsing items_temp_data for repack row ${idx}:`, e);
+      return;
+    }
+    if (!Array.isArray(parsed)) return;
+    for (const it of parsed) {
+      const qty = parseFloat(it.unload_quantity) || 0;
+      if (qty <= 0) continue;
+      const key = balanceKey(it.material_id, it.location_id, it.batch_id);
+      claims.set(key, (claims.get(key) || 0) + qty);
+    }
+  });
+  return claims;
+};
+
 // item_balance / item_batch_balance do NOT carry handling_unit_id, so their
 // unrestricted_qty commingles genuinely-loose stock with stock physically sitting
 // inside handling units. Load must only offer the truly-loose portion; otherwise
 // the same physical stock gets packed into a target HU while the holding HU still
 // lists it, and the holding HU becomes a phantom claiming stock that moved away.
 // Mirrors GD (fetchHuQtyByLocation) and MSI (buildHuQtyMap + applyLooseDeduction).
-const fetchInventoryItems = async (plantId, organizationId) => {
+const fetchInventoryItems = async (
+  plantId,
+  organizationId,
+  otherLineClaims,
+) => {
   // Stage 1 — balances (independent of everything else).
   const [itemBalanceRes, itemBatchBalanceRes] = await Promise.all([
     db
@@ -217,15 +261,19 @@ const fetchInventoryItems = async (plantId, organizationId) => {
       (parseFloat(it.quantity) || 0) - (huReservedMap.get(reservedKey) || 0),
     );
     if (qty <= 0) continue;
-    const key = `${it.material_id}|${locationId}|${it.batch_id || "no_batch"}`;
+    const key = balanceKey(it.material_id, locationId, it.batch_id);
     huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
   }
 
+  // Available = unrestricted, less stock physically held in HUs, less what sibling
+  // repack lines have already staged against this same balance row.
   const looseQty = (r) => {
-    const key = `${r.material_id}|${r.location_id}|${r.batch_id || "no_batch"}`;
+    const key = balanceKey(r.material_id, r.location_id, r.batch_id);
     return Math.max(
       0,
-      (parseFloat(r.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0),
+      (parseFloat(r.unrestricted_qty) || 0) -
+        (huQtyMap.get(key) || 0) -
+        (otherLineClaims.get(key) || 0),
     );
   };
 
@@ -359,10 +407,16 @@ const buildItemsFromHU = async (sourceTempDataStr, plantId, organizationId) => {
     const tableRepack = this.getValue("table_repack") || [];
     const currentRow = tableRepack[rowIndex] || {};
 
+    const otherLineClaims = buildOtherLineClaims(tableRepack, rowIndex);
+
     let tableItems = [];
 
     if (repackType === "Load") {
-      tableItems = await fetchInventoryItems(plantId, organizationId);
+      tableItems = await fetchInventoryItems(
+        plantId,
+        organizationId,
+        otherLineClaims,
+      );
     } else if (repackType === "Unload" || repackType === "Transfer") {
       if (!currentRow.source_temp_data) {
         this.hideLoading();
@@ -392,7 +446,13 @@ const buildItemsFromHU = async (sourceTempDataStr, plantId, organizationId) => {
                 (p.location_id || "") === (it.location_id || ""),
             );
             if (match) {
-              it.unload_quantity = parseFloat(match.unload_quantity) || 0;
+              // The ceiling can have shrunk since this row was staged (a sibling
+              // line claimed more of the same balance), so clamp instead of
+              // restoring a quantity that is no longer available.
+              it.unload_quantity = Math.min(
+                parseFloat(match.unload_quantity) || 0,
+                parseFloat(it.item_quantity) || 0,
+              );
             }
           });
         }

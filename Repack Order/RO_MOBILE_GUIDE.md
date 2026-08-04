@@ -345,6 +345,29 @@ Map keys — build them uniformly, using `"no_batch"` for null batches so non-ba
 
 Finally, **clamp at 0 and drop rows that fall to 0** — a fully-HU-held balance row must disappear from the Load list, not show as a zero row. The resulting `item_quantity` (post-deduction) is what `unload_quantity` clamps against.
 
+#### Second overlay — quantities other repack lines already staged
+
+The HU deduction above is not enough on its own. Staged quantities live in each line's `items_temp_data` and are **not committed to the database until completion**, so `item_balance.unrestricted_qty` still reports them as fully available to every other line in the same order.
+
+Without a second deduction, two Load lines each claim the same stock: line 1 loads 100 of material X from bin A into HU-1, line 2 loads another 100 of the *same* 100-unit balance into HU-2. Nothing downstream catches it — the quantity clamp is per-row against that row's own `item_quantity`, and `validateCompletion` has no aggregate check for Load. This is MSI's `otherLinesHuAllocations` pass (`MSIopenDialogOptimized.js`), which RO was missing.
+
+```
+available = unrestricted_qty − Σ HU-held (above) − Σ  unload_quantity
+                                                    over OTHER table_repack lines
+                                                    at the same (material, location, batch)
+```
+
+Rules:
+
+1. **Skip the current row index.** A line must not deduct its own staged quantity, or re-opening it would show its claim as unavailable and zero the row out.
+2. **Same key shape as the HU map** — `` `${material_id}|${location_id || ""}|${batch_id || "no_batch"}` ``. The two maps are compared against the same balance rows, so they must degrade identically on a missing location/batch. Build them with one shared helper, not three inline template strings.
+3. **Only count `unload_quantity > 0`**, and tolerate malformed `items_temp_data` on a sibling row (log and skip that row — never abort the whole list build).
+4. **Clamp the restored quantity too.** When re-opening a line that already has `items_temp_data`, the ceiling may have shrunk since it was staged, so restore `min(saved unload_quantity, new item_quantity)` rather than the saved value verbatim.
+
+> **Load only.** Unload/Transfer lines draw from a specific source HU, and `validateCompletion` already rejects two rows sharing one (`seenSourceHuIds`, Part 9). Two rows on *different* HUs never draw on the same physical stock even when they share a balance row — deducting by balance there would wrongly hide legitimately available stock.
+
+> **Residual gap (both platforms).** This is a UI-level guard over one order's in-memory rows. It does not cover a second user consuming the same balance concurrently, nor orders staged before this rule existed. Those need a DB-backed re-check in `ROrepackingProcessWorkflow` at completion.
+
 ### Fetch plan (3 round-trips)
 
 | Stage | Fetches (parallel within a stage) | Depends on |
@@ -359,7 +382,7 @@ Finally, **clamp at 0 and drop rows that fall to 0** — a fully-HU-held balance
 
 Each produced item row: `material_id`, `material_name`, `material_desc`, `location_id`, `batch_id` (or null), `material_uom`, `item_quantity` (available), `unload_quantity` (starts `0`), `line_status: "Open"`, `balance_id`, `line_index`.
 
-> **Re-open preserves prior quantities.** When re-opening a row that already has `items_temp_data`, the code re-matches by `(material_id, batch_id, location_id)` and restores the saved `unload_quantity`. Do the same so editing a staged line doesn't lose the user's numbers.
+> **Re-open preserves prior quantities.** When re-opening a row that already has `items_temp_data`, the code re-matches by `(material_id, batch_id, location_id)` and restores the saved `unload_quantity`. Do the same so editing a staged line doesn't lose the user's numbers — but restore `min(saved, item_quantity)`, since a sibling line may have claimed more of that balance since this row was staged.
 
 ### Quantity entry (`ROonChangeUnloadQty.js`)
 
@@ -586,7 +609,8 @@ So each item is subtracted from the source (bin and/or source HU) and added to t
 - [ ] Per-type flow: Load = Items→TargetHU; Unload = SourceHU→Items→(warehouse bin); Transfer = SourceHU→Items→TargetHU.
 - [ ] Source HU picker: filter to `item_count > 0 && total_quantity > 0`, single-select, non-deleted, plant+org scoped.
 - [ ] Target HU picker: all plant/org HUs **except** the source HU; allow empty HUs; offer "new HU" → `target_hu_no = "Auto-generated number"`.
-- [ ] Clamp `unload_quantity` to `[0, item_quantity]`.
+- [ ] **Load picker: deduct quantities already staged by OTHER `table_repack` lines** (Part 6) — sum `unload_quantity` from every other row's `items_temp_data` at the same `(material, location, batch)` and subtract it, skipping the current row index. Without this two lines each claim the full qty of the same balance. Do **not** do this for Unload/Transfer.
+- [ ] Clamp `unload_quantity` to `[0, item_quantity]`, and clamp the *restored* quantity on re-open to the same ceiling.
 - [ ] On source-HU change, wipe items + target on that row. On repack-type/plant change, wipe **all** lines.
 - [ ] Storage-location change → auto-fill default bin from `bin_location` (`is_default: 1`).
 - [ ] Plant defaulting from `deptIds` / `deptParentId`; lock plant for plant-scoped users; default `repack_no_type` to the `is_default` rule.
@@ -1187,13 +1211,57 @@ const selectTab = (tabName) => {
   }, 100);
 };
 
+// One key shape for every per-balance map in this file (HU-held qty, sibling-line
+// claims, and the balance rows themselves). They are compared against each other,
+// so they must degrade identically on a missing location/batch — hence the single
+// helper rather than three inline template strings.
+const balanceKey = (materialId, locationId, batchId) =>
+  `${materialId}|${locationId || ""}|${batchId || "no_batch"}`;
+
+// Quantities staged by OTHER table_repack lines are not committed to the database
+// yet, so item_balance still reports them as fully available. Without this pass two
+// Load lines can each claim the same stock: line 1 loads 100 of material X from bin
+// A into HU-1, line 2 loads another 100 of the same 100-unit balance into HU-2.
+// Nothing downstream catches it — ROonChangeUnloadQty clamps a row only against its
+// OWN item_quantity, and ROsaveAsCompleted has no aggregate check for Load.
+// Mirrors MSI's otherLinesHuAllocations pass (MSIopenDialogOptimized.js).
+//
+// Load only. Unload/Transfer draw from a specific source HU, and ROsaveAsCompleted
+// already rejects two rows sharing one (seenSourceHuIds); rows on different HUs
+// never draw on the same physical stock even when they share a balance row.
+const buildOtherLineClaims = (tableRepack, rowIndex) => {
+  const claims = new Map();
+  (tableRepack || []).forEach((row, idx) => {
+    if (idx === rowIndex || !row || !row.items_temp_data) return;
+    let parsed;
+    try {
+      parsed = JSON.parse(row.items_temp_data);
+    } catch (e) {
+      console.error(`Error parsing items_temp_data for repack row ${idx}:`, e);
+      return;
+    }
+    if (!Array.isArray(parsed)) return;
+    for (const it of parsed) {
+      const qty = parseFloat(it.unload_quantity) || 0;
+      if (qty <= 0) continue;
+      const key = balanceKey(it.material_id, it.location_id, it.batch_id);
+      claims.set(key, (claims.get(key) || 0) + qty);
+    }
+  });
+  return claims;
+};
+
 // item_balance / item_batch_balance do NOT carry handling_unit_id, so their
 // unrestricted_qty commingles genuinely-loose stock with stock physically sitting
 // inside handling units. Load must only offer the truly-loose portion; otherwise
 // the same physical stock gets packed into a target HU while the holding HU still
 // lists it, and the holding HU becomes a phantom claiming stock that moved away.
 // Mirrors GD (fetchHuQtyByLocation) and MSI (buildHuQtyMap + applyLooseDeduction).
-const fetchInventoryItems = async (plantId, organizationId) => {
+const fetchInventoryItems = async (
+  plantId,
+  organizationId,
+  otherLineClaims,
+) => {
   // Stage 1 — balances (independent of everything else).
   const [itemBalanceRes, itemBatchBalanceRes] = await Promise.all([
     db
@@ -1360,15 +1428,19 @@ const fetchInventoryItems = async (plantId, organizationId) => {
       (parseFloat(it.quantity) || 0) - (huReservedMap.get(reservedKey) || 0),
     );
     if (qty <= 0) continue;
-    const key = `${it.material_id}|${locationId}|${it.batch_id || "no_batch"}`;
+    const key = balanceKey(it.material_id, locationId, it.batch_id);
     huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
   }
 
+  // Available = unrestricted, less stock physically held in HUs, less what sibling
+  // repack lines have already staged against this same balance row.
   const looseQty = (r) => {
-    const key = `${r.material_id}|${r.location_id}|${r.batch_id || "no_batch"}`;
+    const key = balanceKey(r.material_id, r.location_id, r.batch_id);
     return Math.max(
       0,
-      (parseFloat(r.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0),
+      (parseFloat(r.unrestricted_qty) || 0) -
+        (huQtyMap.get(key) || 0) -
+        (otherLineClaims.get(key) || 0),
     );
   };
 
@@ -1502,10 +1574,16 @@ const buildItemsFromHU = async (sourceTempDataStr, plantId, organizationId) => {
     const tableRepack = this.getValue("table_repack") || [];
     const currentRow = tableRepack[rowIndex] || {};
 
+    const otherLineClaims = buildOtherLineClaims(tableRepack, rowIndex);
+
     let tableItems = [];
 
     if (repackType === "Load") {
-      tableItems = await fetchInventoryItems(plantId, organizationId);
+      tableItems = await fetchInventoryItems(
+        plantId,
+        organizationId,
+        otherLineClaims,
+      );
     } else if (repackType === "Unload" || repackType === "Transfer") {
       if (!currentRow.source_temp_data) {
         this.hideLoading();
@@ -1535,7 +1613,13 @@ const buildItemsFromHU = async (sourceTempDataStr, plantId, organizationId) => {
                 (p.location_id || "") === (it.location_id || ""),
             );
             if (match) {
-              it.unload_quantity = parseFloat(match.unload_quantity) || 0;
+              // The ceiling can have shrunk since this row was staged (a sibling
+              // line claimed more of the same balance), so clamp instead of
+              // restoring a quantity that is no longer available.
+              it.unload_quantity = Math.min(
+                parseFloat(match.unload_quantity) || 0,
+                parseFloat(it.item_quantity) || 0,
+              );
             }
           });
         }
