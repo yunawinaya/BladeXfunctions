@@ -4,6 +4,8 @@ if (arguments[0].$eventArgs[1].columnKey === "material_code") {
   this.openDialog("balance_dialog");
   this.setData({
     material_id: arguments[0].$eventArgs[0].material_id,
+    "balance_dialog.balance_uom": "",
+    "balance_dialog.batch_balance_uom": "",
   });
 
   setTimeout(async () => {
