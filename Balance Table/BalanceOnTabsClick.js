@@ -28,6 +28,8 @@
     const materialId = this.getValue("material_id");
     if (!materialId) return;
 
+    this.showLoading("Loading balance...");
+
     // Give the tab's contents a beat to mount before touching the select.
     await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -60,8 +62,12 @@
 
     await new Promise((resolve) => setTimeout(resolve, 100));
     const uomGrid = await this.getComponent("balance_dialog.table_balance_uom");
-    uomGrid?.refreshChange();
+    // Awaited so the loading overlay covers the grid's own fetch, not just the call.
+    // Harmless if refreshChange() returns undefined rather than a promise.
+    await uomGrid?.refreshChange();
   } catch (error) {
     console.error(LOG, "refresh failed", error);
+  } finally {
+    this.hideLoading();
   }
 })();

@@ -26,6 +26,8 @@
   const LOG = "[UOM tab click]";
 
   try {
+    this.showLoading("Loading balance...");
+
     // Give the newly-activated sub-tab time to mount. Without this, the first switch to a
     // sub-tab targets a select that does not exist yet, so refreshFieldOptionData is a no-op
     // and its UOM stays blank.
@@ -62,8 +64,12 @@
 
     await new Promise((resolve) => setTimeout(resolve, 100));
     const grid = await this.getComponent(`balance_dialog.${gridModel}`);
-    grid?.refreshChange();
+    // Awaited so the loading overlay covers the grid's own fetch, not just the call.
+    // Harmless if refreshChange() returns undefined rather than a promise.
+    await grid?.refreshChange();
   } catch (error) {
     console.error(LOG, "auto-fill/refresh failed", error);
+  } finally {
+    this.hideLoading();
   }
 })();
