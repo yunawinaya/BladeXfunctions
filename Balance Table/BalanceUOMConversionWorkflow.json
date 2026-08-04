@@ -15,21 +15,278 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "bt3k9wq2",
+      "name": "balance_type",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
-  "response_json": [],
+  "response_json": [
+    {
+      "key": "x3vqn7bd",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "l8fzm2ct",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "object",
+          "isExpand": true,
+          "isArrayItem": true,
+          "children": [
+            {
+              "key": "t7k2wq1a",
+              "name": "balance_type",
+              "title": "Balance Type",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "h3ndv8pz",
+              "name": "id",
+              "title": "ID",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "r5cbt0mx",
+              "name": "material_id",
+              "title": "Item ID",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "w9fjs4le",
+              "name": "material_code",
+              "title": "Item Code",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "k1qzr7yb",
+              "name": "uom_name",
+              "title": "UOM",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "n6xhp3dc",
+              "name": "conversion_rate",
+              "title": "Conversion Rate",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "g2vlm8sf",
+              "name": "storage_location_name",
+              "title": "Storage Name",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "z4trk9wn",
+              "name": "bin_location_combine",
+              "title": "Bin Location",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "c8bqy1hv",
+              "name": "unrestricted_qty",
+              "title": "Unrestricted Qty",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "p0dlz6ug",
+              "name": "reserved_qty",
+              "title": "Reserved Qty",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "m5wsn2jk",
+              "name": "block_qty",
+              "title": "Block Qty",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "v7hgc4rt",
+              "name": "qualityinsp_qty",
+              "title": "Quality Inspection Qty",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "b3zxf9qd",
+              "name": "intransit_qty",
+              "title": "In Transit Qty",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "j1nkp5aw",
+              "name": "balance_quantity",
+              "title": "Balance Qty",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "s6ycv0be",
+              "name": "plant_name",
+              "title": "Plant",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "d4mrt8lz",
+              "name": "batch_number",
+              "title": "Batch Number",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "f9jwq2xh",
+              "name": "expired_date",
+              "title": "EXP Date",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "a2plb7kn",
+              "name": "manufacturing_date",
+              "title": "Manufacturing Date",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "y8gdz3vc",
+              "name": "remark",
+              "title": "Remark",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "e5tsn1qm",
+              "name": "remark2",
+              "title": "Remark 2",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "u0hkx6rf",
+              "name": "remark3",
+              "title": "Remark 3",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "config": {},
   "nodes": [
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_Qb7hK2Rx",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Get Converted Balance",
+        "isValidator": true,
+        "nodeName": "Get Converted Balance",
+        "name": "Get Converted Balance",
+        "script": {
+          "type": "sql",
+          "code": "SELECT\n    'item_balance'                                            AS balance_type,\n    ib.id                                                     AS id,\n    ib.material_id                                            AS material_id,\n    i.material_code                                           AS material_code,\n    u.uom_name                                                AS uom_name,\n    conv.base_qty                                             AS conversion_rate,\n    bl.storage_location_name                                  AS storage_location_name,\n    bl.bin_location_combine                                   AS bin_location_combine,\n    ROUND(ib.unrestricted_qty / NULLIF(conv.base_qty, 0), 3)  AS unrestricted_qty,\n    ROUND(ib.reserved_qty     / NULLIF(conv.base_qty, 0), 3)  AS reserved_qty,\n    ROUND(ib.block_qty        / NULLIF(conv.base_qty, 0), 3)  AS block_qty,\n    ROUND(ib.qualityinsp_qty  / NULLIF(conv.base_qty, 0), 3)  AS qualityinsp_qty,\n    ROUND(ib.intransit_qty    / NULLIF(conv.base_qty, 0), 3)  AS intransit_qty,\n    ROUND(ib.balance_quantity / NULLIF(conv.base_qty, 0), 3)  AS balance_quantity,\n    d.dept_name                                               AS plant_name,\n    NULL                                                      AS batch_number,\n    NULL                                                      AS expired_date,\n    NULL                                                      AS manufacturing_date,\n    NULL                                                      AS remark,\n    NULL                                                      AS remark2,\n    NULL                                                      AS remark3\nFROM item_balance ib\nJOIN item_mji552rc_sub conv\n       ON conv.id = (\n            SELECT c2.id\n            FROM item_mji552rc_sub c2\n            WHERE c2.Item_id    = ib.material_id\n              AND c2.is_deleted = 0\n              AND (c2.id         = '{{workflowparams:material_uom}}'\n                OR c2.alt_uom_id = '{{workflowparams:material_uom}}')\n            ORDER BY (c2.id = '{{workflowparams:material_uom}}') DESC, c2.id\n            LIMIT 1\n          )\nLEFT JOIN item                i  ON i.id  = ib.material_id\nLEFT JOIN unit_of_measurement u  ON u.id  = conv.alt_uom_id\nLEFT JOIN bin_location        bl ON bl.id = ib.location_id\nLEFT JOIN blade_dept          d  ON d.id  = ib.plant_id\nWHERE '{{workflowparams:balance_type}}' <> 'item_batch_balance'\n  AND ib.material_id     = '{{workflowparams:material_id}}'\n  AND ib.is_deleted      = 0\n  AND ib.organization_id = '{{global:firstLvDeptId}}'\n\nUNION ALL\n\nSELECT\n    'item_batch_balance',\n    ibb.id,\n    ibb.material_id,\n    i.material_code,\n    u.uom_name,\n    conv.base_qty,\n    bl.storage_location_name,\n    bl.bin_location_combine,\n    ROUND(ibb.unrestricted_qty / NULLIF(conv.base_qty, 0), 3),\n    ROUND(ibb.reserved_qty     / NULLIF(conv.base_qty, 0), 3),\n    ROUND(ibb.block_qty        / NULLIF(conv.base_qty, 0), 3),\n    ROUND(ibb.qualityinsp_qty  / NULLIF(conv.base_qty, 0), 3),\n    ROUND(ibb.intransit_qty    / NULLIF(conv.base_qty, 0), 3),\n    ROUND(ibb.balance_quantity / NULLIF(conv.base_qty, 0), 3),\n    d.dept_name,\n    b.batch_number,\n    b.expired_date,\n    b.manufacturing_date,\n    b.remark,\n    b.remark2,\n    b.remark3\nFROM item_batch_balance ibb\nJOIN item_mji552rc_sub conv\n       ON conv.id = (\n            SELECT c2.id\n            FROM item_mji552rc_sub c2\n            WHERE c2.Item_id    = ibb.material_id\n              AND c2.is_deleted = 0\n              AND (c2.id         = '{{workflowparams:material_uom}}'\n                OR c2.alt_uom_id = '{{workflowparams:material_uom}}')\n            ORDER BY (c2.id = '{{workflowparams:material_uom}}') DESC, c2.id\n            LIMIT 1\n          )\nLEFT JOIN item                i  ON i.id  = ibb.material_id\nLEFT JOIN unit_of_measurement u  ON u.id  = conv.alt_uom_id\nLEFT JOIN bin_location        bl ON bl.id = ibb.location_id\nLEFT JOIN blade_dept          d  ON d.id  = ibb.plant_id\nLEFT JOIN batch               b  ON b.id  = ibb.batch_id\nWHERE '{{workflowparams:balance_type}}' = 'item_batch_balance'\n  AND ibb.material_id     = '{{workflowparams:material_id}}'\n  AND ibb.is_deleted      = 0\n  AND ibb.organization_id = '{{global:firstLvDeptId}}'\n\nORDER BY storage_location_name, bin_location_combine, batch_number;"
+        },
+        "response_json": [
+          {
+            "key": "q4xh7bza",
+            "name": "",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
       "blocks": []
     },
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "response_value": {
+          "list": [
+            {
+              "prop": "data",
+              "propLabel": "data",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:sql_node_Qb7hK2Rx.data}}"
+            }
+          ]
+        }
+      },
       "blocks": []
     }
   ],
