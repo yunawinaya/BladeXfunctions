@@ -1,0 +1,205 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_ISa9x6UG",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Run SQL",
+        "isValidator": true,
+        "nodeName": "Run SQL",
+        "name": "Run SQL",
+        "script": {
+          "type": "sql",
+          "code": "SELECT \n    i.id,\n    i.material_code,\n    i.material_name,\n    i.material_desc,\n    i.based_uom,\n    buom.uom_name AS based_uom_name,\n    i.item_category,\n    mc.mat_cat_name AS item_category_name,\n    i.material_costing_method,\n    REPLACE(REPLACE(REPLACE(i.business_scope, '[', ''), ']', ''), '\"', '') AS business_scope_values,\n    i.table_cust_item_access,\n    GROUP_CONCAT(DISTINCT iaccess.customer_id ORDER BY iaccess.customer_id SEPARATOR ', ') AS customer_ids,\n    GROUP_CONCAT(DISTINCT iaccess.cust_price_tag_id ORDER BY iaccess.cust_price_tag_id SEPARATOR ', ') AS cust_price_tag_ids,\n    GROUP_CONCAT(DISTINCT iaccess.id ORDER BY iaccess.id SEPARATOR ', ') AS access_ids,\n    i.net_weight,\n    i.organization_id,\n    COALESCE((\n        SELECT SUM(ib2.unrestricted_qty)\n        FROM item_balance ib2\n        WHERE ib2.material_id = i.id\n          AND ib2.organization_id = i.organization_id\n          AND ib2.is_deleted = 0\n    ), 0) AS total_unrestricted_qty\nFROM item i\nLEFT JOIN unit_of_measurement buom \n    ON i.based_uom = buom.id\nLEFT JOIN material_category mc \n    ON i.item_category = mc.id\nLEFT JOIN item_k5mbon7z_sub iaccess \n    ON i.id = iaccess.item_id\nWHERE i.is_deleted = 0\n  AND i.is_active = 1\n  AND i.organization_id = '{{global:firstLvDeptId}}'\n  AND REPLACE(REPLACE(REPLACE(i.business_scope, '[', ''), ']', ''), '\"', '') LIKE '%1%'\nGROUP BY \n    i.id,\n    i.material_code,\n    i.material_name,\n    i.material_desc,\n    i.based_uom,\n    buom.uom_name,\n    i.item_category,\n    i.material_costing_method,\n    mc.mat_cat_name,\n    i.business_scope,\n    i.organization_id\nHAVING \n    access_ids IS NULL\n    OR \n    (\n        (COALESCE('{{workflowparams:customer_id}}', '') = '' OR FIND_IN_SET('{{workflowparams:customer_id}}', customer_ids) > 0)\n        OR \n        (COALESCE('{{workflowparams:price_tag_id}}', '') = '' OR FIND_IN_SET('{{workflowparams:price_tag_id}}', cust_price_tag_ids) > 0)\n    )\nORDER BY i.id;"
+        },
+        "response_json": [
+          {
+            "key": "bsy5fnml",
+            "name": "",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "response_value": {
+          "list": [
+            {
+              "prop": "data",
+              "propLabel": "data",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:sql_node_ISa9x6UG.data}}"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "sc77rqv7",
+      "name": "customer_id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "spjtzc27",
+      "name": "price_tag_id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "d3aueoub",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "vjk1igwh",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "object",
+          "isExpand": true,
+          "isArrayItem": true,
+          "children": [
+            {
+              "key": "6uznuxu3",
+              "name": "id",
+              "title": "ID",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "an7pb6l7",
+              "name": "material_code",
+              "title": "Item Code",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "swttj3v1",
+              "name": "material_name",
+              "title": "Item Name",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "jbr4c1oa",
+              "name": "material_desc",
+              "title": "Item Description",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "5ofnxw8w",
+              "name": "based_uom",
+              "title": "Based UOM ID",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "sm6mv2sl",
+              "name": "based_uom_name",
+              "title": "Based UOM",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "p94igp5a",
+              "name": "item_category",
+              "title": "Item Category ID",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "xz4v0yxt",
+              "name": "item_category_name",
+              "title": "Item Category",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "yej1rf91",
+              "name": "material_costing_method",
+              "title": "Costing Method",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "v7jilbcb",
+              "name": "net_weight",
+              "title": "Net Weight",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "0onjhq5h",
+              "name": "organization_id",
+              "title": "Organization ID",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "hc1jwsv9",
+              "name": "total_unrestricted_qty",
+              "title": "Balance Qty",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "config": {}
+}
