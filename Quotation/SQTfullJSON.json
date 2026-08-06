@@ -2562,7 +2562,9 @@
                               "showNumber": "",
                               "viewMode": "",
                               "format": "rmb",
-                              "cacheProp": true
+                              "cacheProp": true,
+                              "precision_rule": 1,
+                              "number_rule": ""
                             },
                             "tip": "",
                             "remoteFunc": "func_j26ejhhx",
@@ -5186,18 +5188,45 @@
                         "collectionId": "1902675462858063873",
                         "list": [
                           {
-                            "id": 1785997492132,
-                            "parentId": 1785997492131,
+                            "id": 1785999201828,
+                            "parentId": 1785999201829,
                             "isTop": true,
-                            "type": "leaf",
-                            "operator": "equal",
-                            "prop": "organization_id",
-                            "valueType": "field",
-                            "value": "{{value:organization_id}}",
+                            "type": "branch",
+                            "operator": "all",
+                            "prop": "",
+                            "valueType": "",
+                            "value": "",
                             "level": 1,
-                            "propLabel": "Organization ID",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
+                            "children": [
+                              {
+                                "id": 1785997492132,
+                                "parentId": 1785999201828,
+                                "isTop": false,
+                                "type": "leaf",
+                                "operator": "equal",
+                                "prop": "organization_id",
+                                "valueType": "field",
+                                "value": "{{value:organization_id}}",
+                                "level": 2,
+                                "propLabel": "Organization ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              },
+                              {
+                                "id": 1785999201830,
+                                "parentId": 1785999201828,
+                                "isTop": false,
+                                "prop": "is_active",
+                                "operator": "numberEqual",
+                                "valueType": "value",
+                                "value": 1,
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Is Active",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
                           }
                         ]
                       }
@@ -6297,7 +6326,7 @@
                             "pagingEnabled": true,
                             "remoteOptions": [],
                             "props": {
-                              "value": "vehicle_number",
+                              "value": "id",
                               "label": "vehicle_number",
                               "image": "",
                               "icon": "",
@@ -6708,7 +6737,7 @@
                     "justify": "start",
                     "align": "top",
                     "customClass": "",
-                    "hidden": "{{{{value:shipping_method}} === \"\" || {{value:di_shipping_method}} === null || {{value:di_shipping_method}} === undefined}}",
+                    "hidden": "{{{{value:di_shipping_method}} === \"\" || {{value:di_shipping_method}} === null || {{value:di_shipping_method}} === undefined}}",
                     "flex": true,
                     "responsive": true,
                     "remoteFunc": "func_qml86ltt",
@@ -7606,7 +7635,7 @@
                             "pagingEnabled": true,
                             "remoteOptions": [],
                             "props": {
-                              "value": "vehicle_number",
+                              "value": "id",
                               "label": "vehicle_number",
                               "image": "",
                               "icon": "",
