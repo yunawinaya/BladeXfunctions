@@ -5442,7 +5442,7 @@
                   },
                   "name": "Shipping Method",
                   "key": "rsgexps1",
-                  "model": "shipping_method",
+                  "model": "di_shipping_method",
                   "rules": []
                 },
                 {
@@ -6711,7 +6711,7 @@
                     "justify": "start",
                     "align": "top",
                     "customClass": "",
-                    "hidden": "{{{{value:shipping_method}} === \"\" || {{value:shipping_method}} === null || {{value:shipping_method}} === undefined}}",
+                    "hidden": "{{{{value:shipping_method}} === \"\" || {{value:di_shipping_method}} === null || {{value:di_shipping_method}} === undefined}}",
                     "flex": true,
                     "responsive": true,
                     "remoteFunc": "func_qml86ltt",
