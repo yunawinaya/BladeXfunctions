@@ -5648,6 +5648,117 @@
                       "blocks": []
                     },
                     {
+                      "id": "code_node_PTstaleFlag",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Stale Payload Flag",
+                        "isValidator": true,
+                        "nodeName": "Stale Payload Flag",
+                        "name": "Stale Payload Flag",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// The browser posts the form as it was when the page was opened. Between load\n// and submit another user can have rewritten this same record -- an issuing\n// parent's In Progress edit rewrites its receiving child's lines wholesale via\n// update_node_PTChildUpd -- so a receiver who opened the child first posts lines\n// that no longer exist. Persisting that payload resurrects the removed lines,\n// and on the Completed path update_node_Zcjd67TS stamps the document Completed\n// before code_node_PTcompCompute ever checks In Transit, so the shortage 400\n// leaves it Completed with nothing received.\n//\n// get_node_1wi90Edk is the pre-write read of this same record, so comparing its\n// update_time against the submitted one detects exactly that window.\nconst submitted = {{node:code_node_37LA0tgq.data.allData.update_time}};\nconst stored = {{node:get_node_1wi90Edk.data.data.update_time}};\n\nconst norm = (v) => (v === null || v === undefined ? \"\" : String(v).trim());\nconst a = norm(submitted);\nconst b = norm(stored);\n\n// A headless caller builds allData itself and carries no update_time, and a\n// record never yet updated has none stored. With nothing to compare this must\n// fail OPEN: a false positive here would block every edit of the document.\nif (!a || !b) {\n  return { isStale: 0 };\n}\n\n// Both sides come back as \"YYYY-MM-DD HH:mm:ss.SSS\". Drop to second precision if\n// either side lost its milliseconds, so a format difference is never read as a\n// concurrent edit.\nconst cut = (s) => (s.indexOf(\".\") === -1 ? s : s.substring(0, s.indexOf(\".\")));\nconst same =\n  a.indexOf(\".\") === -1 || b.indexOf(\".\") === -1 ? cut(a) === cut(b) : a === b;\n\nreturn { isStale: same ? 0 : 1 };\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "isStale",
+                            "name": "isStale",
+                            "title": "isStale",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_PTstale",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Stale Payload",
+                        "isValidator": true,
+                        "nodeName": "IF Stale Payload",
+                        "name": "IF Stale Payload",
+                        "condition_type": "ConditionRule",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1790200000007,
+                              "parentId": 1790200000014,
+                              "isTop": true,
+                              "prop": "node.code_node_PTstaleFlag.data.isStale",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "isStale",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_PTstale_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "return_node_PTstale",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return Data",
+                                "isValidator": true,
+                                "nodeName": "Return Data",
+                                "name": "Return Data",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "400",
+                                      "valueLabel": "",
+                                      "propLabel": "code"
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "This Plant Transfer was changed by another user while you had it open. Please refresh the page and try again.",
+                                      "valueLabel": "",
+                                      "propLabel": "message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_PTstale_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
                       "id": "code_node_jRmthJue",
                       "type": "code-node",
                       "data": {
@@ -10130,7 +10241,7 @@
                                 "name": "Reconcile In Transit Ledger",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\nconst A = {{node:code_node_A8hTl5B7.data.balanceToAdd}} || [];\nconst S = {{node:code_node_A8hTl5B7.data.balanceToSubtract}} || [];\nconst receivingBin = {{node:code_node_A8hTl5B7.data.receiving_default_location_id}};\nconst allData = {{node:code_node_37LA0tgq.data.allData}};\nconst openRaw = {{node:search_node_PTeditOpenTransit.data.data}};\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\nconst itemsRaw = {{node:search_node_PTeditItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemMap = {};\nfor (const it of items) if (it && it.id) itemMap[String(it.id)] = it;\n\nconst issuingPlant = allData.issuing_operation_faci;\nconst receivingPlant = allData.receiving_operation_faci;\n// Only the issuing parent stages In Transit; a receiving child's edit must not\n// create ledger rows even if its temp_qty_data changed via the HU dialog.\nif (allData.movement_type !== \"Plant Transfer\") {\n  return { transitCreates: [], hasTransitCreates: 0, transitUpdates: [], hasTransitUpdates: 0, materialIds: [] };\n}\n\n// A Plant Transfer issued before this ledger existed has no rows of any status\n// (search_node_PTeditOpenTransit is deliberately unfiltered by status so this\n// check means \"never tracked\", not \"already consumed\"). Creating rows for an\n// edit delta would leave it half-tracked: the tuple becomes tracked, but only\n// for the delta, while the receiving child still demands the full quantity --\n// which is exactly the shortage 400 that code_node_PTcompCompute's per-tuple\n// skip is there to avoid. Leave a legacy document fully legacy.\nif (openRows.length === 0) {\n  return { transitCreates: [], hasTransitCreates: 0, transitUpdates: [], hasTransitUpdates: 0, materialIds: [] };\n}\n\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// balanceToAdd -> more In Transit staged at the receiving bin -> new ledger rows.\nconst transitCreates = [];\nfor (const b of A) {\n  const qty = roundQty(b.sm_quantity); if (qty <= 0) continue;\n  const it = itemMap[String(b.material_id)] || {};\n  const cat = b.category || \"Unrestricted\";\n  transitCreates.push({\n    doc_type: \"Plant Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: \"\", line_no: 0,\n    parent_id: \"\", parent_no: \"\", parent_line_id: \"\", material_id: b.material_id,\n    item_code: it.material_code || \"\", item_name: it.material_name || \"\", item_desc: it.material_desc || \"\",\n    item_uom: it.based_uom || b.material_uom, batch_id: b.batch_id || null, handling_unit_id: b.handling_unit_id || null,\n    plant_id: receivingPlant, organization_id: allData.organization_id, transit_bin: receivingBin,\n    from_plant_id: issuingPlant, from_bin: b.location_id, from_category: cat,\n    to_plant_id: receivingPlant, to_bin: null, to_category: cat,\n    transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n    status: \"In Transit\", transit_date: docDate, received_date: null, remark: \"\",\n    target_doc_type: \"\", target_doc_id: \"\", target_doc_no: \"\", target_doc_line_id: \"\", source_transit_id: \"\",\n  });\n}\n\n// balanceToSubtract -> less In Transit -> reduce/close open rows FIFO.\nconst rows = openRows.filter((r) => r.status === \"In Transit\");\nconst byKey = new Map();\nfor (const r of rows) { const k = `${r.material_id}|${r.batch_id || \"\"}|${r.transit_bin}`; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(r); }\nfor (const [, l] of byKey) l.sort((a, b) => { const da = String(a.transit_date || \"\"), db = String(b.transit_date || \"\"); if (da !== db) return da < db ? -1 : 1; return (a.line_no || 0) - (b.line_no || 0); });\nconst transitUpdates = [];\nfor (const b of S) {\n  let need = roundQty(b.sm_quantity); if (need <= 0) continue;\n  const list = byKey.get(`${b.material_id}|${b.batch_id || \"\"}|${receivingBin}`) || [];\n  for (const r of list) {\n    if (need <= 0) break; if (r.open_qty <= 0) continue;\n    const take = roundQty(Math.min(r.open_qty, need)); const nq = roundQty(r.open_qty - take);\n    transitUpdates.push({ id: r.id, open_qty: qtyStr(nq), status: nq <= 0 ? \"Cancelled\" : \"In Transit\" });\n    r.open_qty = nq; need = roundQty(need - take);\n  }\n}\nreturn {\n  transitCreates, hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  transitUpdates, hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  materialIds: [...new Set(A.map((b) => b.material_id).filter(Boolean))],\n};\n"
+                                  "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\nconst A = {{node:code_node_A8hTl5B7.data.balanceToAdd}} || [];\nconst S = {{node:code_node_A8hTl5B7.data.balanceToSubtract}} || [];\nconst receivingBin = {{node:code_node_A8hTl5B7.data.receiving_default_location_id}};\nconst allData = {{node:code_node_37LA0tgq.data.allData}};\nconst openRaw = {{node:search_node_PTeditOpenTransit.data.data}};\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\nconst itemsRaw = {{node:search_node_PTeditItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemMap = {};\nfor (const it of items) if (it && it.id) itemMap[String(it.id)] = it;\n\nconst issuingPlant = allData.issuing_operation_faci;\nconst receivingPlant = allData.receiving_operation_faci;\n// Only the issuing parent stages In Transit; a receiving child's edit must not\n// create ledger rows even if its temp_qty_data changed via the HU dialog.\nif (allData.movement_type !== \"Plant Transfer\") {\n  return { transitCreates: [], hasTransitCreates: 0, transitUpdates: [], hasTransitUpdates: 0, materialIds: [] };\n}\n\n// A Plant Transfer issued before this ledger existed has no rows of any status\n// (search_node_PTeditOpenTransit is deliberately unfiltered by status so this\n// check means \"never tracked\", not \"already consumed\"). Creating rows for an\n// edit delta would leave it half-tracked: the tuple becomes tracked, but only\n// for the delta, while the receiving child still demands the full quantity --\n// which is exactly the shortage 400 that code_node_PTcompCompute's per-tuple\n// skip is there to avoid. Leave a legacy document fully legacy.\nif (openRows.length === 0) {\n  return { transitCreates: [], hasTransitCreates: 0, transitUpdates: [], hasTransitUpdates: 0, materialIds: [] };\n}\n\nconst docId = allData.id || \"\";\n// code_node_37LA0tgq overwrites stock_movement_no with the numbering sentinel\n// 'issued' on every non-Created save, so allData is not a safe source for the\n// denormalized doc_no -- it stamps the literal \"issued\" onto the ledger row and\n// leaves it unauditable. Read the persisted number first, exactly as the sibling\n// code_node_A8hTl5B7 does.\nconst initialRaw = {{node:get_node_1wi90Edk.data.data}};\nconst initialRec = Array.isArray(initialRaw) ? initialRaw[0] : initialRaw;\nconst docNo =\n  (initialRec && initialRec.stock_movement_no) || allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// balanceToAdd -> more In Transit staged at the receiving bin -> new ledger rows.\nconst transitCreates = [];\nfor (const b of A) {\n  const qty = roundQty(b.sm_quantity); if (qty <= 0) continue;\n  const it = itemMap[String(b.material_id)] || {};\n  const cat = b.category || \"Unrestricted\";\n  transitCreates.push({\n    doc_type: \"Plant Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: \"\", line_no: 0,\n    parent_id: \"\", parent_no: \"\", parent_line_id: \"\", material_id: b.material_id,\n    item_code: it.material_code || \"\", item_name: it.material_name || \"\", item_desc: it.material_desc || \"\",\n    item_uom: it.based_uom || b.material_uom, batch_id: b.batch_id || null, handling_unit_id: b.handling_unit_id || null,\n    plant_id: receivingPlant, organization_id: allData.organization_id, transit_bin: receivingBin,\n    from_plant_id: issuingPlant, from_bin: b.location_id, from_category: cat,\n    to_plant_id: receivingPlant, to_bin: null, to_category: cat,\n    transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n    status: \"In Transit\", transit_date: docDate, received_date: null, remark: \"\",\n    target_doc_type: \"\", target_doc_id: \"\", target_doc_no: \"\", target_doc_line_id: \"\", source_transit_id: \"\",\n  });\n}\n\n// balanceToSubtract -> less In Transit -> reduce/close open rows FIFO.\nconst rows = openRows.filter((r) => r.status === \"In Transit\");\nconst byKey = new Map();\nfor (const r of rows) { const k = `${r.material_id}|${r.batch_id || \"\"}|${r.transit_bin}`; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(r); }\nfor (const [, l] of byKey) l.sort((a, b) => { const da = String(a.transit_date || \"\"), db = String(b.transit_date || \"\"); if (da !== db) return da < db ? -1 : 1; return (a.line_no || 0) - (b.line_no || 0); });\nconst transitUpdates = [];\nfor (const b of S) {\n  let need = roundQty(b.sm_quantity); if (need <= 0) continue;\n  const list = byKey.get(`${b.material_id}|${b.batch_id || \"\"}|${receivingBin}`) || [];\n  for (const r of list) {\n    if (need <= 0) break; if (r.open_qty <= 0) continue;\n    const take = roundQty(Math.min(r.open_qty, need)); const nq = roundQty(r.open_qty - take);\n    transitUpdates.push({ id: r.id, open_qty: qtyStr(nq), status: nq <= 0 ? \"Cancelled\" : \"In Transit\" });\n    r.open_qty = nq; need = roundQty(need - take);\n  }\n}\nreturn {\n  transitCreates, hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  transitUpdates, hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  materialIds: [...new Set(A.map((b) => b.material_id).filter(Boolean))],\n};\n"
                                 },
                                 "response_json": [
                                   {
@@ -12664,7 +12775,7 @@
                         "name": "Stage In Transit Ledger",
                         "script": {
                           "type": "javascript",
-                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\nconst allData = {{node:code_node_PtIssuedRows.data.header}};\nconst receivingBin = {{node:get_node_WtFOLdKB.data.data.id}};\nconst itemsRaw = {{node:search_node_PtIssuedItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemMap = {};\nfor (const it of items) if (it && it.id) itemMap[String(it.id)] = it;\n\n// doc_line_id fix (same class as GR): the add-node response carries no subform\n// row ids, so line.id is empty on a fresh (Add) save. Re-read the persisted doc\n// and resolve each line's id by its persisted line_index.\nconst persistedRaw = {{node:get_node_PTissLines.data.data}};\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\nconst persistedLines = (persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : [];\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\n\nconst lines = allData.stock_movement || [];\nconst issuingPlant = allData.issuing_operation_faci;\nconst receivingPlant = allData.receiving_operation_faci;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// One in_transit_detail row per staged balance entry. Owner = this issuing PT;\n// the receiving child(ren) consume it on completion (searched by doc_id == parent).\nconst creates = [];\nfor (const line of lines) {\n  const index = (parseInt(line.line_index, 10) || 1) - 1;\n  const mat = line.item_selection; if (!mat) continue;\n  const it = itemMap[String(mat)] || {};\n  const uom = it.based_uom || line.quantity_uom || line.received_quantity_uom;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  entries = entries.filter((b) => b.sm_quantity && parseFloat(b.sm_quantity) > 0);\n  if (entries.length === 0) {\n    entries = (allData.balance_index || []).filter(\n      (b) => String(b.row_index) === String(index) && b.sm_quantity && parseFloat(b.sm_quantity) > 0\n    );\n  }\n  for (const b of entries) {\n    const qty = roundQty(b.sm_quantity); if (qty <= 0) continue;\n    const cat = b.category || \"Unrestricted\";\n    creates.push({\n      doc_type: \"Plant Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\", line_no: line.line_index,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n      material_id: mat, item_code: it.material_code || \"\", item_name: it.material_name || \"\", item_desc: it.material_desc || \"\",\n      item_uom: uom, batch_id: b.batch_id || null, handling_unit_id: b.handling_unit_id || null,\n      plant_id: receivingPlant, organization_id: allData.organization_id, transit_bin: receivingBin,\n      from_plant_id: issuingPlant, from_bin: b.location_id, from_category: cat,\n      to_plant_id: receivingPlant, to_bin: null, to_category: cat,\n      transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n      status: \"In Transit\", transit_date: docDate, received_date: null, remark: line.item_remark || \"\",\n      target_doc_type: \"\", target_doc_id: \"\", target_doc_no: \"\", target_doc_line_id: \"\", source_transit_id: \"\",\n    });\n  }\n}\nreturn { transitCreates: creates, hasTransitCreates: creates.length > 0 ? 1 : 0 };\n"
+                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\nconst allData = {{node:code_node_PtIssuedRows.data.header}};\nconst receivingBin = {{node:get_node_WtFOLdKB.data.data.id}};\nconst itemsRaw = {{node:search_node_PtIssuedItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemMap = {};\nfor (const it of items) if (it && it.id) itemMap[String(it.id)] = it;\n\n// doc_line_id fix (same class as GR): the add-node response carries no subform\n// row ids, so line.id is empty on a fresh (Add) save. Re-read the persisted doc\n// and resolve each line's id by its persisted line_index.\nconst persistedRaw = {{node:get_node_PTissLines.data.data}};\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\nconst persistedLines = (persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : [];\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\n\nconst lines = allData.stock_movement || [];\nconst issuingPlant = allData.issuing_operation_faci;\nconst receivingPlant = allData.receiving_operation_faci;\nconst docId = allData.id || \"\";\n// Same sentinel hazard as code_node_PTeditLedger. code_node_PtIssuedRows falls\n// back to code_node_37LA0tgq's allData whenever its re-read comes back empty, and\n// that copy carries the numbering sentinel 'issued' instead of the real number.\n// persistedRec is the re-read of this same document, so prefer it.\nconst docNo =\n  (persistedRec && persistedRec.stock_movement_no) || allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// One in_transit_detail row per staged balance entry. Owner = this issuing PT;\n// the receiving child(ren) consume it on completion (searched by doc_id == parent).\nconst creates = [];\nfor (const line of lines) {\n  const index = (parseInt(line.line_index, 10) || 1) - 1;\n  const mat = line.item_selection; if (!mat) continue;\n  const it = itemMap[String(mat)] || {};\n  const uom = it.based_uom || line.quantity_uom || line.received_quantity_uom;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  entries = entries.filter((b) => b.sm_quantity && parseFloat(b.sm_quantity) > 0);\n  if (entries.length === 0) {\n    entries = (allData.balance_index || []).filter(\n      (b) => String(b.row_index) === String(index) && b.sm_quantity && parseFloat(b.sm_quantity) > 0\n    );\n  }\n  for (const b of entries) {\n    const qty = roundQty(b.sm_quantity); if (qty <= 0) continue;\n    const cat = b.category || \"Unrestricted\";\n    creates.push({\n      doc_type: \"Plant Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\", line_no: line.line_index,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n      material_id: mat, item_code: it.material_code || \"\", item_name: it.material_name || \"\", item_desc: it.material_desc || \"\",\n      item_uom: uom, batch_id: b.batch_id || null, handling_unit_id: b.handling_unit_id || null,\n      plant_id: receivingPlant, organization_id: allData.organization_id, transit_bin: receivingBin,\n      from_plant_id: issuingPlant, from_bin: b.location_id, from_category: cat,\n      to_plant_id: receivingPlant, to_bin: null, to_category: cat,\n      transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n      status: \"In Transit\", transit_date: docDate, received_date: null, remark: line.item_remark || \"\",\n      target_doc_type: \"\", target_doc_id: \"\", target_doc_no: \"\", target_doc_line_id: \"\", source_transit_id: \"\",\n    });\n  }\n}\nreturn { transitCreates: creates, hasTransitCreates: creates.length > 0 ? 1 : 0 };\n"
                         },
                         "response_json": [
                           {
@@ -15201,6 +15312,91 @@
                           },
                           "blocks": [
                             {
+                              "id": "code_node_PTcompRevert",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Resolve Pre-Write Status",
+                                "isValidator": true,
+                                "nodeName": "Resolve Pre-Write Status",
+                                "name": "Resolve Pre-Write Status",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// update_node_Zcjd67TS has already stamped stock_movement_status = \"Completed\"\n// by the time the shortage is known, and this branch returns 400 without rolling\n// back -- which is how a receiving document ends up Completed with no inventory\n// moved and no In Transit consumed. Put the status back before returning.\n//\n// get_node_1wi90Edk runs on the Edit branch only. A Completed save that did not\n// come through it has no prior status to read, and \"Created\" is the only status\n// a receiving child can be in when this branch runs, so that is the fallback.\nconst raw = {{node:get_node_1wi90Edk.data.data}};\nconst row = Array.isArray(raw) ? raw[0] : raw;\nconst prev = row && row.stock_movement_status ? row.stock_movement_status : \"Created\";\nreturn { prevStatus: prev };\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "prevStatus",
+                                    "name": "prevStatus",
+                                    "title": "prevStatus",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "update_node_PTcompRevert",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Plant Transfer:Table:2025846960482627586",
+                                  "rules": {
+                                    "collectionId": "2025846960482627586",
+                                    "list": [
+                                      {
+                                        "id": 1790200000021,
+                                        "parentId": 1790200000028,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_37LA0tgq.data.allData.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Revert Status On Shortage",
+                                "isValidator": true,
+                                "nodeName": "Revert Status On Shortage",
+                                "name": "Revert Status On Shortage",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "stock_movement_status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PTcompRevert.data.prevStatus}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            },
+{
                               "id": "return_node_PTcompShort",
                               "type": "return-node",
                               "data": {
