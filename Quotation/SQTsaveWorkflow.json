@@ -1,0 +1,3614 @@
+{
+  "request_json": [
+    {
+      "key": "v5zwb6zn",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "hqkmr63j",
+      "name": "sqt_id",
+      "title": "SQT ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "i26o5l3g",
+      "name": "sqt_no",
+      "title": "SQT No",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node",
+        "run_filter": {
+          "list": [
+            {
+              "id": 1763535461297,
+              "parentId": 1763535461296,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_w7XLI4fF",
+      "type": "if",
+      "data": {
+        "title": "Save Draft ?",
+        "isValidator": true,
+        "nodeName": "Save Draft ?",
+        "name": "Save Draft ?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "table.sqt_status",
+              "operator": "equal",
+              "valueType": "value",
+              "value": "Draft",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "SQT Status",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:data.sqt_status}}' == 'Draft'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_j6TnNAxV",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_UBbCdEPT",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Draft Check Doc No",
+                "isValidator": true,
+                "nodeName": "Draft Check Doc No",
+                "name": "Draft Check Doc No",
+                "script": {
+                  "type": "javascript",
+                  "code": "let table = {{workflowparams:data}};\n\nif(table.sqt_no_type !== -9999 && (\n  !table.sqt_no || table.sqt_no === null || table.sqt_no === ''\n)) {\n  table.sqt_no = 'draft'\n}\n\nreturn { table };"
+                },
+                "response_json": [
+                  {
+                    "key": "idwlt401",
+                    "name": "table",
+                    "title": "Table",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_erbLy3dy",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Draft Required Fields",
+                "isValidator": true,
+                "nodeName": "Draft Required Fields",
+                "name": "Draft Required Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "const table = {{node:code_node_UBbCdEPT.data.table}};\nreturn {\n  required_fields: JSON.stringify([\n  { name: \"sqt_plant\", label: \"Plant\" },\n  { name: \"sqt_no\", label: \"Quotation Number\" },\n  {\n    name: \"table_sqt\",\n    label: \"Item Information\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    sqt_plant: table.sqt_plant,\n    sqt_no: table.sqt_no,\n    table_sqt: table.table_sqt\n  })\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "iomd4yaj",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "z59j2g2u",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_node_7qYX899P",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Draft Run Check Required Workflow",
+                "isValidator": true,
+                "nodeName": "Draft Run Check Required Workflow",
+                "name": "Draft Run Check Required Workflow",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_erbLy3dy.data.data}}",
+                      "valueLabel": "",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_erbLy3dy.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields",
+                      "is_negative_number": false
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_owStMLkh",
+              "type": "if",
+              "data": {
+                "title": "Validation Failed?",
+                "isValidator": true,
+                "nodeName": "Validation Failed?",
+                "name": "Validation Failed?",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_node_7qYX899P.data.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_AXOjVbAV",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_C7AvyWU5",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 400,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_node_7qYX899P.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_iL2Cflws",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_qoGBVMWO",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "code_node_WKdTecmg",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Check Doc No",
+                "isValidator": true,
+                "nodeName": "Check Doc No",
+                "name": "Check Doc No",
+                "script": {
+                  "type": "javascript",
+                  "code": "let table = {{workflowparams:data}};\n\nif (\n  table.sqt_no_type !== -9999 &&\n  (!table.sqt_no ||\n    table.sqt_no === null ||\n    table.sqt_no === \"\" ||\n    table.previous_status !== \"Issued\")\n) {\n  table.sqt_no = 'issued'\n}\n\nif(!table.need_cl || table.need_cl === '' || table.need_cl === null) {\n  if(table.customer_type === 'Existing Customer' && table.acc_integration_type !== 'No Accounting') {\n    table.need_cl = 'required'\n  } else {\n    table.need_cl = 'not required'\n  }\n}\n\nreturn { table };"
+                },
+                "response_json": [
+                  {
+                    "key": "idwlt401",
+                    "name": "table",
+                    "title": "Table",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_WKNIVod5",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Required Fields",
+                "isValidator": true,
+                "nodeName": "Required Fields",
+                "name": "Required Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "const table = {{node:code_node_WKdTecmg.data.table}};\nreturn {\n  required_fields: JSON.stringify([\n  { name: \"sqt_plant\", label: \"Plant\" },\n  { name: \"sqt_date\", label: \"Quotation Date\" },\n  { name: \"sqt_no\", label: \"Quotation Number\" },\n  {\n    name: \"table_sqt\",\n    label: \"Item Information\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    sqt_plant: table.sqt_plant,\n    sqt_date: table.sqt_date,\n    sqt_no: table.sqt_no,\n    table_sqt: table.table_sqt\n  })\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "iomd4yaj",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "z59j2g2u",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_node_ZuOid2Fl",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Check Required Workflow",
+                "isValidator": true,
+                "nodeName": "Check Required Workflow",
+                "name": "Check Required Workflow",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_WKNIVod5.data.data}}",
+                      "valueLabel": "",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_WKNIVod5.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields",
+                      "is_negative_number": false
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_gUMJ8S2O",
+              "type": "if",
+              "data": {
+                "title": "Validation Failed?",
+                "isValidator": true,
+                "nodeName": "Validation Failed?",
+                "name": "Validation Failed?",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_node_ZuOid2Fl.data.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_Ia3EnDuR",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_GeafP2Wd",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 400,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_node_ZuOid2Fl.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_KT8x2eu8",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "code_node_hqEv9Xfv",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Map Validate Quantity",
+                        "isValidator": true,
+                        "nodeName": "Map Validate Quantity",
+                        "name": "Map Validate Quantity",
+                        "script": {
+                          "type": "javascript",
+                          "code": "return {\n  lineItem: JSON.stringify({{workflowparams:data.table_sqt}}),\n  itemFields: 'material_id,material_name,sqt_desc',\n  quantityFields: 'quantity'\n}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "dit9mxq9",
+                            "name": "lineItem",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "5ofsebdq",
+                            "name": "itemFields",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "t5jewd5n",
+                            "name": "quantityFields",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "workflow_node_z88M1efz",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Validate Qty Workflow",
+                        "isValidator": true,
+                        "nodeName": "Run Validate Qty Workflow",
+                        "name": "Run Validate Qty Workflow",
+                        "workflow": {
+                          "source": "VALIDATE_QUANTITY:Workflow:1998298424254201857",
+                          "rules": {
+                            "collectionId": "1998298424254201857",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "lineItem",
+                              "propLabel": "lineItem",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_hqEv9Xfv.data.lineItem}}",
+                              "valueLabel": "",
+                              "is_negative_number": false
+                            },
+                            {
+                              "prop": "itemFields",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_hqEv9Xfv.data.itemFields}}",
+                              "valueLabel": "",
+                              "propLabel": "itemFields",
+                              "is_negative_number": false
+                            },
+                            {
+                              "prop": "quantityFields",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_hqEv9Xfv.data.quantityFields}}",
+                              "valueLabel": "",
+                              "propLabel": "quantityFields",
+                              "is_negative_number": false
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_RQqJf7pt",
+                      "type": "if",
+                      "data": {
+                        "title": "Qty Validation Passed?",
+                        "isValidator": true,
+                        "nodeName": "Qty Validation Passed?",
+                        "name": "Qty Validation Passed?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:workflow_node_z88M1efz.data.data.status}}' == 'Passed'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_NqRMBxpg",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "code_node_CO6q7Vm4",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Filter unnecessary line",
+                                "isValidator": true,
+                                "nodeName": "Filter unnecessary line",
+                                "name": "Filter unnecessary line",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "let table = {{node:code_node_WKdTecmg.data.table}};\n\nlet table_sqt = table.table_sqt.filter(item => (item.material_id || item.sqt_desc || item.material_name) && item.quantity > 0)\n\ntable.table_sqt = table_sqt;\nreturn {table};"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "kawoqncd",
+                                    "name": "table",
+                                    "title": "Table",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_UKYfdV0P",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Count line",
+                                "isValidator": true,
+                                "nodeName": "Count line",
+                                "name": "Count line",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "return {\n  length: {{node:code_node_CO6q7Vm4.data.table.table_sqt}}.length\n}"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "rrnn9ab8",
+                                    "name": "length",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "int",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "if_BiDpJmNZ",
+                              "type": "if",
+                              "data": {
+                                "title": "IF",
+                                "isValidator": true,
+                                "nodeName": "IF",
+                                "name": "IF",
+                                "condition_type": "Expression",
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 1736695973613,
+                                      "parentId": 1736695973612,
+                                      "isTop": true,
+                                      "prop": "",
+                                      "operator": "",
+                                      "valueType": "",
+                                      "value": "",
+                                      "type": "leaf",
+                                      "level": 1
+                                    }
+                                  ]
+                                },
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "{{node:code_node_UKYfdV0P.data.length}} == 0"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_x1WSSz3h",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "end_node_yKMrOBeF",
+                                      "type": "end-node",
+                                      "data": {
+                                        "title": "结束节点",
+                                        "outputs": {
+                                          "type": "object",
+                                          "properties": {
+                                            "result": { "type": "string" }
+                                          }
+                                        },
+                                        "isValidator": true,
+                                        "nodeName": "结束节点",
+                                        "name": "结束节点",
+                                        "back_data_type": "Default",
+                                        "code": 401,
+                                        "msg": {
+                                          "type": "javascript",
+                                          "code": "'Line Item cannot be empty'"
+                                        }
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_Kc0WZeVX",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_1a4I3eCx",
+                              "type": "if",
+                              "data": {
+                                "title": "Need CL?",
+                                "isValidator": true,
+                                "nodeName": "Need CL?",
+                                "name": "Need CL?",
+                                "condition_type": "Expression",
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 1765427406584,
+                                      "parentId": 1765427406583,
+                                      "isTop": true,
+                                      "prop": "",
+                                      "operator": "",
+                                      "valueType": "",
+                                      "value": "",
+                                      "type": "leaf",
+                                      "level": 1
+                                    }
+                                  ]
+                                },
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{node:code_node_WKdTecmg.data.table.need_cl}}' == 'required'"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_nSX3AhUh",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "workflow_node_ysBZI7jQ",
+                                      "type": "workflow-node",
+                                      "data": {
+                                        "workflow_id": "",
+                                        "workflow_name": "",
+                                        "input_params": {},
+                                        "title": "Run CL Workflow",
+                                        "isValidator": true,
+                                        "nodeName": "Run CL Workflow",
+                                        "name": "Run CL Workflow",
+                                        "workflow": {
+                                          "source": "CREDIT_LIMIT_CHECK:Workflow:1990247316342333442",
+                                          "rules": {
+                                            "collectionId": "1990247316342333442",
+                                            "list": [
+                                              {
+                                                "id": 1723795236686,
+                                                "parentId": 1723795236685,
+                                                "isTop": true,
+                                                "prop": "",
+                                                "operator": "",
+                                                "valueType": "",
+                                                "value": "",
+                                                "type": "leaf",
+                                                "level": 1
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "remote": true,
+                                        "remoteType": "innerdatasource",
+                                        "body_params": {
+                                          "list": [
+                                            {
+                                              "prop": "customer_id",
+                                              "propLabel": "Customer ID",
+                                              "operator": "",
+                                              "operatorLabel": "",
+                                              "valueType": "field",
+                                              "valueTypeLabel": "",
+                                              "value": "{{workflowparams:data.sqt_customer_id}}",
+                                              "valueLabel": "",
+                                              "is_negative_number": false
+                                            },
+                                            {
+                                              "prop": "total",
+                                              "operator": "",
+                                              "valueType": "field",
+                                              "value": "{{workflowparams:data.sqt_totalsum}}",
+                                              "valueLabel": "",
+                                              "propLabel": "Total Amount",
+                                              "is_negative_number": false
+                                            },
+                                            {
+                                              "prop": "document_type",
+                                              "operator": "",
+                                              "valueType": "value",
+                                              "value": "Quotations",
+                                              "valueLabel": "",
+                                              "propLabel": "Document Type",
+                                              "is_negative_number": false
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "if_MqDtWNC1",
+                                      "type": "if",
+                                      "data": {
+                                        "title": "Failed CL?",
+                                        "isValidator": true,
+                                        "nodeName": "Failed CL?",
+                                        "name": "Failed CL?",
+                                        "condition_type": "Expression",
+                                        "filter": {
+                                          "list": [
+                                            {
+                                              "id": 1736695973613,
+                                              "parentId": 1736695973612,
+                                              "isTop": true,
+                                              "prop": "",
+                                              "operator": "",
+                                              "valueType": "",
+                                              "value": "",
+                                              "type": "leaf",
+                                              "level": 1
+                                            }
+                                          ]
+                                        },
+                                        "expression": {
+                                          "type": "javascript",
+                                          "code": "'{{node:workflow_node_ysBZI7jQ.data.result}}' == 'failed'"
+                                        }
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "ifBlock_xod7YBnd",
+                                          "type": "ifBlock",
+                                          "data": { "title": "true" },
+                                          "blocks": [
+                                            {
+                                              "id": "code_node_mKcfRLOe",
+                                              "type": "code-node",
+                                              "data": {
+                                                "language": "javascript",
+                                                "code": "",
+                                                "timeout": 30000,
+                                                "title": "Define Block or Override",
+                                                "isValidator": true,
+                                                "nodeName": "Define Block or Override",
+                                                "name": "Define Block or Override",
+                                                "script": {
+                                                  "type": "javascript",
+                                                  "code": "const message = {{node:workflow_node_ysBZI7jQ.data.message}};\n\nconst isBlock = message.indexOf('Block - ') !== -1 ? 'block' : 'override';\n\nreturn {\n  isBlock\n}"
+                                                },
+                                                "response_json": [
+                                                  {
+                                                    "key": "1r5i3659",
+                                                    "name": "isBlock",
+                                                    "title": "Is Block",
+                                                    "description": "",
+                                                    "bsonType": "string",
+                                                    "isExpand": false
+                                                  }
+                                                ]
+                                              },
+                                              "blocks": []
+                                            },
+                                            {
+                                              "id": "if_VcY0C2EJ",
+                                              "type": "if",
+                                              "data": {
+                                                "title": "Block ?",
+                                                "isValidator": true,
+                                                "nodeName": "Block ?",
+                                                "name": "Block ?",
+                                                "condition_type": "Expression",
+                                                "expression": {
+                                                  "type": "javascript",
+                                                  "code": "'{{node:code_node_mKcfRLOe.data.isBlock}}' == 'block'"
+                                                }
+                                              },
+                                              "blocks": [
+                                                {
+                                                  "id": "ifBlock_864wu4gM",
+                                                  "type": "ifBlock",
+                                                  "data": { "title": "true" },
+                                                  "blocks": [
+                                                    {
+                                                      "id": "end_node_ityV6LEf",
+                                                      "type": "end-node",
+                                                      "data": {
+                                                        "title": "结束节点",
+                                                        "outputs": {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "result": {
+                                                              "type": "string"
+                                                            }
+                                                          }
+                                                        },
+                                                        "isValidator": true,
+                                                        "nodeName": "结束节点",
+                                                        "name": "结束节点",
+                                                        "back_data_type": "Default",
+                                                        "code": 402,
+                                                        "msg": {
+                                                          "type": "javascript",
+                                                          "code": "{{node:workflow_node_ysBZI7jQ.data.message}}"
+                                                        }
+                                                      },
+                                                      "blocks": []
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "id": "ifBlock_QxMmp7ZQ",
+                                                  "type": "ifBlock",
+                                                  "data": { "title": "false" },
+                                                  "blocks": [
+                                                    {
+                                                      "id": "end_node_CNTBQpE8",
+                                                      "type": "end-node",
+                                                      "data": {
+                                                        "title": "结束节点",
+                                                        "outputs": {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "result": {
+                                                              "type": "string"
+                                                            }
+                                                          }
+                                                        },
+                                                        "isValidator": true,
+                                                        "nodeName": "结束节点",
+                                                        "name": "结束节点",
+                                                        "back_data_type": "Default",
+                                                        "code": 403,
+                                                        "msg": {
+                                                          "type": "javascript",
+                                                          "code": "{{node:workflow_node_ysBZI7jQ.data.message}}"
+                                                        }
+                                                      },
+                                                      "blocks": []
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "ifBlock_dpFLsz2d",
+                                          "type": "ifBlock",
+                                          "data": { "title": "false" },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_5OFfpp6X",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_VlBu5hk3",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": [
+                            {
+                              "id": "end_node_XIJzly7E",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": { "type": "string" }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "Default",
+                                "code": 401,
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": "{{node:workflow_node_z88M1efz.data.data.message}}"
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "if_fjpv7G3V",
+      "type": "if",
+      "data": {
+        "title": "Check Customer Type",
+        "isValidator": true,
+        "nodeName": "Check Customer Type",
+        "name": "Check Customer Type",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "prop": "workflowparams.entry",
+              "operator": "",
+              "valueType": "value",
+              "value": "",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "Entry",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:data.customer_type}}' == 'Existing Customer'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_Grgid9vX",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "get_node_ka9vQdgM",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Customer:Table:1902779099617804290",
+                  "rules": {
+                    "collectionId": "1902779099617804290",
+                    "list": [
+                      {
+                        "id": 1765425671962,
+                        "parentId": 1765425671961,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "numberEqual",
+                        "valueType": "field",
+                        "value": "{{workflowparams:data.sqt_customer_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Primary Key ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Customer Data",
+                "isValidator": true,
+                "nodeName": "Get Customer Data",
+                "name": "Get Customer Data"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_JKhxUDY1",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "code_node_RJdYLy0i",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Get Customer Name",
+                "isValidator": true,
+                "nodeName": "Get Customer Name",
+                "name": "Get Customer Name",
+                "script": {
+                  "type": "javascript",
+                  "code": "return {\n  customer_name: {{workflowparams:data.sqt_new_customer}}\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "62zz1rki",
+                    "name": "customer_name",
+                    "title": "Customer Name",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_JVj8v3Y0",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Fillback Header Fields",
+        "isValidator": true,
+        "nodeName": "Fillback Header Fields",
+        "name": "Fillback Header Fields",
+        "script": {
+          "type": "javascript",
+          "code": "let updatedLineItem = [];\nlet customerName = \"\";\nlet table = {{workflowparams:data.sqt_status}} == 'Draft' ? {{node:code_node_UBbCdEPT.data.table}} : {{node:code_node_CO6q7Vm4.data.table}};\n\nif (table.customer_type === \"Existing Customer\") {\n  customerName = {{node:get_node_ka9vQdgM.data.data.customer_com_name}}\n} else {\n  customerName = {{node:code_node_RJdYLy0i.data.customer_name}}\n}\n\nfor(const [index, sqtLineItem] of table.table_sqt.entries()) {\n  // Create a new object with formatted values\n  const formattedItem = {\n    // Copy all existing properties\n    ...sqtLineItem,\n    \n    // Apply number formatting to numeric fields\n    quantity: parseFloat(sqtLineItem.quantity?.toFixed(3)) || 0,\n    unit_price: parseFloat(sqtLineItem.unit_price?.toFixed(4)) || 0,\n    sqt_gross: parseFloat(sqtLineItem.sqt_gross?.toFixed(4)) || 0,\n    sqt_discount: parseFloat(sqtLineItem.sqt_discount?.toFixed(4)) || 0,\n    sqt_discount_amount: parseFloat(sqtLineItem.sqt_discount_amount?.toFixed(4)) || 0,\n    sqt_taxes_fee_amount: parseFloat(sqtLineItem.sqt_taxes_fee_amount?.toFixed(4)) || 0,\n    total_price: parseFloat(sqtLineItem.total_price?.toFixed(4)) || 0,\n    \n    // Override with new field assignments\n    customer_id: table.sqt_customer_id || null,\n    plant_id: table.sqt_plant || null,\n    payment_term_id: table.sqt_payment_term || null,\n    sales_person_id: table.sales_person_id || null,\n    area_id: table.sqt_area_id || null,\n    billing_state_id: table.billing_address_state || null,\n    billing_country_id: table.billing_address_country || null,\n    shipping_state_id: table.shipping_address_state || null,\n    shipping_country_id: table.shipping_address_country || null,\n    customer_name: customerName,\n    line_index: index + 1,\n    organization_id: table.organization_id,\n    access_group: table.access_group || [],\n    agent_user_id: table.agent_user_id || null,\n    expected_shipment_date: sqtLineItem.expected_shipment_date ? sqtLineItem.expected_shipment_date : table.expected_shipment_date\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\ntable.need_cl = '';\ntable.table_sqt = updatedLineItem;\nreturn {table};"
+        },
+        "response_json": [
+          {
+            "key": "nqkwxkgc",
+            "name": "table",
+            "title": "Table",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_bdu5hpIw",
+      "type": "if",
+      "data": {
+        "title": "IF edit?",
+        "isValidator": true,
+        "nodeName": "IF",
+        "name": "IF",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_JVj8v3Y0.data.table.page_status}}' == 'Edit'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_AUKyoW-q",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_ag4jFZch",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Quotation:Table:1902775274655825922",
+                  "rules": {
+                    "collectionId": "1902775274655825922",
+                    "list": [
+                      {
+                        "id": 1785911140738,
+                        "parentId": 1785911140737,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_JVj8v3Y0.data.table.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Data",
+                "isValidator": true,
+                "nodeName": "Update Data",
+                "name": "Update Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Quotation No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Quotation Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_validity_period",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_validity_period}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Validity Period",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_ref_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_ref_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_sub_total",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_sub_total}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Gross",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_total_discount",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_total_discount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_total_tax",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_total_tax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Fee",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_totalsum",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_totalsum}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Postal",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_billing_address",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_billing_address}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "State",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 4",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "City",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_country}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Country / Region",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 3",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 4",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 2",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Postal",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "City",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 2",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 3",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_country}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Country / Region",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_shipping_address",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_shipping_address}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "State",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact no.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_shipping_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_shipping_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "delivery_method_text",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.delivery_method_text}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Method Text",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "courier_company",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.courier_company}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Courier Company",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_driver_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_driver_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "est_arrival_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.est_arrival_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est. Arrival Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_shipping_company",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_shipping_company}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Company",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_shipping_method",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_shipping_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_delivery_cost",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_delivery_cost}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Cost",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_est_delivery_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_est_delivery_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est. Delivery Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "cp_customer_pickup",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.cp_customer_pickup}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "pickup_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.pickup_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Pickup Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_freight_charges",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_freight_charges}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_tracking_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_tracking_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_transport_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_transport_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Transport Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "organization_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.organization_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Organization",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "exchange_rate",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.exchange_rate}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "myr_total_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.myr_total_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SQT Status",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sales_person_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sales_person_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Sales Representative",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_delivery_method_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_delivery_method_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Method",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_payment_term",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_payment_term}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Payment Term",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_plant",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_plant}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Plant",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "exchange_rate_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.exchange_rate_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate MYR",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_amount_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_amount_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount (MYR)",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_gross_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_gross_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Gross",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_tax_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_tax_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Fee",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_discount_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_discount_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_amount_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_amount_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "cp_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.cp_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "exchange_rate_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.exchange_rate_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "currency_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.currency_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Currency",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "table_sqt",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.table_sqt}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SQT table",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_customer_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_customer_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Customer Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "validity_of_collection",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.validity_of_collection}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Validity of Collection",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_ref_doc",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_ref_doc}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference Documents",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "customer_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.customer_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Customer Type",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_new_customer",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_new_customer}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Customer Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "cs_est_arrival_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.cs_est_arrival_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Arrival Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "cs_tracking_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.cs_tracking_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "freight_charges",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.freight_charges}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_attention}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attention",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_attention}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attention",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "overdue_limit",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.overdue_limit}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Overdue Limit",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "is_accurate",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.is_accurate}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Is Accurate",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "customer_credit_limit",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.customer_credit_limit}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Credit Limit",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "outstanding_balance",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.outstanding_balance}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Balance",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "overdue_inv_total_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.overdue_inv_total_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Overdue Invoice Total Amount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "last_sync_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.last_sync_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Last Sync Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "acc_integration_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.acc_integration_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Accounting Integration Type",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "expected_shipment_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.expected_shipment_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Expected Shipment Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 1",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks2",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks3",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "price_tag_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.price_tag_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Price Tag ID",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Rule",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "previous_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.previous_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Previous Status",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "need_cl",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.need_cl}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Need CL?",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_tnc",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_tnc}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Term and Conditions",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks5",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks5}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 5",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks4",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 4",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_deliveryterm",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_deliveryterm}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Term",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_payment_details",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_payment_details}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Payment Details",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "print_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.print_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Print Status",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "print_count",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.print_count}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Print Count",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_area_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_area_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Area",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_fax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fax",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_fax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fax",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_driver_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_driver_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "agent_user_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.agent_user_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Agent User",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "created_source",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.created_source}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Created Source",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "wa_group",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.wa_group}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Whatsapp Group",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "wa_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.wa_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Whatsapp No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Code",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Code",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "qt_uuid",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.qt_uuid}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "UUID",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "posted_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.posted_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Posted Status",
+                      "is_negative_number": false
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_node_MI8EbhME",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Quotation:Table:1902775274655825922",
+                  "rules": {
+                    "collectionId": "1902775274655825922",
+                    "list": [
+                      {
+                        "id": 1785911158817,
+                        "parentId": 1785911158816,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_JVj8v3Y0.data.table.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Primary Key ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get One",
+                "isValidator": true,
+                "nodeName": "Get One",
+                "name": "Get One"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_qtJn-Aum",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "add_node_bZFAQhsi",
+              "type": "add-node",
+              "data": {
+                "table_id": {
+                  "source": "Quotation:Table:1902775274655825922",
+                  "rules": {
+                    "collectionId": "1902775274655825922",
+                    "list": [
+                      {
+                        "id": 1785911186358,
+                        "parentId": 1785911186357,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "Add Data",
+                "isValidator": true,
+                "nodeName": "Add Data",
+                "name": "Add Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "sqt_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Quotation No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Quotation Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_validity_period",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_validity_period}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Validity Period",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_ref_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_ref_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_sub_total",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_sub_total}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Gross",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_total_discount",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_total_discount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_total_tax",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_total_tax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Fee",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_totalsum",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_totalsum}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Postal",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_billing_address",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_billing_address}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "State",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 4",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "City",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_country}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Country / Region",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 3",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_line_4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 4",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 2",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_postal_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Postal",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_city}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "City",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_line_2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 2",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_line_3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Line 3",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_country}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Country / Region",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_shipping_address",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_shipping_address}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_line_1}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_state}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "State",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact no.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_shipping_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_shipping_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "delivery_method_text",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.delivery_method_text}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Method Text",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "courier_company",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.courier_company}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Courier Company",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_driver_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_driver_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "est_arrival_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.est_arrival_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est. Arrival Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_shipping_company",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_shipping_company}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Company",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_shipping_method",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_shipping_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_delivery_cost",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_delivery_cost}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Cost",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_est_delivery_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_est_delivery_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est. Delivery Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "cp_customer_pickup",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.cp_customer_pickup}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "pickup_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.pickup_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Pickup Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_freight_charges",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_freight_charges}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ss_tracking_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ss_tracking_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "ct_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.ct_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_transport_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_transport_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Transport Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "organization_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.organization_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Organization",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "exchange_rate",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.exchange_rate}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "myr_total_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.myr_total_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SQT Status",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sales_person_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sales_person_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Sales Representative",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_delivery_method_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_delivery_method_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Method",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_payment_term",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_payment_term}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Payment Term",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_plant",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_plant}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Plant",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "exchange_rate_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.exchange_rate_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate MYR",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_amount_myr",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_amount_myr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount (MYR)",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_gross_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_gross_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Gross",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_tax_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_tax_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Tax Fee",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_discount_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_discount_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Discount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "total_amount_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.total_amount_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "cp_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.cp_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "exchange_rate_currency",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.exchange_rate_currency}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Exchange Rate",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "currency_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.currency_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Currency",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "table_sqt",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.table_sqt}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SQT table",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_customer_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_customer_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Customer Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "validity_of_collection",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.validity_of_collection}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Validity of Collection",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_ref_doc",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_ref_doc}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference Documents",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "customer_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.customer_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Customer Type",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_new_customer",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_new_customer}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Customer Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "cs_est_arrival_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.cs_est_arrival_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Arrival Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "cs_tracking_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.cs_tracking_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "freight_charges",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.freight_charges}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_attention}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attention",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_phone}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_attention}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Attention",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "overdue_limit",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.overdue_limit}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Overdue Limit",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "is_accurate",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.is_accurate}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Is Accurate",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "customer_credit_limit",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.customer_credit_limit}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Credit Limit",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "outstanding_balance",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.outstanding_balance}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Balance",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "overdue_inv_total_amount",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.overdue_inv_total_amount}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Overdue Invoice Total Amount",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "last_sync_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.last_sync_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Last Sync Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "acc_integration_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.acc_integration_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Accounting Integration Type",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "expected_shipment_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.expected_shipment_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Expected Shipment Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 1",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks2",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks3",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "price_tag_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.price_tag_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Price Tag ID",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Rule",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "previous_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.previous_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Previous Status",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "need_cl",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.need_cl}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Need CL?",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_tnc",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_tnc}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Term and Conditions",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks5",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks5}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 5",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_remarks4",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_remarks4}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 4",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_deliveryterm",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_deliveryterm}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivery Term",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_payment_details",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_payment_details}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Payment Details",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "print_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.print_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Print Status",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "print_count",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.print_count}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Print Count",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_area_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_area_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Area",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_fax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fax",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_fax}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fax",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "tpt_driver_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.tpt_driver_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "agent_user_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.agent_user_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Agent User",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "created_source",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.created_source}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Created Source",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "wa_group",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.wa_group}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Whatsapp Group",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "wa_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.wa_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Whatsapp No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "shipping_address_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.shipping_address_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Code",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "billing_address_code",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.billing_address_code}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Address Code",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "qt_uuid",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.qt_uuid}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "UUID",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "posted_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.posted_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Posted Status",
+                      "is_negative_number": false
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_wGpnIdiY",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Item IDs",
+        "isValidator": true,
+        "nodeName": "Map Item IDs",
+        "name": "Map Item IDs",
+        "script": {
+          "type": "javascript",
+          "code": "const lineItem = {{node:code_node_JVj8v3Y0.data.table.table_sqt}};\n\nconst uniqueItemIDs = [\n  ...new Set(lineItem.filter((item) => item.material_id).map((item) => item.material_id))\n];\n\nreturn {\n  itemIDs: uniqueItemIDs\n}"
+        },
+        "response_json": [
+          {
+            "key": "7wi3d76i",
+            "name": "itemIDs",
+            "title": "Item IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "611z4es4",
+                "name": "items",
+                "title": "ID",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "workflow_node_Oj0Kb3ao",
+      "type": "workflow-node",
+      "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Update Transaction Date",
+        "isValidator": true,
+        "nodeName": "Update Transaction Date",
+        "name": "Update Transaction Date",
+        "workflow": {
+          "source": "UPDATE_ITEM_TRANSACTION_DATE:Workflow:1989229727911870466",
+          "rules": {
+            "collectionId": "1989229727911870466",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+          "list": [
+            {
+              "prop": "itemIDs",
+              "propLabel": "Item IDs",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:code_node_wGpnIdiY.data.itemIDs}}",
+              "is_negative_number": false
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_S7Ynb4nr",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map SQT ID",
+        "isValidator": true,
+        "nodeName": "Map SQT ID",
+        "name": "Map SQT ID",
+        "script": {
+          "type": "javascript",
+          "code": "const pageStatus = {{node:code_node_JVj8v3Y0.data.table.page_status}};\n\nconst sqtData = pageStatus === 'Edit' ? {{node:get_node_MI8EbhME.data.data}} : {{node:add_node_bZFAQhsi.data}}[0];\n\nreturn { sqtData }"
+        },
+        "response_json": [
+          {
+            "key": "wwc4srrj",
+            "name": "sqtData",
+            "title": "SQT Data",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "workflow_node_AioBCr5V",
+      "type": "workflow-node",
+      "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Run Workflow",
+        "isValidator": true,
+        "nodeName": "Run Workflow",
+        "name": "Run Workflow",
+        "workflow": {
+          "rules": {
+            "collectionId": "2084895434583633921",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          },
+          "source": "SQT_POST:Workflow:2084895434583633921"
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+          "list": [
+            {
+              "prop": "sqt_id",
+              "propLabel": "sqt_id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "is_negative_number": false,
+              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.id}}"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "response_value": {
+          "list": [
+            {
+              "prop": "sqt_id",
+              "propLabel": "SQT ID",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "is_negative_number": false,
+              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.id}}"
+            },
+            {
+              "prop": "sqt_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.sqt_no}}",
+              "is_negative_number": false,
+              "valueLabel": "",
+              "propLabel": "SQT No"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
