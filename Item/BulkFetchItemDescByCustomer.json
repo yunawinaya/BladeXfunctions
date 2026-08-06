@@ -11,10 +11,21 @@
     {
       "key": "prmitm01",
       "name": "item_id",
-      "title": "Item ID",
+      "title": "Item IDs",
       "description": "",
-      "bsonType": "string",
-      "isExpand": false
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "prmitm02",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "isArrayItem": true
+        }
+      ]
     }
   ],
   "response_json": [
@@ -28,13 +39,41 @@
       "children": [
         {
           "key": "resitm01",
-          "name": "",
+          "name": "items",
           "title": "",
           "description": "",
-          "bsonType": "string",
-          "isExpand": false,
+          "bsonType": "object",
+          "isExpand": true,
           "isArrayItem": true,
-          "children": []
+          "children": [
+            {
+              "key": "resfld01",
+              "name": "item_id",
+              "title": "Item ID",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "resfld02",
+              "name": "descriptions",
+              "title": "Descriptions",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+                {
+                  "key": "resfld03",
+                  "name": "items",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false,
+                  "isArrayItem": true
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -48,8 +87,8 @@
       "blocks": []
     },
     {
-      "id": "get_node_9kQx2Vt7",
-      "type": "get-node",
+      "id": "search_node_9kQx2Vt7",
+      "type": "search-node",
       "data": {
         "table_id": {
           "source": "Item:Table:1901546842240438273",
@@ -61,23 +100,24 @@
                 "parentId": 1785312440100,
                 "isTop": true,
                 "prop": "id",
-                "operator": "in",
+                "operator": "equalAny",
                 "valueType": "field",
                 "value": "{{workflowparams:item_id}}",
                 "type": "leaf",
                 "level": 1,
                 "propLabel": "主键ID",
                 "valueLabel": "",
-                "operatorLabel": "In"
+                "operatorLabel": "Equal Any"
               }
             ]
           }
         },
         "condition": {},
-        "title": "Get Item",
+        "title": "Get Items",
         "isValidator": true,
-        "nodeName": "Get Item",
-        "name": "Get Item"
+        "nodeName": "Get Items",
+        "name": "Get Items",
+        "limit": 1000
       },
       "blocks": []
     },
@@ -94,26 +134,54 @@
         "name": "Build Descriptions",
         "script": {
           "type": "javascript",
-          "code": "const res = {{node:get_node_9kQx2Vt7.data}};\nconst customerId = {{workflowparams:customer_id}};\n\n// get-node data is a single object when count===1, an array otherwise.\nconst toArray = (r) => {\n  if (!r || !r.count || r.count <= 0) return [];\n  const dd = r.data;\n  if (Array.isArray(dd)) return dd;\n  if (dd && typeof dd === \"object\") return [dd];\n  return [];\n};\n\nconst items = toArray(res);\nconst item = items.length > 0 ? items[0] : null;\nif (!item) return { descriptions: [] };\n\n// table_cust_item_bind is a subform array stored on the Item record itself --\n// it has no collection of its own, so this single fetch is all the data access\n// needed. Bind rows store the Customer's primary id; compare as trimmed strings.\nconst wanted = customerId == null ? \"\" : String(customerId).trim();\nconst binds = Array.isArray(item.table_cust_item_bind) ? item.table_cust_item_bind : [];\n\nconst descriptions = [];\nfor (const row of binds) {\n  if (!row) continue;\n  const rowCust = row.customer_id == null ? \"\" : String(row.customer_id).trim();\n  if (!wanted || rowCust !== wanted) continue;\n  const d = row.item_desc == null ? \"\" : String(row.item_desc).trim();\n  // One customer may have several rows; skip blanks and duplicates.\n  if (d && descriptions.indexOf(d) === -1) descriptions.push(d);\n}\n\n// No customer-specific description -> fall back to the item's own description.\nif (descriptions.length === 0) {\n  const fallback = item.material_desc == null ? \"\" : String(item.material_desc).trim();\n  if (fallback) descriptions.push(fallback);\n}\n\nreturn { descriptions };"
+          "code": "const rows = {{node:search_node_9kQx2Vt7.data.data}} || [];\nconst rawItemIds = {{workflowparams:item_id}};\nconst customerId = {{workflowparams:customer_id}};\n\n// search-node rows sit one level deeper than a get-node's, at .data.data\nconst items = Array.isArray(rows) ? rows : [];\n\nconst itemById = {};\nfor (const r of items) {\n  if (r && r.id != null) itemById[String(r.id)] = r;\n}\n\n// Accept a scalar id as well as the array form, so a caller passing a plain\n// string still works.\nlet requested = [];\nif (Array.isArray(rawItemIds)) requested = rawItemIds;\nelse if (rawItemIds != null && rawItemIds !== \"\") requested = [rawItemIds];\n\nconst wanted = customerId == null ? \"\" : String(customerId).trim();\n\n// table_cust_item_bind is a subform array stored on the Item record itself --\n// it has no collection of its own, so the single Item search above is all the\n// data access needed. Bind rows store the Customer's primary id; compare as\n// trimmed strings.\nconst buildDescriptions = (item) => {\n  const out = [];\n  if (!item) return out;\n  const binds = Array.isArray(item.table_cust_item_bind) ? item.table_cust_item_bind : [];\n  for (const row of binds) {\n    if (!row) continue;\n    const rowCust = row.customer_id == null ? \"\" : String(row.customer_id).trim();\n    if (!wanted || rowCust !== wanted) continue;\n    const d = row.item_desc == null ? \"\" : String(row.item_desc).trim();\n    // One customer may have several rows; skip blanks and duplicates.\n    if (d && out.indexOf(d) === -1) out.push(d);\n  }\n  // No customer-specific description -> fall back to the item's own description.\n  if (out.length === 0) {\n    const fallback = item.material_desc == null ? \"\" : String(item.material_desc).trim();\n    if (fallback) out.push(fallback);\n  }\n  return out;\n};\n\n// One row per REQUESTED id, in request order -- an id matching no Item still\n// gets an entry with an empty list, so callers can map by index or by id.\n// descCache keeps a repeated id from being rebuilt.\nconst descCache = {};\nconst result = [];\nfor (const raw of requested) {\n  const id = raw == null ? \"\" : String(raw).trim();\n  if (!id) {\n    result.push({ item_id: \"\", descriptions: [] });\n    continue;\n  }\n  if (!descCache[id]) descCache[id] = buildDescriptions(itemById[id]);\n  result.push({ item_id: id, descriptions: descCache[id] });\n}\n\nreturn { result };"
         },
         "response_json": [
           {
-            "key": "dscarr01",
-            "name": "descriptions",
-            "title": "Descriptions",
+            "key": "rslarr01",
+            "name": "result",
+            "title": "Result",
             "description": "",
             "bsonType": "array",
             "isExpand": true,
             "children": [
               {
-                "key": "dscitm01",
-                "name": "",
+                "key": "rslitm01",
+                "name": "items",
                 "title": "",
                 "description": "",
-                "bsonType": "string",
-                "isExpand": false,
+                "bsonType": "object",
+                "isExpand": true,
                 "isArrayItem": true,
-                "children": []
+                "children": [
+                  {
+                    "key": "rslfld01",
+                    "name": "item_id",
+                    "title": "Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "rslfld02",
+                    "name": "descriptions",
+                    "title": "Descriptions",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "rslfld03",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "isArrayItem": true
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -140,7 +208,7 @@
               "operatorLabel": "",
               "valueType": "field",
               "valueTypeLabel": "",
-              "value": "{{node:code_node_Bd7mKp3R.data.descriptions}}",
+              "value": "{{node:code_node_Bd7mKp3R.data.result}}",
               "valueLabel": ""
             }
           ]
