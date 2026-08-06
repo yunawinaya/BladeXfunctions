@@ -5863,7 +5863,7 @@
                           "rules": []
                         },
                         {
-                          "name": "IC No.",
+                          "name": "IC No",
                           "type": "input",
                           "mainIcon": "单行文本",
                           "typeIcon": "多行文本",
@@ -6183,7 +6183,7 @@
                           "rules": []
                         },
                         {
-                          "name": "Est. Delivery Date",
+                          "name": "Est Delivery Date",
                           "type": "date",
                           "mainIcon": "日期",
                           "typeIcon": "日期",
