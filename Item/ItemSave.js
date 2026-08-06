@@ -574,7 +574,12 @@ const AI_AGENT_UPSERT_WORKFLOW_ID = "2080219250438160386";
 
 // Pushes the material to the AI agent's external directory. Never let a failure
 // here fail the save — the record is already committed at this point.
-const triggerAIAgentUpsert = async (materialId, materialCode, materialName) => {
+const triggerAIAgentUpsert = async (
+  materialId,
+  materialCode,
+  materialName,
+  isActive,
+) => {
   if (!materialId) return;
   try {
     await this.runWorkflow(
@@ -583,6 +588,7 @@ const triggerAIAgentUpsert = async (materialId, materialCode, materialName) => {
         id: materialId,
         material_code: materialCode || "",
         material_name: materialName || "",
+        is_active: isActive || 1,
       },
       () => {},
       (error) => console.error("AI agent material upsert failed", error),
@@ -650,11 +656,12 @@ const triggerAIAgentUpsert = async (materialId, materialCode, materialName) => {
             entry.batch_config,
             entry.material_code,
           );
-          await triggerAIAgentUpsert(
-            resItem.data[0].id,
-            entry.material_code,
-            entry.material_name,
-          );
+          // await triggerAIAgentUpsert(
+          //   resItem.data[0].id,
+          //   entry.material_code,
+          //   entry.material_name,
+          //   entry.is_active,
+          // );
           this.$message.success("Add successfully.");
           await closeDialog();
         } catch (error) {
@@ -675,11 +682,12 @@ const triggerAIAgentUpsert = async (materialId, materialCode, materialName) => {
             .update(entry);
           await createBOM(entry);
           await createBatch(entry.id, entry.batch_config, entry.material_code);
-          await triggerAIAgentUpsert(
-            entry.id,
-            entry.material_code,
-            entry.material_name,
-          );
+          // await triggerAIAgentUpsert(
+          //   entry.id,
+          //   entry.material_code,
+          //   entry.material_name,
+          //   entry.is_active,
+          // );
           this.$message.success("Update successfully.");
           // Close dialog after successful operation
           closeDialog();

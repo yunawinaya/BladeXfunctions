@@ -125,11 +125,11 @@ const addEntry = async (organizationId, entry) => {
       customerCode = resCustomer?.data?.[0]?.customer_id || "";
     }
 
-    await triggerAIAgentUpsert(
-      customerId,
-      customerCode,
-      entry.customer_com_name,
-    );
+    // await triggerAIAgentUpsert(
+    //   customerId,
+    //   customerCode,
+    //   entry.customer_com_name,
+    // );
   } catch (error) {
     this.$message.error(error);
   }
@@ -140,11 +140,11 @@ const updateEntry = async (entry, customerId) => {
     await db.collection("Customer").doc(customerId).update(entry);
     this.$message.success("Update successfully");
 
-    await triggerAIAgentUpsert(
-      customerId,
-      entry.customer_id,
-      entry.customer_com_name,
-    );
+    // await triggerAIAgentUpsert(
+    //   customerId,
+    //   entry.customer_id,
+    //   entry.customer_com_name,
+    // );
   } catch (error) {
     this.$message.error(error);
   }
