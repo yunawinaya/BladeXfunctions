@@ -1682,6 +1682,123 @@
                       "is_negative_number": false
                     },
                     {
+                      "prop": "di_shipping_method",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_shipping_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_driver_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_driver_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_shipping_company",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_shipping_company}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Company",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_transport_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_transport_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Transport Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_est_delivery_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_est_delivery_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Delivery Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_est_arrival_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_est_arrival_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Arrival Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_pickup_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_pickup_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Pickup Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_validity_of_collection",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_validity_of_collection}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Validity of Collection",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_tracking_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_tracking_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_freight_charges",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_freight_charges}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges",
+                      "is_negative_number": false
+                    },
+                    {
                       "prop": "organization_id",
                       "valueType": "field",
                       "value": "{{node:code_node_JVj8v3Y0.data.table.organization_id}}",
@@ -2791,6 +2908,123 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Driver Contact No.",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_shipping_method",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_shipping_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_driver_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_driver_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_shipping_company",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_shipping_company}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Company",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_transport_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_transport_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Transport Name",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_est_delivery_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_est_delivery_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Delivery Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_est_arrival_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_est_arrival_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Arrival Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_pickup_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_pickup_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Pickup Date",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_validity_of_collection",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_validity_of_collection}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Validity of Collection",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_tracking_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_tracking_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "di_freight_charges",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.di_freight_charges}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges",
                       "is_negative_number": false
                     },
                     {
