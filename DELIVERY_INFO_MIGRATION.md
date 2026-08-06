@@ -34,7 +34,7 @@ unnecessary if the names matched.
 | `di_driver_name` | Driver Name | `su-fm-table-select` | **id** → Driver `1983820088528023553` |
 | `di_ic_no` | IC No. | `fm-input` | text |
 | `di_driver_contact_no` | Driver Contact No | `fm-input` | text |
-| `di_vehicle_number` | Vehicle Number | `fm-select` | `vehicle_number` string → Vehicle `1983800272178065410` |
+| `di_vehicle_number` | Vehicle Number | `fm-select` | **id** → Vehicle `1983800272178065410` |
 | `di_pickup_date` | Pickup Date | date | date |
 | `di_validity_of_collection` | Validity of Collection | date | date |
 | `di_shipping_company` | Shipping Company | `fm-select` | `courier_name` string → Courier Company `1901984960940724226` |
@@ -85,7 +85,7 @@ nine fields with more than one source.
 | 1 | `di_driver_name` | SP:`cp_customer_pickup`<br>CT:`ct_driver_name` **[ID]**<br>TPT:`tpt_driver_name` | SP:`cp_driver_name`<br>CT:`ct_driver_name` **[ID]**<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`ct_driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name2` |
 | 2 | `di_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` |
 | 3 | `di_driver_contact_no` | SP:`driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`cp_driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact`<br>CT:`driver_contact_no2`<br>TPT:`tpt_driver_contact_no` |
-| 4 | `di_vehicle_number` | SP:`vehicle_number`<br>CT:`ct_vehicle_number`<br>TPT:`tpt_vehicle_number` | SP:`cp_vehicle_number`<br>CT:`ct_vehicle_number` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`sp_vehicle_no`<br>CT:`vehicle_no` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`vehicle_no`<br>CT:`vehicle_no`<br>TPT:`tpt_vehicle_number` | SP:`sp_vehicle_no`<br>CT:`vehicle_no` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`vehicle_no`<br>CT:`vehicle_no2`<br>TPT:`tpt_vehicle_number` |
+| 4 | `di_vehicle_number` | SP:`vehicle_number`<br>CT:`ct_vehicle_number` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`cp_vehicle_number`<br>CT:`ct_vehicle_number` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`sp_vehicle_no`<br>CT:`vehicle_no` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`vehicle_no`<br>CT:`vehicle_no`<br>TPT:`tpt_vehicle_number` | SP:`sp_vehicle_no`<br>CT:`vehicle_no` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`vehicle_no`<br>CT:`vehicle_no2`<br>TPT:`tpt_vehicle_number` |
 | 5 | `di_pickup_date` | SP:`pickup_date` | SP:`cp_pickup_date` | SP:`pickup_date` | SP:`pickup_date` | SP:`pickup_date` | SP:`pickup_date` |
 | 6 | `di_validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | — |
 | 7 | `di_shipping_company` | CS:`courier_company`<br>SS:`ss_shipping_company` | CS:`cs_courier_company`<br>SS:`ss_shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company` |
@@ -117,13 +117,19 @@ Destination is a `su-fm-table-select` with `props.value: "id"` against Driver
 This design also means a customer's own collector must exist in the Driver
 master before it can be recorded.
 
-### Row 4 — `di_vehicle_number` wants the **plate string**
+### Row 4 — `di_vehicle_number` wants a Vehicle **id**
 
-Destination is `fm-select` with `props.value: "vehicle_number"`.
+Destination is `fm-select` with `props.value: "id"` against Vehicle
+`1983800272178065410`. This mirrors row 1 exactly — both destinations are
+id-backed pickers whose only already-correct sources are Company Truck.
 
-- **Need an id→plate lookup:** SO `ct_vehicle_number`, GD `vehicle_no`,
-  PICK `vehicle_no` (Company Truck only) store the Vehicle id.
-- **Straight copy:** the other 15 sources already store the plate string.
+- **Already ids:** SQT `ct_vehicle_number`, SO `ct_vehicle_number`,
+  GD `vehicle_no`, PICK `vehicle_no` — Company Truck only.
+- **Need a plate→id lookup:** the other 14 sources store a free-typed plate
+  string — every Self Pickup and 3rd Party column, plus PP `vehicle_no` and
+  PRT `vehicle_no2` (both Company Truck, both plain inputs).
+- **Unresolvable rows:** a typed plate with no matching Vehicle record has no
+  landing spot, same as row 1's unmatched driver names.
 
 ---
 
@@ -173,7 +179,8 @@ columns are **not** carried and their data is lost unless separately handled:
 
 - [ ] Seed any missing Driver records, or decide the null/fallback policy for
       unmatched driver names (row 1).
-- [ ] Build the id→plate lookup for SO/GD/PICK Company Truck (row 4).
+- [ ] Build the plate→id lookup for the 14 free-text vehicle sources, and
+      decide the null/fallback policy for plates with no Vehicle record (row 4).
 - [ ] Confirm `delivery_method` is populated on every historical record — it is
       the `CASE` key for all nine multi-source rows. Records with a null method
       cannot be migrated.
