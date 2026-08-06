@@ -20,102 +20,26 @@ const fixValidityPeriod = () => {
   }
 };
 
-const generatePrefix = (runNumber, now, prefixData) => {
-  let generated = prefixData.current_prefix_config;
-  generated = generated.replace("prefix", prefixData.prefix_value);
-  generated = generated.replace("suffix", prefixData.suffix_value);
-  generated = generated.replace(
-    "month",
-    String(now.getMonth() + 1).padStart(2, "0")
-  );
-  generated = generated.replace("day", String(now.getDate()).padStart(2, "0"));
-  generated = generated.replace("year", now.getFullYear());
-  generated = generated.replace(
-    "running_number",
-    String(runNumber).padStart(prefixData.padding_zeroes, "0")
-  );
-  return generated;
-};
-
-const checkUniqueness = async (generatedPrefix, organizationId) => {
-  const existingDoc = await db
-    .collection("Quotation")
-    .where({ sqt_no: generatedPrefix, organization_id: organizationId })
-    .get();
-  return existingDoc.data[0] ? false : true;
-};
-
-const findUniquePrefix = async (prefixData, organizationId) => {
-  const now = new Date();
-  let prefixToShow;
-  let runningNumber = prefixData.running_number;
-  let isUnique = false;
-  let maxAttempts = 10;
-  let attempts = 0;
-
-  while (!isUnique && attempts < maxAttempts) {
-    attempts++;
-    prefixToShow = generatePrefix(runningNumber, now, prefixData);
-    isUnique = await checkUniqueness(prefixToShow, organizationId);
-    if (!isUnique) {
-      runningNumber++;
-    }
-  }
-
-  if (!isUnique) {
-    throw new Error(
-      "Could not generate a unique Quotation number after maximum attempts"
-    );
-  }
-  return { prefixToShow, runningNumber };
-};
-
-const setPrefix = async (organizationId) => {
-  const prefixData = await getPrefixData(organizationId);
-  let newPrefix = "";
-
-  if (prefixData.is_active === 1) {
-    const { prefixToShow } = await findUniquePrefix(prefixData, organizationId);
-    newPrefix = prefixToShow;
-  }
-  this.setData({ sqt_no: newPrefix });
-};
-
-const getPrefixData = async (organizationId) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Quotations",
-      is_deleted: 0,
-      organization_id: organizationId,
-    })
-    .get();
-  const prefixData = prefixEntry.data[0];
-
-  if (prefixData.is_active === 0) {
-    this.disabled(["sqt_no"], false);
-  }
-
-  return prefixData;
-};
-
 const showStatusHTML = async (status) => {
-  switch (status) {
-    case "Draft":
-      this.display(["draft_status"]);
-      break;
-    case "Issued":
-      this.display(["issued_status"]);
-      break;
-    case "Completed":
-      this.display(["completed_status"]);
-      break;
-    case "Cancelled":
-      this.display(["cancelled_status"]);
-      break;
-    default:
-      break;
-  }
+  setTimeout(() => {
+    console.log("status", status);
+    switch (status) {
+      case "Draft":
+        this.display(["draft_status"]);
+        break;
+      case "Issued":
+        this.display(["issued_status"]);
+        break;
+      case "Completed":
+        this.display(["completed_status"]);
+        break;
+      case "Cancelled":
+        this.display(["cancelled_status"]);
+        break;
+      default:
+        break;
+    }
+  }, 300);
 };
 
 const displayDeliveryMethod = async () => {
@@ -183,7 +107,7 @@ const enabledUOMField = async () => {
   const tableSQT = this.getValue("table_sqt");
 
   tableSQT.forEach((sqt, rowIndex) => {
-    if (sqt.material_id || sqt.sqt_desc !== "") {
+    if (sqt.material_id) {
       this.triggerEvent("onChange_Item", { sqtItem: sqt, index: rowIndex });
       this.disabled([`table_sqt.${rowIndex}.sqt_order_uom_id`], false);
     }
@@ -260,7 +184,7 @@ const disabledField = async (status) => {
         "shipping_postal_code",
         "shipping_address_country",
       ],
-      true
+      true,
     );
 
     this.hide([
@@ -269,8 +193,11 @@ const disabledField = async (status) => {
       "button_save_as_draft",
       "button_issued",
     ]);
-  } else if (status === "Issued") {
-    this.hide("button_save_as_draft");
+  } else {
+    this.display(["link_billing_address", "link_shipping_address"]);
+    if (status === "Issued") {
+      this.hide("button_save_as_draft");
+    }
   }
 };
 
@@ -371,7 +298,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = serialBalanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0
+              0,
             );
           }
         } else if (
@@ -395,7 +322,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = batchBalanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0
+              0,
             );
           }
         } else if (
@@ -419,7 +346,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = balanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0
+              0,
             );
           }
         } else {
@@ -432,7 +359,7 @@ const fetchUnrestrictedQty = async () => {
 
         // 将更新数据添加到对象中，而不是立即调用setData
         updateData[`table_sqt.${index}.unrestricted_qty`] =
-          totalUnrestrictedQtyBase;
+          parseFloat(totalUnrestrictedQtyBase.toFixed(3)) || 0;
       }
 
       // 循环结束后一次性更新所有数据
@@ -455,6 +382,8 @@ const fetchUnrestrictedQty = async () => {
     else if (this.isCopy) pageStatus = "Clone";
     else throw new Error("Invalid page state");
 
+    console.log("pageStatus", pageStatus);
+
     let organizationId = this.getVarGlobal("deptParentId");
     if (organizationId === "0") {
       organizationId = this.getVarSystem("deptIds").split(",")[0];
@@ -473,10 +402,14 @@ const fetchUnrestrictedQty = async () => {
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
-        await setPrefix(organizationId);
         await checkAccIntegrationType(organizationId);
         await setPlant(organizationId, pageStatus);
-        this.setData({ sqt_date: new Date().toISOString().split("T")[0] });
+        this.setData({
+          sqt_date: new Date().toISOString().split("T")[0],
+          customer_type: "Existing Customer",
+          print_status: "Pending",
+          created_source: "Web",
+        });
         break;
 
       case "Edit":
@@ -486,10 +419,12 @@ const fetchUnrestrictedQty = async () => {
             this.display("address_grid");
           }
         }
+
+        this.setData({ previous_status: status });
+
         await enabledUOMField();
         await checkAccIntegrationType(organizationId);
         await displayCustomerType();
-        await getPrefixData(organizationId);
         await setPlant(organizationId, pageStatus);
         await disabledField(status);
         await showStatusHTML(status);
@@ -498,7 +433,6 @@ const fetchUnrestrictedQty = async () => {
         await displayCurrency();
         await fixValidityPeriod();
         await fetchUnrestrictedQty();
-        //await setUOM();
         break;
 
       case "Clone":
@@ -509,12 +443,22 @@ const fetchUnrestrictedQty = async () => {
           }
         }
 
+        this.disabled(
+          this.getValue("sqt_no_type") !== -9999 ? ["sqt_no"] : [],
+          true,
+        );
+        this.setData({
+          sqt_date: new Date().toISOString().split("T")[0],
+          sqt_no: null,
+          sqt_status: null,
+          print_status: "Pending",
+          created_source: "Web",
+        });
+        this.display(["draft_status"]);
+
         console.log("Cloning record", this.getValues());
         await setPlant(organizationId, pageStatus);
-        this.setData({ sqt_date: new Date().toISOString().split("T")[0] });
-        this.display(["draft_status"]);
         await checkAccIntegrationType(organizationId);
-        await setPrefix(organizationId);
         await displayDeliveryMethod();
         await displayTax();
         await displayCustomerType();
@@ -522,7 +466,6 @@ const fetchUnrestrictedQty = async () => {
         await fixValidityPeriod();
         await enabledUOMField();
         await fetchUnrestrictedQty();
-        //await setUOM();
         break;
 
       case "View":
@@ -547,7 +490,6 @@ const fetchUnrestrictedQty = async () => {
         await displayCurrency();
         await fixValidityPeriod();
         await displayTax();
-        //await setUOM();
         break;
     }
   } catch (error) {
@@ -555,3 +497,36 @@ const fetchUnrestrictedQty = async () => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
+
+setTimeout(async () => {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("sqt_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("sqt_no");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("sqt_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("sqt_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        sqt_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ sqt_no_type: defaultData.value });
+    }
+  }
+}, 200);
