@@ -21,7 +21,7 @@ const handleSingleSO = async (sqtRecords) => {
         {
           confirmButtonText: "OK",
           type: "error",
-        }
+        },
       );
       return;
     }
@@ -49,7 +49,7 @@ const handleSingleSO = async (sqtRecords) => {
       soPrefix,
       sqtIDs,
       sqtNos,
-      plantID
+      plantID,
     );
     console.log("Mapped SO Data:", soData);
 
@@ -85,7 +85,7 @@ const handleMultipleSO = async (sqtRecords) => {
       }
 
       const lineItemLength = soLineItemPromises.length;
-      const soPrefix = await generateSOPrefix(sqt.organization_id);
+      const soPrefix = "draft";
       const soData = await mapToSOData(
         sqt,
         soLineItemPromises,
@@ -93,7 +93,7 @@ const handleMultipleSO = async (sqtRecords) => {
         soPrefix,
         [sqt.id],
         sqt.sqt_no,
-        sqt.sqt_plant
+        sqt.sqt_plant,
       );
       console.log("Mapped SO Data:", soData);
       soDataPromises.push(soData);
@@ -101,8 +101,21 @@ const handleMultipleSO = async (sqtRecords) => {
 
     console.log("All SO Data to be added:", soDataPromises);
 
+    const resSODraftFormat = await db
+      .collection("su_code_serial_no_rule")
+      .where({
+        department_id: this.getVarGlobal("firstLvDeptId"),
+        business_type: "Sales Orders",
+        is_default: 1,
+      })
+      .get();
+
     const resSO = await Promise.all(
-      soDataPromises.map((soData) => db.collection("sales_order").add(soData))
+      soDataPromises.map((soData) =>
+        db
+          .collection("sales_order")
+          .add({ ...soData, so_no_type: resSODraftFormat.data[0].id }),
+      ),
     );
 
     const soData = resSO.map((response) => response.data[0]);
@@ -119,7 +132,7 @@ const handleMultipleSO = async (sqtRecords) => {
         confirmButtonText: "OK",
         dangerouslyUseHTMLString: true,
         type: "success",
-      }
+      },
     );
   } catch (error) {
     console.error("Error in handleMultipleSO:", error);
@@ -129,7 +142,7 @@ const handleMultipleSO = async (sqtRecords) => {
 const fetchSQTData = async (sqtRecords) => {
   try {
     const resSqt = await Promise.all(
-      sqtRecords.map((item) => db.collection("Quotation").doc(item.id).get())
+      sqtRecords.map((item) => db.collection("Quotation").doc(item.id).get()),
     );
 
     const sqtData = resSqt.map((response) => response.data[0]);
@@ -138,35 +151,6 @@ const fetchSQTData = async (sqtRecords) => {
     console.error("Error fetching SQT data:", error);
     throw error;
   }
-};
-
-const generateSOPrefix = async (organizationID) => {
-  const prefixEntry = await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Sales Orders",
-      is_deleted: 0,
-      organization_id: organizationID,
-    })
-    .get();
-
-  if (!prefixEntry.data || prefixEntry.data.length === 0) {
-    throw new Error("No prefix configuration found");
-  }
-
-  const currDraftNum = parseInt(prefixEntry.data[0].draft_number) + 1;
-  const soPrefix = `DRAFT-${prefixEntry.data[0].prefix_value}-` + currDraftNum;
-
-  await db
-    .collection("prefix_configuration")
-    .where({
-      document_types: "Sales Orders",
-      is_deleted: 0,
-      organization_id: organizationID,
-    })
-    .update({ draft_number: currDraftNum });
-
-  return soPrefix;
 };
 
 const mapLineItemToSOLine = async (item, sqt, lineIndex) => {
@@ -181,6 +165,7 @@ const mapLineItemToSOLine = async (item, sqt, lineIndex) => {
     more_desc: item.more_desc,
     line_remark_1: item.line_remark_1,
     line_remark_2: item.line_remark_2,
+    line_remark_3: item.line_remark_3,
     so_discount: item.sqt_discount,
     so_discount_uom: item.sqt_discount_uom_id,
     so_discount_amount: item.sqt_discount_amount,
@@ -206,6 +191,11 @@ const mapLineItemToSOLine = async (item, sqt, lineIndex) => {
     line_status: "Draft",
     line_index: lineIndex,
     access_group: sqt.access_group,
+    area_id: sqt.area_id || "",
+    custom_fields: item.custom_fields || "",
+    tariff_id: item.tariff_id,
+    further_description: item.further_description,
+    so_shipping_date: item.expected_shipment_date,
   };
 };
 
@@ -216,7 +206,7 @@ const mapToSOData = async (
   soPrefix,
   sqtIDs,
   sqtNos,
-  plantID
+  plantID,
 ) => {
   return {
     so_status: "Draft",
@@ -234,7 +224,7 @@ const mapToSOData = async (
     so_payment_term: data.sqt_payment_term,
     so_delivery_method: data.sqt_delivery_method_id,
     delivery_method_text: data.delivery_method_text || "",
-
+    so_area_id: data.sqt_area_id || "",
     cp_driver_name: data.cp_customer_pickup,
     cp_ic_no: data.cp_ic_no,
     cp_driver_contact_no: data.driver_contact_no,
@@ -273,7 +263,6 @@ const mapToSOData = async (
     so_total_tax: data.sqt_total_tax,
     so_total: data.sqt_totalsum,
     exchange_rate: data.exchange_rate,
-    so_remarks: data.sqt_remarks,
     myr_total_amount: data.myr_total_amount,
 
     billing_address_line_1: data.billing_address_line_1,
@@ -287,6 +276,8 @@ const mapToSOData = async (
     billing_address_name: data.billing_address_name,
     billing_address_phone: data.billing_address_phone,
     billing_attention: data.billing_attention,
+    billing_address_fax: data.billing_address_fax,
+    billing_address_code: data.billing_address_code,
 
     shipping_address_line_1: data.shipping_address_line_1,
     shipping_address_line_2: data.shipping_address_line_2,
@@ -299,12 +290,22 @@ const mapToSOData = async (
     shipping_address_name: data.shipping_address_name,
     shipping_address_phone: data.shipping_address_phone,
     shipping_attention: data.shipping_attention,
+    shipping_address_fax: data.shipping_address_fax,
+    shipping_address_code: data.shipping_address_code,
+
     so_shipping_date: data.expected_shipment_date,
+    so_tnc: data.sqt_tnc,
+    so_payment_details: data.sqt_payment_details,
+    so_delivery_term: data.sqt_deliveryterm,
+    so_remarks: data.sqt_remarks,
     so_remarks2: data.sqt_remarks2,
     so_remarks3: data.sqt_remarks3,
+    so_remarks4: data.sqt_remarks4,
+    so_remarks5: data.sqt_remarks5,
     partially_delivered: `0 / ${lineItemLength}`,
     fully_delivered: `0 / ${lineItemLength}`,
     access_group: data.access_group,
+    price_tag_id: data.price_tag_id,
   };
 };
 
@@ -313,7 +314,7 @@ const mapToSOData = async (
     const unCompletedListID = "custom_kviatmto";
     const allListID = "custom_851imkgn";
     const tabUncompletedElement = document.getElementById(
-      "tab-tab_uncompleted"
+      "tab-tab_uncompleted",
     );
 
     const activeTab = tabUncompletedElement?.classList.contains("is-active")
@@ -323,7 +324,7 @@ const mapToSOData = async (
     let selectedRecords;
 
     selectedRecords = this.getComponent(
-      activeTab === "Uncompleted" ? unCompletedListID : allListID
+      activeTab === "Uncompleted" ? unCompletedListID : allListID,
     )?.$refs.crud.tableSelect;
 
     console.log("selectedRecords", selectedRecords);
@@ -331,7 +332,7 @@ const mapToSOData = async (
     if (selectedRecords && selectedRecords.length > 0) {
       selectedRecords = selectedRecords.filter(
         (item) =>
-          item.sqt_status === "Issued" || item.sqt_status === "Completed"
+          item.sqt_status === "Issued" || item.sqt_status === "Completed",
       );
 
       if (selectedRecords.length === 0) {
@@ -342,7 +343,7 @@ const mapToSOData = async (
             confirmButtonText: "OK",
             dangerouslyUseHTMLString: true,
             type: "warning",
-          }
+          },
         );
         return;
       }
@@ -359,7 +360,7 @@ const mapToSOData = async (
           cancelButtonText: "Cancel",
           dangerouslyUseHTMLString: true,
           type: "info",
-        }
+        },
       ).catch(() => {
         console.log("User clicked Cancel or closed the dialog");
         throw new Error();
@@ -382,30 +383,37 @@ const mapToSOData = async (
 
             beforeClose: async (action, instance, done) => {
               if (action === "confirm") {
+                this.showLoading("Converting to Sales Order...");
                 await handleSingleSO(selectedRecords);
                 await this.getComponent(
-                  activeTab === "Uncompleted" ? unCompletedListID : allListID
+                  activeTab === "Uncompleted" ? unCompletedListID : allListID,
                 )?.$refs.crud.clearSelection();
+                this.hideLoading();
                 done();
               } else if (action === "cancel") {
+                this.showLoading("Converting to Sales Order...");
                 await handleMultipleSO(selectedRecords);
                 await this.getComponent(
-                  activeTab === "Uncompleted" ? unCompletedListID : allListID
+                  activeTab === "Uncompleted" ? unCompletedListID : allListID,
                 )?.$refs.crud.clearSelection();
+                this.hideLoading();
                 done();
               } else {
+                this.hideLoading();
                 done();
               }
             },
-          }
+          },
         );
       } else if (selectedRecords.length === 1) {
+        this.showLoading("Converting to Sales Order...");
         await handleSingleSO(selectedRecords);
       }
 
       await this.getComponent(
-        activeTab === "Uncompleted" ? unCompletedListID : allListID
+        activeTab === "Uncompleted" ? unCompletedListID : allListID,
       )?.$refs.crud.clearSelection();
+      this.hideLoading();
     } else {
       this.$message.error("Please select at least one record.");
     }
