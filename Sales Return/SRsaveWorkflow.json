@@ -1404,6 +1404,110 @@
                       "propLabel": "Driver Contact No."
                     },
                     {
+                      "prop": "di_shipping_method",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_shipping_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method"
+                    },
+                    {
+                      "prop": "di_driver_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_driver_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name"
+                    },
+                    {
+                      "prop": "di_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No"
+                    },
+                    {
+                      "prop": "di_driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No"
+                    },
+                    {
+                      "prop": "di_shipping_company",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_shipping_company}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Company"
+                    },
+                    {
+                      "prop": "di_transport_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_transport_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Transport Name"
+                    },
+                    {
+                      "prop": "di_vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number"
+                    },
+                    {
+                      "prop": "di_est_delivery_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_est_delivery_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Delivery Date"
+                    },
+                    {
+                      "prop": "di_est_arrival_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_est_arrival_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Arrival Date"
+                    },
+                    {
+                      "prop": "di_pickup_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_pickup_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Pickup Date"
+                    },
+                    {
+                      "prop": "di_validity_of_collection",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_validity_of_collection}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Validity of Collection"
+                    },
+                    {
+                      "prop": "di_tracking_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_tracking_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number"
+                    },
+                    {
+                      "prop": "di_freight_charges",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_freight_charges}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges"
+                    },
+                    {
                       "prop": "plant_id",
                       "valueType": "field",
                       "value": "{{node:code_node_9Wk6aEGR.data.entry.plant_id}}",
@@ -2087,6 +2191,110 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Driver Contact No."
+                    },
+                    {
+                      "prop": "di_shipping_method",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_shipping_method}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method"
+                    },
+                    {
+                      "prop": "di_driver_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_driver_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Name"
+                    },
+                    {
+                      "prop": "di_ic_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_ic_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "IC No"
+                    },
+                    {
+                      "prop": "di_driver_contact_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_driver_contact_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Driver Contact No"
+                    },
+                    {
+                      "prop": "di_shipping_company",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_shipping_company}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Company"
+                    },
+                    {
+                      "prop": "di_transport_name",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_transport_name}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Transport Name"
+                    },
+                    {
+                      "prop": "di_vehicle_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_vehicle_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number"
+                    },
+                    {
+                      "prop": "di_est_delivery_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_est_delivery_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Delivery Date"
+                    },
+                    {
+                      "prop": "di_est_arrival_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_est_arrival_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Est Arrival Date"
+                    },
+                    {
+                      "prop": "di_pickup_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_pickup_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Pickup Date"
+                    },
+                    {
+                      "prop": "di_validity_of_collection",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_validity_of_collection}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Validity of Collection"
+                    },
+                    {
+                      "prop": "di_tracking_number",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_tracking_number}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Tracking Number"
+                    },
+                    {
+                      "prop": "di_freight_charges",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.di_freight_charges}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Freight Charges"
                     },
                     {
                       "prop": "plant_id",
