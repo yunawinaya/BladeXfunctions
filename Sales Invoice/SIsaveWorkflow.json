@@ -497,7 +497,7 @@
                         "name": "Check Invoice Qty",
                         "script": {
                           "type": "javascript",
-                          "code": "let entry = {{node:code_node_QdIIcL7J.data.table}};\nconst totalQuantity = entry.table_si.reduce((sum, item) => {\n    const { invoice_qty } = item;\n    return sum + (invoice_qty || 0); // Handle null/undefined received_qty\n  }, 0);\n\nif (totalQuantity === 0) {\n  return {\n    entry: {},\n    status: 'Failed',\n    code: 407,\n    message: 'Total invoiced quantity is 0.'\n  }\n}\n\nentry.table_si = entry.table_si.filter((item) => item.invoice_qty > 0);\nlet soID = [];\nlet gdID = [];\nlet salesOrderNumber = [];\nlet goodsDeliveryNumber = [];\nfor(const si of entry.table_si) {\n  if(si.line_gd_id && si.line_gd_id !== \"\") {\n    gdID.push(si.line_gd_id);\n    goodsDeliveryNumber.push(si.line_gd_no);\n  }\n\n  soID.push(si.line_so_id);\n  salesOrderNumber.push(si.line_so_no);\n}\n\nsoID = [...new Set(soID)];\ngdID = [...new Set(gdID)];\nsalesOrderNumber = [...new Set(salesOrderNumber)];\ngoodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n\nentry.so_id = soID;\nentry.gd_id = gdID;\nentry.so_no_display = salesOrderNumber.join(\", \");\nentry.gd_no_display = goodsDeliveryNumber.join(\", \");\n\nreturn {\n  entry: entry,\n  status: 'Success',\n  code: 200,\n  message: ''\n};"
+                          "code": "let entry = {{node:code_node_QdIIcL7J.data.table}};\nconst totalQuantity = entry.table_si.reduce((sum, item) => {\n    const { invoice_qty } = item;\n    const positiveInvQty = Math.abs(invoice_qty)\n    return sum + (positiveInvQty || 0); // Handle null/undefined received_qty\n  }, 0);\n\nif (totalQuantity === 0) {\n  return {\n    entry: {},\n    status: 'Failed',\n    code: 407,\n    message: 'Total invoiced quantity is 0.'\n  }\n}\n\nentry.table_si = entry.table_si.filter((item) => item.invoice_qty !== 0);\nlet soID = [];\nlet gdID = [];\nlet salesOrderNumber = [];\nlet goodsDeliveryNumber = [];\nfor(const si of entry.table_si) {\n  if(si.line_gd_id && si.line_gd_id !== \"\") {\n    gdID.push(si.line_gd_id);\n    goodsDeliveryNumber.push(si.line_gd_no);\n  }\n\n  soID.push(si.line_so_id);\n  salesOrderNumber.push(si.line_so_no);\n}\n\nsoID = [...new Set(soID)];\ngdID = [...new Set(gdID)];\nsalesOrderNumber = [...new Set(salesOrderNumber)];\ngoodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n\nentry.so_id = soID;\nentry.gd_id = gdID;\nentry.so_no_display = salesOrderNumber.join(\", \");\nentry.gd_no_display = goodsDeliveryNumber.join(\", \");\n\nreturn {\n  entry: entry,\n  status: 'Success',\n  code: 200,\n  message: ''\n};"
                         },
                         "response_json": [
                           {
@@ -1575,7 +1575,7 @@
                 "name": "Map Updated SO & GD",
                 "script": {
                   "type": "javascript",
-                  "code": "const soList = {{node:search_node_NDKdFanY.data.data}} || [];\nconst gdList = {{node:search_node_lTy219I0.data.data}} || [];\nconst data = {{node:code_node_JoF0YVzG.data.entry}};\nlet allErrors = [];\n\nconst roundTo3 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 1000) / 1000;\n};\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.0000\";\n  return parseFloat(value).toFixed(3);\n};\n\n\nconst validateInvoiceQuantities = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n  \n  const errors = [];\n  \n  filteredSI.forEach((siItem) => {\n    const originalItem = items.find(item => item.id === siItem[siLineIdKey]);\n    \n    if (originalItem) {\n      const availableQty = roundTo3(originalItem[qtyKey]);\n      const currentInvoicedQty = roundTo3(originalItem.invoice_qty);\n      const newInvoiceQty = roundTo3(siItem.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + newInvoiceQty);\n      \n      if (totalInvoicedQty > availableQty) {\n        errors.push({\n          itemName: originalItem.item_id || originalItem.material_name || `Item ${originalItem.id}`,\n        });\n      }\n    }\n  });\n  \n  return errors;\n};\n\nconst updateGoodsDelivery = (gdIds, tableSi) => {\n  let gdUpdatedList = [];\n  for(const gdID of gdIds) {\n    const gdData = gdList.find(gd => gd.id === gdID)\n    const gdItems = gdData.table_gd || [];\n\n    const validationErrors = validateInvoiceQuantities(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    allErrors = [...allErrors, ...validationErrors];\n\n    // Process GR items\n    const { updatedItems, newSIStatus } = processItems(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    gdUpdatedList.push({\n      gd_id: gdData.id,\n      si_status: newSIStatus,\n      table_gd: updatedItems\n    })\n  }\n\n  return gdUpdatedList;\n};\n\nconst updateSalesOrder = (soIds, tableSi) => {\n  let soUpdatedList = [];\n  for(const soID of soIds) {\n    const soData = soList.find(so => so.id === soID)\n    const soItems = soData.table_so || [];\n\n    const validationErrors = validateInvoiceQuantities(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\"\n    );\n\n    allErrors = [...allErrors, ...validationErrors];\n\n    const { updatedItems, newSIStatus } = processItems(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\",\n    );\n\n    soUpdatedList.push({\n      so_id: soData.id,\n      si_status: newSIStatus,\n      table_so: updatedItems\n    })\n  }\n\n  return soUpdatedList;\n};\n\n\nconst processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  // Filter PI items for the current document\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n\n  // Filter items where item.id matches any siLineIdKey in filteredSI\n  const filteredItems = items.filter((item) =>\n    filteredSI.some((pi) => pi[siLineIdKey] === item.id),\n  );\n\n  // Initialize tracking\n  let totalItems = items.length;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n  const updatedItems = items.map((item) => ({ ...item }));\n\n  // Update invoice quantities\n  filteredItems.forEach((filteredItem, filteredIndex) => {\n    const originalIndex = updatedItems.findIndex(\n      (item) => item.id === filteredItem.id,\n    );\n\n    if (originalIndex === -1) return;\n\n    const itemQty = parseFloat(filteredItem[qtyKey] || 0);\n    const piInvoicedQty = roundTo3(\n      filteredSI[filteredIndex]?.invoice_qty\n    );\n    const currentInvoicedQty = roundTo3(\n      updatedItems[originalIndex].invoice_qty\n    );\n    const totalInvoicedQty = roundTo3(currentInvoicedQty + piInvoicedQty);\n\n    // Update invoice quantity\n    updatedItems[originalIndex].invoice_qty = totalInvoicedQty;\n  });\n\n  for (const [index, item] of updatedItems.entries()) {\n    if (roundTo3(item.invoice_qty) > 0) {\n      partiallyInvoicedItems++;\n      updatedItems[index].si_status = \"Partially Invoiced\";\n      if (roundTo3(item.invoice_qty) >= roundTo3(item[qtyKey])) {\n        fullyInvoicedItems++;\n        updatedItems[index].si_status = \"Fully Invoiced\";\n      }\n    }\n  }\n\n  // Determine new PI status\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newSIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newSIStatus };\n};\n\nconst soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\nlet updatedGD = [];\nif (data.gd_id.length > 0) {\n  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);\n  updatedGD = updatedGDData.flat();\n}\nlet updatedSO = updateSalesOrder(soIds, data.table_si);\nupdatedGD = updatedGD.filter(gd => gd.si_status === 'Fully Invoiced').map(gd => gd.gd_id)\nupdatedSO = updatedSO.filter(so => so.si_status === 'Fully Invoiced').map(so => so.so_id)\n\nreturn {\n  status: allErrors.length > 0 ? 'Failed' : 'Success', \n  allErrors, updatedGD, updatedSO\n}\n"
+                  "code": "const soList = {{node:search_node_NDKdFanY.data.data}} || [];\nconst gdList = {{node:search_node_lTy219I0.data.data}} || [];\nconst data = {{node:code_node_JoF0YVzG.data.entry}};\nlet allErrors = [];\n\nconst roundTo3 = (value) => {\n  let positiveValue = Math.abs(value);\n  return Math.round((parseFloat(positiveValue) || 0) * 1000) / 1000;\n};\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.0000\";\n  return parseFloat(value).toFixed(3);\n};\n\n\nconst validateInvoiceQuantities = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n  \n  const errors = [];\n  \n  filteredSI.forEach((siItem) => {\n    const originalItem = items.find(item => item.id === siItem[siLineIdKey]);\n    \n    if (originalItem) {\n      const availableQty = roundTo3(originalItem[qtyKey]);\n      const currentInvoicedQty = roundTo3(originalItem.invoice_qty);\n      const newInvoiceQty = roundTo3(siItem.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + newInvoiceQty);\n      \n      if (totalInvoicedQty > availableQty) {\n        errors.push({\n          itemName: originalItem.item_id || originalItem.material_name || `Item ${originalItem.id}`,\n        });\n      }\n    }\n  });\n  \n  return errors;\n};\n\nconst updateGoodsDelivery = (gdIds, tableSi) => {\n  let gdUpdatedList = [];\n  for(const gdID of gdIds) {\n    const gdData = gdList.find(gd => gd.id === gdID)\n    const gdItems = gdData.table_gd || [];\n\n    const validationErrors = validateInvoiceQuantities(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    allErrors = [...allErrors, ...validationErrors];\n\n    // Process GR items\n    const { updatedItems, newSIStatus } = processItems(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    gdUpdatedList.push({\n      gd_id: gdData.id,\n      si_status: newSIStatus,\n      table_gd: updatedItems\n    })\n  }\n\n  return gdUpdatedList;\n};\n\nconst updateSalesOrder = (soIds, tableSi) => {\n  let soUpdatedList = [];\n  for(const soID of soIds) {\n    const soData = soList.find(so => so.id === soID)\n    const soItems = soData.table_so || [];\n\n    const validationErrors = validateInvoiceQuantities(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\"\n    );\n\n    allErrors = [...allErrors, ...validationErrors];\n\n    const { updatedItems, newSIStatus } = processItems(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\",\n    );\n\n    soUpdatedList.push({\n      so_id: soData.id,\n      si_status: newSIStatus,\n      table_so: updatedItems\n    })\n  }\n\n  return soUpdatedList;\n};\n\n\nconst processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  // Filter PI items for the current document\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n\n  // Filter items where item.id matches any siLineIdKey in filteredSI\n  const filteredItems = items.filter((item) =>\n    filteredSI.some((pi) => pi[siLineIdKey] === item.id),\n  );\n\n  // Initialize tracking\n  let totalItems = items.length;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n  const updatedItems = items.map((item) => ({ ...item }));\n\n  // Update invoice quantities\n  filteredItems.forEach((filteredItem, filteredIndex) => {\n    const originalIndex = updatedItems.findIndex(\n      (item) => item.id === filteredItem.id,\n    );\n\n    if (originalIndex === -1) return;\n\n    const itemQty = parseFloat(filteredItem[qtyKey] || 0);\n    const piInvoicedQty = roundTo3(\n      filteredSI[filteredIndex]?.invoice_qty\n    );\n    const currentInvoicedQty = roundTo3(\n      updatedItems[originalIndex].invoice_qty\n    );\n    const totalInvoicedQty = roundTo3(currentInvoicedQty + piInvoicedQty);\n\n    // Update invoice quantity\n    updatedItems[originalIndex].invoice_qty = totalInvoicedQty;\n  });\n\n  for (const [index, item] of updatedItems.entries()) {\n    if (roundTo3(item.invoice_qty) > 0) {\n      partiallyInvoicedItems++;\n      updatedItems[index].si_status = \"Partially Invoiced\";\n      if (roundTo3(item.invoice_qty) >= roundTo3(item[qtyKey])) {\n        fullyInvoicedItems++;\n        updatedItems[index].si_status = \"Fully Invoiced\";\n      }\n    }\n  }\n\n  // Determine new PI status\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newSIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newSIStatus };\n};\n\nconst soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\nlet updatedGD = [];\nif (data.gd_id.length > 0) {\n  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);\n  updatedGD = updatedGDData.flat();\n}\nlet updatedSO = updateSalesOrder(soIds, data.table_si);\nupdatedGD = updatedGD.filter(gd => gd.si_status === 'Fully Invoiced').map(gd => gd.gd_id)\nupdatedSO = updatedSO.filter(so => so.si_status === 'Fully Invoiced').map(so => so.so_id)\n\nreturn {\n  status: allErrors.length > 0 ? 'Failed' : 'Success', \n  allErrors, updatedGD, updatedSO\n}\n"
                 },
                 "response_json": [
                   {
@@ -3222,7 +3222,7 @@
                 "name": "Map Updated SO & GD",
                 "script": {
                   "type": "javascript",
-                  "code": "const soList = {{node:search_node_NDKdFanY.data.data}} || [];\nconst gdList = {{node:search_node_lTy219I0.data.data}} || [];\nconst data = {{node:code_node_JoF0YVzG.data.entry}};\n\nconst roundTo3 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 1000) / 1000;\n};\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.0000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst updateGoodsDelivery = (gdIds, tableSi) => {\n  let gdUpdatedList = [];\n  for(const gdID of gdIds) {\n    const gdData = gdList.find(gd => gd.id === gdID)\n    const gdItems = gdData.table_gd || [];\n\n    // Process GR items\n    const { updatedItems, newSIStatus } = processItems(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    gdUpdatedList.push({\n      gd_id: gdData.id,\n      si_status: newSIStatus,\n      table_gd: updatedItems\n    })\n  }\n\n  return gdUpdatedList;\n};\n\nconst updateSalesOrder = (soIds, tableSi) => {\n  let soUpdatedList = [];\n  for(const soID of soIds) {\n    const soData = soList.find(so => so.id === soID)\n    const soItems = soData.table_so || [];\n\n    const { updatedItems, newSIStatus } = processItems(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\",\n    );\n\n    soUpdatedList.push({\n      so_id: soData.id,\n      si_status: newSIStatus,\n      table_so: updatedItems\n    })\n  }\n\n  return soUpdatedList;\n};\n\nconst processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  // Filter SI items for the current document\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n\n  // Initialize tracking\n  let totalItems = items.length;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n  \n  // Update items using find() with id matching\n  const updatedItems = items.map((item) => {\n    const matchedSI = filteredSI.find(pi => pi[siLineIdKey] === item.id);\n    \n    if (matchedSI) {\n      const piInvoicedQty = roundTo3(matchedSI.invoice_qty);\n      const currentInvoicedQty = roundTo3(item.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + piInvoicedQty);\n\n      const updatedItem = {\n        ...item,\n        invoice_qty: totalInvoicedQty\n      };\n      \n      if (roundTo3(updatedItem.invoice_qty) > 0) {\n          partiallyInvoicedItems++;\n          updatedItem.si_status = \"Partially Invoiced\";\n          if (roundTo3(updatedItem.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {\n            fullyInvoicedItems++;\n            updatedItem.si_status = \"Fully Invoiced\";\n          }\n      }\n      \n      return updatedItem;\n    }\n    \n    return { ...item };\n  });\n\n  // Determine new SI status\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newSIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newSIStatus };\n};\n\nconst soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\nlet updatedGD = [];\nif (data.gd_id.length > 0) {\n  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);\n  updatedGD = updatedGDData\n}\n\nconst updatedSO = updateSalesOrder(soIds, data.table_si);\n\nreturn {\n  updatedGD, updatedSO\n}"
+                  "code": "const soList = {{node:search_node_NDKdFanY.data.data}} || [];\nconst gdList = {{node:search_node_lTy219I0.data.data}} || [];\nconst data = {{node:code_node_JoF0YVzG.data.entry}};\n\nconst roundTo3 = (value) => {\n  let positiveValue = Math.abs(value);\n  return Math.round((parseFloat(positiveValue) || 0) * 1000) / 1000;\n};\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.0000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst updateGoodsDelivery = (gdIds, tableSi) => {\n  let gdUpdatedList = [];\n  for(const gdID of gdIds) {\n    const gdData = gdList.find(gd => gd.id === gdID)\n    const gdItems = gdData.table_gd || [];\n\n    // Process GR items\n    const { updatedItems, newSIStatus } = processItems(\n      gdItems,\n      tableSi,\n      gdData.id,\n      \"line_gd_id\",\n      \"gd_line_id\",\n      \"gd_qty\",\n    );\n\n    gdUpdatedList.push({\n      gd_id: gdData.id,\n      si_status: newSIStatus,\n      table_gd: updatedItems\n    })\n  }\n\n  return gdUpdatedList;\n};\n\nconst updateSalesOrder = (soIds, tableSi) => {\n  let soUpdatedList = [];\n  for(const soID of soIds) {\n    const soData = soList.find(so => so.id === soID)\n    const soItems = soData.table_so || [];\n\n    const { updatedItems, newSIStatus } = processItems(\n      soItems,\n      tableSi,\n      soData.id,\n      \"line_so_id\",\n      \"so_line_id\",\n      \"so_quantity\",\n    );\n\n    soUpdatedList.push({\n      so_id: soData.id,\n      si_status: newSIStatus,\n      table_so: updatedItems\n    })\n  }\n\n  return soUpdatedList;\n};\n\nconst processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey) => {\n  // Filter SI items for the current document\n  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n\n  // Initialize tracking\n  let totalItems = items.length;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n  \n  // Update items using find() with id matching\n  const updatedItems = items.map((item) => {\n    const matchedSI = filteredSI.find(pi => pi[siLineIdKey] === item.id);\n    \n    if (matchedSI) {\n      const piInvoicedQty = roundTo3(matchedSI.invoice_qty);\n      const currentInvoicedQty = roundTo3(item.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + piInvoicedQty);\n\n      const updatedItem = {\n        ...item,\n        invoice_qty: totalInvoicedQty\n      };\n      \n      if (roundTo3(updatedItem.invoice_qty) > 0) {\n          partiallyInvoicedItems++;\n          updatedItem.si_status = \"Partially Invoiced\";\n          if (roundTo3(updatedItem.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {\n            fullyInvoicedItems++;\n            updatedItem.si_status = \"Fully Invoiced\";\n          }\n      }\n      \n      return updatedItem;\n    }\n    \n    return { ...item };\n  });\n\n  // Determine new SI status\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newSIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newSIStatus };\n};\n\nconst soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\nlet updatedGD = [];\nif (data.gd_id.length > 0) {\n  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);\n  updatedGD = updatedGDData\n}\n\nconst updatedSO = updateSalesOrder(soIds, data.table_si);\n\nreturn {\n  updatedGD, updatedSO\n}"
                 },
                 "response_json": [
                   {
@@ -3681,90 +3681,120 @@
               "blocks": []
             },
             {
-              "id": "code_node_p0XoMz8H",
-              "type": "code-node",
+              "id": "if_WSO-qb5O",
+              "type": "if",
               "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Map AR Data",
+                "title": "IF totalAmount > 0",
                 "isValidator": true,
-                "nodeName": "Map AR Data",
-                "name": "Map AR Data",
-                "script": {
+                "nodeName": "IF totalAmount > 0",
+                "name": "IF totalAmount > 0",
+                "condition_type": "Expression",
+                "expression": {
                   "type": "javascript",
-                  "code": "// Same insert-branch rule as code_node_ytRbog2e: \"Convert\" inserts via the add-node.\nconst pageStatus = {{workflowparams:data.page_status}};\nconst isInsert = pageStatus === 'Add' || pageStatus === 'Convert';\n\nconst siData = isInsert ? {{node:add_node_adYeQB4a.data}}[0] : {{node:get_node_fcE2I4vj.data.data}};\n\nconst mapLineItem = (item, record, index) => {\n  const lineItemPromise = {\n    item_id: item.material_id,\n    item_name: item.material_name,\n    item_description: item.material_desc,\n    amount: (\n      parseFloat(item.gross) - parseFloat(item.discount_amount || 0)\n    ).toFixed(4),\n    tax_code: item.si_tax_rate_id,\n    tax_percent: item.tax_percent,\n    tax_inclusive: item.si_tax_inclusive,\n    tax_tariff_id: item.tariff_id,\n    tax_amount: parseFloat(item.tax_amount).toFixed(4),\n    subtotal: parseFloat(item.si_amount).toFixed(4),\n    customer_id: item.customer_id,\n    area_id: item.area_id,\n    agent_id: item.agent_id,\n    payment_term_id: item.payment_term_id,\n    plant_id: item.plant_id,\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (record, lineItemPromise) => {\n  const data = {\n    payment_status: \"Unpaid\",\n    plant_id: record.organization_id,\n    ar_invoice_no: record.sales_invoice_no,\n    ar_invoice_no_type: -9999,\n    customer_id: record.customer_id,\n    currency_code: record.currency_code,\n    description: record.si_description,\n    ar_billing_address: record.si_billing_address,\n    ar_shipping_address: record.si_shipping_address,\n    invoice_date: record.sales_invoice_date,\n    area_id: record.si_area_id || \"\",\n    agent_id: record.sales_person_id,\n    agent_user_id: record.agent_user_id,\n    payment_term_id: record.si_payment_term_id,\n    due_date: new Date().toISOString().split(\"T\")[0],\n    si_id: record.id,\n    table_ar_invoice: lineItemPromise,\n    tax_total_currency: record.currency_code,\n    invoice_total_currency: record.currency_code,\n    outstanding_amount_currency: record.currency_code,\n    tax_total: parseFloat(record.invoice_taxes_amount).toFixed(4),\n    invoice_total: parseFloat(record.invoice_total).toFixed(4),\n    outstanding_amount: parseFloat(record.invoice_total).toFixed(4),\n    myr_invoice_total: parseFloat(record.myr_total_amount).toFixed(4),\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    billing_address_code: record.billing_address_code,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_code: record.shipping_address_code,\n    shipping_address_fax: record.shipping_address_fax,\n  };\n\n  return data;\n};\n\nlet arLineItem = [];\nfor (const item of siData.table_si) {\n  const lineItemPromise = mapLineItem(item, siData);\n  arLineItem.push(lineItemPromise);\n}\nconst arData = mapHeaderData(siData, arLineItem);\n\nreturn { arData };\n"
-                },
-                "response_json": [
-                  {
-                    "key": "dgqghlkr",
-                    "name": "arData",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "any",
-                    "isExpand": false,
-                    "children": []
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
-              "id": "workflow_node_OJQSOuvk",
-              "type": "workflow-node",
-              "data": {
-                "workflow_id": "",
-                "workflow_name": "",
-                "input_params": {},
-                "title": "Run Workflow",
-                "isValidator": true,
-                "nodeName": "Run Workflow",
-                "name": "Run Workflow",
-                "workflow": {
-                  "rules": {
-                    "collectionId": "2072601187701137409",
-                    "list": [
-                      {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "",
-                        "valueType": "",
-                        "value": "",
-                        "type": "leaf",
-                        "level": 1
-                      }
-                    ]
-                  },
-                  "source": "AR_SAVE:Workflow:2072601187701137409"
-                },
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "body_params": {
-                  "list": [
-                    {
-                      "prop": "data",
-                      "propLabel": "Data",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "field",
-                      "valueTypeLabel": "",
-                      "valueLabel": "",
-                      "value": "{{node:code_node_p0XoMz8H.data.arData}}"
-                    },
-                    {
-                      "prop": "page_status",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{workflowparams:data.page_status}}",
-                      "valueLabel": "",
-                      "propLabel": "page_status"
-                    }
-                  ]
+                  "code": "{{node:code_node_ytRbog2e.data.siData.invoice_total}} > 0"
                 }
               },
-              "blocks": []
+              "blocks": [
+                {
+                  "id": "if_block_R0BrBB1D",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "code_node_p0XoMz8H",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Map AR Data",
+                        "isValidator": true,
+                        "nodeName": "Map AR Data",
+                        "name": "Map AR Data",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Same insert-branch rule as code_node_ytRbog2e: \"Convert\" inserts via the add-node.\nconst pageStatus = {{workflowparams:data.page_status}};\nconst isInsert = pageStatus === 'Add' || pageStatus === 'Convert';\n\nconst siData = isInsert ? {{node:add_node_adYeQB4a.data}}[0] : {{node:get_node_fcE2I4vj.data.data}};\n\nconst mapLineItem = (item, record, index) => {\n  const lineItemPromise = {\n    item_id: item.material_id,\n    item_name: item.material_name,\n    item_description: item.material_desc,\n    amount: (\n      parseFloat(item.gross) - parseFloat(item.discount_amount || 0)\n    ).toFixed(4),\n    tax_code: item.si_tax_rate_id,\n    tax_percent: item.tax_percent,\n    tax_inclusive: item.si_tax_inclusive,\n    tax_tariff_id: item.tariff_id,\n    tax_amount: parseFloat(item.tax_amount).toFixed(4),\n    subtotal: parseFloat(item.si_amount).toFixed(4),\n    customer_id: item.customer_id,\n    area_id: item.area_id,\n    agent_id: item.agent_id,\n    payment_term_id: item.payment_term_id,\n    plant_id: item.organization_id,\n    organization_id: item.organization_id\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (record, lineItemPromise) => {\n  const data = {\n    payment_status: \"Unpaid\",\n    plant_id: record.organization_id,\n    organization_id: record.organization_id,\n    ar_invoice_no: record.sales_invoice_no,\n    ar_invoice_no_type: -9999,\n    customer_id: record.customer_id,\n    currency_code: record.currency_code,\n    description: record.si_description,\n    ar_billing_address: record.si_billing_address,\n    ar_shipping_address: record.si_shipping_address,\n    invoice_date: record.sales_invoice_date,\n    area_id: record.si_area_id || \"\",\n    agent_id: record.sales_person_id,\n    agent_user_id: record.agent_user_id,\n    payment_term_id: record.si_payment_term_id,\n    due_date: new Date().toISOString().split(\"T\")[0],\n    si_id: record.id,\n    table_ar_invoice: lineItemPromise,\n    tax_total_currency: record.currency_code,\n    invoice_total_currency: record.currency_code,\n    outstanding_amount_currency: record.currency_code,\n    tax_total: parseFloat(record.invoice_taxes_amount).toFixed(4),\n    invoice_total: parseFloat(record.invoice_total).toFixed(4),\n    outstanding_amount: parseFloat(record.invoice_total).toFixed(4),\n    myr_invoice_total: parseFloat(record.myr_total_amount).toFixed(4),\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    billing_address_code: record.billing_address_code,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_code: record.shipping_address_code,\n    shipping_address_fax: record.shipping_address_fax,\n  };\n\n  return data;\n};\n\nlet arLineItem = [];\n\nlet filteredSI = siData.table_si.filter(item => parseFloat(item.si_amount) > 0 )\nfor (const item of filteredSI) {\n  const lineItemPromise = mapLineItem(item, siData);\n  arLineItem.push(lineItemPromise);\n}\nconst arData = mapHeaderData(siData, arLineItem);\n\nreturn { arData };\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "dgqghlkr",
+                            "name": "arData",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "workflow_node_OJQSOuvk",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Run Workflow",
+                        "isValidator": true,
+                        "nodeName": "Run Workflow",
+                        "name": "Run Workflow",
+                        "workflow": {
+                          "rules": {
+                            "collectionId": "2072601187701137409",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          },
+                          "source": "AR_SAVE:Workflow:2072601187701137409"
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "data",
+                              "propLabel": "Data",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "valueLabel": "",
+                              "value": "{{node:code_node_p0XoMz8H.data.arData}}"
+                            },
+                            {
+                              "prop": "page_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{workflowparams:data.page_status}}",
+                              "valueLabel": "",
+                              "propLabel": "page_status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_0YzmGY6L",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
             },
             {
               "id": "if_-xQaPih0",

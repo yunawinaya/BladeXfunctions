@@ -2681,7 +2681,7 @@
                         "operator": "equal",
                         "prop": "organization_id",
                         "valueType": "field",
-                        "value": "{{value:organization_id}}",
+                        "value": "{{global:firstLvDeptId}}",
                         "level": 1,
                         "propLabel": "Organization",
                         "valueLabel": "",
@@ -3666,6 +3666,64 @@
               "rules": []
             },
             {
+              "name": "UUID",
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "多行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-input",
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "disabled": false,
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_vp0yze8h",
+                "remoteOption": "option_vp0yze8h",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "lb5xph7o",
+              "model": "si_uuid",
+              "rules": []
+            },
+            {
               "name": "Accounting Integration Type",
               "type": "input",
               "mainIcon": "单行文本",
@@ -4036,6 +4094,118 @@
             "customClass": ""
           },
           "list": [
+            {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_pe7htnej",
+                "filterable": false,
+                "pagingEnabled": true,
+                "isShowExpandButton": false,
+                "buttonText": "新增",
+                "buttonPosition": "bottom",
+                "buttonAlign": "right",
+                "buttonSize": "default",
+                "buttonEvent": [],
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "project_code",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_pe7htnej",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "2085600321692696577",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "Project:Table:2085600321692696577"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 1,
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Project",
+              "novalid": {},
+              "key": "5u5rwbra",
+              "model": "project_id",
+              "rules": []
+            },
             {
               "name": "Reference Documents",
               "type": "fileupload",
@@ -4717,8 +4887,6 @@
                 "resizable": 0,
                 "emptyTip": "",
                 "tableHeightMode": "fixed",
-                "tableFixedHeight": null,
-                "tableMaxHeight": null,
                 "rowHeightType": "auto",
                 "hideIndex": false,
                 "showTableBorder": 0,
@@ -4757,7 +4925,9 @@
                   ]
                 },
                 "highlightSelectedRow": false,
-                "highlightHoverRow": false
+                "highlightHoverRow": false,
+                "childRecordMode": false,
+                "inlineInsert": true
               },
               "events": {
                 "onChange": "",
@@ -4946,7 +5116,14 @@
                     "remoteFunc": "func_j355x7lg",
                     "remoteOption": "option_j355x7lg",
                     "tableColumn": true,
-                    "subform": false
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "select-card_4c8m22dh": []
                   },
                   "events": {
                     "onChange": "",
@@ -5047,7 +5224,14 @@
                     "remoteFunc": "func_y8khzh5o",
                     "remoteOption": "option_y8khzh5o",
                     "tableColumn": true,
-                    "subform": false
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "select-card_4c8m22dh": []
                   },
                   "events": {
                     "onChange": "",
@@ -5057,6 +5241,103 @@
                   "novalid": {},
                   "key": "6dns67xh",
                   "model": "more_desc",
+                  "rules": []
+                },
+                {
+                  "version": "1.0.0",
+                  "type": "editor",
+                  "mainIcon": "富文本",
+                  "typeIcon": "富文本",
+                  "icon": "icon-fuwenbenkuang",
+                  "group": "Text",
+                  "groupSort": 9,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "defaultValue": "",
+                    "width": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customToolbar": [
+                      [
+                        "bold",
+                        "italic",
+                        "underline",
+                        "strike",
+                        {
+                          "color": []
+                        },
+                        {
+                          "background": []
+                        },
+                        {
+                          "align": []
+                        },
+                        {
+                          "list": "ordered"
+                        },
+                        {
+                          "list": "bullet"
+                        },
+                        {
+                          "indent": "-1"
+                        },
+                        {
+                          "indent": "+1"
+                        }
+                      ],
+                      [
+                        {
+                          "font": []
+                        },
+                        {
+                          "header": [1, 2, 3, 4, 5, 6, false]
+                        }
+                      ],
+                      [
+                        {
+                          "script": "sub"
+                        },
+                        {
+                          "script": "super"
+                        }
+                      ],
+                      ["link", "image", "blockquote", "code-block"],
+                      [
+                        {
+                          "direction": "rtl"
+                        }
+                      ],
+                      ["clean"]
+                    ],
+                    "action": "/blade-resource/oss/endpoint/put-file",
+                    "headers": [],
+                    "withCredentials": false,
+                    "disabled": false,
+                    "required": false,
+                    "validatorCheck": false,
+                    "validator": "",
+                    "tip": "",
+                    "remoteFunc": "func_nusi1m4w",
+                    "remoteOption": "option_nusi1m4w",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": ""
+                  },
+                  "name": "Further Description",
+                  "novalid": {},
+                  "key": "nusi1m4w",
+                  "model": "further_description",
                   "rules": []
                 },
                 {
@@ -5452,7 +5733,7 @@
                     "disabled": false,
                     "dataBind": true,
                     "required": false,
-                    "validator": "(async () => {\n  const { table_si } = this.getValues();\n  const fieldParts = rule.field.split(\".\");\n  const index = fieldParts[1];\n\n  const availableInvQty = table_si[index].available_inv_qty;\n\n  if(value > availableInvQty) {\n    console.log('value', value);\n    console.log('availableInvQty', availableInvQty);\n    callback('Invoice quantity cannot exceed available invoice quantity.');\n  } else {\n    callback();\n  }\n})();\n",
+                    "validator": "(async () => {\n  const { table_si } = this.getValues();\n  const fieldParts = rule.field.split(\".\");\n  const index = fieldParts[1];\n\n  const availableInvQty = table_si[index].available_inv_qty;\n  const positiveValue = Math.abs(value);\n  if(positiveValue > availableInvQty) {\n    console.log('positiveValue', positiveValue);\n    console.log('availableInvQty', availableInvQty);\n    callback('Invoice quantity cannot exceed available invoice quantity.');\n  } else {\n    callback();\n  }\n})();\n",
                     "hideLabel": false,
                     "placeholder": "",
                     "controls": false,
@@ -5501,7 +5782,7 @@
                   "model": "invoice_qty",
                   "rules": [
                     {
-                      "func": "(async () => {\n  const { table_si } = this.getValues();\n  const fieldParts = rule.field.split(\".\");\n  const index = fieldParts[1];\n\n  const availableInvQty = table_si[index].available_inv_qty;\n\n  if(value > availableInvQty) {\n    console.log('value', value);\n    console.log('availableInvQty', availableInvQty);\n    callback('Invoice quantity cannot exceed available invoice quantity.');\n  } else {\n    callback();\n  }\n})();\n"
+                      "func": "(async () => {\n  const { table_si } = this.getValues();\n  const fieldParts = rule.field.split(\".\");\n  const index = fieldParts[1];\n\n  const availableInvQty = table_si[index].available_inv_qty;\n  const positiveValue = Math.abs(value);\n  if(positiveValue > availableInvQty) {\n    console.log('positiveValue', positiveValue);\n    console.log('availableInvQty', availableInvQty);\n    callback('Invoice quantity cannot exceed available invoice quantity.');\n  } else {\n    callback();\n  }\n})();\n"
                     }
                   ]
                 },
@@ -6519,6 +6800,109 @@
                   "novalid": {},
                   "key": "gftz85ym",
                   "model": "si_amount",
+                  "rules": []
+                },
+                {
+                  "version": "1.0.0",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": false,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_lvezuv6d",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "tariff_code",
+                      "image": "",
+                      "icon": "",
+                      "explain": "",
+                      "cascade": ""
+                    },
+                    "remoteFunc": "func_lvezuv6d",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": true,
+                    "subform": false,
+                    "datasource": {
+                      "rules": {
+                        "collectionId": "1902006834999447554",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{global:firstLvDeptId}}",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "Organization",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      },
+                      "source": "Tariff:Table:1902006834999447554"
+                    },
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": []
+                  },
+                  "events": {
+                    "onReady": "",
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Tariff",
+                  "novalid": {},
+                  "key": "lvezuv6d",
+                  "model": "tariff_id",
                   "rules": []
                 },
                 {
@@ -8349,6 +8733,118 @@
                   "key": "5q344go9",
                   "model": "custom_fields",
                   "rules": []
+                },
+                {
+                  "version": "1.0.0",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": false,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_pe7htnej",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "isShowExpandButton": false,
+                    "buttonText": "新增",
+                    "buttonPosition": "bottom",
+                    "buttonAlign": "right",
+                    "buttonSize": "default",
+                    "buttonEvent": [],
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "project_code",
+                      "image": "",
+                      "icon": "",
+                      "explain": "",
+                      "cascade": "",
+                      "children": ""
+                    },
+                    "remoteFunc": "func_pe7htnej",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": false,
+                    "subform": false,
+                    "datasource": {
+                      "rules": {
+                        "collectionId": "2085600321692696577",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{value:organization_id}}",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      },
+                      "source": "Project:Table:2085600321692696577"
+                    },
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": [],
+                    "paging_enabled": 1,
+                    "page_size": 10
+                  },
+                  "events": {
+                    "onReady": "",
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Project",
+                  "novalid": {},
+                  "key": "vx9b193e",
+                  "model": "project_id",
+                  "rules": []
                 }
               ],
               "key": "zt0c3x55",
@@ -10000,7 +10496,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "si_save_as_completed"
           },
           "events": {
             "onClick": "mlkqamzp"
@@ -10044,7 +10541,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "si_save_as_completed"
           },
           "events": {
             "onClick": "5theio6b"
@@ -10088,7 +10586,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "si_save_as_completed_post"
           },
           "events": {
             "onClick": "2knzknsc"
@@ -10132,7 +10631,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "si_save_as_completed_post"
           },
           "events": {
             "onClick": "e0uqmg7e"
@@ -10176,7 +10676,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "si_save_as_post"
           },
           "events": {
             "onClick": "j0i3xkkb"
@@ -11963,7 +12464,7 @@
       {
         "key": "e063qm85",
         "name": "SIcalculation",
-        "func": "const data = this.getValues();\nconst exchangeRate = data.exchange_rate;\nlet items = [];\n\nif (data.table_si.length > 0) {\n  items = data.table_si;\n} else {\n  const { SILineItem } = arguments[0];\n  items = SILineItem;\n}\n\nlet totalGross = 0;\nlet totalDiscount = 0;\nlet totalTax = 0;\nlet totalAmount = 0;\n\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nif (Array.isArray(items)) {\n  items.forEach((item, index) => {\n    // Ensure values are numeric\n    const quantity = Number(item.invoice_qty) || 0;\n    const unitPrice = roundPrice(item.unit_price) || 0;\n    const grossValue = quantity * unitPrice;\n\n    totalGross += roundPrice(grossValue);\n\n    // Set gross value\n    this.setData({\n      [`table_si.${index}.gross`]: roundPrice(grossValue),\n      [`table_si.${index}.si_amount`]: roundPrice(grossValue),\n      invoice_subtotal: roundPrice(totalGross),\n    });\n\n    // Get discount, discountUOM, and tax info for this row\n    let discount = parseFloat(item.si_discount) || 0;\n    let discountUOM = item.si_discount_uom_id;\n    const taxRate = Number(item.tax_percent) || 0;\n    const taxInclusive = item.si_tax_inclusive;\n    let discountAmount = 0.0;\n\n    if (discount > 0) {\n      if (!discountUOM) {\n        discountUOM = \"Amount\";\n        this.setData({ [`table_si.${index}.si_discount_uom_id`]: discountUOM });\n      }\n    }\n\n    if (discountUOM) {\n      // Calculate discount amount using UOM from database\n      if (discount !== 0) {\n        if (discountUOM === \"Amount\") {\n          discountAmount = roundPrice(discount);\n        } else if (discountUOM === \"%\") {\n          discountAmount = roundPrice((grossValue * discount) / 100);\n        }\n\n        if (discountAmount > grossValue) {\n          discount = 0;\n          discountAmount = 0;\n\n          this.setData({\n            [`table_si.${index}.si_discount`]: 0,\n            [`table_si.${index}.discount_amount`]: 0,\n          });\n        } else {\n          this.setData({\n            [`table_si.${index}.discount_amount`]: roundPrice(discountAmount),\n          });\n        }\n      }\n    } else {\n      this.setData({\n        [`table_si.${index}.discount_amount`]: 0,\n      });\n    }\n    // Calculate amount after discount\n    const amountAfterDiscount = roundPrice(grossValue - discountAmount);\n\n    // Calculate tax amount based on taxInclusive flag\n    let taxAmount = 0;\n    let finalAmount = amountAfterDiscount;\n\n    if (taxRate) {\n      const taxRateDecimal = taxRate / 100;\n\n      if (taxInclusive === 1) {\n        taxAmount = roundPrice(\n          amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal)\n        );\n        finalAmount = amountAfterDiscount;\n      } else {\n        taxAmount = roundPrice(amountAfterDiscount * taxRateDecimal);\n        finalAmount = amountAfterDiscount + taxAmount;\n      }\n\n      // Set tax amount\n      this.setData({\n        [`table_si.${index}.tax_amount`]: taxAmount,\n      });\n    } else {\n      this.setData({\n        [`table_si.${index}.tax_amount`]: 0,\n      });\n    }\n\n    // Set final amount\n    this.setData({\n      [`table_si.${index}.si_amount`]: roundPrice(finalAmount),\n    });\n\n    // Subtract previous values before adding new ones\n    totalDiscount += roundPrice(discountAmount);\n    totalTax += roundPrice(taxAmount);\n    totalAmount += roundPrice(finalAmount);\n\n    if (totalTax > 0) {\n      this.display([\"invoice_taxes_amount\", \"total_tax_currency\"]);\n    }\n\n    // Set the total fields\n    this.setData({\n      invoice_total_discount: roundPrice(totalDiscount),\n      invoice_taxes_amount: roundPrice(totalTax),\n      invoice_total: roundPrice(totalAmount),\n    });\n\n    if (!exchangeRate) {\n      return;\n    } else {\n      const myrTotal = exchangeRate * totalAmount;\n      this.setData({\n        myr_total_amount: roundPrice(myrTotal),\n      });\n    }\n  }); // This closing bracket was missing for the forEach callback\n} else {\n  console.log(\"Not an array:\", items);\n}\n",
+        "func": "console.log(this);\n\n// 1. 获取初始数据\nconst data = this.getValues();\nconst items = data.table_si || [];\nconst exchangeRate = data.exchange_rate;\nconsole.log(\"items\", items);\n\n// 2. 初始化计算变量\nlet totalGross = 0;\nlet totalDiscount = 0;\nlet totalTax = 0;\nlet totalAmount = 0;\nconst totalItems = items.length;\n\n// 3. 创建更新收集器\nconst updates = {};\n\nconst roundPrice = (value) => {\n  if (parseFloat(value) < 0) {\n    return 0;\n  }\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\n// Get current row info\nconst currentRow = arguments[0]?.row;\nconst currentFmKey = currentRow?.fm_key;\n\nif (Array.isArray(items)) {\n  items.forEach((item, index) => {\n    console.log(\"item\", item);\n\n    // Check if this is the current row\n    const isCurrentRow = currentRow && item.fm_key === currentFmKey;\n\n    console.log(\"current row check\", {\n      index,\n      itemFmKey: item.fm_key,\n      currentFmKey,\n      isCurrentRow,\n    });\n\n    // RECALCULATE ALL ROWS, not just the current one\n    // But use the current row's new values from arguments[0].row for the current row\n    let quantity, unitPrice, grossValue, discount, discountUOM, discountAmount;\n    let taxRate, taxInclusive, taxAmount, finalAmount;\n\n    if (isCurrentRow) {\n      // Use the row from arguments for current row (has latest values)\n      const row = arguments[0].row;\n      quantity = Number(row.invoice_qty) || 0;\n      unitPrice = quantity < 0 ? 0 : roundPrice(row.unit_price) || 0;\n      grossValue = quantity * unitPrice;\n\n      discount = parseFloat(row.si_discount) || 0;\n      discountUOM = row.si_discount_uom_id;\n      taxRate = Number(row.tax_percent) || 0;\n      taxInclusive = row.si_tax_inclusive;\n\n      // Update the current row's gross\n      updates[`table_si.${index}.gross`] = roundPrice(grossValue);\n      updates[`table_si.${index}.unit_price`] = roundPrice(unitPrice);\n      if (arguments[0].field === \"unit_price\") {\n        updates[`table_si.${index}.custom_fields`] = {\n          ...row.custom_fields,\n          kamco_unit_price: unitPrice,\n        };\n\n        updates[`table_si.${index}.trigger_calc`] = \"No\";\n      }\n    } else {\n      // For non-current rows, use the values from the form data (which should be the latest)\n      quantity = Number(item.invoice_qty) || 0;\n      unitPrice = roundPrice(item.unit_price) || 0;\n      grossValue = quantity * unitPrice;\n\n      // IMPORTANT: Use the item's current values from the form\n      discount = parseFloat(item.si_discount) || 0;\n      discountUOM = item.si_discount_uom_id;\n      taxRate = Number(item.tax_percent) || 0;\n      taxInclusive = item.si_tax_inclusive;\n    }\n\n    // Calculate discount (for ALL rows)\n    discountAmount = 0;\n    if (discount > 0 && !discountUOM) {\n      discountUOM = \"Amount\";\n      updates[`table_si.${index}.si_discount_uom_id`] = \"Amount\";\n    }\n\n    if (discountUOM && discount !== 0) {\n      if (discountUOM === \"Amount\") {\n        discountAmount = roundPrice(discount);\n      } else if (discountUOM === \"%\") {\n        discountAmount = roundPrice((grossValue * discount) / 100);\n      }\n\n      if (discountAmount > grossValue) {\n        discountAmount = 0;\n        updates[`table_si.${index}.si_discount`] = 0;\n        updates[`table_si.${index}.discount_amount`] = 0;\n      } else {\n        updates[`table_si.${index}.discount_amount`] =\n          roundPrice(discountAmount);\n      }\n    } else {\n      updates[`table_si.${index}.discount_amount`] = 0;\n    }\n\n    const amountAfterDiscount = roundPrice(grossValue - discountAmount);\n\n    // Calculate tax (for ALL rows)\n    taxAmount = 0;\n    finalAmount = amountAfterDiscount;\n\n    if (taxRate) {\n      const taxRateDecimal = taxRate / 100;\n\n      if (taxInclusive === 1) {\n        taxAmount = roundPrice(\n          amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal),\n        );\n        finalAmount = amountAfterDiscount;\n      } else {\n        taxAmount = roundPrice(amountAfterDiscount * taxRateDecimal);\n        finalAmount = amountAfterDiscount + taxAmount;\n      }\n\n      updates[`table_si.${index}.tax_amount`] = roundPrice(taxAmount);\n    } else {\n      updates[`table_si.${index}.tax_amount`] = 0;\n    }\n\n    updates[`table_si.${index}.si_amount`] = roundPrice(finalAmount);\n\n    // Add to totals (use the calculated values for ALL rows)\n    totalGross += roundPrice(grossValue);\n    totalDiscount += roundPrice(discountAmount);\n    totalTax += roundPrice(taxAmount);\n    totalAmount += roundPrice(finalAmount);\n\n    console.log(\"Row calculation result\", {\n      index,\n      isCurrentRow,\n      grossValue,\n      discountAmount,\n      taxAmount,\n      finalAmount,\n    });\n  });\n\n  if (totalTax > 0) {\n    this.display([\"invoice_taxes_amount\", \"total_tax_currency\"]);\n  }\n\n  updates[\"invoice_subtotal\"] = roundPrice(totalGross);\n  updates[\"invoice_total_discount\"] = roundPrice(totalDiscount);\n  updates[\"invoice_taxes_amount\"] = roundPrice(totalTax);\n  updates[\"invoice_total\"] = roundPrice(totalAmount);\n\n  if (exchangeRate) {\n    const myrTotal = exchangeRate * totalAmount;\n    updates[\"myr_total_amount\"] = roundPrice(myrTotal);\n  }\n\n  console.log(\"gross 2:\", totalGross);\n  console.log(\"updates:\", updates);\n  console.log(\"models\", this.models);\n\n  console.log(\"Batch updating fields:\", Object.keys(updates).length);\n  this.setData(updates);\n\n  setTimeout(() => {\n    console.log(\"models 2\", this.models);\n    console.log(\"updates 2:\", updates);\n  }, 2000);\n\n  return items;\n} else {\n  console.log(\"Not an array:\", items);\n  return items;\n}\n",
         "type": "js"
       },
       {
@@ -11988,13 +12489,13 @@
       {
         "key": "mlkqamzp",
         "name": "onClick_save_as_completed",
-        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst submitForm = async (data) => {\n  await this.runWorkflow(\n    \"2029040374929154050\",\n    {\n      data: data,\n    },\n    (res) => {\n      this.$message.success(`${this.isEdit ? \"Update\" : \"Add\"} successfully`);\n      closeDialog();\n    },\n    async (error) => {\n      this.hideLoading();\n      console.error(error);\n      if (error.data?.code === 408) {\n        // 408 - Credit limit block\n        const cleanMessage = error.data?.msg.replace(/^Block - /, \"\");\n\n        await this.$alert(`${cleanMessage}`, \"\", {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        });\n      } else if (error.data?.code === 409) {\n        // 409 - Credit limit override\n        const cleanMessage = error.data?.msg.replace(/^Override - /, \"\");\n        await this.$confirm(`${cleanMessage}`, ``, {\n          confirmButtonText: \"Proceed\",\n          cancelButtonText: \"Cancel\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        }).catch(() => {\n          console.log(\"User clicked Cancel or closed the dialog\");\n          this.hideLoading();\n          throw new Error(\"Saving sales invoice cancelled.\");\n        });\n\n        this.showLoading(\"Saving Sales Invoice...\");\n        data.need_cl = \"not required\";\n\n        await submitForm(data);\n      }\n    },\n  );\n};\n\n(async () => {\n  this.showLoading(\"Saving Sales Invoice...\");\n  let data = this.getValues();\n\n  data.si_status = \"Completed\";\n  data.posted_status = \"Unposted\";\n\n  await submitForm(data);\n})();\n",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst submitForm = async (data) => {\n  await this.runWorkflow(\n    \"2029040374929154050\",\n    {\n      data: data,\n    },\n    async (res) => {\n      // Internal-trading signals come back on the SUCCESS channel (code 200) so\n      // they do NOT trigger the platform's error toast.\n      const out = (res && res.data) || {};\n\n      if (Number(out.pi_confirm) === 411) {\n        // Linked to an internal PO — confirm auto-creating the Purchase Invoice.\n        this.hideLoading();\n        const cleanMessage =\n          out.msg ||\n          \"This invoice is linked to an internal Purchase Order. Auto-create the Purchase Invoice in the buyer organization?\";\n\n        const proceed = await this.$confirm(\n          `${cleanMessage}`,\n          \"Internal Trading – Auto-create Purchase Invoice\",\n          {\n            confirmButtonText: \"Yes, create PI\",\n            cancelButtonText: \"No, save without\",\n            type: \"info\",\n            dangerouslyUseHTMLString: true,\n          },\n        )\n          .then(() => true)\n          .catch(() => false);\n\n        if (proceed) {\n          data.auto_pi_confirmed = true;\n        } else {\n          data.auto_pi_skip = true;\n        }\n\n        this.showLoading(\"Saving Sales Invoice...\");\n        await submitForm(data);\n        return;\n      }\n\n      if (Number(out.pi_trigger_failed) === 1) {\n        // SI completed, but the linked auto-PI creation failed (non-blocking).\n        this.hideLoading();\n        const cleanMessage =\n          out.pi_message ||\n          \"The invoice was completed, but the linked Purchase Invoice could not be created automatically. Please create it manually.\";\n\n        await this.$alert(`${cleanMessage}`, \"Purchase Invoice not created\", {\n          confirmButtonText: \"OK\",\n          type: \"warning\",\n          dangerouslyUseHTMLString: true,\n        });\n        closeDialog();\n        return;\n      }\n\n      this.$message.success(`${this.isEdit ? \"Update\" : \"Add\"} successfully`);\n      closeDialog();\n    },\n    async (error) => {\n      this.hideLoading();\n      console.error(error);\n      if (error.data?.code === 408) {\n        // 408 - Credit limit block\n        const cleanMessage = error.data?.msg.replace(/^Block - /, \"\");\n\n        await this.$alert(`${cleanMessage}`, \"\", {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        });\n      } else if (error.data?.code === 409) {\n        // 409 - Credit limit override\n        const cleanMessage = error.data?.msg.replace(/^Override - /, \"\");\n        await this.$confirm(`${cleanMessage}`, ``, {\n          confirmButtonText: \"Proceed\",\n          cancelButtonText: \"Cancel\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        }).catch(() => {\n          console.log(\"User clicked Cancel or closed the dialog\");\n          this.hideLoading();\n          throw new Error(\"Saving sales invoice cancelled.\");\n        });\n\n        this.showLoading(\"Saving Sales Invoice...\");\n        data.need_cl = \"not required\";\n\n        await submitForm(data);\n      }\n    },\n  );\n};\n\n(async () => {\n  this.showLoading(\"Saving Sales Invoice...\");\n  let data = this.getValues();\n\n  data.si_status = \"Completed\";\n  data.posted_status = \"Unposted\";\n\n  await submitForm(data);\n})();\n",
         "type": "js"
       },
       {
         "key": "2knzknsc",
         "name": "onClick_save_as_completed_posted",
-        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst submitForm = async (data) => {\n  await this.runWorkflow(\n    \"2029040374929154050\",\n    {\n      data: data,\n    },\n    async (res) => {\n      this.$message.success(`${this.isEdit ? \"Update\" : \"Add\"} successfully`);\n      console.log(\"res\", res.data);\n      await this.runWorkflow(\n        \"2029464545187823617\",\n        {\n          si_ids: [res.data.id],\n          acc_integration_type: data.acc_integration_type,\n        },\n        async (res) => {\n          console.log(\"res\", res.data);\n          this.$message.success(\"Sales Invoice posted successfully\");\n          this.hideLoading();\n        },\n        async (err) => {\n          console.error(err);\n          this.$message.error(\"Posting Sales Invoice failed\");\n          this.hideLoading();\n        },\n      );\n      closeDialog();\n    },\n    async (error) => {\n      this.hideLoading();\n      console.error(error);\n      if (error.data?.code === 408) {\n        // 408 - Credit limit block\n        const cleanMessage = error.data?.msg.replace(/^Block - /, \"\");\n\n        await this.$alert(`${cleanMessage}`, \"\", {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        });\n      } else if (error.data?.code === 409) {\n        // 409 - Credit limit override\n        const cleanMessage = error.data?.msg.replace(/^Override - /, \"\");\n        await this.$confirm(`${cleanMessage}`, ``, {\n          confirmButtonText: \"Proceed\",\n          cancelButtonText: \"Cancel\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        }).catch(() => {\n          console.log(\"User clicked Cancel or closed the dialog\");\n          this.hideLoading();\n          throw new Error(\"Saving sales invoice cancelled.\");\n        });\n\n        this.showLoading(\"Saving Sales Invoice...\");\n        data.need_cl = \"not required\";\n\n        await submitForm(data);\n      }\n    },\n  );\n};\n\n(async () => {\n  this.showLoading(\"Saving Sales Invoice...\");\n  let data = this.getValues();\n\n  data.si_status = \"Completed\";\n  data.posted_status = \"Unposted\";\n\n  await submitForm(data);\n})();\n",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst postSI = async (siId, accType) => {\n  await this.runWorkflow(\n    \"2029464545187823617\",\n    {\n      si_ids: [siId],\n      acc_integration_type: accType,\n    },\n    async (res) => {\n      console.log(\"res\", res.data);\n      this.$message.success(\"Sales Invoice posted successfully\");\n      this.hideLoading();\n    },\n    async (err) => {\n      console.error(err);\n      this.$message.error(\"Posting Sales Invoice failed\");\n      this.hideLoading();\n    },\n  );\n};\n\nconst submitForm = async (data) => {\n  await this.runWorkflow(\n    \"2029040374929154050\",\n    {\n      data: data,\n    },\n    async (res) => {\n      // Internal-trading signals come back on the SUCCESS channel (code 200) so\n      // they do NOT trigger the platform's error toast.\n      const out = (res && res.data) || {};\n\n      if (Number(out.pi_confirm) === 411) {\n        // Linked to an internal PO — confirm auto-creating the Purchase Invoice.\n        this.hideLoading();\n        const cleanMessage =\n          out.msg ||\n          \"This invoice is linked to an internal Purchase Order. Auto-create the Purchase Invoice in the buyer organization?\";\n\n        const proceed = await this.$confirm(\n          `${cleanMessage}`,\n          \"Internal Trading – Auto-create Purchase Invoice\",\n          {\n            confirmButtonText: \"Yes, create PI\",\n            cancelButtonText: \"No, save without\",\n            type: \"info\",\n            dangerouslyUseHTMLString: true,\n          },\n        )\n          .then(() => true)\n          .catch(() => false);\n\n        if (proceed) {\n          data.auto_pi_confirmed = true;\n        } else {\n          data.auto_pi_skip = true;\n        }\n\n        this.showLoading(\"Saving Sales Invoice...\");\n        await submitForm(data);\n        return;\n      }\n\n      if (Number(out.pi_trigger_failed) === 1) {\n        // SI completed, but the linked auto-PI creation failed (non-blocking).\n        // The SI is saved, so still post it, then warn about the PI.\n        if (out.id) {\n          await postSI(out.id, data.acc_integration_type);\n        }\n        const cleanMessage =\n          out.pi_message ||\n          \"The invoice was completed, but the linked Purchase Invoice could not be created automatically. Please create it manually.\";\n\n        await this.$alert(`${cleanMessage}`, \"Purchase Invoice not created\", {\n          confirmButtonText: \"OK\",\n          type: \"warning\",\n          dangerouslyUseHTMLString: true,\n        });\n        closeDialog();\n        return;\n      }\n\n      this.$message.success(`${this.isEdit ? \"Update\" : \"Add\"} successfully`);\n      await postSI(res.data.id, data.acc_integration_type);\n      closeDialog();\n    },\n    async (error) => {\n      this.hideLoading();\n      console.error(error);\n      if (error.data?.code === 408) {\n        // 408 - Credit limit block\n        const cleanMessage = error.data?.msg.replace(/^Block - /, \"\");\n\n        await this.$alert(`${cleanMessage}`, \"\", {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        });\n      } else if (error.data?.code === 409) {\n        // 409 - Credit limit override\n        const cleanMessage = error.data?.msg.replace(/^Override - /, \"\");\n        await this.$confirm(`${cleanMessage}`, ``, {\n          confirmButtonText: \"Proceed\",\n          cancelButtonText: \"Cancel\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        }).catch(() => {\n          console.log(\"User clicked Cancel or closed the dialog\");\n          this.hideLoading();\n          throw new Error(\"Saving sales invoice cancelled.\");\n        });\n\n        this.showLoading(\"Saving Sales Invoice...\");\n        data.need_cl = \"not required\";\n\n        await submitForm(data);\n      }\n    },\n  );\n};\n\n(async () => {\n  this.showLoading(\"Saving Sales Invoice...\");\n  let data = this.getValues();\n\n  data.si_status = \"Completed\";\n  data.posted_status = \"Unposted\";\n\n  await submitForm(data);\n})();\n",
         "type": "js"
       },
       {
@@ -12166,7 +12667,7 @@
       {
         "key": "ua6gcgje",
         "name": "onConfirm_batchAddItem",
-        "func": "const checkExistingSOinSI = async (gdArray) => {\n  const gdNumbersWithSI = new Set(); // Use Set to avoid duplicates\n\n  await Promise.all(\n    gdArray.flatMap((gd) =>\n      gd.sales_order_id.map((soId) =>\n        db\n          .collection(\"sales_invoice\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [\n                { prop: \"so_id\", operator: \"in\", value: soId.id },\n                { prop: \"gd_no_display\", operator: \"isNull\", value: null },\n              ],\n            },\n          ])\n          .get()\n          .then((response) => {\n            if (response.data[0]) {\n              // Only add gd number if PI exists\n              gdNumbersWithSI.add(gd.goods_delivery_number);\n            }\n          }),\n      ),\n    ),\n  );\n\n  console.log(\"gd numbers with existing SIs:\", Array.from(gdNumbersWithSI));\n  return Array.from(gdNumbersWithSI);\n};\n\nconst fetchSOLineItemData = async (soLineItemIDs) => {\n  const resSOLineItem = await Promise.all(\n    soLineItemIDs.map((lineId) =>\n      db.collection(\"sales_order_axszx8cj_sub\").doc(lineId).get(),\n    ),\n  );\n\n  const soLineItemData = resSOLineItem.map((response) => response.data[0]);\n  return soLineItemData;\n};\n\nconst processData = async (referenceType, latesttableSI) => {\n  this.display([\"so_no_display\"]);\n  if (referenceType.endsWith(\"GD\")) {\n    this.display(\"gd_no_display\");\n  } else {\n    this.hide(\"gd_no_display\");\n  }\n\n  for (const [index, si] of latesttableSI.entries()) {\n    const result = si.tax_percent && si.tax_percent >= 0;\n    this.disabled([`table_si.${index}.tax_percent`], !result);\n\n    if (referenceType.endsWith(\"GD\")) {\n      this.display(`table_si.line_gd_no`);\n    } else {\n      this.hide(`table_si.line_gd_no`);\n    }\n  }\n};\n\n(async () => {\n  const previousReferenceType = this.getValue(\"reference_type\");\n  const currentItemArray = arguments[0].itemArray;\n  let existingSI = this.getValue(\"table_si\");\n  const referenceType = arguments[0].referenceType;\n\n  const customerName = this.getValue(\"customer_id\");\n\n  let tableSI = [];\n  let salesOrderNumber = [];\n  let soId = [];\n  let goodsDeliveryNumber = [];\n  let gdId = [];\n\n  // Validation: If no item selected, pop up error and return early\n  if (currentItemArray.length === 0) {\n    await this.$alert(\n      \"Please select at least one sales order / goods delivery / item.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n  }\n\n  // Validation: If reference type changed, pop up confirmation dialog to confirm with user, if confirmed, reset existing SI line items\n  if (previousReferenceType && previousReferenceType !== referenceType) {\n    await this.$confirm(\n      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Reference Type Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingSI = [];\n  }\n\n  // Check Customer\n  const uniqueCustomers = new Set(\n    currentItemArray.map((item) =>\n      referenceType.startsWith(\"Document\")\n        ? item.customer_id\n        : item.customer.id,\n    ),\n  );\n  const allSameCustomer = uniqueCustomers.size === 1;\n\n  if (!allSameCustomer) {\n    await this.$alert(\n      \"Invoiced item(s) from more than two different customers is not allowed.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n  }\n  if (customerName && customerName !== [...uniqueCustomers][0]) {\n    await this.$confirm(\n      `You've selected a different customer than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Customer Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingSI = [];\n  }\n\n  // If reference type is GD, check if selected GD has existing SI, if has, pop up dialog to inform user and return early\n  if (referenceType === \"Document - GD\" || referenceType === \"Item - GD\") {\n    const existingGDNumbers = await checkExistingSOinSI(currentItemArray);\n\n    // if has existing purchase invoice, pop dialog and reset gr\n    if (existingGDNumbers && existingGDNumbers.length > 0) {\n      await this.$alert(\n        `Sales Order(s) in the ${existingGDNumbers.join(\n          \", \",\n        )} has existing Sales Invoice(s). Please choose different Goods Delivery(s).`,\n        \"Existing Sales Invoice(s) Detected\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"warning\",\n          dangerouslyUseHTMLString: false,\n        },\n      ).catch(() => {\n        console.log(\"User clicked Cancel or closed the dialog\");\n        throw new Error();\n      });\n    }\n  }\n  this.closeDialog(\"dialog_select_item\");\n  this.showLoading();\n\n  switch (referenceType) {\n    case \"Document - SO\":\n      for (const so of currentItemArray) {\n        for (const soItem of so.table_so) {\n          const newtableSIRecord = {\n            material_id: soItem.item_name || \"\",\n            material_name: soItem.item_id,\n            material_desc: soItem.so_desc || \"\",\n\n            more_desc: soItem.more_desc || \"\",\n            line_remark_1: soItem.line_remark_1 || \"\",\n            line_remark_2: soItem.line_remark_2 || \"\",\n            line_remark_3: soItem.line_remark_3 || \"\",\n\n            line_so_no: so.sales_order_number,\n            line_gd_no: \"\",\n\n            so_order_quantity: soItem.so_quantity,\n            so_order_uom_id: soItem.so_item_uom,\n            good_delivery_quantity: soItem.delivered_qty,\n            invoice_qty: soItem.so_quantity - (soItem.invoice_qty || 0),\n            available_inv_qty: soItem.so_quantity - (soItem.invoice_qty || 0),\n            invoice_qty_uom_id: soItem.so_item_uom,\n            unit_price: soItem.so_item_price,\n            si_discount: soItem.so_discount,\n            si_discount_uom_id: soItem.so_discount_uom,\n            si_tax_rate_id: soItem.so_tax_preference,\n            tax_percent: soItem.so_tax_percentage,\n            si_tax_inclusive: soItem.so_tax_inclusive,\n\n            line_so_id: so.sales_order_id,\n            so_line_id: soItem.id,\n            line_gd_id: \"\",\n            gd_line_id: \"\",\n            item_category_id: soItem.item_category_id,\n            custom_fields: soItem.custom_fields,\n          };\n\n          tableSI.push(newtableSIRecord);\n        }\n      }\n\n      break;\n\n    case \"Document - GD\":\n      for (const gd of currentItemArray) {\n        const soLineItemIDs = gd.table_gd.map((gd) => gd.so_line_item_id);\n\n        const soLineItemData = await fetchSOLineItemData(soLineItemIDs);\n        console.log(\"soLineItemData\", soLineItemData);\n        for (const [index, gdItem] of gd.table_gd.entries()) {\n          const newtableSIRecord = {\n            material_id: gdItem.material_id || \"\",\n            material_name: gdItem.material_name,\n            material_desc: gdItem.gd_material_desc || \"\",\n\n            more_desc: gdItem.more_desc || \"\",\n            line_remark_1: gdItem.line_remark_1 || \"\",\n            line_remark_2: gdItem.line_remark_2 || \"\",\n            line_remark_3: gdItem.line_remark_3 || \"\",\n\n            line_so_no: gdItem.line_so_no,\n            line_gd_no: gd.goods_delivery_number,\n\n            so_order_quantity: gdItem.gd_order_quantity,\n            so_order_uom_id: gdItem.good_delivery_uom_id,\n            good_delivery_quantity: gdItem.gd_qty,\n            invoice_qty: gdItem.gd_qty - (gdItem.invoice_qty || 0),\n            available_inv_qty: gdItem.gd_qty - (gdItem.invoice_qty || 0),\n            invoice_qty_uom_id: gdItem.good_delivery_uom_id,\n            unit_price: soLineItemData[index].so_item_price,\n            si_discount: soLineItemData[index].so_discount,\n            si_discount_uom_id: soLineItemData[index].so_discount_uom,\n            si_tax_rate_id: soLineItemData[index].so_tax_preference,\n            tax_percent: soLineItemData[index].so_tax_percentage,\n            si_tax_inclusive: soLineItemData[index].so_tax_inclusive,\n            custom_fields: gdItem.custom_fields,\n            line_so_id: gdItem.line_so_id,\n            so_line_id: gdItem.so_line_item_id,\n            line_gd_id: gd.goods_delivery_id,\n            gd_line_id: gdItem.id,\n            item_category_id: gdItem.item_category_id,\n          };\n\n          tableSI.push(newtableSIRecord);\n        }\n      }\n      break;\n\n    case \"Item - SO\":\n      for (const soItem of currentItemArray) {\n        const newtableSIRecord = {\n          material_id: soItem.item.id || \"\",\n          material_name: soItem.item.material_name,\n          material_desc: soItem.item_desc || \"\",\n\n          more_desc: soItem.more_desc || \"\",\n          line_remark_1: soItem.line_remark_1 || \"\",\n          line_remark_2: soItem.line_remark_2 || \"\",\n          line_remark_3: soItem.line_remark_3 || \"\",\n\n          line_so_no: soItem.sales_order.so_no,\n          line_gd_no: \"\",\n\n          so_order_quantity: soItem.so_quantity,\n          so_order_uom_id: soItem.so_item_uom,\n          good_delivery_quantity: soItem.delivered_qty,\n          invoice_qty: soItem.so_quantity - (soItem.invoice_qty || 0),\n          available_inv_qty: soItem.so_quantity - (soItem.invoice_qty || 0),\n          invoice_qty_uom_id: soItem.so_item_uom,\n          unit_price: soItem.so_item_price,\n          si_discount: soItem.so_discount,\n          si_discount_uom_id: soItem.so_discount_uom,\n          si_tax_rate_id: soItem.so_tax_preference,\n          tax_percent: soItem.so_tax_percentage,\n          si_tax_inclusive: soItem.so_tax_inclusive,\n\n          line_so_id: soItem.sales_order.id,\n          so_line_id: soItem.sales_order_line_id,\n          line_gd_id: \"\",\n          gd_line_id: \"\",\n          item_category_id: soItem.item.item_category,\n          custom_fields: soItem.custom_fields,\n        };\n\n        tableSI.push(newtableSIRecord);\n      }\n      break;\n\n    case \"Item - GD\":\n      for (const gdItem of currentItemArray) {\n        const newtableSIRecord = {\n          material_id: gdItem.item.id || \"\",\n          material_name: gdItem.item.material_name,\n          material_desc: gdItem.item_desc || \"\",\n\n          more_desc: gdItem.more_desc || \"\",\n          line_remark_1: gdItem.line_remark_1 || \"\",\n          line_remark_2: gdItem.line_remark_2 || \"\",\n          line_remark_3: gdItem.line_remark_3 || \"\",\n\n          line_so_no: gdItem.line_so_no,\n          line_gd_no: gdItem.goods_delivery_number,\n\n          so_order_quantity: gdItem.ordered_qty,\n          so_order_uom_id: gdItem.uom,\n          good_delivery_quantity: gdItem.delivered_qty,\n          invoice_qty: gdItem.delivered_qty - (gdItem.invoiced_qty || 0),\n          available_inv_qty: gdItem.delivered_qty - (gdItem.invoiced_qty || 0),\n          invoice_qty_uom_id: gdItem.uom,\n          unit_price: gdItem.so_line_item.so_item_price,\n          si_discount: gdItem.so_line_item.so_discount,\n          si_discount_uom_id: gdItem.so_line_item.so_discount_uom,\n          si_tax_rate_id: gdItem.so_line_item.so_tax_preference,\n          tax_percent: gdItem.so_line_item.so_tax_percentage,\n          si_tax_inclusive: gdItem.so_line_item.so_tax_inclusive,\n\n          line_so_id: gdItem.line_so_id,\n          so_line_id: gdItem.so_line_item.id,\n          line_gd_id: gdItem.goods_delivery_id,\n          gd_line_id: gdItem.goods_delivery_line_id,\n          item_category_id: gdItem.item.item_category,\n          custom_fields: gdItem.custom_fields,\n        };\n\n        tableSI.push(newtableSIRecord);\n      }\n      break;\n\n    default:\n      break;\n  }\n\n  tableSI = tableSI.filter(\n    (si) =>\n      si.invoice_qty !== 0 &&\n      !existingSI.find((siItem) => siItem.so_line_id === si.so_line_id),\n  );\n\n  const latesttableSI = [...existingSI, ...tableSI];\n\n  soId = [...new Set(latesttableSI.map((si) => si.line_so_id))];\n  salesOrderNumber = [...new Set(latesttableSI.map((si) => si.line_so_no))];\n\n  gdId = [...new Set(latesttableSI.map((si) => si.line_gd_id))];\n  goodsDeliveryNumber = [...new Set(latesttableSI.map((si) => si.line_gd_no))];\n\n  console.log(\"tableSI\", tableSI);\n  await this.setData({\n    customer_id: referenceType.startsWith(\"Document\")\n      ? currentItemArray[0].customer_id\n      : currentItemArray[0].customer.id,\n    so_no_display: salesOrderNumber.join(\", \"),\n    so_id: soId,\n    gd_no_display: goodsDeliveryNumber.join(\", \"),\n    gd_id: gdId,\n    table_si: [...existingSI, ...tableSI],\n    reference_type: referenceType,\n  });\n\n  setTimeout(async () => {\n    await processData(referenceType, latesttableSI);\n  }, 50);\n\n  this.triggerEvent(\"SIcalculation\", { SIlineItem: latesttableSI });\n\n  this.hideLoading();\n})();\n",
+        "func": "const checkExistingSOinSI = async (gdArray) => {\n  const gdNumbersWithSI = new Set(); // Use Set to avoid duplicates\n\n  await Promise.all(\n    gdArray.flatMap((gd) =>\n      gd.sales_order_id.map((soId) =>\n        db\n          .collection(\"sales_invoice\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [\n                { prop: \"so_id\", operator: \"in\", value: soId.id },\n                { prop: \"gd_no_display\", operator: \"isNull\", value: null },\n              ],\n            },\n          ])\n          .get()\n          .then((response) => {\n            if (response.data[0]) {\n              // Only add gd number if PI exists\n              gdNumbersWithSI.add(gd.goods_delivery_number);\n            }\n          }),\n      ),\n    ),\n  );\n\n  console.log(\"gd numbers with existing SIs:\", Array.from(gdNumbersWithSI));\n  return Array.from(gdNumbersWithSI);\n};\n\nconst fetchSOLineItemData = async (soLineItemIDs) => {\n  const resSOLineItem = await Promise.all(\n    soLineItemIDs.map((lineId) =>\n      db.collection(\"sales_order_axszx8cj_sub\").doc(lineId).get(),\n    ),\n  );\n\n  const soLineItemData = resSOLineItem.map((response) => response.data[0]);\n  return soLineItemData;\n};\n\nconst processData = async (referenceType, latesttableSI) => {\n  this.display([\"so_no_display\"]);\n  if (referenceType.endsWith(\"GD\")) {\n    this.display(\"gd_no_display\");\n  } else {\n    this.hide(\"gd_no_display\");\n  }\n\n  for (const [index, si] of latesttableSI.entries()) {\n    const result = si.tax_percent && si.tax_percent >= 0;\n    this.disabled([`table_si.${index}.tax_percent`], !result);\n\n    if (referenceType.endsWith(\"GD\")) {\n      this.display(`table_si.line_gd_no`);\n    } else {\n      this.hide(`table_si.line_gd_no`);\n    }\n  }\n};\n\n(async () => {\n  try {\n    const previousReferenceType = this.getValue(\"reference_type\");\n    const currentItemArray = arguments[0].itemArray;\n    let existingSI = this.getValue(\"table_si\");\n    const referenceType = arguments[0].referenceType;\n\n    const customerName = this.getValue(\"customer_id\");\n\n    let tableSI = [];\n    let salesOrderNumber = [];\n    let soId = [];\n    let goodsDeliveryNumber = [];\n    let gdId = [];\n\n    // Validation: If no item selected, pop up error and return early\n    if (currentItemArray.length === 0) {\n      await this.$alert(\n        \"Please select at least one sales order / goods delivery / item.\",\n        \"Error\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n        },\n      );\n\n      console.log(\"User clicked Cancel or closed the dialog\");\n      return;\n    }\n\n    // Validation: If reference type changed, pop up confirmation dialog to confirm with user, if confirmed, reset existing SI line items\n    if (previousReferenceType && previousReferenceType !== referenceType) {\n      await this.$confirm(\n        `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n        \"Different Reference Type Detected\",\n        {\n          confirmButtonText: \"Proceed\",\n          cancelButtonText: \"Cancel\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        },\n      ).catch(() => {\n        console.log(\"User clicked Cancel or closed the dialog\");\n        throw new Error();\n      });\n\n      existingSI = [];\n    }\n\n    // Check Customer\n    const uniqueCustomers = new Set(\n      currentItemArray.map((item) =>\n        referenceType.startsWith(\"Document\")\n          ? item.customer_id\n          : item.customer.id,\n      ),\n    );\n    const allSameCustomer = uniqueCustomers.size === 1;\n\n    if (!allSameCustomer) {\n      await this.$alert(\n        \"Invoiced item(s) from more than two different customers is not allowed.\",\n        \"Error\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n        },\n      );\n\n      console.log(\"User clicked Cancel or closed the dialog\");\n      return;\n    }\n    if (customerName && customerName !== [...uniqueCustomers][0]) {\n      await this.$confirm(\n        `You've selected a different customer than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n        \"Different Customer Detected\",\n        {\n          confirmButtonText: \"Proceed\",\n          cancelButtonText: \"Cancel\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        },\n      ).catch(() => {\n        console.log(\"User clicked Cancel or closed the dialog\");\n        throw new Error();\n      });\n\n      existingSI = [];\n    }\n\n    // If reference type is GD, check if selected GD has existing SI, if has, pop up dialog to inform user and return early\n    if (referenceType === \"Document - GD\" || referenceType === \"Item - GD\") {\n      const existingGDNumbers = await checkExistingSOinSI(currentItemArray);\n\n      // if has existing purchase invoice, pop dialog and reset gr\n      if (existingGDNumbers && existingGDNumbers.length > 0) {\n        await this.$alert(\n          `Sales Order(s) in the ${existingGDNumbers.join(\n            \", \",\n          )} has existing Sales Invoice(s). Please choose different Goods Delivery(s).`,\n          \"Existing Sales Invoice(s) Detected\",\n          {\n            confirmButtonText: \"OK\",\n            type: \"warning\",\n            dangerouslyUseHTMLString: false,\n          },\n        ).catch(() => {\n          console.log(\"User clicked Cancel or closed the dialog\");\n          throw new Error();\n        });\n      }\n    }\n\n    // TEMP GUARD: block combining internal-trading and non-internal documents in\n    // one Sales Invoice. Internal = the source SO/GD has a \"Linked\" row in\n    // document_linkage (created by the PO->SO / GD->GR internal-trading flows).\n    // The reference type is uniform per SI (switching type resets the table\n    // above), so we classify the SO for *-SO and the GD for *-GD.\n    {\n      const isGD = referenceType.endsWith(\"GD\");\n\n      // Collect the doc ids to classify: new selection + existing SI lines, so\n      // adding a non-internal document onto an already-internal invoice is caught.\n      const docIdSet = new Set();\n      if (isGD) {\n        for (const gd of currentItemArray) {\n          if (gd.goods_delivery_id) docIdSet.add(gd.goods_delivery_id);\n        }\n        (existingSI || []).forEach(\n          (l) => l.line_gd_id && docIdSet.add(l.line_gd_id),\n        );\n      } else {\n        for (const so of currentItemArray) {\n          const soId =\n            referenceType === \"Document - SO\"\n              ? so.sales_order_id\n              : so.sales_order?.id;\n          if (soId) docIdSet.add(soId);\n        }\n        (existingSI || []).forEach(\n          (l) => l.line_so_id && docIdSet.add(l.line_so_id),\n        );\n      }\n\n      const docIds = [...docIdSet];\n      if (docIds.length > 0) {\n        const linkRes = await db\n          .collection(\"document_linkage\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [\n                {\n                  prop: isGD ? \"source_doc_type\" : \"target_doc_type\",\n                  operator: \"equal\",\n                  value: isGD ? \"Goods Delivery\" : \"Sales Order\",\n                },\n                {\n                  prop: isGD ? \"source_doc_id\" : \"target_doc_id\",\n                  operator: \"in\",\n                  value: docIds,\n                },\n                { prop: \"link_status\", operator: \"equal\", value: \"Linked\" },\n              ],\n            },\n          ])\n          .get();\n\n        const internalSet = new Set(\n          (linkRes?.data || []).map((r) =>\n            isGD ? r.source_doc_id : r.target_doc_id,\n          ),\n        );\n        const internalCount = docIds.filter((id) => internalSet.has(id)).length;\n\n        if (internalCount > 0 && internalCount < docIds.length) {\n          await this.$alert(\n            \"Cannot combine internal trading and non-internal documents in the same Sales Invoice. Please select only one type.\",\n            \"Error\",\n            { confirmButtonText: \"OK\", type: \"error\" },\n          );\n          return;\n        }\n      }\n    }\n\n    this.closeDialog(\"dialog_select_item\");\n    this.showLoading();\n\n    switch (referenceType) {\n      case \"Document - SO\":\n        for (const so of currentItemArray) {\n          for (const soItem of so.table_so) {\n            const newtableSIRecord = {\n              material_id: soItem.item_name || \"\",\n              material_name: soItem.item_id,\n              material_desc: soItem.so_desc || \"\",\n\n              more_desc: soItem.more_desc || \"\",\n              line_remark_1: soItem.line_remark_1 || \"\",\n              line_remark_2: soItem.line_remark_2 || \"\",\n              line_remark_3: soItem.line_remark_3 || \"\",\n\n              line_so_no: so.sales_order_number,\n              line_gd_no: \"\",\n\n              so_order_quantity: soItem.so_quantity,\n              so_order_uom_id: soItem.so_item_uom,\n              good_delivery_quantity: soItem.delivered_qty,\n              invoice_qty: soItem.so_quantity - (soItem.invoice_qty || 0),\n              available_inv_qty: soItem.so_quantity - (soItem.invoice_qty || 0),\n              invoice_qty_uom_id: soItem.so_item_uom,\n              unit_price: soItem.so_item_price,\n              si_discount: soItem.so_discount,\n              si_discount_uom_id: soItem.so_discount_uom,\n              si_tax_rate_id: soItem.so_tax_preference,\n              tax_percent: soItem.so_tax_percentage,\n              si_tax_inclusive: soItem.so_tax_inclusive,\n\n              line_so_id: so.sales_order_id,\n              so_line_id: soItem.id,\n              line_gd_id: \"\",\n              gd_line_id: \"\",\n              item_category_id: soItem.item_category_id,\n              custom_fields: soItem.custom_fields,\n              tariff_id: soItem.tariff_id,\n              trigger_calc: \"No\",\n              further_description: soItem.further_description,\n            };\n\n            tableSI.push(newtableSIRecord);\n          }\n        }\n\n        break;\n\n      case \"Document - GD\":\n        for (const gd of currentItemArray) {\n          const soLineItemIDs = gd.table_gd.map((gd) => gd.so_line_item_id);\n\n          const soLineItemData = await fetchSOLineItemData(soLineItemIDs);\n          console.log(\"soLineItemData\", soLineItemData);\n          for (const [index, gdItem] of gd.table_gd.entries()) {\n            const newtableSIRecord = {\n              material_id: gdItem.material_id || \"\",\n              material_name: gdItem.material_name,\n              material_desc: gdItem.gd_material_desc || \"\",\n\n              more_desc: gdItem.more_desc || \"\",\n              line_remark_1: gdItem.line_remark_1 || \"\",\n              line_remark_2: gdItem.line_remark_2 || \"\",\n              line_remark_3: gdItem.line_remark_3 || \"\",\n\n              line_so_no: gdItem.line_so_no,\n              line_gd_no: gd.goods_delivery_number,\n\n              so_order_quantity: gdItem.gd_order_quantity,\n              so_order_uom_id: gdItem.good_delivery_uom_id,\n              good_delivery_quantity: gdItem.gd_qty,\n              invoice_qty: gdItem.gd_qty - (gdItem.invoice_qty || 0),\n              available_inv_qty: gdItem.gd_qty - (gdItem.invoice_qty || 0),\n              invoice_qty_uom_id: gdItem.good_delivery_uom_id,\n              unit_price: soLineItemData[index].so_item_price,\n              si_discount: soLineItemData[index].so_discount,\n              si_discount_uom_id: soLineItemData[index].so_discount_uom,\n              si_tax_rate_id: soLineItemData[index].so_tax_preference,\n              tax_percent: soLineItemData[index].so_tax_percentage,\n              si_tax_inclusive: soLineItemData[index].so_tax_inclusive,\n              custom_fields: gdItem.custom_fields,\n              line_so_id: gdItem.line_so_id,\n              so_line_id: gdItem.so_line_item_id,\n              line_gd_id: gd.goods_delivery_id,\n              gd_line_id: gdItem.id,\n              item_category_id: gdItem.item_category_id,\n              tariff_id: gdItem.tariff_id,\n              trigger_calc: \"No\",\n              further_description: gdItem.further_description,\n            };\n\n            tableSI.push(newtableSIRecord);\n          }\n        }\n        break;\n\n      case \"Item - SO\":\n        for (const soItem of currentItemArray) {\n          const newtableSIRecord = {\n            material_id: soItem.item.id || \"\",\n            material_name: soItem.item.material_name,\n            material_desc: soItem.item_desc || \"\",\n\n            more_desc: soItem.more_desc || \"\",\n            line_remark_1: soItem.line_remark_1 || \"\",\n            line_remark_2: soItem.line_remark_2 || \"\",\n            line_remark_3: soItem.line_remark_3 || \"\",\n\n            line_so_no: soItem.sales_order.so_no,\n            line_gd_no: \"\",\n\n            so_order_quantity: soItem.so_quantity,\n            so_order_uom_id: soItem.so_item_uom,\n            good_delivery_quantity: soItem.delivered_qty,\n            invoice_qty: soItem.so_quantity - (soItem.invoice_qty || 0),\n            available_inv_qty: soItem.so_quantity - (soItem.invoice_qty || 0),\n            invoice_qty_uom_id: soItem.so_item_uom,\n            unit_price: soItem.so_item_price,\n            si_discount: soItem.so_discount,\n            si_discount_uom_id: soItem.so_discount_uom,\n            si_tax_rate_id: soItem.so_tax_preference,\n            tax_percent: soItem.so_tax_percentage,\n            si_tax_inclusive: soItem.so_tax_inclusive,\n\n            line_so_id: soItem.sales_order.id,\n            so_line_id: soItem.sales_order_line_id,\n            line_gd_id: \"\",\n            gd_line_id: \"\",\n            item_category_id: soItem.item.item_category,\n            custom_fields: soItem.custom_fields,\n            tariff_id: soItem.tariff_id,\n            trigger_calc: \"No\",\n            further_description: soItem.further_description,\n          };\n\n          tableSI.push(newtableSIRecord);\n        }\n        break;\n\n      case \"Item - GD\":\n        for (const gdItem of currentItemArray) {\n          const newtableSIRecord = {\n            material_id: gdItem.item.id || \"\",\n            material_name: gdItem.item.material_name,\n            material_desc: gdItem.item_desc || \"\",\n\n            more_desc: gdItem.more_desc || \"\",\n            line_remark_1: gdItem.line_remark_1 || \"\",\n            line_remark_2: gdItem.line_remark_2 || \"\",\n            line_remark_3: gdItem.line_remark_3 || \"\",\n\n            line_so_no: gdItem.line_so_no,\n            line_gd_no: gdItem.goods_delivery_number,\n\n            so_order_quantity: gdItem.ordered_qty,\n            so_order_uom_id: gdItem.uom,\n            good_delivery_quantity: gdItem.delivered_qty,\n            invoice_qty: gdItem.delivered_qty - (gdItem.invoiced_qty || 0),\n            available_inv_qty:\n              gdItem.delivered_qty - (gdItem.invoiced_qty || 0),\n            invoice_qty_uom_id: gdItem.uom,\n            unit_price: gdItem.so_line_item.so_item_price,\n            si_discount: gdItem.so_line_item.so_discount,\n            si_discount_uom_id: gdItem.so_line_item.so_discount_uom,\n            si_tax_rate_id: gdItem.so_line_item.so_tax_preference,\n            tax_percent: gdItem.so_line_item.so_tax_percentage,\n            si_tax_inclusive: gdItem.so_line_item.so_tax_inclusive,\n\n            line_so_id: gdItem.line_so_id,\n            so_line_id: gdItem.so_line_item.id,\n            line_gd_id: gdItem.goods_delivery_id,\n            gd_line_id: gdItem.goods_delivery_line_id,\n            item_category_id: gdItem.item.item_category,\n            custom_fields: gdItem.custom_fields,\n            tariff_id: gdItem.tariff_id,\n            trigger_calc: \"No\",\n            further_description: gdItem.further_description,\n          };\n\n          tableSI.push(newtableSIRecord);\n        }\n        break;\n\n      default:\n        break;\n    }\n\n    tableSI = tableSI.filter(\n      (si) =>\n        si.invoice_qty !== 0 &&\n        !existingSI.find((siItem) => siItem.so_line_id === si.so_line_id),\n    );\n\n    const latesttableSI = [...existingSI, ...tableSI];\n\n    soId = [...new Set(latesttableSI.map((si) => si.line_so_id))];\n    salesOrderNumber = [...new Set(latesttableSI.map((si) => si.line_so_no))];\n\n    gdId = [...new Set(latesttableSI.map((si) => si.line_gd_id))];\n    goodsDeliveryNumber = [\n      ...new Set(latesttableSI.map((si) => si.line_gd_no)),\n    ];\n\n    console.log(\"tableSI\", tableSI);\n    await this.setData({\n      customer_id: referenceType.startsWith(\"Document\")\n        ? currentItemArray[0].customer_id\n        : currentItemArray[0].customer.id,\n      so_no_display: salesOrderNumber.join(\", \"),\n      so_id: soId,\n      gd_no_display: goodsDeliveryNumber.join(\", \"),\n      gd_id: gdId,\n      table_si: [...existingSI, ...tableSI],\n      reference_type: referenceType,\n    });\n\n    setTimeout(async () => {\n      await processData(referenceType, latesttableSI);\n    }, 50);\n\n    for (const [index, item] of latesttableSI.entries()) {\n      let Row = {};\n      Row.row = item;\n      Row.rowIndex = index;\n\n      this.triggerEvent(\"SIcalculation\", Row);\n    }\n    this.hideLoading();\n  } catch (error) {\n    console.error(error);\n    this.hideLoading();\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -12203,7 +12704,7 @@
       {
         "key": "5vr8zl63",
         "name": "onRowRemove_item",
-        "func": "(async () => {\n  setTimeout(() => {\n    (async () => {\n      const tableSI = await this.getValue(\"table_si\");\n      console.log(\"tableSI\", tableSI);\n\n      let soId = tableSI.map((gd) => gd.line_so_id);\n      let salesOrderNumber = tableSI.map((gd) => gd.line_so_no);\n      let gdId = tableSI.map((gd) => gd.line_gd_id);\n      let goodsDeliveryNumber = tableSI.map((gd) => gd.line_gd_no);\n\n      soId = [...new Set(soId)];\n      salesOrderNumber = [...new Set(salesOrderNumber)];\n      gdId = [...new Set(gdId)];\n      goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n\n      console.log(soId, salesOrderNumber);\n      await this.setData({\n        so_id: soId,\n        so_no_display: salesOrderNumber.join(\", \"),\n        gd_id: gdId,\n        gd_no_display: goodsDeliveryNumber.join(\", \"),\n      });\n\n      await this.triggerEvent(\"SIcalculation\");\n\n\n    })();\n  }, 50);\n})();\n",
+        "func": "(async () => {\n  setTimeout(() => {\n    (async () => {\n      const tableSI = await this.getValue(\"table_si\");\n      console.log(\"tableSI\", tableSI);\n\n      let soId = tableSI.map((gd) => gd.line_so_id);\n      let salesOrderNumber = tableSI.map((gd) => gd.line_so_no);\n      let gdId = tableSI.map((gd) => gd.line_gd_id);\n      let goodsDeliveryNumber = tableSI.map((gd) => gd.line_gd_no);\n\n      soId = [...new Set(soId)];\n      salesOrderNumber = [...new Set(salesOrderNumber)];\n      gdId = [...new Set(gdId)];\n      goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n\n      console.log(soId, salesOrderNumber);\n      await this.setData({\n        so_id: soId,\n        so_no_display: salesOrderNumber.join(\", \"),\n        gd_id: gdId,\n        gd_no_display: goodsDeliveryNumber.join(\", \"),\n      });\n\n      for (const lineItem of tableSI) {\n        await this.triggerEvent(\"SIcalculation\", { row: lineItem });\n      }\n    })();\n  }, 50);\n})();\n",
         "type": "js"
       },
       {
@@ -12216,17 +12717,7 @@
             "key": "7ez9n41y",
             "action": "js",
             "options": {
-              "func": "const data = this.getValues();\nconst value = arguments[0].value;\nconst updatedData = {};\n\nif(data.acc_integration_type === 'AutoCount Accounting') {\n  updatedData[`table_si.si_tax_inclusive`] = value\n  this.setData(updatedData)\n}\n"
-            }
-          },
-          {
-            "key": "xvr12g6r",
-            "action": "triggerEvent",
-            "options": {
-              "condition": "",
-              "isCondition": false,
-              "functionName": "SIcalculation",
-              "functionParams": ""
+              "func": "const data = this.getValues();\nconst value = arguments[0].value;\nconst updatedData = {};\n\nif(data.acc_integration_type === 'AutoCount Accounting') {\n  updatedData[`table_si.si_tax_inclusive`] = value\n  this.setData(updatedData)\n  for(const item of data.table_si) {\n    this.triggerEvent('SIcalculation', { row: item });\n  }\n}\nthis.triggerEvent('SIcalculation', { row: arguments[0].row });\n"
             }
           }
         ]
