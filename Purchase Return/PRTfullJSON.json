@@ -2336,6 +2336,332 @@
               "rules": []
             },
             {
+              "name": "Shipping Method",
+              "el": "su-fm-table-select",
+              "mainIcon": "表格选择器",
+              "typeIcon": "表格选择器",
+              "group": "Select",
+              "groupSort": 4,
+              "generate": "part",
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "width": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": "{{{{value:plant_id}} === '' || {{value:plant_id}} === null}}",
+                "disabled": "{{{{value:plant_id}} === \"\"}}",
+                "dataBind": true,
+                "required": false,
+                "validator": "",
+                "hideLabel": false,
+                "pageSourceId": "",
+                "customProps": {},
+                "pagingEnabled": true,
+                "multiple": false,
+                "placeholder": "Select Shipping Method",
+                "lazyLoad": true,
+                "props": {
+                  "value": "id",
+                  "label": "shipping_method_code",
+                  "image": "",
+                  "icon": "",
+                  "cascade": "",
+                  "children": "",
+                  "explain": ""
+                },
+                "datasource": {
+                  "source": "Shipping Method:Table:1902675462858063873",
+                  "rules": {
+                    "collectionId": "1902675462858063873",
+                    "list": [
+                      {
+                        "id": 1785999201828,
+                        "parentId": 1785999201829,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1785997492132,
+                            "parentId": 1785999201828,
+                            "isTop": false,
+                            "type": "leaf",
+                            "operator": "equal",
+                            "prop": "organization_id",
+                            "valueType": "field",
+                            "value": "{{value:organization_id}}",
+                            "level": 2,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1785999201830,
+                            "parentId": 1785999201828,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Is Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "remoteFunc": "func_ys6lb9ge",
+                "remoteOption": "option_ys6lb9ge",
+                "tableColumn": false,
+                "subform": false,
+                "options": [],
+                "limit_count": null,
+                "columns": [
+                  {
+                    "value": "shipping_method_code",
+                    "label": "Code",
+                    "children": [],
+                    "item": {
+                      "arrayType": null,
+                      "authApiLocation": null,
+                      "authClientId": null,
+                      "authClientSecret": null,
+                      "authGrantType": null,
+                      "authJwtAlg": null,
+                      "authJwtPayload": null,
+                      "authJwtSecretKey": null,
+                      "authKey": null,
+                      "authLocation": null,
+                      "authObj": null,
+                      "authPassword": null,
+                      "authTokenPrefix": null,
+                      "authTokenUrl": null,
+                      "authType": null,
+                      "authValue": null,
+                      "baseFieldKey": null,
+                      "bsonType": "string",
+                      "childRecordMode": null,
+                      "children": null,
+                      "commentKey": null,
+                      "component": {
+                        "dynamicRuleField": null,
+                        "name": "input",
+                        "props": null,
+                        "ruleMode": null,
+                        "rules": null
+                      },
+                      "customFormKey": null,
+                      "dataIdentifier": false,
+                      "defaultValue": "",
+                      "description": "Code",
+                      "desensitization": false,
+                      "desensitizationRule": null,
+                      "encryptedKey": false,
+                      "encryptionAlgorithm": null,
+                      "enum": null,
+                      "enumType": null,
+                      "errorMessage": {
+                        "format": "",
+                        "minLength": null,
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "exclusiveMaximum": null,
+                      "exclusiveMinimum": null,
+                      "fileData": null,
+                      "fileExtName": null,
+                      "fileMediaType": null,
+                      "fileName": null,
+                      "forceDefaultValue": null,
+                      "foreignKey": null,
+                      "format": "",
+                      "generateSubTable": null,
+                      "hidden": null,
+                      "historyKey": false,
+                      "idRule": null,
+                      "immutableKey": false,
+                      "indexes": null,
+                      "isArrayItem": null,
+                      "isRequired": false,
+                      "key": "5s21sv9p",
+                      "lockType": null,
+                      "maxLength": null,
+                      "maximum": null,
+                      "minLength": null,
+                      "minimum": null,
+                      "multiple": false,
+                      "name": "shipping_method_code",
+                      "numberRule": null,
+                      "oldSchemaObject": null,
+                      "parent": null,
+                      "parentKey": null,
+                      "parentSelf": null,
+                      "pattern": "",
+                      "permission": null,
+                      "persistField": true,
+                      "physicalDelete": null,
+                      "precision": null,
+                      "primaryKey": false,
+                      "properties": null,
+                      "relationSide": null,
+                      "required": null,
+                      "showExpression": null,
+                      "showType": null,
+                      "sourceSerialNumber": null,
+                      "systemKey": null,
+                      "tableName": null,
+                      "title": "Code",
+                      "titleKey": null,
+                      "token": null,
+                      "trim": null,
+                      "uniqueGroup": null,
+                      "uniqueKey": null,
+                      "validator": null,
+                      "value": null
+                    },
+                    "width": "",
+                    "search_type": "SubstringMatch"
+                  },
+                  {
+                    "value": "shipping_method_name",
+                    "label": "Name",
+                    "children": [],
+                    "item": {
+                      "arrayType": null,
+                      "authApiLocation": null,
+                      "authClientId": null,
+                      "authClientSecret": null,
+                      "authGrantType": null,
+                      "authJwtAlg": null,
+                      "authJwtPayload": null,
+                      "authJwtSecretKey": null,
+                      "authKey": null,
+                      "authLocation": null,
+                      "authObj": null,
+                      "authPassword": null,
+                      "authTokenPrefix": null,
+                      "authTokenUrl": null,
+                      "authType": null,
+                      "authValue": null,
+                      "baseFieldKey": null,
+                      "bsonType": "string",
+                      "childRecordMode": null,
+                      "children": null,
+                      "commentKey": null,
+                      "component": {
+                        "dynamicRuleField": null,
+                        "name": "input",
+                        "props": null,
+                        "ruleMode": null,
+                        "rules": null
+                      },
+                      "customFormKey": null,
+                      "dataIdentifier": false,
+                      "defaultValue": "",
+                      "description": "Name",
+                      "desensitization": false,
+                      "desensitizationRule": null,
+                      "encryptedKey": false,
+                      "encryptionAlgorithm": null,
+                      "enum": null,
+                      "enumType": null,
+                      "errorMessage": {
+                        "format": "",
+                        "minLength": null,
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "exclusiveMaximum": null,
+                      "exclusiveMinimum": null,
+                      "fileData": null,
+                      "fileExtName": null,
+                      "fileMediaType": null,
+                      "fileName": null,
+                      "forceDefaultValue": null,
+                      "foreignKey": null,
+                      "format": "",
+                      "generateSubTable": null,
+                      "hidden": null,
+                      "historyKey": false,
+                      "idRule": null,
+                      "immutableKey": false,
+                      "indexes": null,
+                      "isArrayItem": null,
+                      "isRequired": false,
+                      "key": "ov9eomfo",
+                      "lockType": null,
+                      "maxLength": null,
+                      "maximum": null,
+                      "minLength": null,
+                      "minimum": null,
+                      "multiple": false,
+                      "name": "shipping_method_name",
+                      "numberRule": null,
+                      "oldSchemaObject": null,
+                      "parent": null,
+                      "parentKey": null,
+                      "parentSelf": null,
+                      "pattern": "",
+                      "permission": null,
+                      "persistField": true,
+                      "physicalDelete": null,
+                      "precision": null,
+                      "primaryKey": false,
+                      "properties": null,
+                      "relationSide": null,
+                      "required": null,
+                      "showExpression": null,
+                      "showType": null,
+                      "sourceSerialNumber": null,
+                      "systemKey": null,
+                      "tableName": null,
+                      "title": "Name",
+                      "titleKey": null,
+                      "token": null,
+                      "trim": null,
+                      "uniqueGroup": null,
+                      "uniqueKey": null,
+                      "validator": null,
+                      "value": null
+                    },
+                    "search_type": "SubstringMatch"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "labelWrap": false,
+                "sorts": [],
+                "paging_enabled": 0,
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "dataIdentifier": false
+              },
+              "events": {
+                "onChange": ""
+              },
+              "type": "custom",
+              "novalid": {},
+              "key": "fgh5d0d5",
+              "model": "di_shipping_method",
+              "rules": []
+            },
+            {
               "name": "Delivery Method",
               "type": "select",
               "mainIcon": "下拉单选",
@@ -2382,13 +2708,14 @@
                   "cascade": "",
                   "children": "children",
                   "image": "",
-                  "icon": ""
+                  "icon": "",
+                  "explain": ""
                 },
                 "remoteFunc": "func_eq1ieyxw",
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": false,
+                "hidden": true,
                 "dataBind": true,
                 "customProps": {},
                 "tip": "",
@@ -2490,7 +2817,16 @@
                 },
                 "dynamicValueType": "fx",
                 "isDynamicValue": false,
-                "columns": []
+                "columns": [],
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": []
               },
               "events": {
                 "onChange": "4r53d2sj",
@@ -2724,7 +3060,13 @@
         "subform": false,
         "labelBold": true,
         "labelWrap": true,
-        "hideLabel": false
+        "hideLabel": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": ""
       },
       "events": {
         "onChange": ""
@@ -2732,6 +3074,1092 @@
       "key": "dt9kcrbf",
       "model": "delivery_method_text",
       "rules": []
+    },
+    {
+      "name": "栅格布局",
+      "type": "grid",
+      "mainIcon": "栅格布局",
+      "typeIcon": "栅格布局",
+      "icon": "icon-RectangleCopy",
+      "group": "Layout",
+      "groupSort": 0,
+      "enableScopes": ["Component", "Table", "Page"],
+      "columns": [
+        {
+          "type": "col",
+          "options": {
+            "span": 12,
+            "offset": 0,
+            "push": 0,
+            "pull": 0,
+            "xs": 24,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12,
+            "customClass": ""
+          },
+          "list": [
+            {
+              "name": "Driver Name",
+              "el": "su-fm-table-select",
+              "mainIcon": "表格选择器",
+              "typeIcon": "表格选择器",
+              "group": "Select",
+              "groupSort": 4,
+              "generate": "part",
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "width": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "disabled": false,
+                "dataBind": true,
+                "required": false,
+                "validator": "",
+                "hideLabel": false,
+                "pageSourceId": "",
+                "customProps": {},
+                "pagingEnabled": true,
+                "multiple": false,
+                "placeholder": "",
+                "lazyLoad": true,
+                "props": {
+                  "value": "id",
+                  "label": "driver_name",
+                  "image": "",
+                  "icon": "",
+                  "cascade": "",
+                  "children": "",
+                  "explain": ""
+                },
+                "datasource": {
+                  "source": "Driver:Table:1983820088528023553",
+                  "rules": {
+                    "collectionId": "1983820088528023553",
+                    "list": [
+                      {
+                        "id": 1763970549820,
+                        "parentId": 1763970549821,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1763970537639,
+                            "parentId": 1763970549820,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1763970549823,
+                            "isTop": false,
+                            "parentId": 1763970549820,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1763970549822,
+                                "parentId": 1763970549823,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{system:deptIds}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              },
+                              {
+                                "id": 1763970549824,
+                                "parentId": 1763970549823,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{global:deptParentId}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "remoteFunc": "func_ys6lb9ge",
+                "remoteOption": "option_ys6lb9ge",
+                "tableColumn": false,
+                "subform": false,
+                "options": [],
+                "limit_count": null,
+                "columns": [
+                  {
+                    "value": "driver_name",
+                    "label": "Name",
+                    "item": {
+                      "bsonType": "string",
+                      "defaultValue": "",
+                      "description": "Driver Name",
+                      "desensitization": false,
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "format": "",
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "format": "",
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": false,
+                      "key": "8xougo6d",
+                      "name": "driver_name",
+                      "pattern": "",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "title": "Driver Name"
+                    },
+                    "width": "",
+                    "search_type": "SubstringMatch"
+                  },
+                  {
+                    "value": "driver_contact",
+                    "label": "Contact",
+                    "item": {
+                      "bsonType": "string",
+                      "defaultValue": "",
+                      "description": "Driver Contact",
+                      "desensitization": false,
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "format": "",
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "format": "",
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": false,
+                      "key": "fy3aliql",
+                      "name": "driver_contact",
+                      "pattern": "",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "title": "Driver Contact"
+                    },
+                    "width": "",
+                    "search_type": "SubstringMatch"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "labelWrap": true,
+                "sorts": [],
+                "paging_enabled": 0,
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100
+              },
+              "events": {
+                "onChange": "qhk88i59"
+              },
+              "type": "custom",
+              "novalid": {},
+              "key": "1sdcv37g",
+              "model": "di_driver_name",
+              "rules": []
+            },
+            {
+              "name": "IC No",
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "多行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-input",
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "disabled": false,
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_w2mr1mhh",
+                "remoteOption": "option_w2mr1mhh",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "4fb8c5s5",
+              "model": "di_ic_no",
+              "rules": []
+            },
+            {
+              "name": "Driver Contact No",
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "多行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-input",
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "disabled": false,
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_w2mr1mhh",
+                "remoteOption": "option_w2mr1mhh",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "g0f2ujmk",
+              "model": "di_driver_contact_no",
+              "rules": []
+            },
+            {
+              "name": "Shipping Company",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": true,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_ahdnkwtc",
+                "filterable": true,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "courier_name",
+                  "label": "courier_name",
+                  "cascade": "",
+                  "children": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_ahdnkwtc",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "datasource": {
+                  "source": "Courier Company:Table:1901984960940724226",
+                  "rules": {
+                    "collectionId": "1901984960940724226",
+                    "list": [
+                      {
+                        "id": 1746002963840,
+                        "parentId": 1746002963839,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "labelWrap": true,
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "82ipifpe",
+              "model": "di_shipping_company",
+              "rules": []
+            },
+            {
+              "name": "Transport Name",
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "多行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-input",
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "disabled": false,
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_1peg3frp",
+                "remoteOption": "option_1peg3frp",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "8swwcy29",
+              "model": "di_transport_name",
+              "rules": []
+            },
+            {
+              "name": "Est Delivery Date",
+              "type": "date",
+              "mainIcon": "日期",
+              "typeIcon": "日期",
+              "icon": "icon-date",
+              "group": "DateTime",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "readonly": false,
+                "disabled": false,
+                "editable": false,
+                "clearable": true,
+                "placeholder": "",
+                "startPlaceholder": "",
+                "endPlaceholder": "",
+                "type": "timestamp",
+                "timeStampType": "timestamp",
+                "format": "YYYY-MM-DD",
+                "timestamp": false,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "100%",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_zecmjrn6",
+                "remoteOption": "option_zecmjrn6",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "dynamicValueType": "fx",
+                "isDynamicValue": false
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "rk6725i4",
+              "model": "di_est_delivery_date",
+              "rules": []
+            }
+          ],
+          "key": "i1a2ygyv",
+          "rules": []
+        },
+        {
+          "type": "col",
+          "options": {
+            "span": 12,
+            "offset": 0,
+            "push": 0,
+            "pull": 0,
+            "xs": 24,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12,
+            "customClass": ""
+          },
+          "list": [
+            {
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_91nhof6v",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "vehicle_number",
+                  "image": "",
+                  "icon": "",
+                  "cascade": "",
+                  "children": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_91nhof6v",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "1983800272178065410",
+                    "list": [
+                      {
+                        "id": 1763969533987,
+                        "parentId": 1763969533988,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1763969781951,
+                            "isTop": false,
+                            "parentId": 1763969533987,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1763969781951,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{system:deptIds}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              },
+                              {
+                                "id": 1763969781952,
+                                "parentId": 1763969781951,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{global:deptParentId}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
+                          },
+                          {
+                            "id": 1763969781950,
+                            "parentId": 1763969533987,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "source": "Vehicle:Table:1983800272178065410"
+                },
+                "limit_count": null,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "labelWrap": true,
+                "sorts": [],
+                "paging_enabled": 0,
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Vehicle Number",
+              "novalid": {},
+              "key": "8g3yg1yz",
+              "model": "di_vehicle_number",
+              "rules": []
+            },
+            {
+              "name": "Pickup Date",
+              "type": "date",
+              "mainIcon": "日期",
+              "typeIcon": "日期",
+              "icon": "icon-date",
+              "group": "DateTime",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "readonly": false,
+                "disabled": false,
+                "editable": false,
+                "clearable": true,
+                "placeholder": "",
+                "startPlaceholder": "",
+                "endPlaceholder": "",
+                "type": "timestamp",
+                "timeStampType": "timestamp",
+                "format": "YYYY-MM-DD",
+                "timestamp": false,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "100%",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_zecmjrn6",
+                "remoteOption": "option_zecmjrn6",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "epf4dxod",
+              "model": "di_pickup_date",
+              "rules": []
+            },
+            {
+              "name": "Validity of Collection",
+              "type": "date",
+              "mainIcon": "日期",
+              "typeIcon": "日期",
+              "icon": "icon-date",
+              "group": "DateTime",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "readonly": false,
+                "disabled": false,
+                "editable": false,
+                "clearable": true,
+                "placeholder": "",
+                "startPlaceholder": "",
+                "endPlaceholder": "",
+                "type": "timestamp",
+                "timeStampType": "timestamp",
+                "format": "YYYY-MM-DD",
+                "timestamp": false,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "100%",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_zecmjrn6",
+                "remoteOption": "option_zecmjrn6",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "xp9x4fl8",
+              "model": "di_validity_of_collection",
+              "rules": []
+            },
+            {
+              "name": "Est Arrival Date",
+              "type": "date",
+              "mainIcon": "日期",
+              "typeIcon": "日期",
+              "icon": "icon-date",
+              "group": "DateTime",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "",
+                "readonly": false,
+                "disabled": false,
+                "editable": false,
+                "clearable": true,
+                "placeholder": "",
+                "startPlaceholder": "",
+                "endPlaceholder": "",
+                "type": "timestamp",
+                "timeStampType": "timestamp",
+                "format": "YYYY-MM-DD",
+                "timestamp": false,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "100%",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_0cxidg15",
+                "remoteOption": "option_0cxidg15",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "oqawtk4b",
+              "model": "di_est_arrival_date",
+              "rules": []
+            },
+            {
+              "name": "Tracking Number",
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "多行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-input",
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "disabled": false,
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_1peg3frp",
+                "remoteOption": "option_1peg3frp",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "wqkz815w",
+              "model": "di_tracking_number",
+              "rules": []
+            },
+            {
+              "name": "Freight Charges",
+              "el": "su-fm-currency-input",
+              "mainIcon": "金额",
+              "typeIcon": "金额",
+              "group": "Number",
+              "groupSort": 4,
+              "generate": "part",
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": 0,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "disabled": false,
+                "dataBind": true,
+                "required": false,
+                "validator": "",
+                "hideLabel": false,
+                "placeholder": "",
+                "min": 0,
+                "max": null,
+                "controls": false,
+                "step": 1,
+                "precision": 2,
+                "customProps": {
+                  "cacheProp": true,
+                  "valueType": "int",
+                  "currency": "MYR",
+                  "customCurrencySymbol": "",
+                  "showThousandSeparator": true,
+                  "showCurrencySymbol": true,
+                  "precision_rule": 1,
+                  "number_rule": ""
+                },
+                "remoteFunc": "func_qarahe7p",
+                "remoteOption": "option_qarahe7p",
+                "tableColumn": false,
+                "subform": false,
+                "labelWrap": true,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "type": "custom",
+              "novalid": {},
+              "key": "py7j6u4d",
+              "model": "di_freight_charges",
+              "rules": []
+            }
+          ],
+          "key": "dsmogdke"
+        }
+      ],
+      "options": {
+        "gutter": 24,
+        "justify": "start",
+        "align": "top",
+        "customClass": "",
+        "hidden": "{{{{value:di_shipping_method}} === \"\" || {{value:di_shipping_method}} === null || {{value:di_shipping_method}} === undefined}}",
+        "flex": true,
+        "responsive": true,
+        "remoteFunc": "func_qml86ltt",
+        "remoteOption": "option_qml86ltt",
+        "tableColumn": false,
+        "subform": false,
+        "defaultValue": "",
+        "dynamicValueType": "fx",
+        "isDynamicValue": false
+      },
+      "key": "y96z2y1l",
+      "model": "delivery_info",
+      "rules": [],
+      "novalid": {}
     },
     {
       "name": "栅格布局",
@@ -3343,128 +4771,58 @@
           },
           "list": [
             {
-              "name": "Shipping Method",
-              "type": "select",
-              "mainIcon": "下拉单选",
-              "typeIcon": "下拉单选",
-              "icon": "icon-select",
-              "group": "Select",
-              "groupSort": 2,
+              "version": "1.1.0",
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "单行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
               "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-select",
+              "el": "fm-input",
               "options": {
+                "width": "",
                 "defaultValue": "",
-                "multiple": false,
-                "disabled": false,
-                "clearable": true,
-                "placeholder": "",
                 "required": false,
                 "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
                 "validatorCheck": false,
                 "validator": "",
-                "width": "",
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1"
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2"
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_eq1ieyxw",
-                "filterable": true,
-                "pagingEnabled": true,
-                "remoteOptions": [],
-                "props": {
-                  "value": "shipping_method_name",
-                  "label": "shipping_method_name",
-                  "cascade": "",
-                  "children": "",
-                  "image": "",
-                  "icon": ""
-                },
-                "remoteFunc": "func_eq1ieyxw",
+                "placeholder": "",
                 "customClass": "",
+                "disabled": false,
                 "labelWidth": 100,
                 "isLabelWidth": false,
                 "hidden": false,
                 "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "highFrequencyInput": false,
+                "highFrequencyTimeField": "",
+                "highFrequencyDuration": 30,
+                "highFrequencyMinCount": 20,
+                "highFrequencyMaxItems": 5,
+                "highFrequencySortRule": 1,
                 "customProps": {},
                 "tip": "",
+                "remoteFunc": "func_di5hv4or",
+                "remoteOption": "option_di5hv4or",
                 "tableColumn": false,
                 "subform": false,
-                "paging_enabled": 1,
-                "paging_way": "Pagination",
-                "page_size": 10,
-                "more_fields": [],
-                "datasource": {
-                  "source": "Shipping Method:Table:1902675462858063873",
-                  "rules": {
-                    "collectionId": "1902675462858063873",
-                    "list": [
-                      {
-                        "id": 1746374117664,
-                        "parentId": 1746374117663,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "",
-                        "valueType": "",
-                        "value": "",
-                        "type": "leaf",
-                        "level": 1
-                      }
-                    ]
-                  }
-                },
-                "url_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "body_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "request_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "dynamicValueType": "fx",
-                "isDynamicValue": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": [],
                 "labelWrap": true
               },
               "events": {
@@ -3472,10 +4830,11 @@
                 "onFocus": "",
                 "onBlur": ""
               },
-              "key": "m0nw9ppf",
+              "name": "Shipping Method",
+              "novalid": {},
+              "key": "di5hv4or",
               "model": "shipping_method",
-              "rules": [],
-              "novalid": {}
+              "rules": []
             },
             {
               "name": "Freight Charge",
@@ -3517,7 +4876,20 @@
                 "remoteOption": "option_11by1k2w",
                 "tableColumn": false,
                 "subform": false,
-                "labelWrap": true
+                "labelWrap": true,
+                "highFrequencyInput": false,
+                "highFrequencyTimeField": "",
+                "highFrequencyDuration": 30,
+                "highFrequencyMinCount": 20,
+                "highFrequencyMaxItems": 5,
+                "highFrequencySortRule": 1,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
               },
               "events": {
                 "onChange": "",
@@ -4528,7 +5900,14 @@
             "remoteFunc": "func_g88zybrd",
             "remoteOption": "option_g88zybrd",
             "tableColumn": true,
-            "subform": false
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": "",
+            "select-card_4c8m22dh": []
           },
           "events": {
             "onChange": "",
@@ -4538,6 +5917,103 @@
           "novalid": {},
           "key": "673s3fof",
           "model": "more_desc",
+          "rules": []
+        },
+        {
+          "version": "1.0.0",
+          "type": "editor",
+          "mainIcon": "富文本",
+          "typeIcon": "富文本",
+          "icon": "icon-fuwenbenkuang",
+          "group": "Text",
+          "groupSort": 9,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": "",
+            "width": "",
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": true,
+            "customToolbar": [
+              [
+                "bold",
+                "italic",
+                "underline",
+                "strike",
+                {
+                  "color": []
+                },
+                {
+                  "background": []
+                },
+                {
+                  "align": []
+                },
+                {
+                  "list": "ordered"
+                },
+                {
+                  "list": "bullet"
+                },
+                {
+                  "indent": "-1"
+                },
+                {
+                  "indent": "+1"
+                }
+              ],
+              [
+                {
+                  "font": []
+                },
+                {
+                  "header": [1, 2, 3, 4, 5, 6, false]
+                }
+              ],
+              [
+                {
+                  "script": "sub"
+                },
+                {
+                  "script": "super"
+                }
+              ],
+              ["link", "image", "blockquote", "code-block"],
+              [
+                {
+                  "direction": "rtl"
+                }
+              ],
+              ["clean"]
+            ],
+            "action": "/blade-resource/oss/endpoint/put-file",
+            "headers": [],
+            "withCredentials": false,
+            "disabled": false,
+            "required": false,
+            "validatorCheck": false,
+            "validator": "",
+            "tip": "",
+            "remoteFunc": "func_sj20rzo7",
+            "remoteOption": "option_sj20rzo7",
+            "tableColumn": true,
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
+          },
+          "events": {
+            "onChange": ""
+          },
+          "name": "Further Description",
+          "novalid": {},
+          "key": "sj20rzo7",
+          "model": "further_description",
           "rules": []
         },
         {
@@ -15241,16 +16717,30 @@
                                       "multiView": false,
                                       "ignoreFormDisabled": 0,
                                       "tableHeightMode": "auto",
-                                      "tableFixedHeight": null,
                                       "highlightSelectedRow": false,
                                       "highlightHoverRow": false,
-                                      "headerBgColor": "#FFFFFF"
+                                      "headerBgColor": "#FFFFFF",
+                                      "defaultConfig": {
+                                        "startDateField": "",
+                                        "endDateField": "",
+                                        "textField": "",
+                                        "scaleMode": "",
+                                        "color": "",
+                                        "colorColor": "",
+                                        "colorRules": []
+                                      },
+                                      "multipleView": [],
+                                      "calendarConfig": {}
                                     },
                                     "remoteFunc": "func_yn0bhflq",
                                     "remoteOption": "option_yn0bhflq",
                                     "tableColumn": false,
                                     "subform": false,
-                                    "isGetTree": false
+                                    "isGetTree": false,
+                                    "padding": ["", "", "", ""],
+                                    "radius": ["", "", "", ""],
+                                    "fills": [],
+                                    "borders": []
                                   },
                                   "events": {
                                     "rowClick": "d7sai3uq",
@@ -15628,7 +17118,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "const setPlant = async (organizationId, pageStatus) => {\n  const currentDept = this.getVarSystem(\"deptIds\");\n\n  if (currentDept === organizationId) {\n    this.disabled(\"plant\", false);\n    this.disabled(\"table_prt\", true);\n  } else {\n    if (pageStatus === \"Add\") {\n      setTimeout(() => {\n        this.setData({\n          plant: currentDept,\n        });\n      }, 50);\n    }\n    this.disabled(\"plant\", true);\n  }\n};\n\nconst showStatusHTML = async (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\"draft_status\"]);\n      break;\n    case \"Created\":\n      this.display([\"created_status\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    // Legacy: purchase returns saved before the Created/Completed split.\n    case \"Issued\":\n      this.display([\"issued_status\"]);\n      break;\n    case \"Cancelled\":\n      this.display([\"cancelled_status\"]);\n      break;\n  }\n};\n\nconst displayDeliveryMethod = async () => {\n  const deliveryMethod = this.getValue(\"return_delivery_method\");\n\n  if (deliveryMethod && Object.keys(deliveryMethod).length > 0) {\n    this.setData({ delivery_method_text: deliveryMethod });\n\n    const visibilityMap = {\n      \"Self Pickup\": \"self_pickup\",\n      \"Courier Service\": \"courier_service\",\n      \"Company Truck\": \"company_truck\",\n      \"Shipping Service\": \"shipping_service\",\n      \"3rd Party Transporter\": \"third_party_transporter\",\n    };\n\n    const selectedField = visibilityMap[deliveryMethod] || null;\n    const fields = [\n      \"self_pickup\",\n      \"courier_service\",\n      \"company_truck\",\n      \"shipping_service\",\n      \"third_party_transporter\",\n    ];\n\n    if (!selectedField) {\n      this.hide(fields);\n    }\n    fields.forEach((field) => {\n      field === selectedField ? this.display(field) : this.hide(field);\n    });\n  } else {\n    this.setData({ delivery_method_text: \"\" });\n  }\n};\n\nconst displayAddress = async () => {\n  const grID = this.getValue(\"gr_id\");\n\n  if (grID) {\n    this.display(\"address_grid\");\n  }\n};\n\nconst disabledField = async (status) => {\n  if (status === \"Draft\") return;\n\n  // Created: the return quantity is reserved against the GR/PO lines but no\n  // stock has moved yet, so the document can still be corrected or completed.\n  // Only the identity fields are frozen.\n  if (status === \"Created\") {\n    this.disabled(\n      [\n        \"purchase_return_status\",\n        \"purchase_return_no\",\n        \"organization_id\",\n        \"supplier_id\",\n        \"plant\",\n      ],\n      true,\n    );\n\n    this.hide([\"button_save_as_draft\"]);\n    this.display([\"button_save_as_created\", \"button_save_as_completed\"]);\n    return;\n  }\n\n  // Completed / Cancelled (and legacy Issued): fully read-only.\n  this.disabled(\n    [\n      \"purchase_return_status\",\n      \"purchase_return_no\",\n      \"organization_id\",\n      \"supplier_id\",\n      \"prt_billing_name\",\n      \"prt_billing_cp\",\n      \"prt_billing_address\",\n      \"prt_shipping_address\",\n      \"gr_date\",\n      \"plant\",\n      \"purchase_return_date\",\n      \"input_hvxpruem\",\n      \"return_delivery_method\",\n      \"purchase_return_ref\",\n      \"shipping_details\",\n      \"reason_for_return\",\n\n      \"driver_name\",\n      \"vehicle_no\",\n      \"cp_ic_no\",\n      \"driver_contact\",\n      \"pickup_date\",\n\n      \"courier_company\",\n      \"shipping_date\",\n      \"estimated_arrival\",\n      \"shipping_method\",\n      \"freight_charge\",\n\n      \"driver_name2\",\n      \"ct_ic_no\",\n      \"driver_contact_no2\",\n      \"estimated_arrival2\",\n      \"vehicle_no2\",\n      \"delivery_cost\",\n\n      \"tpt_vehicle_number\",\n      \"tpt_transport_name\",\n      \"tpt_ic_no\",\n      \"tpt_driver_contact_no\",\n\n      \"table_prt.return_condition\",\n      \"confirm_inventory.table_item_balance\",\n\n      \"billing_address_line_1\",\n      \"billing_address_line_2\",\n      \"billing_address_line_3\",\n      \"billing_address_line_4\",\n      \"billing_address_city\",\n      \"billing_address_state\",\n      \"billing_address_country\",\n      \"billing_postal_code\",\n      \"shipping_address_line_1\",\n      \"shipping_address_line_2\",\n      \"shipping_address_line_3\",\n      \"shipping_address_line_4\",\n      \"shipping_address_city\",\n      \"shipping_address_state\",\n      \"shipping_address_country\",\n      \"shipping_postal_code\",\n    ],\n    true,\n  );\n\n  this.hide([\n    \"link_billing_address\",\n    \"link_shipping_address\",\n    \"button_save_as_draft\",\n    \"button_save_as_created\",\n    \"button_save_as_completed\",\n  ]);\n};\n\nconst checkAccIntegrationType = async (organizationId) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n      this.setData({ acc_integration_type: aiData.acc_integration_type });\n    }\n  }\n};\n\n(async () => {\n  try {\n    const status = await this.getValue(\"purchase_return_status\");\n\n    const pageStatus = this.isAdd\n      ? \"Add\"\n      : this.isEdit\n        ? \"Edit\"\n        : this.isView\n          ? \"View\"\n          : this.isCopy\n            ? \"Clone\"\n            : (() => {\n                this.$message.error(\"Invalid page status\");\n              })();\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\");\n    }\n\n    this.setData({ organization_id: organizationId, page_status: pageStatus });\n\n    switch (pageStatus) {\n      case \"Add\":\n        this.display([\"draft_status\"]);\n        await setPlant(organizationId, pageStatus);\n        await checkAccIntegrationType(organizationId);\n        await this.setData({ return_by: this.getVarGlobal(\"nickname\") });\n        break;\n\n      // A clone is a brand new draft. Without clearing the number and status it\n      // inherits the source document's purchase_return_no — the workflow only\n      // regenerates when the number is blank or the previous status was Draft —\n      // and would save under a duplicate number.\n      // Deliberately no setPlant() here: it disables table_prt at parent-org level,\n      // and processData() (which re-enables the per-row inputs) never runs on a\n      // clone, so the cloned lines would be uneditable.\n      case \"Clone\":\n        this.display([\"draft_status\"]);\n        this.setData({\n          purchase_return_no: null,\n          purchase_return_status: null,\n          previous_status: null,\n          return_by: this.getVarGlobal(\"nickname\"),\n        });\n        await checkAccIntegrationType(organizationId);\n        await displayDeliveryMethod();\n        await displayAddress();\n        break;\n\n      case \"Edit\":\n        this.setData({ previous_status: status });\n        await disabledField(status);\n        await checkAccIntegrationType(organizationId);\n        await showStatusHTML(status);\n        await displayDeliveryMethod();\n        await displayAddress();\n        break;\n\n      case \"View\":\n        await showStatusHTML(status);\n        await displayDeliveryMethod();\n        await displayAddress();\n        this.hide([\n          \"link_billing_address\",\n          \"link_shipping_address\",\n          \"button_save_as_draft\",\n          \"button_save_as_created\",\n          \"button_save_as_completed\",\n        ]);\n\n        break;\n    }\n  } catch (error) {\n    this.$message.error(error);\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"purchase_return_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"purchase_return_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"purchase_return_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"purchase_return_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        purchase_return_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ purchase_return_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
+        "func": "const setPlant = async (organizationId, pageStatus) => {\n  const currentDept = this.getVarSystem(\"deptIds\");\n\n  if (currentDept === organizationId) {\n    this.disabled(\"plant\", false);\n    this.disabled(\"table_prt\", true);\n  } else {\n    if (pageStatus === \"Add\") {\n      setTimeout(() => {\n        this.setData({\n          plant: currentDept,\n        });\n      }, 50);\n    }\n    this.disabled(\"plant\", true);\n  }\n};\n\nconst showStatusHTML = async (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\"draft_status\"]);\n      break;\n    case \"Created\":\n      this.display([\"created_status\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    // Legacy: purchase returns saved before the Created/Completed split.\n    case \"Issued\":\n      this.display([\"issued_status\"]);\n      break;\n    case \"Cancelled\":\n      this.display([\"cancelled_status\"]);\n      break;\n  }\n};\n\nconst displayDeliveryMethod = async () => {\n  const deliveryMethod = this.getValue(\"return_delivery_method\");\n\n  if (deliveryMethod && Object.keys(deliveryMethod).length > 0) {\n    this.setData({ delivery_method_text: deliveryMethod });\n\n    const visibilityMap = {\n      \"Self Pickup\": \"self_pickup\",\n      \"Courier Service\": \"courier_service\",\n      \"Company Truck\": \"company_truck\",\n      \"Shipping Service\": \"shipping_service\",\n      \"3rd Party Transporter\": \"third_party_transporter\",\n    };\n\n    const selectedField = visibilityMap[deliveryMethod] || null;\n    const fields = [\n      \"self_pickup\",\n      \"courier_service\",\n      \"company_truck\",\n      \"shipping_service\",\n      \"third_party_transporter\",\n    ];\n\n    if (!selectedField) {\n      this.hide(fields);\n    }\n    fields.forEach((field) => {\n      field === selectedField ? this.display(field) : this.hide(field);\n    });\n  } else {\n    this.setData({ delivery_method_text: \"\" });\n  }\n};\n\nconst displayAddress = async () => {\n  const grID = this.getValue(\"gr_id\");\n\n  if (grID) {\n    this.display(\"address_grid\");\n  }\n};\n\n// Mirrors processData() in PRTbatchAddLineItem.js. A stock row's quantity comes from\n// the Select Stock dialog, which writes temp_qty_data and return_quantity together; a\n// description-only row is typed directly. processData only runs when rows are added,\n// so without replaying it on reopen a stock row's return_quantity stays editable and\n// can drift away from temp_qty_data — completion would then subtract one quantity from\n// inventory while booking a different one onto the goods receiving and purchase order.\nconst disabledRowFields = async () => {\n  const data = this.getValues();\n\n  (data.table_prt || []).forEach((prt, index) => {\n    const isDescriptionRow = !prt.material_id && prt.material_desc !== \"\";\n    this.disabled(`table_prt.${index}.select_return_qty`, isDescriptionRow);\n    this.disabled(`table_prt.${index}.return_quantity`, !isDescriptionRow);\n  });\n};\n\nconst disabledField = async (status) => {\n  if (status === \"Draft\") return;\n\n  // Created: the return quantity is reserved against the GR/PO lines but no\n  // stock has moved yet, so the document can still be corrected or completed.\n  // Only the identity fields are frozen.\n  if (status === \"Created\") {\n    this.disabled(\n      [\n        \"purchase_return_status\",\n        \"purchase_return_no\",\n        \"organization_id\",\n        \"supplier_id\",\n        \"plant\",\n      ],\n      true,\n    );\n\n    this.hide([\"button_save_as_draft\"]);\n    this.display([\"button_save_as_created\", \"button_save_as_completed\"]);\n    return;\n  }\n\n  // Completed / Cancelled (and legacy Issued): fully read-only.\n  this.disabled(\n    [\n      \"purchase_return_status\",\n      \"purchase_return_no\",\n      \"organization_id\",\n      \"supplier_id\",\n      \"prt_billing_name\",\n      \"prt_billing_cp\",\n      \"prt_billing_address\",\n      \"prt_shipping_address\",\n      \"gr_date\",\n      \"plant\",\n      \"purchase_return_date\",\n      \"input_hvxpruem\",\n      \"return_delivery_method\",\n      \"purchase_return_ref\",\n      \"shipping_details\",\n      \"reason_for_return\",\n\n      \"driver_name\",\n      \"vehicle_no\",\n      \"cp_ic_no\",\n      \"driver_contact\",\n      \"pickup_date\",\n\n      \"courier_company\",\n      \"shipping_date\",\n      \"estimated_arrival\",\n      \"shipping_method\",\n      \"freight_charge\",\n\n      \"driver_name2\",\n      \"ct_ic_no\",\n      \"driver_contact_no2\",\n      \"estimated_arrival2\",\n      \"vehicle_no2\",\n      \"delivery_cost\",\n\n      \"tpt_vehicle_number\",\n      \"tpt_transport_name\",\n      \"tpt_ic_no\",\n      \"tpt_driver_contact_no\",\n\n      \"table_prt\",\n      \"table_prt.return_condition\",\n      \"confirm_inventory.table_item_balance\",\n\n      \"billing_address_line_1\",\n      \"billing_address_line_2\",\n      \"billing_address_line_3\",\n      \"billing_address_line_4\",\n      \"billing_address_city\",\n      \"billing_address_state\",\n      \"billing_address_country\",\n      \"billing_postal_code\",\n      \"shipping_address_line_1\",\n      \"shipping_address_line_2\",\n      \"shipping_address_line_3\",\n      \"shipping_address_line_4\",\n      \"shipping_address_city\",\n      \"shipping_address_state\",\n      \"shipping_address_country\",\n      \"shipping_postal_code\",\n    ],\n    true,\n  );\n\n  this.hide([\n    \"link_billing_address\",\n    \"link_shipping_address\",\n    \"button_save_as_draft\",\n    \"button_save_as_created\",\n    \"button_save_as_completed\",\n  ]);\n};\n\nconst checkAccIntegrationType = async (organizationId) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n      this.setData({ acc_integration_type: aiData.acc_integration_type });\n    }\n  }\n};\n\n(async () => {\n  try {\n    const status = await this.getValue(\"purchase_return_status\");\n\n    const pageStatus = this.isAdd\n      ? \"Add\"\n      : this.isEdit\n        ? \"Edit\"\n        : this.isView\n          ? \"View\"\n          : this.isCopy\n            ? \"Clone\"\n            : (() => {\n                this.$message.error(\"Invalid page status\");\n              })();\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\");\n    }\n\n    this.setData({ organization_id: organizationId, page_status: pageStatus });\n\n    switch (pageStatus) {\n      case \"Add\":\n        this.display([\"draft_status\"]);\n        await setPlant(organizationId, pageStatus);\n        await checkAccIntegrationType(organizationId);\n        await this.setData({ return_by: this.getVarGlobal(\"nickname\") });\n        break;\n\n      // A clone is a brand new draft. Without clearing the number and status it\n      // inherits the source document's purchase_return_no — the workflow only\n      // regenerates when the number is blank or the previous status was Draft —\n      // and would save under a duplicate number.\n      // Deliberately no setPlant() here: at parent-org level it disables table_prt\n      // wholesale, which would lock the lines the clone exists to carry over.\n      case \"Clone\":\n        this.display([\"draft_status\"]);\n        this.setData({\n          purchase_return_no: null,\n          purchase_return_status: null,\n          previous_status: null,\n          return_by: this.getVarGlobal(\"nickname\"),\n        });\n        await checkAccIntegrationType(organizationId);\n        await disabledRowFields();\n        await displayDeliveryMethod();\n        await displayAddress();\n        break;\n\n      case \"Edit\":\n        this.setData({ previous_status: status });\n        await disabledField(status);\n        // Only the two editable statuses need per-row state; the rest disable\n        // table_prt wholesale.\n        if (status === \"Draft\" || status === \"Created\") {\n          await disabledRowFields();\n        }\n        await checkAccIntegrationType(organizationId);\n        await showStatusHTML(status);\n        await displayDeliveryMethod();\n        await displayAddress();\n        break;\n\n      case \"View\":\n        await showStatusHTML(status);\n        await displayDeliveryMethod();\n        await displayAddress();\n        this.hide([\n          \"link_billing_address\",\n          \"link_shipping_address\",\n          \"button_save_as_draft\",\n          \"button_save_as_created\",\n          \"button_save_as_completed\",\n        ]);\n\n        break;\n    }\n  } catch (error) {\n    this.$message.error(error);\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"purchase_return_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"purchase_return_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"purchase_return_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"purchase_return_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        purchase_return_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ purchase_return_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
         "type": "js"
       },
       {
@@ -15834,7 +17324,7 @@
       {
         "key": "as9j8588",
         "name": "onConfirm_batchAddItem",
-        "func": "const fetchItemData = async (itemID) => {\n  const resItem = await db\n    .collection(\"Item\")\n    .field(\"material_costing_method,item_category\")\n    .where({ id: itemID })\n    .get();\n\n  if (!resItem || resItem.data.length === 0) return;\n  else return resItem.data[0];\n};\n\nconst fetchBatchID = async (batchNo, grNumber, itemID) => {\n  try {\n    const organizationID = this.getValue(\"organization_id\");\n    const plantID = this.getValue(\"plant\");\n\n    const resBatch = await db\n      .collection(\"batch\")\n      .where({\n        material_id: itemID,\n        batch_number: batchNo,\n        transaction_no: grNumber,\n        plant_id: plantID,\n        organization_id: organizationID,\n      })\n      .get();\n\n    if (!resBatch || resBatch.data.length === 0) return;\n    else return resBatch.data[0].id;\n  } catch (error) {\n    console.error(error);\n  }\n};\n\n// Quantity of a GR line already spoken for: what previous purchase returns have\n// actually returned, plus what Created (not yet completed) returns have reserved.\nconst consumedQty = (grItem) =>\n  parseFloat(\n    (\n      parseFloat(grItem.return_quantity || 0) +\n      parseFloat(grItem.created_return_qty || 0)\n    ).toFixed(3),\n  );\n\nconst processData = async (existingPRT, tablePRT) => {\n  for (const [rowIndex, prt] of tablePRT.entries()) {\n    const index = existingPRT.length + rowIndex;\n\n    if (!prt.material_id && prt.material_desc !== \"\") {\n      this.disabled(`table_prt.${index}.select_return_qty`, true);\n      this.disabled(`table_prt.${index}.return_quantity`, false);\n    } else {\n      this.disabled(`table_prt.${index}.select_return_qty`, false);\n      this.disabled(`table_prt.${index}.return_quantity`, true);\n    }\n\n    if (prt.batch_no !== \"-\") {\n      const batchID = await fetchBatchID(\n        prt.batch_no,\n        prt.gr_number,\n        prt.material_id,\n      );\n\n      this.setData({ [`table_prt.${index}.batch_id`]: batchID });\n    }\n  }\n};\n\nconst convertToBaseUOM = (quantity, altUOM, itemData) => {\n  if (!altUOM || altUOM === itemData.based_uom) {\n    return quantity;\n  }\n\n  const uomConversion = itemData.table_uom_conversion?.find(\n    (conv) => conv.alt_uom_id === altUOM,\n  );\n\n  if (uomConversion && uomConversion.base_qty) {\n    return quantity * uomConversion.base_qty;\n  }\n\n  return quantity;\n};\n\n(async () => {\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n  const currentItemArray = this.getValue(`dialog_select_item.item_array`);\n  let existingPRT = this.getValue(\"table_prt\");\n  const previousReferenceType = this.getValue(\"reference_type\");\n  const supplierName = this.getValue(\"supplier_id\");\n\n  let tablePRT = [];\n  let purchaseOrderNumber = [];\n  let poId = [];\n  let goodsReceivingNumber = [];\n  let grId = [];\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\"Please select at least one goods receiving / item.\", \"Error\", {\n      confirmButtonText: \"OK\",\n      type: \"error\",\n    });\n\n    return;\n  }\n\n  if (previousReferenceType && previousReferenceType !== referenceType) {\n    await this.$confirm(\n      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Reference Type Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPRT = [];\n  }\n\n  const uniqueSuppliers = new Set(currentItemArray.map((gr) => gr.supplier_id));\n  const allSameSupplier = uniqueSuppliers.size === 1;\n\n  if (!allSameSupplier) {\n    this.$alert(\n      \"Returned item(s) from more than two different suppliers is not allowed.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n    return;\n  }\n\n  if (supplierName && supplierName !== [...uniqueSuppliers][0]) {\n    await this.$confirm(\n      `You've selected a different supplier than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Supplier Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPRT = [];\n  }\n\n  this.closeDialog(\"dialog_select_item\");\n  this.showLoading();\n\n  switch (referenceType) {\n    case \"Document\":\n      for (const gr of currentItemArray) {\n        // Filter out child rows - only count parent/regular/split-parent rows for returning\n        // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n        const grLines = gr.table_gr.filter(\n          (item) => item.parent_or_child !== \"Child\",\n        );\n\n        for (const grItem of grLines) {\n          let itemData;\n          if (grItem.item_id) {\n            itemData = await fetchItemData(grItem.item_id);\n          }\n\n          let receivedQuantity = grItem.received_qty;\n          let UOM = grItem.item_uom;\n\n          if (itemData && itemData.serial_number_management === 1) {\n            receivedQuantity = convertToBaseUOM(\n              grItem.received_qty,\n              grItem.item_uom,\n              itemData,\n            );\n\n            UOM = itemData.based_uom;\n          }\n\n          const newtablePRTRecord = {\n            material_id: grItem.item_id || null,\n            material_name: grItem.item_name,\n            material_desc: grItem.item_desc,\n            more_desc: grItem.more_desc,\n            received_qty: parseFloat(receivedQuantity.toFixed(3)),\n            return_quantity: 0,\n            return_uom_id: UOM,\n            po_number: grItem.line_po_no,\n            gr_number: gr.gr_no,\n            gr_date: gr.gr_date,\n            line_remark_1: grItem.line_remark_1,\n            line_remark_2: grItem.line_remark_2,\n            batch_no: grItem.item_batch_no,\n            returned_quantity: consumedQty(grItem),\n            unit_price: grItem.unit_price,\n            total_price: grItem.total_price,\n            costing_method: itemData?.material_costing_method || null,\n            item_category_id: itemData?.item_category || null,\n            po_id: grItem.line_po_id,\n            po_line_id: grItem.po_line_item_id,\n            gr_id: gr.goods_receiving_id,\n            gr_line_id: grItem.id,\n            is_serialized_item: grItem.is_serialized_item,\n          };\n\n          tablePRT.push(newtablePRTRecord);\n        }\n      }\n\n      break;\n\n    case \"Item\":\n      // Filter out child rows - only count parent/regular/split-parent rows for returning\n      // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n      for (const grItem of currentItemArray.filter(\n        (item) => item.parent_or_child !== \"Child\",\n      )) {\n        let receivedQuantity = grItem.received_qty;\n        let UOM = grItem.item_uom;\n\n        if (grItem.is_serialized_item === 1) {\n          receivedQuantity = grItem.base_received_qty;\n          UOM = grItem.item.base_item_uom;\n        }\n\n        const newtablePRTRecord = {\n          material_id: grItem.item.id || null,\n          material_name: grItem.item.material_name,\n          material_desc: grItem.item_desc,\n          more_desc: grItem.more_desc,\n          received_qty: parseFloat(receivedQuantity.toFixed(3)),\n          return_quantity: 0,\n          return_uom_id: UOM,\n          po_number: grItem.purchase_order_id.purchase_order_no,\n          gr_number: grItem.goods_receiving_id.gr_no,\n          gr_date: grItem.goods_receiving_id.gr_date,\n          line_remark_1: grItem.line_remark_1,\n          line_remark_2: grItem.line_remark_2,\n          batch_no: grItem.item_batch_no,\n          returned_quantity: consumedQty(grItem),\n          unit_price: grItem.unit_price,\n          total_price: grItem.total_price,\n          costing_method: grItem.item?.material_costing_method || null,\n          item_category_id: grItem.item?.item_category || null,\n          po_id: grItem.purchase_order_id.id,\n          po_line_id: grItem.purchase_order_line_id.id,\n          gr_id: grItem.goods_receiving_id.id,\n          gr_line_id: grItem.goods_receiving_line_id,\n          is_serialized_item: grItem.is_serialized_item,\n        };\n\n        tablePRT.push(newtablePRTRecord);\n      }\n      break;\n  }\n\n  tablePRT = tablePRT.filter(\n    (prt) =>\n      prt.returned_quantity < prt.received_qty &&\n      !existingPRT.find((prtItem) => prtItem.gr_line_id === prt.gr_line_id),\n  );\n\n  const latesttablePRT = [...existingPRT, ...tablePRT];\n  console.log(\"latesttablePRT\", latesttablePRT);\n\n  poId = [...new Set(latesttablePRT.map((prt) => prt.po_id))];\n  purchaseOrderNumber = [\n    ...new Set(latesttablePRT.map((prt) => prt.po_number)),\n  ];\n  grId = [...new Set(latesttablePRT.map((prt) => prt.gr_id))];\n  goodsReceivingNumber = [\n    ...new Set(latesttablePRT.map((prt) => prt.gr_number)),\n  ];\n\n  await this.setData({\n    supplier_id: currentItemArray[0].supplier_id,\n    table_prt: [...existingPRT, ...tablePRT],\n    po_no_display: purchaseOrderNumber.join(\", \"),\n    po_id: poId,\n    gr_no_display: goodsReceivingNumber.join(\", \"),\n    gr_id: grId,\n    reference_type: referenceType,\n  });\n\n  setTimeout(async () => {\n    await processData(existingPRT, tablePRT);\n  }, 50);\n\n  this.hideLoading();\n})();\n",
+        "func": "const fetchItemData = async (itemID) => {\n  const resItem = await db\n    .collection(\"Item\")\n    .field(\"material_costing_method,item_category\")\n    .where({ id: itemID })\n    .get();\n\n  if (!resItem || resItem.data.length === 0) return;\n  else return resItem.data[0];\n};\n\nconst fetchBatchID = async (batchNo, grNumber, itemID) => {\n  try {\n    const organizationID = this.getValue(\"organization_id\");\n    const plantID = this.getValue(\"plant\");\n\n    const resBatch = await db\n      .collection(\"batch\")\n      .where({\n        material_id: itemID,\n        batch_number: batchNo,\n        transaction_no: grNumber,\n        plant_id: plantID,\n        organization_id: organizationID,\n      })\n      .get();\n\n    if (!resBatch || resBatch.data.length === 0) return;\n    else return resBatch.data[0].id;\n  } catch (error) {\n    console.error(error);\n  }\n};\n\n// Quantity of a GR line already spoken for: what previous purchase returns have\n// actually returned, plus what Created (not yet completed) returns have reserved.\nconst consumedQty = (grItem) =>\n  parseFloat(\n    (\n      parseFloat(grItem.return_quantity || 0) +\n      parseFloat(grItem.created_return_qty || 0)\n    ).toFixed(3),\n  );\n\nconst processData = async (existingPRT, tablePRT) => {\n  for (const [rowIndex, prt] of tablePRT.entries()) {\n    const index = existingPRT.length + rowIndex;\n\n    if (!prt.material_id && prt.material_desc !== \"\") {\n      this.disabled(`table_prt.${index}.select_return_qty`, true);\n      this.disabled(`table_prt.${index}.return_quantity`, false);\n    } else {\n      this.disabled(`table_prt.${index}.select_return_qty`, false);\n      this.disabled(`table_prt.${index}.return_quantity`, true);\n    }\n\n    if (prt.batch_no !== \"-\") {\n      const batchID = await fetchBatchID(\n        prt.batch_no,\n        prt.gr_number,\n        prt.material_id,\n      );\n\n      this.setData({ [`table_prt.${index}.batch_id`]: batchID });\n    }\n  }\n};\n\nconst convertToBaseUOM = (quantity, altUOM, itemData) => {\n  if (!altUOM || altUOM === itemData.based_uom) {\n    return quantity;\n  }\n\n  const uomConversion = itemData.table_uom_conversion?.find(\n    (conv) => conv.alt_uom_id === altUOM,\n  );\n\n  if (uomConversion && uomConversion.base_qty) {\n    return quantity * uomConversion.base_qty;\n  }\n\n  return quantity;\n};\n\n(async () => {\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n  const currentItemArray = this.getValue(`dialog_select_item.item_array`);\n  let existingPRT = this.getValue(\"table_prt\");\n  const previousReferenceType = this.getValue(\"reference_type\");\n  const supplierName = this.getValue(\"supplier_id\");\n\n  let tablePRT = [];\n  let purchaseOrderNumber = [];\n  let poId = [];\n  let goodsReceivingNumber = [];\n  let grId = [];\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\"Please select at least one goods receiving / item.\", \"Error\", {\n      confirmButtonText: \"OK\",\n      type: \"error\",\n    });\n\n    return;\n  }\n\n  if (previousReferenceType && previousReferenceType !== referenceType) {\n    await this.$confirm(\n      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Reference Type Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPRT = [];\n  }\n\n  const uniqueSuppliers = new Set(currentItemArray.map((gr) => gr.supplier_id));\n  const allSameSupplier = uniqueSuppliers.size === 1;\n\n  if (!allSameSupplier) {\n    this.$alert(\n      \"Returned item(s) from more than two different suppliers is not allowed.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n    return;\n  }\n\n  if (supplierName && supplierName !== [...uniqueSuppliers][0]) {\n    await this.$confirm(\n      `You've selected a different supplier than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Supplier Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPRT = [];\n  }\n\n  this.closeDialog(\"dialog_select_item\");\n  this.showLoading();\n\n  switch (referenceType) {\n    case \"Document\":\n      for (const gr of currentItemArray) {\n        // Filter out child rows - only count parent/regular/split-parent rows for returning\n        // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n        const grLines = gr.table_gr.filter(\n          (item) => item.parent_or_child !== \"Child\",\n        );\n\n        for (const grItem of grLines) {\n          let itemData;\n          if (grItem.item_id) {\n            itemData = await fetchItemData(grItem.item_id);\n          }\n\n          let receivedQuantity = grItem.received_qty;\n          let UOM = grItem.item_uom;\n\n          if (itemData && itemData.serial_number_management === 1) {\n            receivedQuantity = convertToBaseUOM(\n              grItem.received_qty,\n              grItem.item_uom,\n              itemData,\n            );\n\n            UOM = itemData.based_uom;\n          }\n\n          const newtablePRTRecord = {\n            material_id: grItem.item_id || null,\n            material_name: grItem.item_name,\n            material_desc: grItem.item_desc,\n            more_desc: grItem.more_desc,\n            received_qty: parseFloat(receivedQuantity.toFixed(3)),\n            return_quantity: 0,\n            return_uom_id: UOM,\n            po_number: grItem.line_po_no,\n            gr_number: gr.gr_no,\n            gr_date: gr.gr_date,\n            line_remark_1: grItem.line_remark_1,\n            line_remark_2: grItem.line_remark_2,\n            batch_no: grItem.item_batch_no,\n            returned_quantity: consumedQty(grItem),\n            unit_price: grItem.unit_price,\n            total_price: grItem.total_price,\n            costing_method: itemData?.material_costing_method || null,\n            item_category_id: itemData?.item_category || null,\n            po_id: grItem.line_po_id,\n            po_line_id: grItem.po_line_item_id,\n            gr_id: gr.goods_receiving_id,\n            gr_line_id: grItem.id,\n            is_serialized_item: grItem.is_serialized_item,\n            further_description: grItem.further_description,\n          };\n\n          tablePRT.push(newtablePRTRecord);\n        }\n      }\n\n      break;\n\n    case \"Item\":\n      // Filter out child rows - only count parent/regular/split-parent rows for returning\n      // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n      for (const grItem of currentItemArray.filter(\n        (item) => item.parent_or_child !== \"Child\",\n      )) {\n        let receivedQuantity = grItem.received_qty;\n        let UOM = grItem.item_uom;\n\n        if (grItem.is_serialized_item === 1) {\n          receivedQuantity = grItem.base_received_qty;\n          UOM = grItem.item.base_item_uom;\n        }\n\n        const newtablePRTRecord = {\n          material_id: grItem.item.id || null,\n          material_name: grItem.item.material_name,\n          material_desc: grItem.item_desc,\n          more_desc: grItem.more_desc,\n          received_qty: parseFloat(receivedQuantity.toFixed(3)),\n          return_quantity: 0,\n          return_uom_id: UOM,\n          po_number: grItem.purchase_order_id.purchase_order_no,\n          gr_number: grItem.goods_receiving_id.gr_no,\n          gr_date: grItem.goods_receiving_id.gr_date,\n          line_remark_1: grItem.line_remark_1,\n          line_remark_2: grItem.line_remark_2,\n          batch_no: grItem.item_batch_no,\n          returned_quantity: consumedQty(grItem),\n          unit_price: grItem.unit_price,\n          total_price: grItem.total_price,\n          costing_method: grItem.item?.material_costing_method || null,\n          item_category_id: grItem.item?.item_category || null,\n          po_id: grItem.purchase_order_id.id,\n          po_line_id: grItem.purchase_order_line_id.id,\n          gr_id: grItem.goods_receiving_id.id,\n          gr_line_id: grItem.goods_receiving_line_id,\n          is_serialized_item: grItem.is_serialized_item,\n          further_description: grItem.further_description\n        };\n\n        tablePRT.push(newtablePRTRecord);\n      }\n      break;\n  }\n\n  tablePRT = tablePRT.filter(\n    (prt) =>\n      prt.returned_quantity < prt.received_qty &&\n      !existingPRT.find((prtItem) => prtItem.gr_line_id === prt.gr_line_id),\n  );\n\n  const latesttablePRT = [...existingPRT, ...tablePRT];\n  console.log(\"latesttablePRT\", latesttablePRT);\n\n  poId = [...new Set(latesttablePRT.map((prt) => prt.po_id))];\n  purchaseOrderNumber = [\n    ...new Set(latesttablePRT.map((prt) => prt.po_number)),\n  ];\n  grId = [...new Set(latesttablePRT.map((prt) => prt.gr_id))];\n  goodsReceivingNumber = [\n    ...new Set(latesttablePRT.map((prt) => prt.gr_number)),\n  ];\n\n  await this.setData({\n    supplier_id: currentItemArray[0].supplier_id,\n    table_prt: [...existingPRT, ...tablePRT],\n    po_no_display: purchaseOrderNumber.join(\", \"),\n    po_id: poId,\n    gr_no_display: goodsReceivingNumber.join(\", \"),\n    gr_id: grId,\n    reference_type: referenceType,\n  });\n\n  setTimeout(async () => {\n    await processData(existingPRT, tablePRT);\n  }, 50);\n\n  this.hideLoading();\n})();\n",
         "type": "js"
       },
       {
@@ -15882,7 +17372,7 @@
       {
         "key": "d7sai3uq",
         "name": "rowClick_addGRItem",
-        "func": "(async () => {\n  const currentGRArray = this.getValue(`dialog_select_item.item_array`);\n  const selectedGRItem = arguments[0].$eventArgs[0];\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n\n  console.log(\"arguments[0].$eventArgs[0]\", arguments[0].$eventArgs[0]);\n  const index = currentGRArray.findIndex(\n    (item) => item.goods_receiving_line_id === selectedGRItem.id\n  );\n  if (index !== -1) {\n    currentGRArray.splice(index, 1);\n  } else {\n    currentGRArray.push({\n      goods_receiving_line_id: selectedGRItem.id,\n      goods_receiving_id: selectedGRItem.goods_receiving_id,\n      purchase_order_id: selectedGRItem.line_po_id,\n      purchase_order_line_id: selectedGRItem.po_line_item_id,\n      item: selectedGRItem.item_id,\n      item_desc: selectedGRItem.item_desc,\n      more_desc: selectedGRItem.more_desc,\n      item_batch_no: selectedGRItem.item_batch_no,\n      item_uom: selectedGRItem.item_uom.id,\n      unit_price: selectedGRItem.unit_price,\n      total_price: selectedGRItem.total_price,\n      line_remark_1: selectedGRItem.line_remark_1,\n      line_remark_2: selectedGRItem.line_remark_2,\n      received_qty: selectedGRItem.received_qty,\n      return_quantity: selectedGRItem.return_quantity,\n      supplier_id: selectedGRItem.supplier_id.id,\n      is_serialized_item: selectedGRItem.is_serialized_item,\n      base_received_qty: selectedGRItem.base_received_qty,\n      base_item_uom: selectedGRItem.base_item_uom.id,\n      tariff_id: selectedGRItem.tariff_id.id\n    });\n  }\n\n  console.log(\"currentGRArray\", currentGRArray);\n\n  const updatedGRNumber = currentGRArray.map(\n    (item) => item.goods_receiving_id.gr_no + \"\\t\" + item.item.material_code\n  );\n\n  console.log(\"updatedGRNumber\", updatedGRNumber.join(\", \"));\n\n  this.setData({\n    ...(!referenceType || referenceType === \"\"\n      ? { [`dialog_select_item.reference_type`]: \"Item\" }\n      : {}),\n    [`dialog_select_item.gr_number_array`]: updatedGRNumber.join(`\\n`),\n    [`dialog_select_item.item_array`]: currentGRArray,\n  });\n})();\n",
+        "func": "(async () => {\n  const currentGRArray = this.getValue(`dialog_select_item.item_array`);\n  const selectedGRItem = arguments[0].$eventArgs[0];\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n\n  console.log(\"arguments[0].$eventArgs[0]\", arguments[0].$eventArgs[0]);\n  const index = currentGRArray.findIndex(\n    (item) => item.goods_receiving_line_id === selectedGRItem.id\n  );\n  if (index !== -1) {\n    currentGRArray.splice(index, 1);\n  } else {\n    const resGRItem = await db.collection('goods_receiving_eg6l4ywi_sub').doc(selectedGRItem.id).get();\n    const grItemData = resGRItem?.data[0];\n    currentGRArray.push({\n      goods_receiving_line_id: selectedGRItem.id,\n      goods_receiving_id: selectedGRItem.goods_receiving_id,\n      purchase_order_id: selectedGRItem.line_po_id,\n      purchase_order_line_id: selectedGRItem.po_line_item_id,\n      item: selectedGRItem.item_id,\n      item_desc: selectedGRItem.item_desc,\n      more_desc: selectedGRItem.more_desc,\n      item_batch_no: selectedGRItem.item_batch_no,\n      item_uom: selectedGRItem.item_uom.id,\n      unit_price: selectedGRItem.unit_price,\n      total_price: selectedGRItem.total_price,\n      line_remark_1: selectedGRItem.line_remark_1,\n      line_remark_2: selectedGRItem.line_remark_2,\n      received_qty: selectedGRItem.received_qty,\n      return_quantity: selectedGRItem.return_quantity,\n      supplier_id: selectedGRItem.supplier_id.id,\n      is_serialized_item: selectedGRItem.is_serialized_item,\n      base_received_qty: selectedGRItem.base_received_qty,\n      base_item_uom: selectedGRItem.base_item_uom.id,\n      tariff_id: grItemData?.tariff_id,\n      further_description: grItemData?.further_description\n    });\n  }\n\n  console.log(\"currentGRArray\", currentGRArray);\n\n  const updatedGRNumber = currentGRArray.map(\n    (item) => item.goods_receiving_id.gr_no + \"\\t\" + item.item.material_code\n  );\n\n  console.log(\"updatedGRNumber\", updatedGRNumber.join(\", \"));\n\n  this.setData({\n    ...(!referenceType || referenceType === \"\"\n      ? { [`dialog_select_item.reference_type`]: \"Item\" }\n      : {}),\n    [`dialog_select_item.gr_number_array`]: updatedGRNumber.join(`\\n`),\n    [`dialog_select_item.item_array`]: currentGRArray,\n  });\n})();\n",
         "type": "js"
       },
       {
@@ -16007,6 +17497,12 @@
         "key": "u1ac6x8b",
         "name": "onClick_saveCompleted",
         "func": "// Thin wrapper: the ONLY client-side responsibility is the interactive\n// zero-return-qty confirm (a workflow can't prompt the user). All data\n// transforms (drop zero lines, recompute PO/GR refs, doc no, status) live in\n// PRTsaveWorkflow's fillbackHeaderFields. Replace PRT_SAVE_WORKFLOW_ID after import.\nconst PRT_SAVE_WORKFLOW_ID = \"2066433188188499969\";\n\nconst closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Saving Purchase Return as Completed...\");\n    const data = this.getValues();\n    const lines = data.table_prt || [];\n\n    // Block when nothing is being returned\n    const totalQty = lines.reduce(\n      (sum, item) => sum + (parseFloat(item.return_quantity) || 0),\n      0,\n    );\n    if (totalQty === 0) {\n      this.hideLoading();\n      this.$message.error(\"Total return quantity is 0.\");\n      return;\n    }\n\n    // Interactive confirm for zero-qty lines (the workflow drops them on save)\n    const zeroQtyArray = [];\n    lines.forEach((item, index) => {\n      if (!(parseFloat(item.return_quantity) > 0)) zeroQtyArray.push(`#${index + 1}`);\n    });\n    if (zeroQtyArray.length > 0) {\n      try {\n        await this.$confirm(\n          `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${\n            zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n          } a zero return quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 return quantity.\\nWould you like to proceed?`,\n          \"Zero Return Quantity Detected\",\n          {\n            confirmButtonText: \"OK\",\n            cancelButtonText: \"Cancel\",\n            type: \"warning\",\n            dangerouslyUseHTMLString: false,\n          },\n        );\n      } catch {\n        this.hideLoading();\n        return; // user cancelled\n      }\n    }\n\n    let workflowResult;\n    await this.runWorkflow(\n      PRT_SAVE_WORKFLOW_ID,\n      { allData: data, saveAs: \"Completed\", pageStatus: data.page_status },\n      async (res) => {\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to save Purchase Return:\", err);\n        this.hideLoading();\n        workflowResult = err;\n      },\n    );\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    const code = workflowResult.data.code;\n    if (code === \"200\" || code === 200 || workflowResult.data.success === true) {\n      this.hideLoading();\n      this.$message.success(\n        workflowResult.data.message ||\n          workflowResult.data.msg ||\n          \"Purchase Return saved successfully\",\n      );\n      closeDialog();\n    } else {\n      this.hideLoading();\n      this.$message.error(\n        workflowResult.data.msg ||\n          workflowResult.data.message ||\n          \"Failed to save Purchase Return\",\n      );\n    }\n  } catch (error) {\n    this.hideLoading();\n    console.error(\"Error:\", error);\n    this.$message.error(error.message || error || \"Failed to save Purchase Return\");\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "qhk88i59",
+        "name": "onChangeDIDriverName",
+        "func": "this.setData({'di_ic_no' : arguments[0].fieldModel.item.driver_ic})\nthis.setData({'di_driver_contact_no' : arguments[0].fieldModel.item.driver_contact})",
         "type": "js"
       }
     ],
