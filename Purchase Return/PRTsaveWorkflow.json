@@ -1323,10 +1323,7 @@
                         }
                       ]
                     },
-                    "expression": {
-                      "code": "true",
-                      "type": "javascript"
-                    },
+                    "expression": { "code": "true", "type": "javascript" },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Get Items",
@@ -3069,9 +3066,7 @@
                         {
                           "id": "if_block_PRTgetUpdatedTrue",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "get_node_7CFMbGI0",
@@ -3112,9 +3107,7 @@
                         {
                           "id": "if_block_PRTgetUpdatedFalse",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -3293,7 +3286,7 @@
                                   }
                                 ]
                               },
-{
+                              {
                                 "key": "4ccj2hbx",
                                 "name": "doc_date",
                                 "title": "doc_date",
@@ -3321,7 +3314,7 @@
                           },
                           "blocks": []
                         },
-{
+                        {
                           "id": "loop_NWeT5dSb",
                           "type": "loop",
                           "data": {
@@ -3418,7 +3411,7 @@
                                     "bsonType": "string",
                                     "isExpand": false
                                   },
-{
+                                  {
                                     "key": "6uixt627",
                                     "name": "manufacturing_date",
                                     "title": "manufacturing_date",
@@ -3562,7 +3555,7 @@
                                       "valueLabel": "",
                                       "propLabel": "Batch ID"
                                     },
-{
+                                    {
                                       "prop": "itemData",
                                       "operator": "",
                                       "valueType": "field",
@@ -3714,7 +3707,7 @@
                           "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}};\nconst subformData = allData.table_prt || [];\nconst plantId = allData.plant;\nconst organizationId = allData.organization_id;\n\nconst huUpdatesMap = new Map();\nfor (const line of subformData) {\n  if (!line.temp_qty_data) continue;\n  let entries;\n  try {\n    entries = JSON.parse(line.temp_qty_data);\n  } catch (e) {\n    continue;\n  }\n  if (!Array.isArray(entries)) continue;\n\n  for (const entry of entries) {\n    const huId = entry.handling_unit_id;\n    if (!huId) continue;\n    const qty = parseFloat(entry.return_quantity || 0);\n    if (qty <= 0) continue;\n\n    if (!huUpdatesMap.has(huId)) {\n      huUpdatesMap.set(huId, {\n        handling_unit_id: huId,\n        plant_id: plantId,\n        organization_id: organizationId,\n        location_id: entry.location_id || null,\n        storage_location_id: entry.storage_location_id || null,\n        items: [],\n      });\n    }\n    const update = huUpdatesMap.get(huId);\n\n    const key = `${entry.material_id}__${entry.balance_id || \"\"}__${entry.batch_id || \"\"}`;\n    const existing = update.items.find(\n      (i) => `${i.material_id}__${i.balance_id || \"\"}__${i.batch_id || \"\"}` === key\n    );\n    if (existing) {\n      existing.quantity += qty;\n    } else {\n      update.items.push({\n        material_id: entry.material_id,\n        balance_id: entry.balance_id || \"\",\n        batch_id: entry.batch_id || null,\n        quantity: qty,\n      });\n    }\n  }\n}\n\nreturn {\n  huUpdates: Array.from(huUpdatesMap.values()),\n  huUpdatesLength: huUpdatesMap.size,\n};"
                         },
                         "response_json": [
-{
+                          {
                             "key": "a3q59cnv",
                             "name": "huUpdates",
                             "title": "huUpdates",
