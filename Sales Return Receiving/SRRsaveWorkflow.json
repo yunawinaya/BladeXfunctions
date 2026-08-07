@@ -1,0 +1,3384 @@
+{
+  "request_json": [
+    {
+      "key": "wag3a0n3",
+      "name": "allData",
+      "title": "All Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "if_u6ki_lk9",
+      "type": "if",
+      "data": {
+        "title": "Save Draft?",
+        "isValidator": true,
+        "nodeName": "Save Draft?",
+        "name": "Save Draft?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:allData.srr_status}}' == 'Draft'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_3WV8XRAy",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_pQlxXrFl",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "1a. Draft Check Doc Number",
+                "isValidator": true,
+                "nodeName": "1a. Draft Check Doc Number",
+                "name": "1a. Draft Check Doc Number",
+                "script": {
+                  "type": "javascript",
+                  "code": "let table = {{workflowparams:allData}};\n\nif(table.srr_no_type !== -9999 && (\n  !table.srr_no|| table.srr_no === null || table.srr_no === ''\n)) {\n  table.srr_no = 'draft'\n}\n\nreturn { table };"
+                },
+                "response_json": [
+                  {
+                    "key": "idwlt401",
+                    "name": "table",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_f6tO134t",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "1b. Draft Mandatory Fields",
+                "isValidator": true,
+                "nodeName": "1b. Draft Mandatory Fields",
+                "name": "1b. Draft Mandatory Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "const data = {{node:code_node_pQlxXrFl.data.table}};\nreturn {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant\" },\n  { name: \"srr_no\", label: \"SRR Number\" },\n  { name: \"srr_no_type\", label: \"SRR Number\" },\n  { name: \"customer_id\", label: \"Customer\"},\n  { name: \"organization_id\", label: \"Organization ID\"},\n  { name: \"acc_integration_type\", label: \"Acc Integration Type\"},\n  {\n    name: \"table_srr\",\n    label: \"Item Information\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    plant_id: data.plant_id,\n    srr_no: data.srr_no,\n    srr_no_type: data.srr_no_type,\n    customer_id: data.customer_id,\n    organization_id: data.organization_id,\n    acc_integration_type: data.acc_integration_type,\n    table_srr: data.table_srr\n  })\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "iomd4yaj",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "z59j2g2u",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_node_pJ7Yd1IL",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "1b. Draft Run Mandatory Workflow",
+                "isValidator": true,
+                "nodeName": "1b. Draft Run Mandatory Workflow",
+                "name": "1b. Draft Run Mandatory Workflow",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_f6tO134t.data.data}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_f6tO134t.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_YZnLD4ED",
+              "type": "if",
+              "data": {
+                "title": "1b. Validation Failed?",
+                "isValidator": true,
+                "nodeName": "1b. Validation Failed?",
+                "name": "1b. Validation Failed?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_node_pJ7Yd1IL.data.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_gXB9jwak",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_2jVASwXN",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 401,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_node_pJ7Yd1IL.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_GRxxpluY",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_3Fl3P3wq",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "code_node_Rr54LMQQ",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "1a. Check Doc Number",
+                "isValidator": true,
+                "nodeName": "1a. Check Doc Number",
+                "name": "1a. Check Doc Number",
+                "script": {
+                  "type": "javascript",
+                  "code": "let table = {{workflowparams:allData}};\n\nif (\n  table.srr_no_type !== -9999 &&\n  (!table.srr_no ||\n    table.srr_no === null ||\n    table.srr_no === \"\" ||\n    table.previous_status == \"Draft\")\n) {\n  table.srr_no = 'issued'\n}\n\nreturn { table };"
+                },
+                "response_json": [
+                  {
+                    "key": "idwlt401",
+                    "name": "table",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_dTRpmFRy",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "1b. Mandatory Fields",
+                "isValidator": true,
+                "nodeName": "1b. Mandatory Fields",
+                "name": "1b. Mandatory Fields",
+                "script": {
+                  "type": "javascript",
+                  "code": "const data = {{node:code_node_Rr54LMQQ.data.table}}\nreturn {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant\" },\n  { name: \"srr_no\", label: \"SRR Number\" },\n  { name: \"srr_no_type\", label: \"SRR Number\" },\n  { name: \"customer_id\", label: \"Customer\"},\n  { name: \"organization_id\", label: \"Organization ID\"},\n  { name: \"acc_integration_type\", label: \"Acc Integration Type\"},\n  {\n    name: \"table_srr\",\n    label: \"Item Information\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    plant_id: data.plant_id,\n    srr_no: data.srr_no,\n    srr_no_type: data.srr_no_type,\n    customer_id: data.customer_id,\n    organization_id: data.organization_id,\n    acc_integration_type: data.acc_integration_type,\n    table_srr: data.table_srr\n  })\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "iomd4yaj",
+                    "name": "required_fields",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "z59j2g2u",
+                    "name": "data",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "workflow_node_N4Ac8zlH",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "1b. Run Mandatory Workflow",
+                "isValidator": true,
+                "nodeName": "1b. Run Mandatory Workflow",
+                "name": "1b. Run Mandatory Workflow",
+                "workflow": {
+                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+                  "rules": {
+                    "collectionId": "1988831880511062018",
+                    "list": [
+                      {
+                        "id": 1763010683443,
+                        "parentId": 1763010683442,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "entry",
+                      "propLabel": "entry",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_dTRpmFRy.data.data}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_fields",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_dTRpmFRy.data.required_fields}}",
+                      "valueLabel": "",
+                      "propLabel": "required_fields"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_Gpo0SlTR",
+              "type": "if",
+              "data": {
+                "title": "1b. Validation Failed?",
+                "isValidator": true,
+                "nodeName": "1b. Validation Failed?",
+                "name": "1b. Validation Failed?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:workflow_node_N4Ac8zlH.data.data.status}}' == 'Failed'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_cMDJy4rK",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_D37LCOuW",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 401,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_node_N4Ac8zlH.data.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_GjMqVdv3",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "code_node_80LHJJhN",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "1c. Map SR Line Item IDs List",
+                        "isValidator": true,
+                        "nodeName": "1c. Map SR Line Item IDs List",
+                        "name": "1c. Map SR Line Item IDs List",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const entry = {{node:code_node_Rr54LMQQ.data.table}};\n\nconst srLineIDs = entry.table_srr.map(item => item.sr_line_id);\n\nreturn { srLineIDs }"
+                        },
+                        "response_json": [
+                          {
+                            "key": "bbjxplp9",
+                            "name": "srLineIDs",
+                            "title": "srLineIDs",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "tdb0m5ho",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "isArrayItem": true
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_node_yBcXo9Ht",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "子表单(Sales Return):Table:1939903676290015234",
+                          "rules": {
+                            "collectionId": "1939903676290015234",
+                            "list": [
+                              {
+                                "id": 1777001044045,
+                                "parentId": 1777001044044,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_80LHJJhN.data.srLineIDs}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "1c. Get SR Line Item",
+                        "isValidator": true,
+                        "nodeName": "1c. Get SR Line Item",
+                        "name": "1c. Get SR Line Item"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_39PcrcRu",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "1c. Validate available received qty",
+                        "isValidator": true,
+                        "nodeName": "1c. Validate available received qty",
+                        "name": "1c. Validate available received qty",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const entry = {{node:code_node_Rr54LMQQ.data.table}};\nconst srLineItemList = {{node:search_node_yBcXo9Ht.data.data}};\n\nlet invalidReceivedQty = [];\n\nfor (const [index, item] of entry.table_srr.entries()) {\n  const srLine = srLineItemList.find((sr) => sr.id === item.sr_line_id);\n  if (srLine) {\n    const maxReceivableQty = parseFloat(srLine.expected_return_qty || 0) - parseFloat(srLine.received_qty || 0);\n    if (parseFloat(item.received_qty || 0) > maxReceivableQty) {\n      invalidReceivedQty.push(`#${index + 1}`);\n    }\n  }\n}\n\nif(invalidReceivedQty.length > 0) {\n  return {\n    status: 'Failed',\n    message: `Line${invalidReceivedQty.length > 1 ? \"s\" : \"\"} ${invalidReceivedQty.join(\n        \", \",\n      )} ha${\n        invalidReceivedQty.length > 1 ? \"ve\" : \"s\"\n      } an expected receive quantity exceeding the maximum receivable quantity.`\n  }\n}\n\nreturn {\n  status: 'Success',\n  message: ''\n}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "w83zlyw9",
+                            "name": "status",
+                            "title": "Status",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "1dkmdaxs",
+                            "name": "message",
+                            "title": "Message",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_PXZeVPdH",
+                      "type": "if",
+                      "data": {
+                        "title": "1c. IF failed?",
+                        "isValidator": true,
+                        "nodeName": "1c. IF failed?",
+                        "name": "1c. IF failed?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_39PcrcRu.data.status}}' == 'Failed'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_H8eTMW0D",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "end_node_T0m5pjmm",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": { "type": "string" }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "Default",
+                                "code": 402,
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": "{{node:code_node_39PcrcRu.data.message}}"
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_AOS7NE1X",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": [
+                            {
+                              "id": "code_node_gfkN0Qq7",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "1d&1e&1f. Check Total Received Qty",
+                                "isValidator": true,
+                                "nodeName": "1d&1e&1f. Check Total Received Qty",
+                                "name": "1d&1e&1f. Check Total Received Qty",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "let entry = {{node:code_node_Rr54LMQQ.data.table}}\n\n// Check total return qty\nconst totalQuantity = entry.table_srr.reduce((sum, item) => {\n    const { received_qty } = item;\n    return sum + (received_qty || 0);\n  }, 0);\n\nif(totalQuantity <= 0){\n  return {\n    status: 'Failed',\n    code: '403',\n    message: 'Total received quantity is 0.',\n    entry\n  }\n}\n\n// Check line received qty\nlet zeroQtyArray = [];\nfor(const [index, sr] of entry.table_srr.entries()) {\n  if (parseFloat(sr.received_qty) <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\n\nif(zeroQtyArray.length > 0) {\n  if(entry.filter_srr == 'Yes') {\n    if(entry.new_batch == 1){\n      entry.table_srr = entry.table_srr.filter(\n        (item) => item.received_qty > 0,\n      );\n    }\n\n    if(entry.table_srr.length === 0) {\n      return {\n        status: 'Failed',\n        code: '405',\n        message: 'All Received Quantity must not be 0. Please add at least one item with received quantity > 0.',\n        entry\n      }\n    }\n\n    let salesOrderNumber = [];\n    let soId = [];\n    let goodsDeliveryNumber = [];\n    let gdId = [];\n    let salesReturnNumber = [];\n    let srId = [];\n    \n    for (const srr of entry.table_srr) {\n      gdId.push(srr.gd_id);\n      goodsDeliveryNumber.push(srr.gd_number);\n\n      soId.push(srr.so_id);\n      salesOrderNumber.push(srr.so_number);\n\n      srId.push(srr.sr_id);\n      salesReturnNumber.push(srr.sr_number);\n    }\n\n    soId = [...new Set(soId)];\n    gdId = [...new Set(gdId)];\n    srId = [...new Set(srId)];\n    salesOrderNumber = [...new Set(salesOrderNumber)];\n    goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n    salesReturnNumber = [...new Set(salesReturnNumber)];\n\n    entry.so_id = soId;\n    entry.gd_id = gdId;\n    entry.sr_id = srId;\n    entry.so_no_display = salesOrderNumber.join(\", \");\n    entry.gd_no_display = goodsDeliveryNumber.join(\", \");\n    entry.sr_no_display = salesReturnNumber.join(\", \");\n  } else {\n    return {\n      status: 'Failed',\n      code: '404',\n      message: `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${\n        zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n      } a zero received quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 received quantity. \\nWould you like to proceed?`,\n      entry\n    }\n  }\n}\n\nreturn {\n  status: 'Success',\n  code: '',\n  message: '',\n  entry\n}\n\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "qhh6smga",
+                                    "name": "status",
+                                    "title": "Status",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "4qfwtumh",
+                                    "name": "code",
+                                    "title": "Code",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "rjk99d0q",
+                                    "name": "message",
+                                    "title": "Message",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "cre15s6e",
+                                    "name": "entry",
+                                    "title": "Entry",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "if_9vC6fkDb",
+                              "type": "if",
+                              "data": {
+                                "title": "1d&1e&1f. IF Failed?",
+                                "isValidator": true,
+                                "nodeName": "1d&1e&1f. IF Failed?",
+                                "name": "1d&1e&1f. IF Failed?",
+                                "condition_type": "Expression",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{node:code_node_gfkN0Qq7.data.status}}' == 'Failed'"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_mNb27Mwr",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "condition_or_node_60hmPNuJ",
+                                      "type": "condition-or-node",
+                                      "data": {
+                                        "title": "Condition",
+                                        "filter": { "list": [] },
+                                        "expression": { "code": "" },
+                                        "displayContent": "sdk.form.setCondition"
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "condition_or_node_item_SvO4hDaJ",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "1d. Error 403",
+                                            "filter": {
+                                              "list": [
+                                                {
+                                                  "id": 1776740336809,
+                                                  "parentId": 1776740336808,
+                                                  "isTop": true,
+                                                  "prop": "",
+                                                  "operator": "",
+                                                  "valueType": "",
+                                                  "value": "",
+                                                  "type": "leaf",
+                                                  "level": 1
+                                                }
+                                              ]
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_gfkN0Qq7.data.code}}' == '403'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "isValidator": true,
+                                            "nodeName": "1d. Error 403",
+                                            "name": "1d. Error 403",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_node_xy3GgYcm",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 403,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_gfkN0Qq7.data.message}}"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_node_item_YoRgwQMp",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "1e. Error 404",
+                                            "filter": {
+                                              "list": [
+                                                {
+                                                  "id": 1776740349903,
+                                                  "parentId": 1776740349902,
+                                                  "isTop": true,
+                                                  "prop": "",
+                                                  "operator": "",
+                                                  "valueType": "",
+                                                  "value": "",
+                                                  "type": "leaf",
+                                                  "level": 1
+                                                }
+                                              ]
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_gfkN0Qq7.data.code}}' == '404'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "__index": 2,
+                                            "isDefault": false,
+                                            "isValidator": true,
+                                            "nodeName": "1e. Error 404",
+                                            "name": "1e. Error 404",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_node_1o1PFsIP",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 404,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_gfkN0Qq7.data.message}}"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_node_item_DwfDMYcU",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "1f. Error 405",
+                                            "filter": {
+                                              "list": [
+                                                {
+                                                  "id": 1776740350987,
+                                                  "parentId": 1776740350986,
+                                                  "isTop": true,
+                                                  "prop": "",
+                                                  "operator": "",
+                                                  "valueType": "",
+                                                  "value": "",
+                                                  "type": "leaf",
+                                                  "level": 1
+                                                }
+                                              ]
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_gfkN0Qq7.data.code}}' == '405'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "__index": 3,
+                                            "isDefault": false,
+                                            "isValidator": true,
+                                            "nodeName": "1f. Error 405",
+                                            "name": "1f. Error 405",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_node_rsmEfTC5",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 405,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_gfkN0Qq7.data.message}}"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_node_item_LVGDPNbA",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "Other",
+                                            "isDefault": true,
+                                            "filter": { "list": [] },
+                                            "expression": { "code": "" },
+                                            "displayContent": "sdk.form.otherCondition"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_node_k55YpKxO",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 406,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "'Error in saving Sales Return.'"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_TYUKDmR6",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "if_oUIhf9ex",
+              "type": "if",
+              "data": {
+                "title": "IF newBatch?",
+                "isValidator": true,
+                "nodeName": "IF newBatch?",
+                "name": "IF newBatch?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_gfkN0Qq7.data.entry.new_batch}} == 1"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_frOJAbvt",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "code_node_9YFf2aPr",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Unique Index",
+                        "isValidator": true,
+                        "nodeName": "Unique Index",
+                        "name": "Unique Index",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const allData = {{workflowparams:allData}};\nconst userID = {{system:uid}};\nconst newDate = new Date();\nconst unique = `${userID || \"\"}_${newDate}`;\n\nreturn {\n  unique\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "nfgua2wj",
+                            "name": "unique",
+                            "title": "unique",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "set_cache_node_FAMs34mF",
+                      "type": "set-cache-node",
+                      "data": {
+                        "cache_key": "",
+                        "cache_value": "",
+                        "expire_time": 3600,
+                        "title": "Init Batch Gen Index",
+                        "isValidator": true,
+                        "nodeName": "Init Batch Gen Index",
+                        "name": "Init Batch Gen Index",
+                        "custom_wkbocgni": {
+                          "type": "javascript",
+                          "code": "0"
+                        },
+                        "redis_key": "batchGenIndex_{{node:code_node_9YFf2aPr.data.unique}}"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "set_cache_node_PyDQJDP4",
+                      "type": "set-cache-node",
+                      "data": {
+                        "cache_key": "",
+                        "cache_value": "",
+                        "expire_time": 3600,
+                        "title": "Init Generated Batches",
+                        "isValidator": true,
+                        "nodeName": "Init Generated Batches",
+                        "name": "Init Generated Batches",
+                        "custom_wkbocgni": {
+                          "type": "javascript",
+                          "code": "[]"
+                        },
+                        "redis_key": "generatedBatches_{{node:code_node_9YFf2aPr.data.unique}}"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "loop_HtTNBCzd",
+                      "type": "loop",
+                      "data": {
+                        "title": "Loop Generate Batch",
+                        "isValidator": true,
+                        "nodeName": "Loop Generate Batch",
+                        "name": "Loop Generate Batch",
+                        "loopType": "Var",
+                        "loopSeletSource": {
+                          "datasource": {
+                            "rules": {
+                              "collectionId": "",
+                              "list": [
+                                {
+                                  "id": 1723795236686,
+                                  "parentId": 1723795236685,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "auto_refresh": 1,
+                          "auto_refresh_debounce": 100,
+                          "options": [],
+                          "props": {
+                            "value": "",
+                            "label": "",
+                            "image": "",
+                            "icon": "",
+                            "explain": ""
+                          },
+                          "remote": false,
+                          "remoteType": "datasource",
+                          "limit_count": ""
+                        },
+                        "loopSeletVar": {
+                          "type": "markdown",
+                          "code": "{{node:code_node_gfkN0Qq7.data.entry.table_srr}}"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "get_cache_node_ZCcCicY6",
+                          "type": "get-cache-node",
+                          "data": {
+                            "cache_key": "",
+                            "title": "Get Batch Gen Index",
+                            "isValidator": true,
+                            "nodeName": "Get Batch Gen Index",
+                            "name": "Get Batch Gen Index",
+                            "redis_key": "batchGenIndex_{{node:code_node_9YFf2aPr.data.unique}}"
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "code_node_zBFHqHSZ",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "Batch Gen Prep",
+                            "isValidator": true,
+                            "nodeName": "Batch Gen Prep",
+                            "name": "Batch Gen Prep",
+                            "script": {
+                              "type": "javascript",
+                              "code": "const allData = {{node:code_node_gfkN0Qq7.data.entry}};\nconst subformData = allData.table_srr || [];\nconst currentIndexRaw = {{node:get_cache_node_ZCcCicY6.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst item = subformData[index] || {};\n\n// Only generate for auto-batch rows that are NOT hierarchy children\n// (children inherit the parent batch number after the loop)\nconst needsGen = (item.batch_no === \"Auto-generated batch number\") ? 1 : 0;\n\nreturn {\n  item_id: item.material_id || \"\",\n  needsGen: needsGen,\n  document_date: allData.received_date || '',\n  manufacturing_date: item.manufacturing_date || '',\n  expired_date: item.expired_date || '',\n  index: index,\n  nextIndex: index + 1\n};"
+                            },
+                            "response_json": [
+                              {
+                                "key": "item_id",
+                                "name": "item_id",
+                                "title": "item_id",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "needsGen",
+                                "name": "needsGen",
+                                "title": "needsGen",
+                                "description": "",
+                                "bsonType": "number",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "index",
+                                "name": "index",
+                                "title": "index",
+                                "description": "",
+                                "bsonType": "number",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "nextInde",
+                                "name": "nextIndex",
+                                "title": "nextIndex",
+                                "description": "",
+                                "bsonType": "number",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "ucylfzhj",
+                                "name": "document_date",
+                                "title": "document_date",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "sexhbqnt",
+                                "name": "expired_date",
+                                "title": "expired_date",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "8f3zd2gs",
+                                "name": "manufacturing_date",
+                                "title": "manufacturing_date",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "if_YnzCQZ54",
+                          "type": "if",
+                          "data": {
+                            "title": "IF needsGen",
+                            "isValidator": true,
+                            "nodeName": "IF needsGen",
+                            "name": "IF needsGen",
+                            "condition_type": "Expression",
+                            "expression": {
+                              "type": "javascript",
+                              "code": "{{node:code_node_zBFHqHSZ.data.needsGen}} == 1"
+                            },
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1736695973612,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "ifBlock_kgRvbN1S",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                                {
+                                  "id": "workflow_node_lp2Gbzjg",
+                                  "type": "workflow-node",
+                                  "data": {
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "Generate Batch",
+                                    "isValidator": true,
+                                    "nodeName": "Generate Batch",
+                                    "name": "Generate Batch",
+                                    "workflow": {
+                                      "source": "GENERATE_BATCH:Workflow:2060178784435535873",
+                                      "rules": {
+                                        "collectionId": "2060178784435535873",
+                                        "list": [
+                                          {
+                                            "id": 1763010683443,
+                                            "parentId": 1763010683442,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "item_id",
+                                          "propLabel": "Item ID",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_zBFHqHSZ.data.item_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "document_date",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_zBFHqHSZ.data.document_date}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Document Date"
+                                        },
+                                        {
+                                          "prop": "expired_date",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_zBFHqHSZ.data.expired_date}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Expired Date"
+                                        },
+                                        {
+                                          "prop": "manufacturing_date",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_zBFHqHSZ.data.manufacturing_date}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Manufacturing Date"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "code_node_n04I7LW1",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "Normalize Batch Result",
+                                    "isValidator": true,
+                                    "nodeName": "Normalize Batch Result",
+                                    "name": "Normalize Batch Result",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const data = {{node:workflow_node_lp2Gbzjg.data}} || {};\nconst batchNumber = data.batch_number || \"\";\nconst isError = batchNumber ? 0 : 1;\nconst message = data.message || data.msg || \"Failed to generate batch number. Please ensure a Batch Number Configuration is set up for this item or organization.\";\n\nreturn { batchNumber, isError, message };"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "batchnum",
+                                        "name": "batchNumber",
+                                        "title": "batchNumber",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false,
+                                        "children": []
+                                      },
+                                      {
+                                        "key": "iserror0",
+                                        "name": "isError",
+                                        "title": "isError",
+                                        "description": "",
+                                        "bsonType": "int",
+                                        "isExpand": false,
+                                        "children": []
+                                      },
+                                      {
+                                        "key": "messageb",
+                                        "name": "message",
+                                        "title": "message",
+                                        "description": "",
+                                        "bsonType": "string",
+                                        "isExpand": false,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "if_8Gs2hApG",
+                                  "type": "if",
+                                  "data": {
+                                    "title": "IF Batch Error",
+                                    "isValidator": true,
+                                    "nodeName": "IF Batch Error",
+                                    "name": "IF Batch Error",
+                                    "condition_type": "Expression",
+                                    "expression": {
+                                      "type": "javascript",
+                                      "code": "{{node:code_node_n04I7LW1.data.isError}} == 1"
+                                    },
+                                    "filter": {
+                                      "list": [
+                                        {
+                                          "id": 1736695973613,
+                                          "parentId": 1736695973612,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "ifBlock_w0tiqSnY",
+                                      "type": "ifBlock",
+                                      "data": { "title": "true" },
+                                      "blocks": [
+                                        {
+                                          "id": "end_s90QR409",
+                                          "type": "end-node",
+                                          "data": {
+                                            "title": "结束节点",
+                                            "outputs": {
+                                              "type": "object",
+                                              "properties": {
+                                                "result": { "type": "string" }
+                                              }
+                                            },
+                                            "isValidator": true,
+                                            "nodeName": "结束节点",
+                                            "name": "结束节点",
+                                            "back_data_type": "Default",
+                                            "code": 401,
+                                            "msg": {
+                                              "type": "javascript",
+                                              "code": "{{node:code_node_n04I7LW1.data.message}}"
+                                            }
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "ifBlock_iXdJ7XOn",
+                                      "type": "ifBlock",
+                                      "data": { "title": "false" },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "get_cache_node_CUypNBeX",
+                                  "type": "get-cache-node",
+                                  "data": {
+                                    "cache_key": "",
+                                    "title": "Get Generated Batches",
+                                    "isValidator": true,
+                                    "nodeName": "Get Generated Batches",
+                                    "name": "Get Generated Batches",
+                                    "redis_key": "generatedBatches_{{node:code_node_9YFf2aPr.data.unique}}"
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "code_node_NJqtLbYY",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "title": "Append Generated Batch",
+                                    "isValidator": true,
+                                    "nodeName": "Append Generated Batch",
+                                    "name": "Append Generated Batch",
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "const arr = JSON.parse({{node:get_cache_node_BGARRget.data}}) || [];\nconst index = {{node:code_node_zBFHqHSZ.data.index}};\nconst batchNumber = {{node:code_node_n04I7LW1.data.batchNumber}};\n\narr.push({ index: index, batch_number: batchNumber });\n\nreturn { generatedBatches: arr };"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "generate",
+                                        "name": "generatedBatches",
+                                        "title": "generatedBatches",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "set_cache_node_V4In7Rvs",
+                                  "type": "set-cache-node",
+                                  "data": {
+                                    "cache_key": "",
+                                    "cache_value": "",
+                                    "expire_time": 3600,
+                                    "title": "Set Generated Batches",
+                                    "isValidator": true,
+                                    "nodeName": "Set Generated Batches",
+                                    "name": "Set Generated Batches",
+                                    "custom_wkbocgni": {
+                                      "type": "javascript",
+                                      "code": "{{node:code_node_NJqtLbYY.data.generatedBatches}}"
+                                    },
+                                    "redis_key": "generatedBatches_{{node:code_node_9YFf2aPr.data.unique}}"
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "ifBlock_TGt3n5PM",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "set_cache_node_Y2tY0LaQ",
+                          "type": "set-cache-node",
+                          "data": {
+                            "cache_key": "",
+                            "cache_value": "",
+                            "expire_time": 3600,
+                            "title": "Set Batch Gen Next Index",
+                            "isValidator": true,
+                            "nodeName": "Set Batch Gen Next Index",
+                            "name": "Set Batch Gen Next Index",
+                            "custom_wkbocgni": {
+                              "type": "javascript",
+                              "code": "{{node:code_node_zBFHqHSZ.data.nextIndex}}"
+                            },
+                            "redis_key": "batchGenIndex_{{node:code_node_9YFf2aPr.data.unique}}"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "get_cache_node_BGYDiORv",
+                      "type": "get-cache-node",
+                      "data": {
+                        "cache_key": "",
+                        "title": "Get Generated Batches Final",
+                        "isValidator": true,
+                        "nodeName": "Get Generated Batches Final",
+                        "name": "Get Generated Batches Final",
+                        "redis_key": "generatedBatches_{{node:code_node_9YFf2aPr.data.unique}}"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_Od28Av8v",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Apply Generated Batches",
+                        "isValidator": true,
+                        "nodeName": "Apply Generated Batches",
+                        "name": "Apply Generated Batches",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const allData = {{node:code_node_gfkN0Qq7.data.entry}};\nconst tableSRR = allData.table_srr || [];\nconst generated = JSON.parse({{node:get_cache_node_BGYDiORv.data}}) || [];\n\n// Overlay generated batch numbers onto their rows by index\nconst genMap = {};\nfor (const g of generated) {\n  genMap[g.index] = g.batch_number;\n}\nfor (let i = 0; i < tableSRR.length; i++) {\n  if (genMap[i] !== undefined && genMap[i] !== null) {\n    tableSRR[i].batch_no = genMap[i];\n  }\n}\n\nreturn { entry: { ...allData, table_srr: tableSRR } };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "table_gr",
+                            "name": "entry",
+                            "title": "entry",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_NLqQvNLf",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "code_node_hGkumbo8",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Latest entry",
+                "isValidator": true,
+                "nodeName": "Latest entry",
+                "name": "Latest entry",
+                "script": {
+                  "type": "javascript",
+                  "code": "const newBatch = {{workflowparams:allData.new_batch}};\n\nconst entry = newBatch === 1 ? {{node:code_node_Od28Av8v.data.entry}} : {{node:code_node_gfkN0Qq7.data.entry}};\n\nreturn { entry };"
+                },
+                "response_json": [
+                  {
+                    "key": "qbd7uf4t",
+                    "name": "entry",
+                    "title": "Entry",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_7fFzVen4",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "6. Fillback header fields",
+        "isValidator": true,
+        "nodeName": "6. Fillback header fields",
+        "name": "6. Fillback header fields",
+        "script": {
+          "type": "javascript",
+          "code": "let entry = {{workflowparams:allData.srr_status}} === 'Draft' ? {{node:code_node_pQlxXrFl.data.table}} : {{node:code_node_hGkumbo8.data.entry}};\nlet updatedLineItem = [];\n\nfor(const [index, srrLineItem] of entry.table_srr.entries()) {\n  // Create a new object with formatted values\n  const formattedItem = {\n    ...srrLineItem,\n    // Number formatting\n    so_quantity: parseFloat(srrLineItem.so_quantity || 0).toFixed(3),\n    expected_return_qty: parseFloat(srrLineItem.expected_return_qty || 0).toFixed(3),\n    to_receive_qty: parseFloat(srrLineItem.to_receive_qty || 0).toFixed(3),\n    gd_quantity: parseFloat(srrLineItem.gd_quantity || 0).toFixed(3),\n    unit_price: parseFloat(srrLineItem.unit_price || 0).toFixed(4),\n    total_price: parseFloat(srrLineItem.total_price || 0).toFixed(4),\n    \n    customer_id: entry.customer_id || null,\n    plant_id: entry.plant_id || null,\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.table_srr = updatedLineItem;\n\nreturn { entry }"
+        },
+        "response_json": [
+          {
+            "key": "wgz9vit3",
+            "name": "entry",
+            "title": "Entry",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_JK5EhuQE",
+      "type": "if",
+      "data": {
+        "title": "IF add?",
+        "isValidator": true,
+        "nodeName": "IF add?",
+        "name": "IF add?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:allData.page_status}}' == 'Add'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_F_sylE6x",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "add_node_mLNYqe5N",
+              "type": "add-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Return Receiving:Table:1902509213456908289",
+                  "rules": {
+                    "collectionId": "1902509213456908289",
+                    "list": [
+                      {
+                        "id": 1777011425684,
+                        "parentId": 1777011425683,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "7. Add SRR",
+                "isValidator": true,
+                "nodeName": "7. Add SRR",
+                "name": "7. Add SRR",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "srr_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.srr_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SRR Status"
+                    },
+                    {
+                      "prop": "contact_person",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.contact_person}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Person"
+                    },
+                    {
+                      "prop": "user_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.user_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Received By"
+                    },
+                    {
+                      "prop": "received_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.received_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Received Date"
+                    },
+                    {
+                      "prop": "table_srr",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.table_srr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Table SRR"
+                    },
+                    {
+                      "prop": "remarks",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.remarks}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 1"
+                    },
+                    {
+                      "prop": "remarks2",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.remarks2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "remarks3",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.remarks3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.plant_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.organization_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "sr_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.sr_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Sales Return Numbers"
+                    },
+                    {
+                      "prop": "so_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.so_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Sales Order Numbers"
+                    },
+                    {
+                      "prop": "gd_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.gd_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Goods Delivery Numbers"
+                    },
+                    {
+                      "prop": "customer_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.customer_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Customer"
+                    },
+                    {
+                      "prop": "sr_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.sr_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SR ID"
+                    },
+                    {
+                      "prop": "so_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.so_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SO ID"
+                    },
+                    {
+                      "prop": "gd_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.gd_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "GD ID"
+                    },
+                    {
+                      "prop": "srr_ref_doc",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.srr_ref_doc}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference Document"
+                    },
+                    {
+                      "prop": "default_bin_location",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.default_bin_location}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Default Bin Location"
+                    },
+                    {
+                      "prop": "default_storage_location",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.default_storage_location}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Default Storage Location"
+                    },
+                    {
+                      "prop": "reference_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.reference_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference Type"
+                    },
+                    {
+                      "prop": "previous_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.previous_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Previous Status"
+                    },
+                    {
+                      "prop": "srr_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.srr_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SRR Number Rule"
+                    },
+                    {
+                      "prop": "acc_integration_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.acc_integration_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Acc Integration Type"
+                    },
+                    {
+                      "prop": "new_batch",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.new_batch}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "New Batch"
+                    },
+                    {
+                      "prop": "received_details",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.received_details}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Received Details"
+                    },
+                    {
+                      "prop": "srr_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.srr_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SRR Number"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_h0wdqe21",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "update_node_xK4D88QQ",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Return Receiving:Table:1902509213456908289",
+                  "rules": {
+                    "collectionId": "1902509213456908289",
+                    "list": [
+                      {
+                        "id": 1777011471662,
+                        "parentId": 1777011471661,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_7fFzVen4.data.entry.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "8. Update SRR",
+                "isValidator": true,
+                "nodeName": "8. Update SRR",
+                "name": "8. Update SRR",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "srr_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.srr_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SRR Status"
+                    },
+                    {
+                      "prop": "contact_person",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.contact_person}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Contact Person"
+                    },
+                    {
+                      "prop": "user_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.user_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Received By"
+                    },
+                    {
+                      "prop": "received_date",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.received_date}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Received Date"
+                    },
+                    {
+                      "prop": "table_srr",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.table_srr}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Table SRR"
+                    },
+                    {
+                      "prop": "remarks",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.remarks}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 1"
+                    },
+                    {
+                      "prop": "remarks2",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.remarks2}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 2"
+                    },
+                    {
+                      "prop": "remarks3",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.remarks3}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Remark 3"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.plant_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.organization_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "sr_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.sr_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Sales Return Numbers"
+                    },
+                    {
+                      "prop": "so_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.so_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Sales Order Numbers"
+                    },
+                    {
+                      "prop": "gd_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.gd_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Goods Delivery Numbers"
+                    },
+                    {
+                      "prop": "customer_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.customer_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Customer"
+                    },
+                    {
+                      "prop": "sr_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.sr_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SR ID"
+                    },
+                    {
+                      "prop": "so_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.so_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SO ID"
+                    },
+                    {
+                      "prop": "gd_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.gd_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "GD ID"
+                    },
+                    {
+                      "prop": "srr_ref_doc",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.srr_ref_doc}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference Document"
+                    },
+                    {
+                      "prop": "default_bin_location",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.default_bin_location}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Default Bin Location"
+                    },
+                    {
+                      "prop": "default_storage_location",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.default_storage_location}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Default Storage Location"
+                    },
+                    {
+                      "prop": "reference_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.reference_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Reference Type"
+                    },
+                    {
+                      "prop": "previous_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.previous_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Previous Status"
+                    },
+                    {
+                      "prop": "srr_no_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.srr_no_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SRR Number Rule"
+                    },
+                    {
+                      "prop": "acc_integration_type",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.acc_integration_type}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Acc Integration Type"
+                    },
+                    {
+                      "prop": "new_batch",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.new_batch}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "New Batch"
+                    },
+                    {
+                      "prop": "received_details",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.received_details}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Received Details"
+                    },
+                    {
+                      "prop": "srr_no",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.srr_no}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SRR Number"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_node_pmtCvAS0",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Return Receiving:Table:1902509213456908289",
+                  "rules": {
+                    "collectionId": "1902509213456908289",
+                    "list": [
+                      {
+                        "id": 1777019863417,
+                        "parentId": 1777019863416,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_7fFzVen4.data.entry.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "9. Fetch Updated SRR",
+                "isValidator": true,
+                "nodeName": "9. Fetch Updated SRR",
+                "name": "9. Fetch Updated SRR"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "if_XMvNXDpX",
+      "type": "if",
+      "data": {
+        "title": "IF draft?",
+        "isValidator": true,
+        "nodeName": "IF draft?",
+        "name": "IF draft?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:allData.srr_status}}' == 'Draft'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_EO4vlPVz",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "end_zsEvH0bx",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 200,
+                "msg": { "type": "javascript", "code": "" }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_3zNV2uRZ",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "code_node_AQ8blgDy",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "9. Fetch Latest SRR",
+                "isValidator": true,
+                "nodeName": "9. Fetch Latest SRR",
+                "name": "9. Fetch Latest SRR",
+                "script": {
+                  "type": "javascript",
+                  "code": "const srrData = {{workflowparams:allData.page_status}} === 'Add' ? {{node:add_node_mLNYqe5N.data}}[0] : {{node:get_node_pmtCvAS0.data.data}};\n\nreturn { srrData }"
+                },
+                "response_json": [
+                  {
+                    "key": "lh2sq0fr",
+                    "name": "srrData",
+                    "title": "srrData",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "loop_mWCnGwvG",
+              "type": "loop",
+              "data": {
+                "title": "Loop",
+                "isValidator": true,
+                "nodeName": "Loop",
+                "name": "Loop",
+                "loopType": "Var",
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_AQ8blgDy.data.srrData.table_srr}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_hTQfjYlu",
+                  "type": "if",
+                  "data": {
+                    "title": "IF no Child",
+                    "isValidator": true,
+                    "nodeName": "IF no Child",
+                    "name": "IF no Child",
+                    "condition_type": "Expression",
+                    "expression": {
+                      "type": "javascript",
+                      "code": "{{node:loop_mWCnGwvG.has_child}} == 0"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_WdSaMJnO",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "code_node_ensRYKCK",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "11. Map Inventory Data",
+                            "isValidator": true,
+                            "nodeName": "11. Map Inventory Data",
+                            "name": "11. Map Inventory Data",
+                            "script": {
+                              "type": "javascript",
+                              "code": "const srrLineItem = {{node:loop_mWCnGwvG}};\nconst entry = {{node:code_node_AQ8blgDy.data.srrData}};\n\nreturn { inventoryData: {\n  ...srrLineItem,\n  plant_id: entry.plant_id,\n  organization_id: entry.organization_id,\n  trx_no: entry.srr_no,\n  received_date: entry.received_date,\n  batch_id: srrLineItem.batch_id ?? null,\n  batch_no: !srrLineItem.batch_id ? srrLineItem.batch_no : null,\n} }"
+                            },
+                            "response_json": [
+                              {
+                                "key": "aht1e3s9",
+                                "name": "inventoryData",
+                                "title": "inventoryData",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "workflow_node_sb5zXUTW",
+                          "type": "workflow-node",
+                          "data": {
+                            "workflow_id": "",
+                            "workflow_name": "",
+                            "input_params": {},
+                            "title": "12. Add Inventory",
+                            "isValidator": true,
+                            "nodeName": "12. Add Inventory",
+                            "name": "12. Add Inventory",
+                            "workflow": {
+                              "source": "ADD_INVENTORY:Workflow:2012005532688723970",
+                              "rules": {
+                                "collectionId": "2012005532688723970",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "body_params": {
+                              "list": [
+                                {
+                                  "prop": "plant_id",
+                                  "propLabel": "Plant ID",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "field",
+                                  "valueTypeLabel": "",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.plant_id}}",
+                                  "valueLabel": ""
+                                },
+                                {
+                                  "prop": "organization_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.organization_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Organization ID"
+                                },
+                                {
+                                  "prop": "material_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.material_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Material ID"
+                                },
+                                {
+                                  "prop": "quantity",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.received_qty}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Quantity"
+                                },
+                                {
+                                  "prop": "material_uom",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.quantity_uom}}",
+                                  "valueLabel": "",
+                                  "propLabel": "UOM"
+                                },
+                                {
+                                  "prop": "unit_price",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.unit_price}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Unit Price"
+                                },
+                                {
+                                  "prop": "transaction_type",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "SRR",
+                                  "valueLabel": "",
+                                  "propLabel": "Transaction Type"
+                                },
+                                {
+                                  "prop": "trx_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.trx_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Trx No"
+                                },
+                                {
+                                  "prop": "parent_trx_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.sr_number}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Parent Trx No"
+                                },
+                                {
+                                  "prop": "inventory_category",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.inventory_category}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Inventory Category"
+                                },
+                                {
+                                  "prop": "location_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.location_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Location ID"
+                                },
+                                {
+                                  "prop": "batch_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.batch_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Batch ID"
+                                },
+                                {
+                                  "prop": "doc_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.received_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Doc Date"
+                                },
+                                {
+                                  "prop": "manufacturing_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.manufacturing_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Manufacturing Date"
+                                },
+                                {
+                                  "prop": "expired_date",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.expired_date}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Expired Date"
+                                },
+                                {
+                                  "prop": "index",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.line_index}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Index"
+                                },
+                                {
+                                  "prop": "batch_number",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_ensRYKCK.data.inventoryData.batch_no}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Batch Number"
+                                },
+                                {
+                                  "prop": "isMovingInv",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": 0,
+                                  "valueLabel": "",
+                                  "propLabel": "Moving Inventory?"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_gI6D33qU",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_node_QwTMXsXY",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "15. Map Latest SR Line Item",
+                "isValidator": true,
+                "nodeName": "15. Map Latest SR Line Item",
+                "name": "15. Map Latest SR Line Item",
+                "script": {
+                  "type": "javascript",
+                  "code": "const srLineItemList = {{node:search_node_yBcXo9Ht.data.data}};\nconst srrData = {{node:code_node_AQ8blgDy.data.srrData}};\nlet latestSRLineItemList = [];\n\nfor(const srLineItem of srLineItemList) {\n  const receivedQty = srrData.table_srr\n  .filter(item => item.sr_line_id === srLineItem.id)\n  .reduce((total, item) => total + (parseFloat(item.received_qty) || 0), 0);\n\n  const latestReceivedQty = parseFloat(receivedQty) + parseFloat(srLineItem.received_qty || 0);\n\n  latestSRLineItemList.push({\n    id: srLineItem.id,\n    received_qty: latestReceivedQty.toFixed(3),\n    srr_status: parseFloat(latestReceivedQty) >= parseFloat(srLineItem.expected_return_qty || 0) ? \"Fully Received\" : \"Partially Received\",\n  })\n}\n\nreturn { latestSRLineItemList }"
+                },
+                "response_json": [
+                  {
+                    "key": "f50nvn1o",
+                    "name": "latestSRLineItemList",
+                    "title": "latestSRLineItemList",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_tVUiczHb",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "子表单(Sales Return):Table:1939903676290015234",
+                  "rules": {
+                    "collectionId": "1939903676290015234",
+                    "list": [
+                      {
+                        "id": 1777013608753,
+                        "parentId": 1777013608752,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_QwTMXsXY.data.latestSRLineItemList.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "16. Update SR Line Item",
+                "isValidator": true,
+                "nodeName": "16. Update SR Line Item",
+                "name": "16. Update SR Line Item",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_QwTMXsXY.data.latestSRLineItemList.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "received_qty",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_QwTMXsXY.data.latestSRLineItemList.received_qty}}",
+                      "valueLabel": "",
+                      "propLabel": "Received Qty"
+                    },
+                    {
+                      "prop": "srr_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_QwTMXsXY.data.latestSRLineItemList.srr_status}}",
+                      "valueLabel": "",
+                      "propLabel": "Line SRR Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_9xxdyv7Z",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Return:Table:1901839709978611713",
+                  "rules": {
+                    "collectionId": "1901839709978611713",
+                    "list": [
+                      {
+                        "id": 1777013783992,
+                        "parentId": 1777013783991,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_AQ8blgDy.data.srrData.sr_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "17. Fetch SR List",
+                "isValidator": true,
+                "nodeName": "17. Fetch SR List",
+                "name": "17. Fetch SR List"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_6N46y0gw",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "18. Map Latest SR List",
+                "isValidator": true,
+                "nodeName": "18. Map Latest SR List",
+                "name": "18. Map Latest SR List",
+                "script": {
+                  "type": "javascript",
+                  "code": "const srList = {{node:search_node_9xxdyv7Z.data.data}};\n\nconst latestSRList = srList.map((item, index) => {\n  const updatedSRStatus = item.table_sr.some(\n    (srItem) =>\n      parseFloat(srItem.received_qty || 0) < parseFloat(srItem.expected_return_qty || 0),\n  )\n    ? \"Partially Received\"\n    : \"Fully Received\";\n\n  return {\n    id: item.id,\n    srr_status: updatedSRStatus,\n    sr_status: updatedSRStatus === 'Fully Received' ? 'Completed' : 'Processing'\n  };\n});\n\nreturn { latestSRList }\n"
+                },
+                "response_json": [
+                  {
+                    "key": "7ggdksw1",
+                    "name": "latestSRList",
+                    "title": "latestSRList",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_T1ztgTlR",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Return:Table:1901839709978611713",
+                  "rules": {
+                    "collectionId": "1901839709978611713",
+                    "list": [
+                      {
+                        "id": 1777014021466,
+                        "parentId": 1777014021465,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_6N46y0gw.data.latestSRList.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "19. Update SR",
+                "isValidator": true,
+                "nodeName": "19. Update SR",
+                "name": "19. Update SR",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_6N46y0gw.data.latestSRList.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "sr_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_6N46y0gw.data.latestSRList.sr_status}}",
+                      "valueLabel": "",
+                      "propLabel": "SR Status"
+                    },
+                    {
+                      "prop": "srr_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_6N46y0gw.data.latestSRList.srr_status}}",
+                      "valueLabel": "",
+                      "propLabel": "SRR Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "get_node_wuqT9kxg",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Return Setup:Table:2046120455801585665",
+                  "rules": {
+                    "collectionId": "2046120455801585665",
+                    "list": [
+                      {
+                        "id": 1776751467502,
+                        "parentId": 1776751467510,
+                        "isTop": true,
+                        "prop": "plant_id.id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_AQ8blgDy.data.srrData.plant_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "20. Fetch SR Setup",
+                "isValidator": true,
+                "nodeName": "20. Fetch SR Setup",
+                "name": "20. Fetch SR Setup"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_svq1XUWd",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "21. Check create CN",
+                "isValidator": true,
+                "nodeName": "21. Check create CN",
+                "name": "21. Check create CN",
+                "script": {
+                  "type": "javascript",
+                  "code": "const srSetup = {{node:get_node_wuqT9kxg.data.data}} ?? null;\n\nif(!srSetup || !srSetup.id || srSetup.id === '') {\n  return {\n    createCN: 'No'\n  }\n} else {\n  return {\n    createCN: srSetup.auto_cn != 1 || srSetup.trigger_by != 'Sales Return Receiving' ? 'No' : 'Yes'\n  }\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "f38idlud",
+                    "name": "createCN",
+                    "title": "Create CN",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_Y4wnlstt",
+              "type": "if",
+              "data": {
+                "title": "IF not create CN?",
+                "isValidator": true,
+                "nodeName": "IF not create CN?",
+                "name": "IF not create CN?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_svq1XUWd.data.createCN}}' == 'No'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_eXbi7i9b",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_node_KTMqYAIv",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 200,
+                        "msg": { "type": "javascript", "code": "" }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_KjgTsBdN",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": [
+                    {
+                      "id": "code_node_aB4hs60I",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Map Unique GD Line ID",
+                        "isValidator": true,
+                        "nodeName": "Map Unique GD Line ID",
+                        "name": "Map Unique GD Line ID",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const srrData = {{node:code_node_AQ8blgDy.data.srrData}};\n\nconst gdLineIDs = [ ...new Set(srrData.table_srr.map(item => item.gd_line_id))]\n\nreturn { gdLineIDs }"
+                        },
+                        "response_json": [
+                          {
+                            "key": "b0comjdm",
+                            "name": "gdLineIDs",
+                            "title": "gdLineIDs",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "a9ipb5qe",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "isArrayItem": true
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_node_n6abggZu",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "SI Item(Sales Invoice):Table:1939903513630711810",
+                          "rules": {
+                            "collectionId": "1939903513630711810",
+                            "list": [
+                              {
+                                "id": 1776751725202,
+                                "parentId": 1776751725203,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1776751725204,
+                                    "parentId": 1776751725202,
+                                    "isTop": false,
+                                    "prop": "sales_invoice_id.si_status",
+                                    "operator": "notEqual",
+                                    "valueType": "value",
+                                    "value": "Draft",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "SI Status",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Not Equal"
+                                  },
+                                  {
+                                    "id": 1776751725204,
+                                    "parentId": 1776751725202,
+                                    "isTop": false,
+                                    "prop": "gd_line_id.id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_aB4hs60I.data.gdLineIDs}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "22. Fetch SI Line item List",
+                        "isValidator": true,
+                        "nodeName": "22. Fetch SI Line item List",
+                        "name": "22. Fetch SI Line item List"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "search_node_hx3J9PHc",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Sales Invoice:Table:1902525285396496385",
+                          "rules": {
+                            "collectionId": "1902525285396496385",
+                            "list": [
+                              {
+                                "id": 1776751803708,
+                                "parentId": 1777013726812,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:search_node_n6abggZu.data.data.sales_invoice_id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "23. Fetch SI List",
+                        "isValidator": true,
+                        "nodeName": "23. Fetch SI List",
+                        "name": "23. Fetch SI List"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_G3Df5HE7",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "24. Condition Proceed to CN ",
+                        "isValidator": true,
+                        "nodeName": "24. Condition Proceed to CN ",
+                        "name": "24. Condition Proceed to CN ",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const siList = {{node:search_node_hx3J9PHc.data.data}};\nconst siLineItemList = {{node:search_node_n6abggZu.data.data}};\nconst srrData = {{node:code_node_AQ8blgDy.data.srrData}};\n\n// Condition 1: one gd_line_id must map to exactly one SI\nconst gdLineToSIMap = {};\nfor (const siLine of siLineItemList) {\n  if (!siLine.gd_line_id) continue;\n  if (gdLineToSIMap[siLine.gd_line_id]) {\n    return {\n      status: 'Failed',\n      message: `GD is mapped to more than one SI.`\n    };\n  }\n  gdLineToSIMap[siLine.gd_line_id] = siLine.si_id;\n}\n\n// Condition 2: one SI must map to exactly one gd_id in srrData\nconst multipleGDSI = siList.filter(si => si.gd_id.length > 1)\nif(multipleGDSI.length > 0) {\n  return {\n    status: 'Failed',\n    message: `SI contains more than one GDs.`\n  };\n}\n\n// Condition 3 & 4: check per SR line\nfor (const [index, srr] of srrData.table_srr.entries()) {\n  const matchedSILine = siLineItemList.find(line => line.gd_line_id === srr.gd_line_id);\n  if (!matchedSILine) {\n    return {\n      status: 'Failed',\n      message: `No matching SI line found for GD Line ID ${srr.gd_line_id}.`\n    };\n  }\n\n  // Condition 3: invoice_qty must be greater than return qty\n  const receivedQty = parseFloat(srr?.received_qty) ?? 0;\n  if (parseFloat(matchedSILine.invoice_qty) - parseFloat(matchedSILine.credit_qty) < receivedQty) {\n    return {\n      status: 'Failed',\n      message: `Invoice quantity (${matchedSILine.invoice_qty}) must be greater than received quantity (${receivedQty}).`\n    };\n  }\n\n  // Condition 4: si_amount must be greater than 0\n  if (matchedSILine.si_amount <= 0) {\n    return {\n      status: 'Failed',\n      message: `Invoice line total must be greater than 0.`\n    };\n  }\n}\n\nreturn {\n  status: 'Passed',\n  message: ''\n};"
+                        },
+                        "response_json": [
+                          {
+                            "key": "g663w8v6",
+                            "name": "status",
+                            "title": "Status",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "8g9a5uey",
+                            "name": "message",
+                            "title": "Message",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_EnCetWqo",
+                      "type": "if",
+                      "data": {
+                        "title": "IF not Proceed to CN?",
+                        "isValidator": true,
+                        "nodeName": "IF not Proceed to CN?",
+                        "name": "IF not Proceed to CN?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_G3Df5HE7.data.status}}' == 'Failed'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_prikxR6N",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "end_node_onNU5yCz",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": { "type": "string" }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "Default",
+                                "code": 200,
+                                "msg": { "type": "javascript", "code": "" }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_pGZTsi0F",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": [
+                            {
+                              "id": "get_node_ND9kvc1X",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "流水号规则表:Table:1994006139209117697",
+                                  "rules": {
+                                    "collectionId": "1994006139209117697",
+                                    "list": [
+                                      {
+                                        "id": 1776823247306,
+                                        "parentId": 1776823247307,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "all",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "branch",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1776823253145,
+                                            "parentId": 1776823247306,
+                                            "isTop": false,
+                                            "prop": "department_id.id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_AQ8blgDy.data.srrData.organization_id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In"
+                                          },
+                                          {
+                                            "id": 1776823247309,
+                                            "parentId": 1776823247306,
+                                            "isTop": false,
+                                            "prop": "business_type",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "Credit Note",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Document Type",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1776823247308,
+                                            "parentId": 1776823247306,
+                                            "isTop": false,
+                                            "prop": "is_default",
+                                            "operator": "numberEqual",
+                                            "valueType": "value",
+                                            "value": 1,
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Default",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "25. Fetch CN Doc Format",
+                                "isValidator": true,
+                                "nodeName": "25. Fetch CN Doc Format",
+                                "name": "25. Fetch CN Doc Format"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "get_node_L3pzh9TR",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Customer:Table:1902779099617804290",
+                                  "rules": {
+                                    "collectionId": "1902779099617804290",
+                                    "list": [
+                                      {
+                                        "id": 1776759236016,
+                                        "parentId": 1776759236015,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "numberEqual",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_AQ8blgDy.data.srrData.customer_id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "26. Get Customer Data",
+                                "isValidator": true,
+                                "nodeName": "26. Get Customer Data",
+                                "name": "26. Get Customer Data"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "get_node_MGTKHG7i",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Currency:Table:1902047936116805633",
+                                  "rules": {
+                                    "collectionId": "1902047936116805633",
+                                    "list": [
+                                      {
+                                        "id": 1776759475762,
+                                        "parentId": 1776759475761,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "numberEqual",
+                                        "valueType": "field",
+                                        "value": "{{node:get_node_L3pzh9TR.data.data.customer_currency_id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "27. Get Currency Code",
+                                "isValidator": true,
+                                "nodeName": "27. Get Currency Code",
+                                "name": "27. Get Currency Code"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "get_node_PEmhp9gc",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Address List(Customer):Table:1942869938683785218",
+                                  "rules": {
+                                    "collectionId": "1942869938683785218",
+                                    "list": [
+                                      {
+                                        "id": 1777015691282,
+                                        "parentId": 1777015691283,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "all",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "branch",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1777015680314,
+                                            "parentId": 1777015691282,
+                                            "isTop": false,
+                                            "prop": "Customer_id.id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:get_node_L3pzh9TR.data.data.id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In"
+                                          },
+                                          {
+                                            "id": 1777015691284,
+                                            "parentId": 1777015691282,
+                                            "isTop": false,
+                                            "prop": "switch_save_as_default",
+                                            "operator": "numberEqual",
+                                            "valueType": "value",
+                                            "value": 1,
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Save as Default",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1777015691285,
+                                            "parentId": 1777015691282,
+                                            "isTop": false,
+                                            "prop": "address_purpose_id.purpose_name",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "Shipping",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Name",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "28. Get Shipping Address",
+                                "isValidator": true,
+                                "nodeName": "28. Get Shipping Address",
+                                "name": "28. Get Shipping Address"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "get_node_PCvTL2sg",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Address List(Customer):Table:1942869938683785218",
+                                  "rules": {
+                                    "collectionId": "1942869938683785218",
+                                    "list": [
+                                      {
+                                        "id": 1777015691282,
+                                        "parentId": 1777015691283,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "all",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "branch",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1777015680314,
+                                            "parentId": 1777015691282,
+                                            "isTop": false,
+                                            "prop": "Customer_id.id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:get_node_L3pzh9TR.data.data.id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In"
+                                          },
+                                          {
+                                            "id": 1777015691284,
+                                            "parentId": 1777015691282,
+                                            "isTop": false,
+                                            "prop": "switch_save_as_default",
+                                            "operator": "numberEqual",
+                                            "valueType": "value",
+                                            "value": 1,
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Save as Default",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
+                                            "id": 1777015691285,
+                                            "parentId": 1777015691282,
+                                            "isTop": false,
+                                            "prop": "address_purpose_id.purpose_name",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "Billing",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Name",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "29. Get Billing Address",
+                                "isValidator": true,
+                                "nodeName": "29. Get Billing Address",
+                                "name": "29. Get Billing Address"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_UtAlxONG",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "30. Map CN Completed Data",
+                                "isValidator": true,
+                                "nodeName": "30. Map CN Completed Data",
+                                "name": "30. Map CN Completed Data",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const formatNumberTo4 = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.0000\";\n  return parseFloat(value).toFixed(4);\n};\n\nconst formatNumberTo3 = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst roundTo4 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 10000) / 10000;\n};\n\nconst calculateFinalPrice = (total, invoiceQty, creditQty) => {\n  const priceForCredit =\n    (roundTo4(total) / roundTo4(invoiceQty)) * roundTo4(creditQty);\n\n  return roundTo4(priceForCredit);\n};\n\nconst sumPrice = (fieldName, cnLineItemList) => {\n  return roundTo4(\n    cnLineItemList.reduce((total, item) => {\n      return roundTo4(total) + roundTo4(item[fieldName]);\n    }, 0),\n  );\n};\n\nconst srrData = {{node:code_node_AQ8blgDy.data.srrData}};\nconst siLineItemList = {{node:search_node_n6abggZu.data.data}};\nconst siList = {{node:search_node_hx3J9PHc.data.data}};\nconst cnDocFormat = {{node:get_node_ND9kvc1X.data.data}};\nconst customerData = {{node:get_node_L3pzh9TR.data.data}};\nconst currencyCode = {{node:get_node_MGTKHG7i.data.data}};\nconst shippingAddress = {{node:get_node_PEmhp9gc.data.data}};\nconst billingAddress = {{node:get_node_PCvTL2sg.data.data}};\nlet cnLineItemList = [];\n\nfor (const [index, srrLineItem] of srrData.table_srr.entries()) {\n  const matchedSILineItem = siLineItemList.find(\n    (item) => item.gd_line_id === srrLineItem.gd_line_id,\n  );\n\n  const matchedSI = siList.find(\n    (item) => item.id === matchedSILineItem.sales_invoice_id,\n  );\n\n  const cnLineItem = {\n    si_id: matchedSILineItem?.sales_invoice_id || \"\",\n    item_id: srrLineItem.material_id,\n    item_name: srrLineItem.material_name,\n    uom_id: srrLineItem.quantity_uom,\n    credit_qty: formatNumberTo3(srrLineItem.received_qty),\n    unit_price: formatNumberTo4(matchedSILineItem.unit_price),\n    subtotal:\n      roundTo4(srrLineItem.received_qty) *\n      roundTo4(matchedSILineItem.unit_price),\n    discount: roundTo4(matchedSILineItem.si_discount),\n    discount_type: matchedSILineItem?.si_discount_uom_id || \"\",\n    discount_amount: calculateFinalPrice(\n      matchedSILineItem.discount_amount,\n      matchedSILineItem.invoice_qty,\n      srrLineItem.received_qty,\n    ),\n    tax_code: matchedSILineItem?.si_tax_rate_id || \"\",\n    tax_percent: matchedSILineItem?.tax_percent || \"\",\n    tax_amount: calculateFinalPrice(\n      matchedSILineItem.tax_amount,\n      matchedSILineItem.invoice_qty,\n      srrLineItem.received_qty,\n    ),\n    total: calculateFinalPrice(\n      matchedSILineItem.si_amount,\n      matchedSILineItem.invoice_qty,\n      srrLineItem.received_qty,\n    ),\n    line_status: \"Closed\",\n    line_index: index + 1,\n    si_line_id: matchedSILineItem?.id || \"\",\n    sr_line_id: srrLineItem.sr_line_id,\n    sr_id: srrLineItem.sr_id,\n    plant_id: srrData.plant_id,\n    customer_id: srrData.customer_id,\n    tax_inclusive: matchedSILineItem?.si_tax_inclusive || 0,\n    invoice_qty: formatNumberTo3(matchedSILineItem.invoice_qty),\n    item_desc: srrLineItem.receiving_detail,\n    si_no: matchedSI?.sales_invoice_no || \"\",\n    more_desc: srrLineItem.more_desc,\n    available_credit_qty: formatNumberTo3(\n      matchedSILineItem.invoice_qty - matchedSILineItem.credit_qty,\n    ),\n  };\n\n  cnLineItemList.push(cnLineItem);\n}\n\nconst cnData = {\n  cn_status: \"Completed\",\n  page_status: \"Add\",\n  acc_integration_type: srrData.acc_integration_type,\n  organization_id: srrData.organization_id,\n  previous_status: null,\n  plant_id: srrData.plant_id,\n  customer_id: srrData.customer_id,\n  currency_code: currencyCode?.currency_code || \"\",\n  cn_no: \"issued\",\n  cn_no_type: cnDocFormat.id,\n  cn_date: new Date().toISOString().split(\"T\")[0],\n  cn_type: \"Return\",\n  source_type: \"Sales Invoice\",\n  source_id: [...new Set(cnLineItemList.map((item) => item.si_id))],\n  source_no: [...new Set(cnLineItemList.map((item) => item.si_no))].join(\", \"),\n  sales_return_id: [...new Set(cnLineItemList.map((item) => item.sr_id))],\n  total_gross_currency: currencyCode?.currency_code || \"\",\n  total_discount_currency: currencyCode?.currency_code || \"\",\n  total_tax_currency: currencyCode?.currency_code || \"\",\n  total_amount_currency: currencyCode?.currency_code || \"\",\n  total_amount_myr: \"MYR\",\n  subtotal: sumPrice(\"subtotal\", cnLineItemList),\n  total_discount: sumPrice(\"discount_amount\", cnLineItemList),\n  tax_total: sumPrice(\"tax_amount\", cnLineItemList),\n  grand_total: sumPrice(\"total\", cnLineItemList),\n  myr_grand_total:\n    sumPrice(\"total\", cnLineItemList) *\n    roundTo4(currencyCode.currency_buying_rate),\n  table_cn: cnLineItemList,\n  remark: srrData.remarks,\n  billing_address_name: billingAddress.address_name ?? null,\n  billing_address_phone: billingAddress.address_phone ?? null,\n  billing_address_line_1: billingAddress.address_line_1 ?? null,\n  billing_address_line_2: billingAddress.address_line_2 ?? null,\n  billing_address_line_3: billingAddress.address_line_3 ?? null,\n  billing_address_line_4: billingAddress.address_line_4 ?? null,\n  billing_address_city: billingAddress.address_city ?? null,\n  billing_postal_code: billingAddress.address_postal_code ?? null,\n  billing_address_state: billingAddress.adddress_state ?? null,\n  billing_address_country: billingAddress.address_country_id ?? null,\n  billing_attention: billingAddress.address_attention ?? null,\n  shipping_address_name: shippingAddress.address_name ?? null,\n  shipping_address_phone: shippingAddress.address_phone ?? null,\n  shipping_address_line_1: shippingAddress.address_line_1 ?? null,\n  shipping_address_line_2: shippingAddress.address_line_2 ?? null,\n  shipping_address_line_3: shippingAddress.address_line_3 ?? null,\n  shipping_address_line_4: shippingAddress.address_line_4 ?? null,\n  shipping_address_city: shippingAddress.address_city ?? null,\n  shipping_postal_code: shippingAddress.address_postal_code ?? null,\n  shipping_address_country: shippingAddress.address_country_id ?? null,\n  shipping_address_state: shippingAddress.adddress_state ?? null,\n  shipping_attention: shippingAddress.address_attention ?? null,\n  exchange_rate_myr: \"MYR\",\n  exchange_rate_currency: currencyCode?.currency_code || \"\",\n  exchange_rate: currencyCode?.currency_buying_rate || \"1.0000\",\n  cn_billing_address: billingAddress.address ?? null,\n  cn_shipping_address: shippingAddress.address ?? null,\n  posted_status: \"Unposted\",\n};\n\nreturn { cnData };\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "r0kg27fj",
+                                    "name": "cnData",
+                                    "title": "CN Data",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "workflow_node_FUma1nRi",
+                              "type": "workflow-node",
+                              "data": {
+                                "workflow_id": "",
+                                "workflow_name": "",
+                                "input_params": {},
+                                "title": "31. CN Workflow",
+                                "isValidator": true,
+                                "nodeName": "31. CN Workflow",
+                                "name": "31. CN Workflow",
+                                "workflow": {
+                                  "source": "CN_SAVE:Workflow:2044982688791052289",
+                                  "rules": {
+                                    "collectionId": "2044982688791052289",
+                                    "list": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1723795236685,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "remote": true,
+                                "remoteType": "innerdatasource",
+                                "body_params": {
+                                  "list": [
+                                    {
+                                      "prop": "allData",
+                                      "propLabel": "All Data",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_UtAlxONG.data.cnData}}",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
