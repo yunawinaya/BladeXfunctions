@@ -237,6 +237,7 @@ const mapLineItemToPOLine = async (item, preq, lineIndex) => {
     po_created_by: this.getVarGlobal("nickname"),
     further_description: item.further_description,
     po_expected_date: item.pr_delivery_date,
+    project_id: item.project_id || null,
   };
 };
 
@@ -273,6 +274,7 @@ const mapToPOData = async (
     po_expected_date: data.pr_delivery_date,
     po_shipping_preference: data.pr_ship_preference_id,
     table_po: poLineItemPromises,
+    project_id: data.project_id || null,
     po_total_gross: data.pr_sub_total,
     po_total_discount: data.pr_discount_total,
     po_total_tax: data.pr_total_tax_fee,

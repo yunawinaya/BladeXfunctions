@@ -2082,6 +2082,14 @@
                               "propLabel": "Acc Integration Type"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "reference_type",
                               "operator": "",
                               "valueType": "field",
@@ -2597,6 +2605,14 @@
                               "value": "{{node:code_node_4r2Fv9G5.data.allData.acc_integration_type}}",
                               "valueLabel": "",
                               "propLabel": "Acc Integration Type"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "previous_status",
@@ -7585,6 +7601,14 @@
                               "propLabel": "Acc Integration Type"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "reference_type",
                               "operator": "",
                               "valueType": "field",
@@ -8082,6 +8106,14 @@
                               "value": "{{node:code_node_4r2Fv9G5.data.allData.acc_integration_type}}",
                               "valueLabel": "",
                               "propLabel": "Acc Integration Type"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "previous_status",

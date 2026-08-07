@@ -2338,6 +2338,14 @@
                               "propLabel": "acc_integration_type"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "posted_status",
                               "operator": "",
                               "valueType": "field",
@@ -3179,6 +3187,14 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.acc_integration_type}}",
                               "valueLabel": "",
                               "propLabel": "acc_integration_type"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "posted_status",
@@ -5437,6 +5453,14 @@
                               "propLabel": "acc_integration_type"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "posted_status",
                               "operator": "",
                               "valueType": "field",
@@ -6278,6 +6302,14 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.acc_integration_type}}",
                               "valueLabel": "",
                               "propLabel": "acc_integration_type"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "posted_status",

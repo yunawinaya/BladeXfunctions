@@ -28,6 +28,7 @@ const mapLineItem = async (item, record) => {
     item_category_id: item?.item_category_id || null,
     tariff_id: item.tariff_id,
     further_description: item.further_description,
+    project_id: item.project_id || null,
   };
 };
 
@@ -76,6 +77,7 @@ const mapHeaderData = async (
     currency_code: record.po_currency,
     gr_received_by: this.getVarGlobal("nickname"),
     table_gr: lineItemPromises,
+    project_id: record.project_id || null,
     from_convert: "Yes",
     gr_remark1: record.po_remark,
     gr_remark2: record.po_remark2,

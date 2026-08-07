@@ -1472,6 +1472,15 @@
                       "is_negative_number": false
                     },
                     {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_UFKMCLkT.data.data.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project",
+                      "is_negative_number": false
+                    },
+                    {
                       "prop": "previous_status",
                       "valueType": "field",
                       "value": "{{node:code_node_UFKMCLkT.data.data.previous_status}}",
@@ -2115,6 +2124,15 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Acc Integration Type",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_UFKMCLkT.data.data.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project",
                       "is_negative_number": false
                     },
                     {

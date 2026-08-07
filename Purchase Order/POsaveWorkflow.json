@@ -2057,6 +2057,14 @@
                       "propLabel": "acc_integration_type"
                     },
                     {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project"
+                    },
+                    {
                       "prop": "gr_status",
                       "valueType": "field",
                       "value": "{{node:code_fillback.data.entry.gr_status}}",
@@ -2724,6 +2732,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "acc_integration_type"
+                    },
+                    {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project"
                     },
                     {
                       "prop": "gr_status",
