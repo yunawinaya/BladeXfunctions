@@ -2654,6 +2654,14 @@
                       "propLabel": "Freight Charges"
                     },
                     {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_BtxYhPym.data.entry.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project"
+                    },
+                    {
                       "prop": "tpt_transport_name",
                       "valueType": "field",
                       "value": "{{node:code_node_BtxYhPym.data.entry.tpt_transport_name}}",
@@ -3873,6 +3881,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Freight Charges"
+                    },
+                    {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_BtxYhPym.data.entry.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project"
                     },
                     {
                       "prop": "tpt_transport_name",

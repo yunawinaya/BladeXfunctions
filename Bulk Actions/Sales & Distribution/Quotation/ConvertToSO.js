@@ -196,6 +196,7 @@ const mapLineItemToSOLine = async (item, sqt, lineIndex) => {
     tariff_id: item.tariff_id,
     further_description: item.further_description,
     so_shipping_date: item.expected_shipment_date,
+    project_id: item.project_id || null,
   };
 };
 
@@ -225,6 +226,7 @@ const mapToSOData = async (
     so_delivery_method: data.sqt_delivery_method_id,
     delivery_method_text: data.delivery_method_text || "",
     so_area_id: data.sqt_area_id || "",
+    project_id: data.project_id || null,
 
     di_shipping_method: data.di_shipping_method,
     di_driver_name: data.di_driver_name,
