@@ -2154,6 +2154,110 @@
                               "propLabel": "tpt_driver_contact_no"
                             },
                             {
+                              "prop": "di_shipping_method",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_shipping_method}}",
+                              "valueLabel": "",
+                              "propLabel": "di_shipping_method"
+                            },
+                            {
+                              "prop": "di_driver_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_driver_name}}",
+                              "valueLabel": "",
+                              "propLabel": "di_driver_name"
+                            },
+                            {
+                              "prop": "di_ic_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_ic_no}}",
+                              "valueLabel": "",
+                              "propLabel": "di_ic_no"
+                            },
+                            {
+                              "prop": "di_driver_contact_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_driver_contact_no}}",
+                              "valueLabel": "",
+                              "propLabel": "di_driver_contact_no"
+                            },
+                            {
+                              "prop": "di_shipping_company",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_shipping_company}}",
+                              "valueLabel": "",
+                              "propLabel": "di_shipping_company"
+                            },
+                            {
+                              "prop": "di_transport_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_transport_name}}",
+                              "valueLabel": "",
+                              "propLabel": "di_transport_name"
+                            },
+                            {
+                              "prop": "di_vehicle_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_vehicle_number}}",
+                              "valueLabel": "",
+                              "propLabel": "di_vehicle_number"
+                            },
+                            {
+                              "prop": "di_est_delivery_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_est_delivery_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_est_delivery_date"
+                            },
+                            {
+                              "prop": "di_est_arrival_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_est_arrival_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_est_arrival_date"
+                            },
+                            {
+                              "prop": "di_pickup_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_pickup_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_pickup_date"
+                            },
+                            {
+                              "prop": "di_validity_of_collection",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_validity_of_collection}}",
+                              "valueLabel": "",
+                              "propLabel": "di_validity_of_collection"
+                            },
+                            {
+                              "prop": "di_tracking_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_tracking_number}}",
+                              "valueLabel": "",
+                              "propLabel": "di_tracking_number"
+                            },
+                            {
+                              "prop": "di_freight_charges",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_freight_charges}}",
+                              "valueLabel": "",
+                              "propLabel": "di_freight_charges"
+                            },
+                            {
                               "prop": "tpt_ic_no",
                               "operator": "",
                               "valueType": "field",
@@ -2891,6 +2995,110 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.tpt_driver_contact_no}}",
                               "valueLabel": "",
                               "propLabel": "tpt_driver_contact_no"
+                            },
+                            {
+                              "prop": "di_shipping_method",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_shipping_method}}",
+                              "valueLabel": "",
+                              "propLabel": "di_shipping_method"
+                            },
+                            {
+                              "prop": "di_driver_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_driver_name}}",
+                              "valueLabel": "",
+                              "propLabel": "di_driver_name"
+                            },
+                            {
+                              "prop": "di_ic_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_ic_no}}",
+                              "valueLabel": "",
+                              "propLabel": "di_ic_no"
+                            },
+                            {
+                              "prop": "di_driver_contact_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_driver_contact_no}}",
+                              "valueLabel": "",
+                              "propLabel": "di_driver_contact_no"
+                            },
+                            {
+                              "prop": "di_shipping_company",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_shipping_company}}",
+                              "valueLabel": "",
+                              "propLabel": "di_shipping_company"
+                            },
+                            {
+                              "prop": "di_transport_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_transport_name}}",
+                              "valueLabel": "",
+                              "propLabel": "di_transport_name"
+                            },
+                            {
+                              "prop": "di_vehicle_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_vehicle_number}}",
+                              "valueLabel": "",
+                              "propLabel": "di_vehicle_number"
+                            },
+                            {
+                              "prop": "di_est_delivery_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_est_delivery_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_est_delivery_date"
+                            },
+                            {
+                              "prop": "di_est_arrival_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_est_arrival_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_est_arrival_date"
+                            },
+                            {
+                              "prop": "di_pickup_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_pickup_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_pickup_date"
+                            },
+                            {
+                              "prop": "di_validity_of_collection",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_validity_of_collection}}",
+                              "valueLabel": "",
+                              "propLabel": "di_validity_of_collection"
+                            },
+                            {
+                              "prop": "di_tracking_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_tracking_number}}",
+                              "valueLabel": "",
+                              "propLabel": "di_tracking_number"
+                            },
+                            {
+                              "prop": "di_freight_charges",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_freight_charges}}",
+                              "valueLabel": "",
+                              "propLabel": "di_freight_charges"
                             },
                             {
                               "prop": "tpt_ic_no",
@@ -5045,6 +5253,110 @@
                               "propLabel": "tpt_driver_contact_no"
                             },
                             {
+                              "prop": "di_shipping_method",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_shipping_method}}",
+                              "valueLabel": "",
+                              "propLabel": "di_shipping_method"
+                            },
+                            {
+                              "prop": "di_driver_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_driver_name}}",
+                              "valueLabel": "",
+                              "propLabel": "di_driver_name"
+                            },
+                            {
+                              "prop": "di_ic_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_ic_no}}",
+                              "valueLabel": "",
+                              "propLabel": "di_ic_no"
+                            },
+                            {
+                              "prop": "di_driver_contact_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_driver_contact_no}}",
+                              "valueLabel": "",
+                              "propLabel": "di_driver_contact_no"
+                            },
+                            {
+                              "prop": "di_shipping_company",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_shipping_company}}",
+                              "valueLabel": "",
+                              "propLabel": "di_shipping_company"
+                            },
+                            {
+                              "prop": "di_transport_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_transport_name}}",
+                              "valueLabel": "",
+                              "propLabel": "di_transport_name"
+                            },
+                            {
+                              "prop": "di_vehicle_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_vehicle_number}}",
+                              "valueLabel": "",
+                              "propLabel": "di_vehicle_number"
+                            },
+                            {
+                              "prop": "di_est_delivery_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_est_delivery_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_est_delivery_date"
+                            },
+                            {
+                              "prop": "di_est_arrival_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_est_arrival_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_est_arrival_date"
+                            },
+                            {
+                              "prop": "di_pickup_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_pickup_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_pickup_date"
+                            },
+                            {
+                              "prop": "di_validity_of_collection",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_validity_of_collection}}",
+                              "valueLabel": "",
+                              "propLabel": "di_validity_of_collection"
+                            },
+                            {
+                              "prop": "di_tracking_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_tracking_number}}",
+                              "valueLabel": "",
+                              "propLabel": "di_tracking_number"
+                            },
+                            {
+                              "prop": "di_freight_charges",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_freight_charges}}",
+                              "valueLabel": "",
+                              "propLabel": "di_freight_charges"
+                            },
+                            {
                               "prop": "tpt_ic_no",
                               "operator": "",
                               "valueType": "field",
@@ -5782,6 +6094,110 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.tpt_driver_contact_no}}",
                               "valueLabel": "",
                               "propLabel": "tpt_driver_contact_no"
+                            },
+                            {
+                              "prop": "di_shipping_method",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_shipping_method}}",
+                              "valueLabel": "",
+                              "propLabel": "di_shipping_method"
+                            },
+                            {
+                              "prop": "di_driver_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_driver_name}}",
+                              "valueLabel": "",
+                              "propLabel": "di_driver_name"
+                            },
+                            {
+                              "prop": "di_ic_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_ic_no}}",
+                              "valueLabel": "",
+                              "propLabel": "di_ic_no"
+                            },
+                            {
+                              "prop": "di_driver_contact_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_driver_contact_no}}",
+                              "valueLabel": "",
+                              "propLabel": "di_driver_contact_no"
+                            },
+                            {
+                              "prop": "di_shipping_company",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_shipping_company}}",
+                              "valueLabel": "",
+                              "propLabel": "di_shipping_company"
+                            },
+                            {
+                              "prop": "di_transport_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_transport_name}}",
+                              "valueLabel": "",
+                              "propLabel": "di_transport_name"
+                            },
+                            {
+                              "prop": "di_vehicle_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_vehicle_number}}",
+                              "valueLabel": "",
+                              "propLabel": "di_vehicle_number"
+                            },
+                            {
+                              "prop": "di_est_delivery_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_est_delivery_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_est_delivery_date"
+                            },
+                            {
+                              "prop": "di_est_arrival_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_est_arrival_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_est_arrival_date"
+                            },
+                            {
+                              "prop": "di_pickup_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_pickup_date}}",
+                              "valueLabel": "",
+                              "propLabel": "di_pickup_date"
+                            },
+                            {
+                              "prop": "di_validity_of_collection",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_validity_of_collection}}",
+                              "valueLabel": "",
+                              "propLabel": "di_validity_of_collection"
+                            },
+                            {
+                              "prop": "di_tracking_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_tracking_number}}",
+                              "valueLabel": "",
+                              "propLabel": "di_tracking_number"
+                            },
+                            {
+                              "prop": "di_freight_charges",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.di_freight_charges}}",
+                              "valueLabel": "",
+                              "propLabel": "di_freight_charges"
                             },
                             {
                               "prop": "tpt_ic_no",
