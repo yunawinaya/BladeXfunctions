@@ -1771,6 +1771,14 @@
                       "propLabel": "Acc Integration Type"
                     },
                     {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project"
+                    },
+                    {
                       "prop": "new_batch",
                       "valueType": "field",
                       "value": "{{node:code_node_7fFzVen4.data.entry.new_batch}}",
@@ -2040,6 +2048,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Acc Integration Type"
+                    },
+                    {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_7fFzVen4.data.entry.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project"
                     },
                     {
                       "prop": "new_batch",

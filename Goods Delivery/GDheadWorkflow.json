@@ -7089,6 +7089,14 @@
                                       "propLabel": "Freight Charges"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "sales_person",
                                       "operator": "",
                                       "valueType": "field",
@@ -8074,6 +8082,14 @@
                                       "propLabel": "Freight Charges"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_IyJHrBst.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "sales_person",
                                       "operator": "",
                                       "valueType": "field",
@@ -9049,6 +9065,14 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.di_freight_charges}}",
                               "valueLabel": "",
                               "propLabel": "Freight Charges"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "sales_person",
@@ -13264,6 +13288,14 @@
                               "propLabel": "Freight Charges"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "sales_person",
                               "operator": "",
                               "valueType": "field",
@@ -14201,6 +14233,14 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.di_freight_charges}}",
                               "valueLabel": "",
                               "propLabel": "Freight Charges"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "sales_person",

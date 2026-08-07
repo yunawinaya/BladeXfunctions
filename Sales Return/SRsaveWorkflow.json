@@ -1508,6 +1508,14 @@
                       "propLabel": "Freight Charges"
                     },
                     {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project"
+                    },
+                    {
                       "prop": "plant_id",
                       "valueType": "field",
                       "value": "{{node:code_node_9Wk6aEGR.data.entry.plant_id}}",
@@ -2295,6 +2303,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Freight Charges"
+                    },
+                    {
+                      "prop": "project_id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.project_id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Project"
                     },
                     {
                       "prop": "plant_id",

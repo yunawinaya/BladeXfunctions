@@ -2007,6 +2007,14 @@
                       "propLabel": "Accounting Integration Type"
                     },
                     {
+                      "prop": "project_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.project_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Project"
+                    },
+                    {
                       "prop": "customer_credit_limit",
                       "operator": "",
                       "valueType": "field",
@@ -2692,6 +2700,14 @@
                       "value": "{{node:code_node_JoF0YVzG.data.entry.acc_integration_type}}",
                       "valueLabel": "",
                       "propLabel": "Accounting Integration Type"
+                    },
+                    {
+                      "prop": "project_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JoF0YVzG.data.entry.project_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Project"
                     },
                     {
                       "prop": "customer_credit_limit",
