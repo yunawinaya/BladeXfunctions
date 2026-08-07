@@ -1747,7 +1747,13 @@
                             "desensitization_pattern": "",
                             "desensitization_replace": "",
                             "select-card_4c8m22dh": [],
-                            "dataIdentifier": false
+                            "dataIdentifier": false,
+                            "highFrequencyInput": false,
+                            "highFrequencyTimeField": "",
+                            "highFrequencyDuration": 30,
+                            "highFrequencyMinCount": 20,
+                            "highFrequencyMaxItems": 5,
+                            "highFrequencySortRule": 1
                           },
                           "events": {
                             "onChange": "",
@@ -2028,7 +2034,13 @@
                             "pad": "*",
                             "desensitization_pattern": "",
                             "desensitization_replace": "",
-                            "select-card_4c8m22dh": []
+                            "select-card_4c8m22dh": [],
+                            "highFrequencyInput": false,
+                            "highFrequencyTimeField": "",
+                            "highFrequencyDuration": 30,
+                            "highFrequencyMinCount": 20,
+                            "highFrequencyMaxItems": 5,
+                            "highFrequencySortRule": 1
                           },
                           "events": {
                             "onChange": "",
@@ -3265,7 +3277,13 @@
                             "desensitization_pattern": "",
                             "desensitization_replace": "",
                             "dataIdentifier": false,
-                            "select-card_4c8m22dh": []
+                            "select-card_4c8m22dh": [],
+                            "highFrequencyInput": true,
+                            "highFrequencyTimeField": "so_date",
+                            "highFrequencyDuration": 30,
+                            "highFrequencyMinCount": 5,
+                            "highFrequencyMaxItems": 5,
+                            "highFrequencySortRule": 1
                           },
                           "events": {
                             "onChange": "",
@@ -3372,7 +3390,8 @@
                               "image": "",
                               "icon": "",
                               "explain": "",
-                              "cascade": ""
+                              "cascade": "",
+                              "children": "children"
                             },
                             "datasource": {
                               "source": "Payment Terms:Table:1901977384932986882",
@@ -4300,7 +4319,15 @@
                             "paging_enabled": 1,
                             "page_size": 10,
                             "dataIdentifier": false,
-                            "history": true
+                            "history": true,
+                            "isShowExpandButton": true,
+                            "buttonText": "Add",
+                            "buttonEvent": [
+                              {
+                                "key": "hnkwpqsi",
+                                "name": "onSoAreaIdfunc_hnkwpqsi"
+                              }
+                            ]
                           },
                           "events": {
                             "onReady": "",
@@ -4372,6 +4399,121 @@
                           "novalid": {},
                           "key": "0ctbe8ns",
                           "model": "so_shipping_date",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": "",
+                            "multiple": false,
+                            "disabled": false,
+                            "clearable": false,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_pe7htnej",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "isShowExpandButton": false,
+                            "buttonText": "新增",
+                            "buttonPosition": "bottom",
+                            "buttonAlign": "right",
+                            "buttonSize": "default",
+                            "buttonEvent": [],
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "project_code",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": "",
+                              "children": ""
+                            },
+                            "remoteFunc": "func_pe7htnej",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "2085600321692696577",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{value:organization_id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              },
+                              "source": "Project:Table:2085600321692696577"
+                            },
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "sorts": [],
+                            "paging_enabled": 1,
+                            "page_size": 10,
+                            "dataIdentifier": false,
+                            "dynamicValueType": "fx",
+                            "isDynamicValue": false
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Project",
+                          "novalid": {},
+                          "key": "jg1iqiw6",
+                          "model": "project_id",
                           "rules": []
                         },
                         {
@@ -13220,7 +13362,13 @@
                     "summary": true,
                     "summaryMethod": "sum",
                     "summaryPosition": "bottom",
-                    "summaryFixed": true
+                    "summaryFixed": true,
+                    "highFrequencyInput": true,
+                    "highFrequencyTimeField": "so_date",
+                    "highFrequencyDuration": 30,
+                    "highFrequencyMinCount": 5,
+                    "highFrequencyMaxItems": 5,
+                    "highFrequencySortRule": 1
                   },
                   "events": {
                     "onChange": "oll1l2ho",
@@ -13437,7 +13585,13 @@
                     "summary": false,
                     "summaryMethod": "count",
                     "summaryPosition": "bottom",
-                    "summaryFixed": false
+                    "summaryFixed": false,
+                    "highFrequencyInput": true,
+                    "highFrequencyTimeField": "so_date",
+                    "highFrequencyDuration": 30,
+                    "highFrequencyMinCount": 5,
+                    "highFrequencyMaxItems": 5,
+                    "highFrequencySortRule": 1
                   },
                   "events": {
                     "onChange": "oll1l2ho",
@@ -15953,6 +16107,121 @@
                   "novalid": {},
                   "key": "7lrinqsv",
                   "model": "so_shipping_date",
+                  "rules": []
+                },
+                {
+                  "version": "1.0.0",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": false,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_pe7htnej",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "isShowExpandButton": false,
+                    "buttonText": "新增",
+                    "buttonPosition": "bottom",
+                    "buttonAlign": "right",
+                    "buttonSize": "default",
+                    "buttonEvent": [],
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "project_code",
+                      "image": "",
+                      "icon": "",
+                      "explain": "",
+                      "cascade": "",
+                      "children": ""
+                    },
+                    "remoteFunc": "func_pe7htnej",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": false,
+                    "subform": false,
+                    "datasource": {
+                      "rules": {
+                        "collectionId": "2085600321692696577",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{value:organization_id}}",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      },
+                      "source": "Project:Table:2085600321692696577"
+                    },
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": [],
+                    "paging_enabled": 1,
+                    "page_size": 10,
+                    "dataIdentifier": false,
+                    "dynamicValueType": "fx",
+                    "isDynamicValue": false
+                  },
+                  "events": {
+                    "onReady": "",
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Project",
+                  "novalid": {},
+                  "key": "bvgbimph",
+                  "model": "project_id",
                   "rules": []
                 },
                 {
@@ -19159,7 +19428,13 @@
                 "desensitization_replace": "",
                 "dataIdentifier": false,
                 "history": true,
-                "select-card_4c8m22dh": []
+                "select-card_4c8m22dh": [],
+                "highFrequencyInput": true,
+                "highFrequencyTimeField": "so_date",
+                "highFrequencyDuration": 30,
+                "highFrequencyMinCount": 5,
+                "highFrequencyMaxItems": 5,
+                "highFrequencySortRule": 1
               },
               "events": {
                 "onChange": "",
@@ -19214,7 +19489,13 @@
                 "desensitization_replace": "",
                 "dataIdentifier": false,
                 "history": true,
-                "select-card_4c8m22dh": []
+                "select-card_4c8m22dh": [],
+                "highFrequencyInput": false,
+                "highFrequencyTimeField": "",
+                "highFrequencyDuration": 30,
+                "highFrequencyMinCount": 20,
+                "highFrequencyMaxItems": 5,
+                "highFrequencySortRule": 1
               },
               "events": {
                 "onChange": "",
@@ -22566,6 +22847,18 @@
         "key": "qhk88i59",
         "name": "onChangeDIDriverName",
         "func": "this.setData({'di_ic_no' : arguments[0].fieldModel.item.driver_ic})\nthis.setData({'di_driver_contact_no' : arguments[0].fieldModel.item.driver_contact})",
+        "type": "js"
+      },
+      {
+        "key": "0rdnmbsk",
+        "name": "onSoAreaIdfunc_0rdnmbsk",
+        "func": "",
+        "type": "rule"
+      },
+      {
+        "key": "hnkwpqsi",
+        "name": "onSoAreaIdfunc_hnkwpqsi",
+        "func": "this.toView({\n  target: '1901976591785906177',       // 目标页面或数据表ID\n  targetType: 'Table', // 'Page' | 'Table'\n  mode: 'dialog',      // 'dialog' | 'newTab' | 'newPage'\n  type: 'add',        // 'view' | 'add' | 'edit' | 'copy'\n  title: 'Add',       // 页面标题\n      button: [\"Confirm\", \"cancel\"],\n    onSuccess: async (result) => {\n      console.log(\"修改完成：\", result);\n      this.setData({\n  so_area_id:result?.row?.id||''\n});\n    },\n    onCancel: () => {\n      console.log(\"已关闭\");\n    },\n});",
         "type": "js"
       }
     ],
