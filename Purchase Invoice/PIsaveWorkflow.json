@@ -1,4 +1,35 @@
 {
+  "request_json": [
+    {
+      "key": "7fwhjejv",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "17qzau8l",
+      "name": "id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "1zzbrzbq",
+      "name": "pi_no",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -434,7 +465,7 @@
                         "name": "Check Invoice Qty",
                         "script": {
                           "type": "javascript",
-                          "code": "let entry = {{node:code_pi_docno.data.table}};\nconst totalQuantity = entry.table_pi.reduce((sum, item) => {\n    const { invoice_qty } = item;\n    return sum + (invoice_qty || 0);\n  }, 0);\n\nif (totalQuantity === 0) {\n  return {\n    entry: {},\n    status: 'Failed',\n    code: 407,\n    message: 'Total invoiced quantity is 0.'\n  }\n}\n\nentry.table_pi = entry.table_pi.filter((item) => item.invoice_qty > 0);\nlet poID = [];\nlet grID = [];\nlet purchaseOrderNumber = [];\nlet goodsReceivingNumber = [];\nfor(const pi of entry.table_pi) {\n  if(pi.line_gr_id && pi.line_gr_id !== \"\") {\n    grID.push(pi.line_gr_id);\n    goodsReceivingNumber.push(pi.goods_receiving_no);\n  }\n\n  poID.push(pi.line_po_id);\n  purchaseOrderNumber.push(pi.purchase_order_no);\n}\n\npoID = [...new Set(poID)];\ngrID = [...new Set(grID)];\npurchaseOrderNumber = [...new Set(purchaseOrderNumber)];\ngoodsReceivingNumber = [...new Set(goodsReceivingNumber)];\n\nentry.po_id = poID;\nentry.gr_id = grID;\nentry.po_no_display = purchaseOrderNumber.join(\", \");\nentry.gr_no_display = goodsReceivingNumber.join(\", \");\n\nreturn {\n  entry: entry,\n  status: 'Success',\n  code: 200,\n  message: ''\n};"
+                          "code": "let entry = {{node:code_pi_docno.data.table}};\nconst totalQuantity = entry.table_pi.reduce((sum, item) => {\n    const { invoice_qty } = item;\n    const positiveQty = Math.abs(invoice_qty)\n    return sum + (positiveQty || 0);\n  }, 0);\n\nif (totalQuantity === 0) {\n  return {\n    entry: {},\n    status: 'Failed',\n    code: 407,\n    message: 'Total invoiced quantity is 0.'\n  }\n}\n\nentry.table_pi = entry.table_pi.filter((item) => item.invoice_qty !== 0);\nlet poID = [];\nlet grID = [];\nlet purchaseOrderNumber = [];\nlet goodsReceivingNumber = [];\nfor(const pi of entry.table_pi) {\n  if(pi.line_gr_id && pi.line_gr_id !== \"\") {\n    grID.push(pi.line_gr_id);\n    goodsReceivingNumber.push(pi.goods_receiving_no);\n  }\n\n  poID.push(pi.line_po_id);\n  purchaseOrderNumber.push(pi.purchase_order_no);\n}\n\npoID = [...new Set(poID)];\ngrID = [...new Set(grID)];\npurchaseOrderNumber = [...new Set(purchaseOrderNumber)];\ngoodsReceivingNumber = [...new Set(goodsReceivingNumber)];\n\nentry.po_id = poID;\nentry.gr_id = grID;\nentry.po_no_display = purchaseOrderNumber.join(\", \");\nentry.gr_no_display = goodsReceivingNumber.join(\", \");\n\nreturn {\n  entry: entry,\n  status: 'Success',\n  code: 200,\n  message: ''\n};"
                         },
                         "response_json": [
                           {
@@ -2051,7 +2082,7 @@
                 "name": "Map Updated PO & GR (apply)",
                 "script": {
                   "type": "javascript",
-                  "code": "const poList = {{node:search_node_po.data.data}} || [];\nconst grList = {{node:search_node_gr.data.data}} || [];\nconst data = {{node:code_pi_fillback.data.entry}};\n\nconst roundTo3 = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\n\nconst processItems = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey) => {\n  const filteredPI = tablePi.filter((item) => item[docIdKey] === docId);\n\n  const countableItems = items.filter((item) => item.parent_or_child !== \"Child\");\n  let totalItems = countableItems.length;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n\n  // Distribute combined split-parent PI lines (gr_line_id empty) across their\n  // constituent Split-Parent GR rows, fill-order by remaining capacity.\n  const isGR = piLineIdKey === \"gr_line_id\";\n  const distributedByRowId = {};\n  if (isGR) {\n    const combinedPIs = filteredPI.filter((pi) => (!pi.gr_line_id || pi.gr_line_id === \"\") && pi.po_line_id);\n    for (const cpi of combinedPIs) {\n      const groupRows = items.filter((r) => r.parent_or_child === \"Split-Parent\" && r.po_line_item_id === cpi.po_line_id).sort((a, b) => String(a.line_index).localeCompare(String(b.line_index), undefined, { numeric: true }));\n      let remainingToAllocate = roundTo3(cpi.invoice_qty);\n      for (const r of groupRows) {\n        if (remainingToAllocate <= 0) break;\n        const already = distributedByRowId[r.id] || 0;\n        const capacity = roundTo3((parseFloat(r.received_qty) || 0) - (parseFloat(r.invoice_qty) || 0) - already);\n        if (capacity <= 0) continue;\n        const alloc = Math.min(remainingToAllocate, capacity);\n        distributedByRowId[r.id] = roundTo3(already + alloc);\n        remainingToAllocate = roundTo3(remainingToAllocate - alloc);\n      }\n    }\n  }\n\n  const updatedItems = items.map((item) => {\n    const matchedPIs = filteredPI.filter((pi) => pi[piLineIdKey] === item.id);\n    const directQty = matchedPIs.length > 0 ? roundTo3(matchedPIs.reduce((s, pi) => s + (parseFloat(pi.invoice_qty) || 0), 0)) : 0;\n    const distributedQty = distributedByRowId[item.id] || 0;\n    const piInvoicedQty = roundTo3(directQty + distributedQty);\n    if (piInvoicedQty !== 0) {\n      const currentInvoicedQty = roundTo3(item.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + piInvoicedQty);\n      return { ...item, invoice_qty: totalInvoicedQty };\n    }\n    return { ...item };\n  });\n\n  for (const [index, item] of updatedItems.entries()) {\n    if (item.parent_or_child === \"Child\") continue;\n    if (roundTo3(item.invoice_qty) > 0) {\n      partiallyInvoicedItems++;\n      updatedItems[index].pi_status = \"Partially Invoiced\";\n      if (roundTo3(item.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {\n        fullyInvoicedItems++;\n        updatedItems[index].pi_status = \"Fully Invoiced\";\n      }\n    }\n  }\n\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newPIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newPIStatus };\n};\n\nconst poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\nlet updatedPO = [];\nfor (const poID of poIds) {\n  const poData = poList.find((po) => po.id === poID);\n  if (!poData) continue;\n  const poItems = poData.table_po || [];\n  const { updatedItems, newPIStatus } = processItems(poItems, data.table_pi, poData.id, \"line_po_id\", \"po_line_id\", \"quantity\");\n  updatedPO.push({ po_id: poData.id, pi_status: newPIStatus, table_po: updatedItems });\n}\n\nlet updatedGR = [];\nif (data.gr_id && data.gr_id.length > 0) {\n  const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n  for (const grID of grIds) {\n    const grData = grList.find((gr) => gr.id === grID);\n    if (!grData) continue;\n    const grItems = grData.table_gr || [];\n    const { updatedItems, newPIStatus } = processItems(grItems, data.table_pi, grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\");\n    updatedGR.push({ gr_id: grData.id, pi_status: newPIStatus, table_gr: updatedItems });\n  }\n}\n\nreturn { updatedPO, updatedGR };"
+                  "code": "const poList = {{node:search_node_po.data.data}} || [];\nconst grList = {{node:search_node_gr.data.data}} || [];\nconst data = {{node:code_pi_fillback.data.entry}};\n\nconst roundTo3 = (value) => {\n  let positiveValue = Math.abs(value);\n  return Math.round((parseFloat(positiveValue) || 0) * 1000) / 1000;\n};\n\nconst processItems = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey) => {\n  const filteredPI = tablePi.filter((item) => item[docIdKey] === docId);\n\n  const countableItems = items.filter((item) => item.parent_or_child !== \"Child\");\n  let totalItems = countableItems.length;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n\n  // Distribute combined split-parent PI lines (gr_line_id empty) across their\n  // constituent Split-Parent GR rows, fill-order by remaining capacity.\n  const isGR = piLineIdKey === \"gr_line_id\";\n  const distributedByRowId = {};\n  if (isGR) {\n    const combinedPIs = filteredPI.filter((pi) => (!pi.gr_line_id || pi.gr_line_id === \"\") && pi.po_line_id);\n    for (const cpi of combinedPIs) {\n      const groupRows = items.filter((r) => r.parent_or_child === \"Split-Parent\" && r.po_line_item_id === cpi.po_line_id).sort((a, b) => String(a.line_index).localeCompare(String(b.line_index), undefined, { numeric: true }));\n      let remainingToAllocate = roundTo3(cpi.invoice_qty);\n      for (const r of groupRows) {\n        if (remainingToAllocate <= 0) break;\n        const already = distributedByRowId[r.id] || 0;\n        const capacity = roundTo3((parseFloat(r.received_qty) || 0) - (parseFloat(r.invoice_qty) || 0) - already);\n        if (capacity <= 0) continue;\n        const alloc = Math.min(remainingToAllocate, capacity);\n        distributedByRowId[r.id] = roundTo3(already + alloc);\n        remainingToAllocate = roundTo3(remainingToAllocate - alloc);\n      }\n    }\n  }\n\n  const updatedItems = items.map((item) => {\n    const matchedPIs = filteredPI.filter((pi) => pi[piLineIdKey] === item.id);\n    const directQty = matchedPIs.length > 0 ? roundTo3(matchedPIs.reduce((s, pi) => s + (parseFloat(pi.invoice_qty) || 0), 0)) : 0;\n    const distributedQty = distributedByRowId[item.id] || 0;\n    const piInvoicedQty = roundTo3(directQty + distributedQty);\n    if (piInvoicedQty !== 0) {\n      const currentInvoicedQty = roundTo3(item.invoice_qty);\n      const totalInvoicedQty = roundTo3(currentInvoicedQty + piInvoicedQty);\n      return { ...item, invoice_qty: totalInvoicedQty };\n    }\n    return { ...item };\n  });\n\n  for (const [index, item] of updatedItems.entries()) {\n    if (item.parent_or_child === \"Child\") continue;\n    if (roundTo3(item.invoice_qty) > 0) {\n      partiallyInvoicedItems++;\n      updatedItems[index].pi_status = \"Partially Invoiced\";\n      if (roundTo3(item.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {\n        fullyInvoicedItems++;\n        updatedItems[index].pi_status = \"Fully Invoiced\";\n      }\n    }\n  }\n\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newPIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newPIStatus };\n};\n\nconst poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\nlet updatedPO = [];\nfor (const poID of poIds) {\n  const poData = poList.find((po) => po.id === poID);\n  if (!poData) continue;\n  const poItems = poData.table_po || [];\n  const { updatedItems, newPIStatus } = processItems(poItems, data.table_pi, poData.id, \"line_po_id\", \"po_line_id\", \"quantity\");\n  updatedPO.push({ po_id: poData.id, pi_status: newPIStatus, table_po: updatedItems });\n}\n\nlet updatedGR = [];\nif (data.gr_id && data.gr_id.length > 0) {\n  const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n  for (const grID of grIds) {\n    const grData = grList.find((gr) => gr.id === grID);\n    if (!grData) continue;\n    const grItems = grData.table_gr || [];\n    const { updatedItems, newPIStatus } = processItems(grItems, data.table_pi, grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\");\n    updatedGR.push({ gr_id: grData.id, pi_status: newPIStatus, table_gr: updatedItems });\n  }\n}\n\nreturn { updatedPO, updatedGR };"
                 },
                 "response_json": [
                   {
@@ -2418,36 +2449,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "7fwhjejv",
-      "name": "data",
-      "title": "Data",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    }
-  ],
-  "response_json": [
-    {
-      "key": "17qzau8l",
-      "name": "id",
-      "title": "",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "1zzbrzbq",
-      "name": "pi_no",
-      "title": "",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "config": {}
+  "edges": []
 }

@@ -26,6 +26,8 @@ const mapLineItem = async (item, record) => {
     line_remark_2: item.line_remark_2,
     po_line_item_id: item.id,
     item_category_id: item?.item_category_id || null,
+    tariff_id: item.tariff_id,
+    further_description: item.further_description,
   };
 };
 
