@@ -2857,6 +2857,118 @@
           },
           "list": [
             {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_pe7htnej",
+                "filterable": false,
+                "pagingEnabled": true,
+                "isShowExpandButton": false,
+                "buttonText": "新增",
+                "buttonPosition": "bottom",
+                "buttonAlign": "right",
+                "buttonSize": "default",
+                "buttonEvent": [],
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "project_code",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_pe7htnej",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "2085600321692696577",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "Project:Table:2085600321692696577"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 1,
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Project",
+              "novalid": {},
+              "key": "omx5orxf",
+              "model": "project_id",
+              "rules": []
+            },
+            {
               "name": "Reference Documents",
               "type": "fileupload",
               "mainIcon": "文件上传",
@@ -7005,7 +7117,8 @@
               "image": "",
               "icon": "",
               "explain": "",
-              "cascade": ""
+              "cascade": "",
+              "children": ""
             },
             "remoteFunc": "func_wlgamjoi",
             "customClass": "",
@@ -7047,7 +7160,9 @@
             "pad": "*",
             "desensitization_pattern": "",
             "desensitization_replace": "",
-            "sorts": []
+            "sorts": [],
+            "paging_enabled": 1,
+            "page_size": 10
           },
           "events": {
             "onReady": "",
@@ -7059,6 +7174,118 @@
           "novalid": {},
           "key": "wlgamjoi",
           "model": "tariff_id",
+          "rules": []
+        },
+        {
+          "version": "1.0.0",
+          "type": "select",
+          "mainIcon": "下拉单选",
+          "typeIcon": "下拉单选",
+          "icon": "icon-select",
+          "group": "Select",
+          "groupSort": 2,
+          "enableScopes": ["Component", "Table", "Page"],
+          "el": "fm-select",
+          "options": {
+            "defaultValue": "",
+            "multiple": false,
+            "disabled": false,
+            "clearable": false,
+            "placeholder": "",
+            "required": false,
+            "requiredMessage": "",
+            "validatorCheck": false,
+            "validator": "",
+            "width": "",
+            "options": [
+              {
+                "value": "Option 1",
+                "label": "Option 1"
+              },
+              {
+                "value": "Option 2",
+                "label": "Option 2"
+              },
+              {
+                "value": "Option 3",
+                "label": "Option 3"
+              }
+            ],
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "remoteOption": "option_pe7htnej",
+            "filterable": false,
+            "pagingEnabled": true,
+            "isShowExpandButton": false,
+            "buttonText": "新增",
+            "buttonPosition": "bottom",
+            "buttonAlign": "right",
+            "buttonSize": "default",
+            "buttonEvent": [],
+            "remoteOptions": [],
+            "props": {
+              "value": "id",
+              "label": "project_code",
+              "image": "",
+              "icon": "",
+              "explain": "",
+              "cascade": "",
+              "children": ""
+            },
+            "remoteFunc": "func_pe7htnej",
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": true,
+            "customProps": {},
+            "tip": "",
+            "tableColumn": false,
+            "subform": false,
+            "datasource": {
+              "rules": {
+                "collectionId": "2085600321692696577",
+                "list": [
+                  {
+                    "id": 1723795236686,
+                    "parentId": 1723795236685,
+                    "isTop": true,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{value:organization_id}}",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "Organization ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              },
+              "source": "Project:Table:2085600321692696577"
+            },
+            "auto_refresh": 0,
+            "auto_refresh_debounce": 100,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": "",
+            "sorts": [],
+            "paging_enabled": 1,
+            "page_size": 10
+          },
+          "events": {
+            "onReady": "",
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "name": "Project",
+          "novalid": {},
+          "key": "whzjpwb8",
+          "model": "project_id",
           "rules": []
         },
         {

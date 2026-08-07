@@ -3517,6 +3517,118 @@
           },
           "list": [
             {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_pe7htnej",
+                "filterable": false,
+                "pagingEnabled": true,
+                "isShowExpandButton": false,
+                "buttonText": "新增",
+                "buttonPosition": "bottom",
+                "buttonAlign": "right",
+                "buttonSize": "default",
+                "buttonEvent": [],
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "project_code",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_pe7htnej",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "2085600321692696577",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "Project:Table:2085600321692696577"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 1,
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Project",
+              "novalid": {},
+              "key": "838uu9ga",
+              "model": "project_id",
+              "rules": []
+            },
+            {
               "name": "Reference Documents",
               "type": "fileupload",
               "mainIcon": "文件上传",
@@ -3550,7 +3662,13 @@
                 "remoteFunc": "func_rkk7dyyr",
                 "remoteOption": "option_rkk7dyyr",
                 "tableColumn": false,
-                "subform": false
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
               },
               "events": {
                 "onChange": "",
@@ -3642,8 +3760,6 @@
         "resizable": 0,
         "emptyTip": "",
         "tableHeightMode": "fixed",
-        "tableFixedHeight": null,
-        "tableMaxHeight": null,
         "rowHeightType": "auto",
         "hideIndex": false,
         "highlightSelectedRow": false,
@@ -3672,7 +3788,9 @@
               "disabled": false
             }
           ]
-        }
+        },
+        "childRecordMode": false,
+        "inlineInsert": true
       },
       "events": {
         "onChange": "",
@@ -3958,6 +4076,103 @@
           "rules": []
         },
         {
+          "version": "1.0.0",
+          "type": "editor",
+          "mainIcon": "富文本",
+          "typeIcon": "富文本",
+          "icon": "icon-fuwenbenkuang",
+          "group": "Text",
+          "groupSort": 9,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": "",
+            "width": "",
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": true,
+            "customToolbar": [
+              [
+                "bold",
+                "italic",
+                "underline",
+                "strike",
+                {
+                  "color": []
+                },
+                {
+                  "background": []
+                },
+                {
+                  "align": []
+                },
+                {
+                  "list": "ordered"
+                },
+                {
+                  "list": "bullet"
+                },
+                {
+                  "indent": "-1"
+                },
+                {
+                  "indent": "+1"
+                }
+              ],
+              [
+                {
+                  "font": []
+                },
+                {
+                  "header": [1, 2, 3, 4, 5, 6, false]
+                }
+              ],
+              [
+                {
+                  "script": "sub"
+                },
+                {
+                  "script": "super"
+                }
+              ],
+              ["link", "image", "blockquote", "code-block"],
+              [
+                {
+                  "direction": "rtl"
+                }
+              ],
+              ["clean"]
+            ],
+            "action": "/blade-resource/oss/endpoint/put-file",
+            "headers": [],
+            "withCredentials": false,
+            "disabled": false,
+            "required": false,
+            "validatorCheck": false,
+            "validator": "",
+            "tip": "",
+            "remoteFunc": "func_e84wwirf",
+            "remoteOption": "option_e84wwirf",
+            "tableColumn": true,
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
+          },
+          "events": {
+            "onChange": ""
+          },
+          "name": "Further Description",
+          "novalid": {},
+          "key": "e84wwirf",
+          "model": "further_description",
+          "rules": []
+        },
+        {
           "name": "PO Number",
           "type": "input",
           "mainIcon": "单行文本",
@@ -4182,7 +4397,7 @@
             "disabled": false,
             "dataBind": true,
             "required": false,
-            "validator": "(async () => {\n  const { table_pi } = this.getValues();\n  const fieldParts = rule.field.split(\".\");\n  const index = fieldParts[1];\n\n  const availableInvQty = table_pi[index].available_inv_qty;\n\n  if(value > availableInvQty) {\n    callback('Invoice quantity cannot exceed available invoice quantity.');\n    return;\n  } else {\n    callback();\n  }\n})();\n",
+            "validator": "(async () => {\n  const { table_pi } = this.getValues();\n  const fieldParts = rule.field.split(\".\");\n  const index = fieldParts[1];\n\n  const availableInvQty = table_pi[index].available_inv_qty;\n\n  const positiveQty = Math.abs(value);\n  if(positiveQty > availableInvQty) {\n    callback('Invoice quantity cannot exceed available invoice quantity.');\n    return;\n  } else {\n    callback();\n  }\n})();\n",
             "hideLabel": false,
             "placeholder": "",
             "controls": false,
@@ -4204,7 +4419,7 @@
               "showThousandSeparator": true,
               "showCurrencySymbol": true,
               "showThousandSeparatorForNumber": false,
-              "allowNegative": false,
+              "allowNegative": true,
               "autoFormat": true
             },
             "remoteFunc": "func_ulygxh9p",
@@ -4231,7 +4446,7 @@
           "model": "invoice_qty",
           "rules": [
             {
-              "func": "(async () => {\n  const { table_pi } = this.getValues();\n  const fieldParts = rule.field.split(\".\");\n  const index = fieldParts[1];\n\n  const availableInvQty = table_pi[index].available_inv_qty;\n\n  if(value > availableInvQty) {\n    callback('Invoice quantity cannot exceed available invoice quantity.');\n    return;\n  } else {\n    callback();\n  }\n})();\n"
+              "func": "(async () => {\n  const { table_pi } = this.getValues();\n  const fieldParts = rule.field.split(\".\");\n  const index = fieldParts[1];\n\n  const availableInvQty = table_pi[index].available_inv_qty;\n\n  const positiveQty = Math.abs(value);\n  if(positiveQty > availableInvQty) {\n    callback('Invoice quantity cannot exceed available invoice quantity.');\n    return;\n  } else {\n    callback();\n  }\n})();\n"
             }
           ]
         },
@@ -5433,7 +5648,20 @@
             "remoteFunc": "func_jacfoqyc",
             "remoteOption": "option_jacfoqyc",
             "tableColumn": true,
-            "subform": false
+            "subform": false,
+            "highFrequencyInput": false,
+            "highFrequencyTimeField": "",
+            "highFrequencyDuration": 30,
+            "highFrequencyMinCount": 20,
+            "highFrequencyMaxItems": 5,
+            "highFrequencySortRule": 1,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": "",
+            "select-card_4c8m22dh": []
           },
           "events": {
             "onChange": "",
@@ -5444,6 +5672,118 @@
           "novalid": {},
           "key": "b5daduwe",
           "model": "line_remark_2",
+          "rules": []
+        },
+        {
+          "version": "1.0.0",
+          "type": "select",
+          "mainIcon": "下拉单选",
+          "typeIcon": "下拉单选",
+          "icon": "icon-select",
+          "group": "Select",
+          "groupSort": 2,
+          "enableScopes": ["Component", "Table", "Page"],
+          "el": "fm-select",
+          "options": {
+            "defaultValue": "",
+            "multiple": false,
+            "disabled": false,
+            "clearable": false,
+            "placeholder": "",
+            "required": false,
+            "requiredMessage": "",
+            "validatorCheck": false,
+            "validator": "",
+            "width": "",
+            "options": [
+              {
+                "value": "Option 1",
+                "label": "Option 1"
+              },
+              {
+                "value": "Option 2",
+                "label": "Option 2"
+              },
+              {
+                "value": "Option 3",
+                "label": "Option 3"
+              }
+            ],
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "remoteOption": "option_pe7htnej",
+            "filterable": false,
+            "pagingEnabled": true,
+            "isShowExpandButton": false,
+            "buttonText": "新增",
+            "buttonPosition": "bottom",
+            "buttonAlign": "right",
+            "buttonSize": "default",
+            "buttonEvent": [],
+            "remoteOptions": [],
+            "props": {
+              "value": "id",
+              "label": "project_code",
+              "image": "",
+              "icon": "",
+              "explain": "",
+              "cascade": "",
+              "children": ""
+            },
+            "remoteFunc": "func_pe7htnej",
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": true,
+            "customProps": {},
+            "tip": "",
+            "tableColumn": false,
+            "subform": false,
+            "datasource": {
+              "rules": {
+                "collectionId": "2085600321692696577",
+                "list": [
+                  {
+                    "id": 1723795236686,
+                    "parentId": 1723795236685,
+                    "isTop": true,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{value:organization_id}}",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "Organization ID",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              },
+              "source": "Project:Table:2085600321692696577"
+            },
+            "auto_refresh": 0,
+            "auto_refresh_debounce": 100,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": "",
+            "sorts": [],
+            "paging_enabled": 1,
+            "page_size": 10
+          },
+          "events": {
+            "onReady": "",
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "name": "Project",
+          "novalid": {},
+          "key": "qtb9fs3k",
+          "model": "project_id",
           "rules": []
         },
         {
@@ -7219,7 +7559,14 @@
                 "remoteFunc": "func_p9sm055a",
                 "remoteOption": "option_p9sm055a",
                 "tableColumn": false,
-                "subform": false
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
               },
               "events": {
                 "onChange": "",
@@ -9388,7 +9735,13 @@
         "remoteOption": "option_xcp40x0c",
         "tableColumn": false,
         "subform": false,
-        "labelWrap": true
+        "labelWrap": true,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": ""
       },
       "events": {
         "onChange": "",
@@ -10753,16 +11106,30 @@
                                       "allowView": "",
                                       "ganttConfig": {},
                                       "ignoreFormDisabled": 0,
-                                      "tableFixedHeight": null,
                                       "highlightSelectedRow": false,
                                       "highlightHoverRow": false,
-                                      "headerBgColor": "#FFFFFF"
+                                      "headerBgColor": "#FFFFFF",
+                                      "defaultConfig": {
+                                        "startDateField": "",
+                                        "endDateField": "",
+                                        "textField": "",
+                                        "scaleMode": "",
+                                        "color": "",
+                                        "colorColor": "",
+                                        "colorRules": []
+                                      },
+                                      "multipleView": [],
+                                      "calendarConfig": {}
                                     },
                                     "remoteFunc": "func_8ev1uf9m",
                                     "remoteOption": "option_8ev1uf9m",
                                     "tableColumn": false,
                                     "subform": false,
-                                    "isGetTree": false
+                                    "isGetTree": false,
+                                    "padding": ["", "", "", ""],
+                                    "radius": ["", "", "", ""],
+                                    "fills": [],
+                                    "borders": []
                                   },
                                   "events": {
                                     "rowClick": "n91af9yg",
@@ -10815,8 +11182,8 @@
                                           "collectionId": "1901845517592285186",
                                           "list": [
                                             {
-                                              "id": 1754975222356,
-                                              "parentId": 1754975222357,
+                                              "id": 1785823349247,
+                                              "parentId": 1785823349248,
                                               "isTop": true,
                                               "type": "branch",
                                               "operator": "all",
@@ -10826,16 +11193,16 @@
                                               "level": 1,
                                               "children": [
                                                 {
-                                                  "id": 1754975222360,
+                                                  "id": 1785823349252,
                                                   "isTop": false,
-                                                  "parentId": 1754975222356,
+                                                  "parentId": 1785823349247,
                                                   "type": "branch",
                                                   "operator": "any",
                                                   "level": 2,
                                                   "children": [
                                                     {
-                                                      "id": 1754975230291,
-                                                      "parentId": 1754975222360,
+                                                      "id": 1785823358784,
+                                                      "parentId": 1785823349252,
                                                       "isTop": false,
                                                       "prop": "pi_status",
                                                       "operator": "notEqual",
@@ -10844,153 +11211,162 @@
                                                       "type": "leaf",
                                                       "level": 3,
                                                       "propLabel": "PI Status",
-                                                      "valueLabel": "",
-                                                      "operatorLabel": "Not Equal",
-                                                      "valueTypeLabel": "值"
-                                                    },
-                                                    {
-                                                      "id": 1754975222361,
-                                                      "parentId": 1754975222360,
-                                                      "isTop": false,
-                                                      "prop": "pi_status",
-                                                      "operator": "isNull",
-                                                      "valueType": "value",
-                                                      "type": "leaf",
-                                                      "level": 3,
-                                                      "propLabel": "PI Status",
-                                                      "valueLabel": "",
-                                                      "operatorLabel": "Is Null",
-                                                      "valueTypeLabel": "值"
-                                                    }
-                                                  ]
-                                                },
-                                                {
-                                                  "id": 1781490941124,
-                                                  "isTop": false,
-                                                  "parentId": 1754975222356,
-                                                  "type": "branch",
-                                                  "operator": "all",
-                                                  "level": 2,
-                                                  "children": [
-                                                    {
-                                                      "id": 1754975222359,
-                                                      "parentId": 1781490941124,
-                                                      "isTop": false,
-                                                      "prop": "gr_status",
-                                                      "operator": "notEqual",
-                                                      "valueType": "value",
-                                                      "value": "Draft",
-                                                      "type": "leaf",
-                                                      "level": 3,
-                                                      "propLabel": "GR Status",
-                                                      "valueLabel": "",
-                                                      "operatorLabel": "Not Equal",
-                                                      "valueTypeLabel": "值"
-                                                    },
-                                                    {
-                                                      "id": 1781490941125,
-                                                      "parentId": 1781490941124,
-                                                      "isTop": false,
-                                                      "prop": "gr_status",
-                                                      "operator": "notEqual",
-                                                      "valueType": "value",
-                                                      "value": "Created",
-                                                      "type": "leaf",
-                                                      "level": 3,
-                                                      "propLabel": "GR Status",
                                                       "valueLabel": "",
                                                       "operatorLabel": "Not Equal"
+                                                    },
+                                                    {
+                                                      "id": 1785823349253,
+                                                      "parentId": 1785823349252,
+                                                      "isTop": false,
+                                                      "prop": "pi_status",
+                                                      "operator": "isNull",
+                                                      "valueType": "value",
+                                                      "value": null,
+                                                      "type": "leaf",
+                                                      "level": 3,
+                                                      "propLabel": "PI Status",
+                                                      "valueLabel": "",
+                                                      "operatorLabel": "Is Null"
+                                                    },
+                                                    {
+                                                      "id": 1785824691213,
+                                                      "parentId": 1785823349252,
+                                                      "isTop": false,
+                                                      "prop": "pi_status",
+                                                      "operator": "isEmpty",
+                                                      "valueType": "value",
+                                                      "value": null,
+                                                      "type": "leaf",
+                                                      "level": 3,
+                                                      "propLabel": "PI Status",
+                                                      "valueLabel": "",
+                                                      "operatorLabel": "Is Empty"
                                                     }
                                                   ]
                                                 },
                                                 {
-                                                  "id": 1756456330748,
+                                                  "id": 1785823349249,
+                                                  "parentId": 1785823349247,
                                                   "isTop": false,
-                                                  "parentId": 1754975222356,
+                                                  "prop": "gr_status",
+                                                  "operator": "equal",
+                                                  "valueType": "value",
+                                                  "value": "Completed",
+                                                  "type": "leaf",
+                                                  "level": 2,
+                                                  "propLabel": "GR Status",
+                                                  "valueLabel": "",
+                                                  "operatorLabel": "Equal"
+                                                },
+                                                {
+                                                  "id": 1785823349254,
+                                                  "isTop": false,
+                                                  "parentId": 1785823349247,
                                                   "type": "branch",
                                                   "operator": "any",
                                                   "level": 2,
                                                   "children": [
                                                     {
-                                                      "id": 1756456191819,
-                                                      "parentId": 1756456330748,
+                                                      "id": 1785823349251,
+                                                      "parentId": 1785823349254,
                                                       "isTop": false,
                                                       "prop": "po_id.pi_status",
-                                                      "operator": "equal",
+                                                      "operator": "notEqual",
                                                       "valueType": "value",
                                                       "value": "Fully Invoiced",
                                                       "type": "leaf",
                                                       "level": 3,
                                                       "propLabel": "PI Status",
                                                       "valueLabel": "",
-                                                      "operatorLabel": "Equal",
-                                                      "valueTypeLabel": "值"
+                                                      "operatorLabel": "Not Equal"
                                                     },
                                                     {
-                                                      "id": 1756456330749,
-                                                      "parentId": 1756456330748,
+                                                      "id": 1785823349256,
                                                       "isTop": false,
-                                                      "prop": "po_id.pi_status",
-                                                      "operator": "isNull",
-                                                      "valueType": "value",
-                                                      "type": "leaf",
-                                                      "level": 3,
-                                                      "propLabel": "PI Status",
-                                                      "valueLabel": "",
-                                                      "operatorLabel": "Is Null",
-                                                      "valueTypeLabel": "值"
-                                                    }
-                                                  ]
-                                                },
-                                                {
-                                                  "id": 1754975222362,
-                                                  "isTop": false,
-                                                  "parentId": 1754975222356,
-                                                  "type": "branch",
-                                                  "operator": "any",
-                                                  "level": 2,
-                                                  "children": [
-                                                    {
-                                                      "id": 1754975222358,
-                                                      "parentId": 1754975222362,
-                                                      "isTop": false,
-                                                      "prop": "plant_id",
-                                                      "operator": "numberEqual",
-                                                      "valueType": "field",
-                                                      "value": "{{params:plant_id::}}",
-                                                      "type": "leaf",
-                                                      "level": 3,
-                                                      "propLabel": "Plant",
-                                                      "valueLabel": "",
-                                                      "operatorLabel": "Equal",
-                                                      "valueTypeLabel": "字段"
-                                                    },
-                                                    {
-                                                      "id": 1781578283774,
-                                                      "isTop": false,
-                                                      "parentId": 1754975222362,
+                                                      "parentId": 1785823349254,
                                                       "type": "branch",
                                                       "operator": "all",
                                                       "level": 3,
                                                       "children": [
                                                         {
-                                                          "id": 1754975222363,
-                                                          "parentId": 1781578283774,
+                                                          "id": 1785823349255,
+                                                          "parentId": 1785823349256,
+                                                          "isTop": false,
+                                                          "prop": "po_id.pi_status",
+                                                          "operator": "isNull",
+                                                          "valueType": "value",
+                                                          "value": null,
+                                                          "type": "leaf",
+                                                          "level": 4,
+                                                          "propLabel": "PI Status",
+                                                          "valueLabel": "",
+                                                          "operatorLabel": "Is Null"
+                                                        },
+                                                        {
+                                                          "id": 1785823349257,
+                                                          "parentId": 1785823349256,
+                                                          "isTop": false,
+                                                          "prop": "purchase_order_number",
+                                                          "operator": "notContains",
+                                                          "valueType": "value",
+                                                          "value": ",",
+                                                          "type": "leaf",
+                                                          "level": 4,
+                                                          "propLabel": "Purchase Order Number",
+                                                          "valueLabel": "",
+                                                          "operatorLabel": "Not Contains"
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "id": 1785823349258,
+                                                  "isTop": false,
+                                                  "parentId": 1785823349247,
+                                                  "type": "branch",
+                                                  "operator": "any",
+                                                  "level": 2,
+                                                  "children": [
+                                                    {
+                                                      "id": 1785823349250,
+                                                      "parentId": 1785823349258,
+                                                      "isTop": false,
+                                                      "prop": "plant_id",
+                                                      "operator": "numberEqual",
+                                                      "valueType": "field",
+                                                      "value": "{{value:plant_id}}",
+                                                      "type": "leaf",
+                                                      "level": 3,
+                                                      "propLabel": "Plant",
+                                                      "valueLabel": "",
+                                                      "operatorLabel": "Equal"
+                                                    },
+                                                    {
+                                                      "id": 1785823349260,
+                                                      "isTop": false,
+                                                      "parentId": 1785823349258,
+                                                      "type": "branch",
+                                                      "operator": "all",
+                                                      "level": 3,
+                                                      "children": [
+                                                        {
+                                                          "id": 1785823349259,
+                                                          "parentId": 1785823349260,
                                                           "isTop": false,
                                                           "prop": "organization_id",
                                                           "operator": "equal",
                                                           "valueType": "field",
-                                                          "value": "{{params:plant_id::}}",
+                                                          "value": "{{value:plant_id}}",
                                                           "type": "leaf",
                                                           "level": 4,
                                                           "propLabel": "Organization",
                                                           "valueLabel": "",
-                                                          "operatorLabel": "Equal",
-                                                          "valueTypeLabel": "字段"
+                                                          "operatorLabel": "Equal"
                                                         },
                                                         {
-                                                          "id": 1781578283775,
-                                                          "parentId": 1781578283774,
+                                                          "id": 1785823349261,
+                                                          "parentId": 1785823349260,
                                                           "isTop": false,
                                                           "prop": "plant_id.id",
                                                           "operator": "in",
@@ -11644,7 +12020,6 @@
                                       "advancedFilter": false,
                                       "searchMode": "expand",
                                       "batchOperate": [],
-                                      "tableFixedHeight": null,
                                       "treeDefaultExpand": false,
                                       "parentNodeNonEditable": false,
                                       "allowView": "",
@@ -11652,13 +12027,28 @@
                                       "ignoreFormDisabled": 0,
                                       "highlightSelectedRow": false,
                                       "highlightHoverRow": false,
-                                      "headerBgColor": "#FFFFFF"
+                                      "headerBgColor": "#FFFFFF",
+                                      "defaultConfig": {
+                                        "startDateField": "",
+                                        "endDateField": "",
+                                        "textField": "",
+                                        "scaleMode": "",
+                                        "color": "",
+                                        "colorColor": "",
+                                        "colorRules": []
+                                      },
+                                      "multipleView": [],
+                                      "calendarConfig": {}
                                     },
                                     "remoteFunc": "func_8ev1uf9m",
                                     "remoteOption": "option_8ev1uf9m",
                                     "tableColumn": false,
                                     "subform": false,
-                                    "isGetTree": false
+                                    "isGetTree": false,
+                                    "padding": ["", "", "", ""],
+                                    "radius": ["", "", "", ""],
+                                    "fills": [],
+                                    "borders": []
                                   },
                                   "events": {
                                     "rowClick": "r5kioyfo",
@@ -13256,17 +13646,31 @@
                                       "allowView": "",
                                       "ganttConfig": {},
                                       "ignoreFormDisabled": 0,
-                                      "tableFixedHeight": null,
                                       "highlightSelectedRow": false,
                                       "highlightHoverRow": false,
                                       "headerBgColor": "#FFFFFF",
-                                      "data_field": ""
+                                      "data_field": "",
+                                      "defaultConfig": {
+                                        "startDateField": "",
+                                        "endDateField": "",
+                                        "textField": "",
+                                        "scaleMode": "",
+                                        "color": "",
+                                        "colorColor": "",
+                                        "colorRules": []
+                                      },
+                                      "multipleView": [],
+                                      "calendarConfig": {}
                                     },
                                     "remoteFunc": "func_8ev1uf9m",
                                     "remoteOption": "option_8ev1uf9m",
                                     "tableColumn": false,
                                     "subform": false,
-                                    "isGetTree": false
+                                    "isGetTree": false,
+                                    "padding": ["", "", "", ""],
+                                    "radius": ["", "", "", ""],
+                                    "fills": [],
+                                    "borders": []
                                   },
                                   "events": {
                                     "rowClick": "0603b1zi",
@@ -15343,7 +15747,6 @@
                                       "advancedFilter": false,
                                       "searchMode": "expand",
                                       "batchOperate": [],
-                                      "tableFixedHeight": null,
                                       "treeDefaultExpand": false,
                                       "parentNodeNonEditable": false,
                                       "allowView": "",
@@ -15351,13 +15754,28 @@
                                       "ignoreFormDisabled": 0,
                                       "highlightSelectedRow": false,
                                       "highlightHoverRow": false,
-                                      "headerBgColor": "#FFFFFF"
+                                      "headerBgColor": "#FFFFFF",
+                                      "defaultConfig": {
+                                        "startDateField": "",
+                                        "endDateField": "",
+                                        "textField": "",
+                                        "scaleMode": "",
+                                        "color": "",
+                                        "colorColor": "",
+                                        "colorRules": []
+                                      },
+                                      "multipleView": [],
+                                      "calendarConfig": {}
                                     },
                                     "remoteFunc": "func_8ev1uf9m",
                                     "remoteOption": "option_8ev1uf9m",
                                     "tableColumn": false,
                                     "subform": false,
-                                    "isGetTree": false
+                                    "isGetTree": false,
+                                    "padding": ["", "", "", ""],
+                                    "radius": ["", "", "", ""],
+                                    "fills": [],
+                                    "borders": []
                                   },
                                   "events": {
                                     "rowClick": "cgddetir",
@@ -15387,7 +15805,7 @@
                             "remoteOption": "option_kety232o",
                             "tableColumn": false,
                             "subform": false,
-                            "elementFxCurrent": "tab_item_gr"
+                            "elementFxCurrent": "tab_doc_gr"
                           },
                           "events": {
                             "onClick": "i3uk30rk"
@@ -15762,7 +16180,7 @@
       {
         "key": "uq6mkq3j",
         "name": "PIcalculation",
-        "func": "const data = this.getValues();\nlet items = [];\n\nconst roundPrice = (value) => {\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nif (data.table_pi.length > 0) {\n  items = data.table_pi;\n} else {\n  const { PIlineItem } = arguments[0];\n  items = PIlineItem;\n}\nconst exchangeRate = data.exchange_rate;\nlet totalGross = 0;\nlet totalDiscount = 0;\nlet totalTax = 0;\nlet totalAmount = 0;\n\nif (Array.isArray(items)) {\n  items.forEach((item, index) => {\n    const quantity = Number(item.invoice_qty) || 0;\n    const unitPrice = roundPrice(item.order_unit_price) || 0;\n    const grossValue = quantity * unitPrice;\n\n    totalGross += roundPrice(grossValue);\n\n    this.setData({\n      [`table_pi.${index}.order_gross`]: roundPrice(grossValue),\n      [`table_pi.${index}.invoice_amount`]: roundPrice(grossValue),\n      invoice_subtotal: roundPrice(totalGross),\n    });\n\n    let discount = parseFloat(item.order_discount) || 0;\n    let discountUOM = item.discount_uom;\n    let discountAmount = 0.0;\n    const taxRate = Number(item.tax_percent) || 0;\n    const taxInclusive = item.tax_inclusive;\n\n    if (discount > 0) {\n      if (!discountUOM) {\n        discountUOM = \"Amount\";\n        this.setData({ [`table_pi.${index}.discount_uom`]: \"Amount\" });\n      }\n    }\n\n    if (discountUOM) {\n      if (discount !== 0) {\n        if (discountUOM === \"Amount\") {\n          discountAmount = roundPrice(discount);\n        } else if (discountUOM === \"%\") {\n          discountAmount = roundPrice((grossValue * discount) / 100);\n        }\n\n        if (discountAmount > grossValue) {\n          discount = 0;\n          discountAmount = 0;\n\n          this.setData({\n            [`table_pi.${index}.order_discount`]: 0,\n            [`table_pi.${index}.discount_amount`]: 0,\n          });\n        } else {\n          this.setData({\n            [`table_pi.${index}.discount_amount`]: roundPrice(discountAmount),\n          });\n        }\n      }\n    } else {\n      this.setData({\n        [`table_pi.${index}.discount_amount`]: 0,\n      });\n    }\n\n    const amountAfterDiscount = roundPrice(grossValue - discountAmount);\n\n    let taxAmount = 0;\n    let finalAmount = amountAfterDiscount;\n\n    if (taxRate) {\n      const taxRateDecimal = taxRate / 100;\n\n      if (taxInclusive === 1) {\n        taxAmount = roundPrice(\n          amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal)\n        );\n        finalAmount = amountAfterDiscount;\n      } else {\n        taxAmount = roundPrice(amountAfterDiscount * taxRateDecimal);\n        finalAmount = amountAfterDiscount + taxAmount;\n      }\n\n      this.setData({\n        [`table_pi.${index}.tax_amount`]: taxAmount,\n      });\n    } else {\n      this.setData({\n        [`table_pi.${index}.tax_amount`]: 0,\n      });\n    }\n\n    // Set final amount\n    this.setData({\n      [`table_pi.${index}.invoice_amount`]: roundPrice(finalAmount),\n    });\n\n    // Subtract previous values before adding new ones\n    totalDiscount += roundPrice(discountAmount);\n    totalTax += roundPrice(taxAmount);\n    totalAmount += roundPrice(finalAmount);\n\n    if (totalTax > 0) {\n      this.display([\"invoice_taxes_amount\", \"total_tax_currency\"]);\n    }\n\n    this.setData({\n      invoice_total_discount: roundPrice(totalDiscount),\n      invoice_taxes_amount: roundPrice(totalTax),\n      invoice_total: roundPrice(totalAmount),\n    });\n\n    if (!exchangeRate) {\n      return;\n    } else {\n      const myrTotalAmount = (exchangeRate || 1) * totalAmount;\n      this.setData({ myr_total_amount: roundPrice(myrTotalAmount) });\n    }\n  });\n} else {\n  console.log(\"Not an array:\", items);\n}\n",
+        "func": "const data = this.getValues();\nlet items = [];\n\nconst roundPrice = (value) => {\n  if (parseFloat(value) < 0) {\n    return 0;\n  }\n  return parseFloat(parseFloat(value || 0).toFixed(4));\n};\n\nif (data.table_pi.length > 0) {\n  items = data.table_pi;\n} else {\n  const { PIlineItem } = arguments[0];\n  items = PIlineItem;\n}\nconst exchangeRate = data.exchange_rate;\nlet totalGross = 0;\nlet totalDiscount = 0;\nlet totalTax = 0;\nlet totalAmount = 0;\n\nif (Array.isArray(items)) {\n  items.forEach((item, index) => {\n    const quantity = Number(item.invoice_qty) || 0;\n    const unitPrice = roundPrice(item.order_unit_price) || 0;\n    const grossValue = quantity * unitPrice;\n\n    totalGross += roundPrice(grossValue);\n\n    this.setData({\n      [`table_pi.${index}.order_unit_price`]: quantity < 0 ? 0 : unitPrice,\n      [`table_pi.${index}.order_gross`]: roundPrice(grossValue),\n      [`table_pi.${index}.invoice_amount`]: roundPrice(grossValue),\n      invoice_subtotal: roundPrice(totalGross),\n    });\n\n    let discount = parseFloat(item.order_discount) || 0;\n    let discountUOM = item.discount_uom;\n    let discountAmount = 0.0;\n    const taxRate = Number(item.tax_percent) || 0;\n    const taxInclusive = item.tax_inclusive;\n\n    if (discount > 0) {\n      if (!discountUOM) {\n        discountUOM = \"Amount\";\n        this.setData({ [`table_pi.${index}.discount_uom`]: \"Amount\" });\n      }\n    }\n\n    if (discountUOM) {\n      if (discount !== 0) {\n        if (discountUOM === \"Amount\") {\n          discountAmount = roundPrice(discount);\n        } else if (discountUOM === \"%\") {\n          discountAmount = roundPrice((grossValue * discount) / 100);\n        }\n\n        if (discountAmount > grossValue) {\n          discount = 0;\n          discountAmount = 0;\n\n          this.setData({\n            [`table_pi.${index}.order_discount`]: 0,\n            [`table_pi.${index}.discount_amount`]: 0,\n          });\n        } else {\n          this.setData({\n            [`table_pi.${index}.discount_amount`]: roundPrice(discountAmount),\n          });\n        }\n      }\n    } else {\n      this.setData({\n        [`table_pi.${index}.discount_amount`]: 0,\n      });\n    }\n\n    const amountAfterDiscount = roundPrice(grossValue - discountAmount);\n\n    let taxAmount = 0;\n    let finalAmount = amountAfterDiscount;\n\n    if (taxRate) {\n      const taxRateDecimal = taxRate / 100;\n\n      if (taxInclusive === 1) {\n        taxAmount = roundPrice(\n          amountAfterDiscount - amountAfterDiscount / (1 + taxRateDecimal)\n        );\n        finalAmount = amountAfterDiscount;\n      } else {\n        taxAmount = roundPrice(amountAfterDiscount * taxRateDecimal);\n        finalAmount = amountAfterDiscount + taxAmount;\n      }\n\n      this.setData({\n        [`table_pi.${index}.tax_amount`]: taxAmount,\n      });\n    } else {\n      this.setData({\n        [`table_pi.${index}.tax_amount`]: 0,\n      });\n    }\n\n    // Set final amount\n    this.setData({\n      [`table_pi.${index}.invoice_amount`]: roundPrice(finalAmount),\n    });\n\n    // Subtract previous values before adding new ones\n    totalDiscount += roundPrice(discountAmount);\n    totalTax += roundPrice(taxAmount);\n    totalAmount += roundPrice(finalAmount);\n\n    if (totalTax > 0) {\n      this.display([\"invoice_taxes_amount\", \"total_tax_currency\"]);\n    }\n\n    this.setData({\n      invoice_total_discount: roundPrice(totalDiscount),\n      invoice_taxes_amount: roundPrice(totalTax),\n      invoice_total: roundPrice(totalAmount),\n    });\n\n    if (!exchangeRate) {\n      return;\n    } else {\n      const myrTotalAmount = (exchangeRate || 1) * totalAmount;\n      this.setData({ myr_total_amount: roundPrice(myrTotalAmount) });\n    }\n  });\n} else {\n  console.log(\"Not an array:\", items);\n}\n",
         "type": "js"
       },
       {
@@ -15918,13 +16336,13 @@
       {
         "key": "0603b1zi",
         "name": "rowClick_addPOItem",
-        "func": "(async () => {\n  const currentPOArray = this.getValue(`dialog_select_item.item_array`);\n  const selectedPOItem = arguments[0].$eventArgs[0];\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n\n  console.log(\"arguments[0].$eventArgs[0]\", arguments[0].$eventArgs[0]);\n  const index = currentPOArray.findIndex(\n    (item) => item.purchase_order_line_id === selectedPOItem.id\n  );\n  if (index !== -1) {\n    currentPOArray.splice(index, 1);\n  } else {\n    currentPOArray.push({\n      purchase_order_line_id: selectedPOItem.id,\n      item: selectedPOItem.item_id,\n      supplier: selectedPOItem.supplier_id,\n      purchase_order: selectedPOItem.purchase_order_id,\n      item_desc: selectedPOItem.item_desc,\n      more_desc: selectedPOItem.more_desc,\n      ordered_qty: selectedPOItem.quantity,\n      invoice_qty: selectedPOItem.invoice_qty,\n      received_qty: selectedPOItem.received_qty,\n      item_uom: selectedPOItem.quantity_uom.alt_uom_id,\n      unit_price: selectedPOItem.unit_price,\n      order_discount: selectedPOItem.discount,\n      discount_uom: selectedPOItem.discount_uom,\n      tax_rate_percent: selectedPOItem.tax_percent.tax_rate_percent,\n      tax_preference: selectedPOItem.tax_preference.id,\n      tax_inclusive: selectedPOItem.tax_inclusive,\n      line_remark_1: selectedPOItem.line_remark_1,\n      line_remark_2: selectedPOItem.line_remark_2,\n      tariff_id: selectedPOItem.tariff_id.id,\n    });\n  }\n\n  console.log(\"currentPOArray\", currentPOArray);\n\n  const updatedPONumber = currentPOArray.map(\n    (item) =>\n      item.purchase_order.purchase_order_no + \"\\t\" + item.item.material_code\n  );\n\n  console.log(\"updatedPONumber\", updatedPONumber.join(\", \"));\n\n  this.setData({\n    ...(!referenceType || referenceType === \"\"\n      ? { [`dialog_select_item.reference_type`]: \"Item - PO\" }\n      : {}),\n    [`dialog_select_item.doc_number_array`]: updatedPONumber.join(`\\n`),\n    [`dialog_select_item.item_array`]: currentPOArray,\n  });\n})();\n",
+        "func": "(async () => {\n  const currentPOArray = this.getValue(`dialog_select_item.item_array`);\n  const selectedPOItem = arguments[0].$eventArgs[0];\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n\n  console.log(\"arguments[0].$eventArgs[0]\", arguments[0].$eventArgs[0]);\n  const index = currentPOArray.findIndex(\n    (item) => item.purchase_order_line_id === selectedPOItem.id\n  );\n  if (index !== -1) {\n    currentPOArray.splice(index, 1);\n  } else {\n    const resPOItem = await db.collection('purchase_order_2ukyuanr_sub').doc(selectedPOItem.id).get();\n    const poItemData = resPOItem?.data[0];\n    currentPOArray.push({\n      purchase_order_line_id: selectedPOItem.id,\n      item: selectedPOItem.item_id,\n      supplier: selectedPOItem.supplier_id,\n      purchase_order: selectedPOItem.purchase_order_id,\n      item_desc: selectedPOItem.item_desc,\n      more_desc: selectedPOItem.more_desc,\n      ordered_qty: selectedPOItem.quantity,\n      invoice_qty: selectedPOItem.invoice_qty,\n      received_qty: selectedPOItem.received_qty,\n      item_uom: selectedPOItem.quantity_uom.alt_uom_id,\n      unit_price: selectedPOItem.unit_price,\n      order_discount: selectedPOItem.discount,\n      discount_uom: selectedPOItem.discount_uom,\n      tax_rate_percent: selectedPOItem.tax_percent.tax_rate_percent,\n      tax_preference: selectedPOItem.tax_preference.id,\n      tax_inclusive: selectedPOItem.tax_inclusive,\n      line_remark_1: selectedPOItem.line_remark_1,\n      line_remark_2: selectedPOItem.line_remark_2,\n      tariff_id: selectedPOItem.tariff_id.id,\n      further_description: poItemData?.further_description,\n    });\n  }\n\n  console.log(\"currentPOArray\", currentPOArray);\n\n  const updatedPONumber = currentPOArray.map(\n    (item) =>\n      item.purchase_order.purchase_order_no + \"\\t\" + item.item.material_code\n  );\n\n  console.log(\"updatedPONumber\", updatedPONumber.join(\", \"));\n\n  this.setData({\n    ...(!referenceType || referenceType === \"\"\n      ? { [`dialog_select_item.reference_type`]: \"Item - PO\" }\n      : {}),\n    [`dialog_select_item.doc_number_array`]: updatedPONumber.join(`\\n`),\n    [`dialog_select_item.item_array`]: currentPOArray,\n  });\n})();\n",
         "type": "js"
       },
       {
         "key": "cgddetir",
         "name": "rowClick_addGRItem",
-        "func": "(async () => {\n  const currentGRArray = this.getValue(`dialog_select_item.item_array`);\n  const selectedGRItem = arguments[0].$eventArgs[0];\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n\n  console.log(\"arguments[0].$eventArgs[0]\", arguments[0].$eventArgs[0]);\n\n  const index = currentGRArray.findIndex(\n    (item) => item.goods_receiving_line_id === selectedGRItem.id,\n  );\n  if (index !== -1) {\n    currentGRArray.splice(index, 1);\n  } else {\n    currentGRArray.push({\n      goods_receiving_line_id: selectedGRItem.id,\n      item: selectedGRItem.item_id,\n      supplier: selectedGRItem.supplier_id,\n      received_qty: selectedGRItem.received_qty,\n      invoiced_qty: selectedGRItem.invoiced_qty,\n      po_line_item: selectedGRItem.po_line_item_id,\n      line_remark_1: selectedGRItem.line_remark_1,\n      line_remark_2: selectedGRItem.line_remark_2,\n      goods_receiving_number: selectedGRItem.goods_receiving_id.gr_no,\n      purchase_order_id: JSON.parse(selectedGRItem.goods_receiving_id.po_id),\n      goods_receiving_id: selectedGRItem.goods_receiving_id.id,\n      uom: selectedGRItem.item_uom.id,\n      more_desc: selectedGRItem.more_desc,\n      item_desc: selectedGRItem.item_desc,\n      ordered_qty: selectedGRItem.ordered_qty,\n      line_po_no: selectedGRItem.line_po_no,\n      line_po_id: selectedGRItem.line_po_id,\n      is_split: selectedGRItem.is_split,\n      parent_or_child: selectedGRItem.parent_or_child,\n      tariff_id: selectedGRItem.tariff_id.id\n    });\n  }\n\n  console.log(\"currentGRArray\", currentGRArray);\n\n  const updatedGRNumber = currentGRArray.map(\n    (item) => item.goods_receiving_number + \"\\t\" + item.item.material_code,\n  );\n\n  console.log(\"updatedGRNumber\", updatedGRNumber.join(\", \"));\n\n  this.setData({\n    ...(!referenceType || referenceType === \"\"\n      ? { [`dialog_select_item.reference_type`]: \"Item - GR\" }\n      : {}),\n    [`dialog_select_item.doc_number_array`]: updatedGRNumber.join(`\\n`),\n    [`dialog_select_item.item_array`]: currentGRArray,\n  });\n})();\n",
+        "func": "(async () => {\n  const currentGRArray = this.getValue(`dialog_select_item.item_array`);\n  const selectedGRItem = arguments[0].$eventArgs[0];\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n\n  console.log(\"arguments[0].$eventArgs[0]\", arguments[0].$eventArgs[0]);\n\n  const index = currentGRArray.findIndex(\n    (item) => item.goods_receiving_line_id === selectedGRItem.id,\n  );\n  if (index !== -1) {\n    currentGRArray.splice(index, 1);\n  } else {\n    const resGRItem = await db.collection('goods_receiving_eg6l4ywi_sub').doc(selectedGRItem.id).get();\n    const grItemData = resGRItem?.data[0];\n    \n    currentGRArray.push({\n      goods_receiving_line_id: selectedGRItem.id,\n      item: selectedGRItem.item_id,\n      supplier: selectedGRItem.supplier_id,\n      received_qty: selectedGRItem.received_qty,\n      invoiced_qty: selectedGRItem.invoiced_qty,\n      po_line_item: selectedGRItem.po_line_item_id,\n      line_remark_1: selectedGRItem.line_remark_1,\n      line_remark_2: selectedGRItem.line_remark_2,\n      goods_receiving_number: selectedGRItem.goods_receiving_id.gr_no,\n      purchase_order_id: JSON.parse(selectedGRItem.goods_receiving_id.po_id),\n      goods_receiving_id: selectedGRItem.goods_receiving_id.id,\n      uom: selectedGRItem.item_uom.id,\n      more_desc: selectedGRItem.more_desc,\n      item_desc: selectedGRItem.item_desc,\n      ordered_qty: selectedGRItem.ordered_qty,\n      line_po_no: selectedGRItem.line_po_no,\n      line_po_id: selectedGRItem.line_po_id,\n      is_split: selectedGRItem.is_split,\n      parent_or_child: selectedGRItem.parent_or_child,\n      tariff_id: grItemData?.tariff_id,\n      further_description: grItemData?.further_description\n      \n    });\n  }\n\n  console.log(\"currentGRArray\", currentGRArray);\n\n  const updatedGRNumber = currentGRArray.map(\n    (item) => item.goods_receiving_number + \"\\t\" + item.item.material_code,\n  );\n\n  console.log(\"updatedGRNumber\", updatedGRNumber.join(\", \"));\n\n  this.setData({\n    ...(!referenceType || referenceType === \"\"\n      ? { [`dialog_select_item.reference_type`]: \"Item - GR\" }\n      : {}),\n    [`dialog_select_item.doc_number_array`]: updatedGRNumber.join(`\\n`),\n    [`dialog_select_item.item_array`]: currentGRArray,\n  });\n})();\n",
         "type": "js"
       },
       {
@@ -15936,7 +16354,7 @@
       {
         "key": "ua6gcgje",
         "name": "onConfirm_batchAddItem",
-        "func": "const checkExistingPOinPI = async (grArray, referenceType) => {\n  const grNumbersWithPI = new Set(); // Use Set to avoid duplicates\n\n  if (referenceType === \"Item - GR\") {\n    await Promise.all(\n      grArray.flatMap((gr) =>\n        db\n          .collection(\"purchase_invoice\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [\n                { prop: \"po_id\", operator: \"in\", value: gr.purchase_order_id },\n                { prop: \"gr_no_display\", operator: \"isNull\", value: null },\n              ],\n            },\n          ])\n          .get()\n          .then((response) => {\n            if (response.data[0]) {\n              // Only add GR number if PI exists\n              grNumbersWithPI.add(gr.goods_receiving_number);\n            }\n          }),\n      ),\n    );\n  } else {\n    await Promise.all(\n      grArray.flatMap((gr) =>\n        gr.purchase_order_id.map((poId) =>\n          db\n            .collection(\"purchase_invoice\")\n            .filter([\n              {\n                type: \"branch\",\n                operator: \"all\",\n                children: [\n                  { prop: \"po_id\", operator: \"in\", value: poId.id },\n                  { prop: \"gr_no_display\", operator: \"isNull\", value: null },\n                ],\n              },\n            ])\n            .get()\n            .then((response) => {\n              if (response.data[0]) {\n                // Only add GR number if PI exists\n                grNumbersWithPI.add(gr.goods_receiving_number);\n              }\n            }),\n        ),\n      ),\n    );\n  }\n\n  console.log(\"GR numbers with existing PIs:\", Array.from(grNumbersWithPI));\n  return Array.from(grNumbersWithPI);\n};\n\nconst fetchPOLineItemData = async (poLineItemIDs) => {\n  const resPOLineItem = await Promise.all(\n    poLineItemIDs.map((lineId) =>\n      db.collection(\"purchase_order_2ukyuanr_sub\").doc(lineId).get(),\n    ),\n  );\n\n  const poLineItemData = resPOLineItem.map((response) => response.data[0]);\n  return poLineItemData;\n};\n\nconst processData = async (tablePI, referenceType) => {\n  this.display(\"po_no_display\");\n  if (referenceType.endsWith(\"GR\")) {\n    this.display(\"gr_no_display\");\n  } else {\n    this.hide(\"gr_no_display\");\n  }\n\n  for (const [index, pi] of tablePI.entries()) {\n    if (pi.tax_percent && pi.tax_percent >= 0) {\n      this.disabled([`table_pi.${index}.tax_percent`], false);\n    } else {\n      this.disabled([`table_pi.${index}.tax_percent`], true);\n    }\n\n    if (referenceType.endsWith(\"GR\")) {\n      this.display(`table_pi.goods_receiving_no`);\n    } else {\n      this.hide(`table_pi.goods_receiving_no`);\n    }\n  }\n};\n\n(async () => {\n  const previousReferenceType = this.getValue(\"reference_type\");\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n  const currentItemArray = this.getValue(`dialog_select_item.item_array`);\n\n  let existingPI = this.getValue(\"table_pi\");\n\n  const supplierName = this.getValue(\"supplier_name\");\n\n  let tablePI = [];\n  let purchaseOrderNumber = [];\n  let poId = [];\n  let goodsReceivingNumber = [];\n  let grId = [];\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\n      \"Please select at least one purchase order / goods receiving / item.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n\n    return;\n  }\n\n  if (previousReferenceType && previousReferenceType !== referenceType) {\n    await this.$confirm(\n      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Reference Type Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPI = [];\n  }\n\n  const uniqueSuppliers = new Set(\n    currentItemArray.map((item) =>\n      referenceType.startsWith(\"Document\")\n        ? item.supplier_id\n        : item.supplier.id,\n    ),\n  );\n  const allSameSupplier = uniqueSuppliers.size === 1;\n\n  if (!allSameSupplier) {\n    this.$alert(\n      \"Invoiced item(s) from more than two different suppliers is not allowed.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n    return;\n  }\n  if (supplierName && supplierName !== [...uniqueSuppliers][0]) {\n    await this.$confirm(\n      `You've selected a different supplier than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Supplier Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPI = [];\n  }\n\n  if (referenceType === \"Document - GR\" || referenceType === \"Item - GR\") {\n    const existingGRNumbers = await checkExistingPOinPI(\n      currentItemArray,\n      referenceType,\n    );\n\n    if (existingGRNumbers && existingGRNumbers.length > 0) {\n      this.parentGenerateForm.$alert(\n        `Purchase Order(s) in the ${existingGRNumbers.join(\n          \", \",\n        )} has existing Purchase Invoice(s). Please choose different Goods Receiving(s).`,\n        \"Existing Purchase Invoice(s) Detected\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"warning\",\n          dangerouslyUseHTMLString: false,\n        },\n      );\n\n      this.hideLoading();\n      return;\n    }\n  }\n  this.closeDialog(\"dialog_select_item\");\n  this.showLoading();\n\n  switch (referenceType) {\n    case \"Document - PO\":\n      for (const po of currentItemArray) {\n        for (const poItem of po.table_po) {\n          const newTablePIRecord = {\n            material_id: poItem.item_id || \"\",\n            material_name: poItem.item_name,\n            item_desc: poItem.item_desc || \"\",\n            purchase_order_no: po.purchase_order_number,\n            order_qty: poItem.quantity,\n            more_desc: poItem.more_desc || \"\",\n            line_remark_1: poItem.line_remark_1 || \"\",\n            line_remark_2: poItem.line_remark_2 || \"\",\n            received_qty: poItem.received_qty,\n            invoice_qty: poItem.quantity - poItem.invoice_qty,\n            quantity_uom: poItem.quantity_uom,\n            order_unit_price: poItem.unit_price,\n            order_discount: poItem.discount,\n            discount_uom: poItem.discount_uom,\n            tax_percent: poItem.tax_percent,\n            tax_preference: poItem.tax_preference,\n            tax_inclusive: poItem.tax_inclusive,\n            po_line_id: poItem.id,\n            gr_line_id: \"\",\n            available_inv_qty: poItem.quantity - poItem.invoice_qty,\n            line_po_id: po.purchase_order_id,\n            line_gr_id: \"\",\n            item_category_id: poItem.item_category_id,\n            tariff_id: poItem.tariff_id\n          };\n\n          tablePI.push(newTablePIRecord);\n        }\n      }\n\n      break;\n\n    case \"Document - GR\":\n      for (const gr of currentItemArray) {\n        // Filter out child rows - only count parent/regular/split-parent rows for invoicing\n        // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n        const grLines = gr.table_gr.filter(\n          (item) => item.parent_or_child !== \"Child\",\n        );\n\n        const poLineItemIDs = grLines.map((item) => item.po_line_item_id);\n\n        const poLineItemData = await fetchPOLineItemData(poLineItemIDs);\n        console.log(\"poLineItemData\", poLineItemData);\n        for (const [index, grItem] of grLines.entries()) {\n          const newTablePIRecord = {\n            material_id: grItem.item_id || \"\",\n            material_name: grItem.item_name,\n            item_desc: grItem.item_desc || \"\",\n            more_desc: grItem.more_desc || \"\",\n            order_qty: grItem.ordered_qty,\n            received_qty: grItem.received_qty,\n            purchase_order_no: grItem.line_po_no,\n            goods_receiving_no: gr.goods_receiving_number,\n            line_remark_1: grItem.line_remark_1 || \"\",\n            line_remark_2: grItem.line_remark_2 || \"\",\n            invoice_qty: grItem.received_qty - (grItem.invoice_qty || 0),\n            quantity_uom: grItem.item_uom,\n            order_unit_price: grItem.unit_price,\n            order_discount: poLineItemData[index].discount,\n            discount_uom: poLineItemData[index].discount_uom,\n            tax_percent: poLineItemData[index].tax_percent,\n            tax_preference: poLineItemData[index].tax_preference,\n            tax_inclusive: poLineItemData[index].tax_inclusive,\n            gr_line_id: grItem.id,\n            po_line_id: grItem.po_line_item_id,\n            available_inv_qty: grItem.received_qty - (grItem.invoice_qty || 0),\n            line_po_id: grItem.line_po_id,\n            line_gr_id: gr.goods_receiving_id,\n            item_category_id: grItem.item_category_id,\n            tariff_id: grItem.tariff_id\n          };\n\n          tablePI.push(newTablePIRecord);\n        }\n      }\n      break;\n\n    case \"Item - PO\":\n      for (const poItem of currentItemArray) {\n        const newTablePIRecord = {\n          material_id: poItem.item.id || \"\",\n          material_name: poItem.item.material_name,\n          item_desc: poItem.item_desc || \"\",\n          purchase_order_no: poItem.purchase_order.purchase_order_no,\n          order_qty: poItem.ordered_qty,\n          more_desc: poItem.more_desc || \"\",\n          line_remark_1: poItem.line_remark_1 || \"\",\n          line_remark_2: poItem.line_remark_2 || \"\",\n          received_qty: poItem.received_qty,\n          invoice_qty: poItem.ordered_qty - poItem.invoice_qty,\n          quantity_uom: poItem.item_uom,\n          order_unit_price: poItem.unit_price,\n          order_discount: poItem.order_discount,\n          discount_uom: poItem.discount_uom,\n          tax_percent: poItem.tax_percent,\n          tax_preference: poItem.tax_preference,\n          tax_inclusive: poItem.tax_inclusive,\n          po_line_id: poItem.purchase_order_line_id,\n          gr_line_id: \"\",\n          available_inv_qty: poItem.ordered_qty - poItem.invoice_qty,\n          line_po_id: poItem.purchase_order.id,\n          line_gr_id: \"\",\n          item_category_id: poItem.item.item_category,\n          tariff_id: poItem.tariff_id\n        };\n\n        tablePI.push(newTablePIRecord);\n      }\n      break;\n\n    case \"Item - GR\":\n      for (const grItem of currentItemArray.filter(\n        (item) => item.parent_or_child !== \"Child\",\n      )) {\n        const newTablePIRecord = {\n          material_id: grItem.item.id || \"\",\n          material_name: grItem.item.material_name,\n          item_desc: grItem.item_desc || \"\",\n          more_desc: grItem.more_desc || \"\",\n          order_qty: grItem.ordered_qty,\n          received_qty: grItem.received_qty,\n          purchase_order_no: grItem.line_po_no,\n          goods_receiving_no: grItem.goods_receiving_number,\n          line_remark_1: grItem.line_remark_1 || \"\",\n          line_remark_2: grItem.line_remark_2 || \"\",\n          invoice_qty: grItem.received_qty - (grItem.invoiced_qty || 0),\n          quantity_uom: grItem.uom,\n          order_unit_price: grItem.po_line_item.unit_price,\n          order_discount: grItem.po_line_item.discount,\n          discount_uom: grItem.po_line_item.discount_uom,\n          tax_percent: grItem.po_line_item.tax_percent,\n          tax_preference: grItem.po_line_item.tax_preference,\n          tax_inclusive: grItem.po_line_item.tax_inclusive,\n          gr_line_id: grItem.goods_receiving_line_id,\n          po_line_id: grItem.po_line_item.id,\n          available_inv_qty: grItem.received_qty - (grItem.invoiced_qty || 0),\n          line_po_id: grItem.line_po_id,\n          line_gr_id: grItem.goods_receiving_id,\n          item_category_id: grItem.item_category_id,\n          tariff_id: grItem.tariff_id\n        };\n\n        tablePI.push(newTablePIRecord);\n      }\n      break;\n  }\n\n  tablePI = tablePI.filter(\n    (pi) =>\n      pi.invoice_qty !== 0 &&\n      !existingPI.find((piItem) => piItem.po_line_id === pi.po_line_id),\n  );\n\n  const latestTablePI = [...existingPI, ...tablePI];\n\n  poId = [...new Set(latestTablePI.map((pi) => pi.line_po_id))];\n  purchaseOrderNumber = [\n    ...new Set(latestTablePI.map((pi) => pi.purchase_order_no)),\n  ];\n\n  grId = [...new Set(latestTablePI.map((pi) => pi.line_gr_id))];\n  goodsReceivingNumber = [\n    ...new Set(latestTablePI.map((pi) => pi.goods_receiving_no)),\n  ];\n\n  console.log(\"tablePI\", tablePI);\n  await this.setData({\n    supplier_name: referenceType.startsWith(\"Document\")\n      ? currentItemArray[0].supplier_id\n      : currentItemArray[0].supplier.id,\n    table_pi: [...existingPI, ...tablePI],\n    po_no_display: purchaseOrderNumber.join(\", \"),\n    po_id: poId,\n    gr_no_display: goodsReceivingNumber.join(\", \"),\n    gr_id: grId,\n    reference_type: referenceType,\n  });\n\n  setTimeout(async () => {\n    await processData(tablePI, referenceType);\n  }, 50);\n\n  this.triggerEvent(\"PIcalculation\", { PIlineItem: tablePI });\n  this.triggerEvent(\"onChange_supplier\");\n\n  this.hideLoading();\n})();\n",
+        "func": "const checkExistingPOinPI = async (grArray, referenceType) => {\n  const grNumbersWithPI = new Set(); // Use Set to avoid duplicates\n\n  if (referenceType === \"Item - GR\") {\n    await Promise.all(\n      grArray.flatMap((gr) =>\n        db\n          .collection(\"purchase_invoice\")\n          .filter([\n            {\n              type: \"branch\",\n              operator: \"all\",\n              children: [\n                { prop: \"po_id\", operator: \"in\", value: gr.purchase_order_id },\n                { prop: \"gr_no_display\", operator: \"isNull\", value: null },\n              ],\n            },\n          ])\n          .get()\n          .then((response) => {\n            if (response.data[0]) {\n              // Only add GR number if PI exists\n              grNumbersWithPI.add(gr.goods_receiving_number);\n            }\n          }),\n      ),\n    );\n  } else {\n    await Promise.all(\n      grArray.flatMap((gr) =>\n        gr.purchase_order_id.map((poId) =>\n          db\n            .collection(\"purchase_invoice\")\n            .filter([\n              {\n                type: \"branch\",\n                operator: \"all\",\n                children: [\n                  { prop: \"po_id\", operator: \"in\", value: poId.id },\n                  { prop: \"gr_no_display\", operator: \"isNull\", value: null },\n                ],\n              },\n            ])\n            .get()\n            .then((response) => {\n              if (response.data[0]) {\n                // Only add GR number if PI exists\n                grNumbersWithPI.add(gr.goods_receiving_number);\n              }\n            }),\n        ),\n      ),\n    );\n  }\n\n  console.log(\"GR numbers with existing PIs:\", Array.from(grNumbersWithPI));\n  return Array.from(grNumbersWithPI);\n};\n\nconst fetchPOLineItemData = async (poLineItemIDs) => {\n  const resPOLineItem = await Promise.all(\n    poLineItemIDs.map((lineId) =>\n      db.collection(\"purchase_order_2ukyuanr_sub\").doc(lineId).get(),\n    ),\n  );\n\n  const poLineItemData = resPOLineItem.map((response) => response.data[0]);\n  return poLineItemData;\n};\n\nconst processData = async (tablePI, referenceType) => {\n  this.display(\"po_no_display\");\n  if (referenceType.endsWith(\"GR\")) {\n    this.display(\"gr_no_display\");\n  } else {\n    this.hide(\"gr_no_display\");\n  }\n\n  for (const [index, pi] of tablePI.entries()) {\n    if (pi.tax_percent && pi.tax_percent >= 0) {\n      this.disabled([`table_pi.${index}.tax_percent`], false);\n    } else {\n      this.disabled([`table_pi.${index}.tax_percent`], true);\n    }\n\n    if (referenceType.endsWith(\"GR\")) {\n      this.display(`table_pi.goods_receiving_no`);\n    } else {\n      this.hide(`table_pi.goods_receiving_no`);\n    }\n  }\n};\n\n(async () => {\n  const previousReferenceType = this.getValue(\"reference_type\");\n  const referenceType = this.getValue(`dialog_select_item.reference_type`);\n  const currentItemArray = this.getValue(`dialog_select_item.item_array`);\n\n  let existingPI = this.getValue(\"table_pi\");\n\n  const supplierName = this.getValue(\"supplier_name\");\n\n  let tablePI = [];\n  let purchaseOrderNumber = [];\n  let poId = [];\n  let goodsReceivingNumber = [];\n  let grId = [];\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\n      \"Please select at least one purchase order / goods receiving / item.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n\n    return;\n  }\n\n  if (previousReferenceType && previousReferenceType !== referenceType) {\n    await this.$confirm(\n      `You've selected a different reference type than previously used. <br><br>Current Reference Type: ${referenceType} <br>Previous Reference Type: ${previousReferenceType} <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Reference Type Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPI = [];\n  }\n\n  const uniqueSuppliers = new Set(\n    currentItemArray.map((item) =>\n      referenceType.startsWith(\"Document\")\n        ? item.supplier_id\n        : item.supplier.id,\n    ),\n  );\n  const allSameSupplier = uniqueSuppliers.size === 1;\n\n  if (!allSameSupplier) {\n    this.$alert(\n      \"Invoiced item(s) from more than two different suppliers is not allowed.\",\n      \"Error\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      },\n    );\n    return;\n  }\n  if (supplierName && supplierName !== [...uniqueSuppliers][0]) {\n    await this.$confirm(\n      `You've selected a different supplier than previously used. <br><br>Switching will <strong>reset all items</strong> in this document. Do you want to proceed?`,\n      \"Different Supplier Detected\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"error\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    existingPI = [];\n  }\n\n  if (referenceType === \"Document - GR\" || referenceType === \"Item - GR\") {\n    const existingGRNumbers = await checkExistingPOinPI(\n      currentItemArray,\n      referenceType,\n    );\n\n    if (existingGRNumbers && existingGRNumbers.length > 0) {\n      this.parentGenerateForm.$alert(\n        `Purchase Order(s) in the ${existingGRNumbers.join(\n          \", \",\n        )} has existing Purchase Invoice(s). Please choose different Goods Receiving(s).`,\n        \"Existing Purchase Invoice(s) Detected\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"warning\",\n          dangerouslyUseHTMLString: false,\n        },\n      );\n\n      this.hideLoading();\n      return;\n    }\n  }\n  this.closeDialog(\"dialog_select_item\");\n  this.showLoading();\n\n  switch (referenceType) {\n    case \"Document - PO\":\n      for (const po of currentItemArray) {\n        for (const poItem of po.table_po) {\n          const newTablePIRecord = {\n            material_id: poItem.item_id || \"\",\n            material_name: poItem.item_name,\n            item_desc: poItem.item_desc || \"\",\n            purchase_order_no: po.purchase_order_number,\n            order_qty: poItem.quantity,\n            more_desc: poItem.more_desc || \"\",\n            line_remark_1: poItem.line_remark_1 || \"\",\n            line_remark_2: poItem.line_remark_2 || \"\",\n            received_qty: poItem.received_qty,\n            invoice_qty: poItem.quantity - poItem.invoice_qty,\n            quantity_uom: poItem.quantity_uom,\n            order_unit_price: poItem.unit_price,\n            order_discount: poItem.discount,\n            discount_uom: poItem.discount_uom,\n            tax_percent: poItem.tax_percent,\n            tax_preference: poItem.tax_preference,\n            tax_inclusive: poItem.tax_inclusive,\n            po_line_id: poItem.id,\n            gr_line_id: \"\",\n            available_inv_qty: poItem.quantity - poItem.invoice_qty,\n            line_po_id: po.purchase_order_id,\n            line_gr_id: \"\",\n            item_category_id: poItem.item_category_id,\n            tariff_id: poItem.tariff_id,\n            further_description: poItem.further_description,\n          };\n\n          tablePI.push(newTablePIRecord);\n        }\n      }\n\n      break;\n\n    case \"Document - GR\":\n      for (const gr of currentItemArray) {\n        // Filter out child rows - only count parent/regular/split-parent rows for invoicing\n        // Child rows are inventory-level detail (per-bin, per-HU); parent has the total received_qty\n        const grLines = gr.table_gr.filter(\n          (item) => item.parent_or_child !== \"Child\",\n        );\n\n        const poLineItemIDs = grLines.map((item) => item.po_line_item_id);\n\n        const poLineItemData = await fetchPOLineItemData(poLineItemIDs);\n        console.log(\"poLineItemData\", poLineItemData);\n\n        // Consolidate is_parent_split=1 rows (parent_or_child === \"Split-Parent\")\n        // that share a po_line_item_id into ONE combined PI line. The combined\n        // line carries gr_line_id === \"\" (the save-back's \"combined\" signal) and\n        // sums received/remaining. The per-split breakdown is re-derived from the\n        // GR document at save time and invoiced qty distributed fill-order.\n        const splitGroups = new Map();\n        for (const [index, grItem] of grLines.entries()) {\n          const poLine = poLineItemData[index];\n          const remaining = parseFloat(\n            (grItem.received_qty - (grItem.invoice_qty || 0)).toFixed(3),\n          );\n\n          if (grItem.parent_or_child === \"Split-Parent\") {\n            const key = grItem.po_line_item_id;\n            const existing = splitGroups.get(key);\n            if (!existing) {\n              splitGroups.set(key, {\n                material_id: grItem.item_id || \"\",\n                material_name: grItem.item_name,\n                item_desc: grItem.item_desc || \"\",\n                more_desc: grItem.more_desc || \"\",\n                order_qty: grItem.ordered_qty,\n                received_qty: parseFloat((grItem.received_qty || 0).toFixed(3)),\n                purchase_order_no: grItem.line_po_no,\n                goods_receiving_no: gr.goods_receiving_number,\n                line_remark_1: grItem.line_remark_1 || \"\",\n                line_remark_2: grItem.line_remark_2 || \"\",\n                invoice_qty: remaining,\n                quantity_uom: grItem.item_uom,\n                order_unit_price: grItem.unit_price,\n                order_discount: poLine.discount,\n                discount_uom: poLine.discount_uom,\n                tax_percent: poLine.tax_percent,\n                tax_preference: poLine.tax_preference,\n                tax_inclusive: poLine.tax_inclusive,\n                gr_line_id: \"\",\n                po_line_id: grItem.po_line_item_id,\n                available_inv_qty: remaining,\n                line_po_id: grItem.line_po_id,\n                line_gr_id: gr.goods_receiving_id,\n                item_category_id: grItem.item_category_id,\n                tariff_id: grItem.tariff_id,\n                further_description: grItem.further_description,\n              });\n            } else {\n              existing.received_qty = parseFloat(\n                (existing.received_qty + (grItem.received_qty || 0)).toFixed(3),\n              );\n              existing.invoice_qty = parseFloat(\n                (existing.invoice_qty + remaining).toFixed(3),\n              );\n              existing.available_inv_qty = existing.invoice_qty;\n            }\n          } else {\n            tablePI.push({\n              material_id: grItem.item_id || \"\",\n              material_name: grItem.item_name,\n              item_desc: grItem.item_desc || \"\",\n              more_desc: grItem.more_desc || \"\",\n              order_qty: grItem.ordered_qty,\n              received_qty: grItem.received_qty,\n              purchase_order_no: grItem.line_po_no,\n              goods_receiving_no: gr.goods_receiving_number,\n              line_remark_1: grItem.line_remark_1 || \"\",\n              line_remark_2: grItem.line_remark_2 || \"\",\n              invoice_qty: remaining,\n              quantity_uom: grItem.item_uom,\n              order_unit_price: grItem.unit_price,\n              order_discount: poLine.discount,\n              discount_uom: poLine.discount_uom,\n              tax_percent: poLine.tax_percent,\n              tax_preference: poLine.tax_preference,\n              tax_inclusive: poLine.tax_inclusive,\n              gr_line_id: grItem.id,\n              po_line_id: grItem.po_line_item_id,\n              available_inv_qty: remaining,\n              line_po_id: grItem.line_po_id,\n              line_gr_id: gr.goods_receiving_id,\n              item_category_id: grItem.item_category_id,\n              tariff_id: grItem.tariff_id,\n              further_description: grItem.further_description,\n            });\n          }\n        }\n        for (const rec of splitGroups.values()) {\n          tablePI.push(rec);\n        }\n      }\n      break;\n\n    case \"Item - PO\":\n      for (const poItem of currentItemArray) {\n        const newTablePIRecord = {\n          material_id: poItem.item.id || \"\",\n          material_name: poItem.item.material_name,\n          item_desc: poItem.item_desc || \"\",\n          purchase_order_no: poItem.purchase_order.purchase_order_no,\n          order_qty: poItem.ordered_qty,\n          more_desc: poItem.more_desc || \"\",\n          line_remark_1: poItem.line_remark_1 || \"\",\n          line_remark_2: poItem.line_remark_2 || \"\",\n          received_qty: poItem.received_qty,\n          invoice_qty: poItem.ordered_qty - poItem.invoice_qty,\n          quantity_uom: poItem.item_uom,\n          order_unit_price: poItem.unit_price,\n          order_discount: poItem.order_discount,\n          discount_uom: poItem.discount_uom,\n          tax_percent: poItem.tax_percent,\n          tax_preference: poItem.tax_preference,\n          tax_inclusive: poItem.tax_inclusive,\n          po_line_id: poItem.purchase_order_line_id,\n          gr_line_id: \"\",\n          available_inv_qty: poItem.ordered_qty - poItem.invoice_qty,\n          line_po_id: poItem.purchase_order.id,\n          line_gr_id: \"\",\n          item_category_id: poItem.item.item_category,\n          tariff_id: poItem.tariff_id,\n          further_description: poItem.further_description,\n        };\n\n        tablePI.push(newTablePIRecord);\n      }\n      break;\n\n    case \"Item - GR\": {\n      // Consolidate is_parent_split=1 rows (parent_or_child === \"Split-Parent\")\n      // sharing a po_line within the SAME GR into one combined PI line (gr_line_id\n      // === \"\"); non-split rows stay 1:1. Save-back re-derives the split breakdown.\n      const splitGroups = new Map();\n      for (const grItem of currentItemArray.filter(\n        (item) => item.parent_or_child !== \"Child\",\n      )) {\n        // Persisted running total on the GR line is `invoice_qty` (written by\n        // the PI save-back). Fall back to the legacy `invoiced_qty` alias so\n        // this works regardless of which name the selection dialog passes.\n        const remaining = parseFloat(\n          (\n            grItem.received_qty -\n            (grItem.invoice_qty || grItem.invoiced_qty || 0)\n          ).toFixed(3),\n        );\n\n        if (grItem.parent_or_child === \"Split-Parent\") {\n          const key = `${grItem.goods_receiving_id}::${grItem.po_line_item.id}`;\n          const existing = splitGroups.get(key);\n          if (!existing) {\n            splitGroups.set(key, {\n              material_id: grItem.item.id || \"\",\n              material_name: grItem.item.material_name,\n              item_desc: grItem.item_desc || \"\",\n              more_desc: grItem.more_desc || \"\",\n              order_qty: grItem.ordered_qty,\n              received_qty: parseFloat((grItem.received_qty || 0).toFixed(3)),\n              purchase_order_no: grItem.line_po_no,\n              goods_receiving_no: grItem.goods_receiving_number,\n              line_remark_1: grItem.line_remark_1 || \"\",\n              line_remark_2: grItem.line_remark_2 || \"\",\n              invoice_qty: remaining,\n              quantity_uom: grItem.uom,\n              order_unit_price: grItem.po_line_item.unit_price,\n              order_discount: grItem.po_line_item.discount,\n              discount_uom: grItem.po_line_item.discount_uom,\n              tax_percent: grItem.po_line_item.tax_percent,\n              tax_preference: grItem.po_line_item.tax_preference,\n              tax_inclusive: grItem.po_line_item.tax_inclusive,\n              gr_line_id: \"\",\n              po_line_id: grItem.po_line_item.id,\n              available_inv_qty: remaining,\n              line_po_id: grItem.line_po_id,\n              line_gr_id: grItem.goods_receiving_id,\n              item_category_id: grItem.item_category_id,\n              tariff_id: grItem.tariff_id,\n              further_description: grItem.further_description,\n            });\n          } else {\n            existing.received_qty = parseFloat(\n              (existing.received_qty + (grItem.received_qty || 0)).toFixed(3),\n            );\n            existing.invoice_qty = parseFloat(\n              (existing.invoice_qty + remaining).toFixed(3),\n            );\n            existing.available_inv_qty = existing.invoice_qty;\n          }\n        } else {\n          tablePI.push({\n            material_id: grItem.item.id || \"\",\n            material_name: grItem.item.material_name,\n            item_desc: grItem.item_desc || \"\",\n            more_desc: grItem.more_desc || \"\",\n            order_qty: grItem.ordered_qty,\n            received_qty: grItem.received_qty,\n            purchase_order_no: grItem.line_po_no,\n            goods_receiving_no: grItem.goods_receiving_number,\n            line_remark_1: grItem.line_remark_1 || \"\",\n            line_remark_2: grItem.line_remark_2 || \"\",\n            invoice_qty: remaining,\n            quantity_uom: grItem.uom,\n            order_unit_price: grItem.po_line_item.unit_price,\n            order_discount: grItem.po_line_item.discount,\n            discount_uom: grItem.po_line_item.discount_uom,\n            tax_percent: grItem.po_line_item.tax_percent,\n            tax_preference: grItem.po_line_item.tax_preference,\n            tax_inclusive: grItem.po_line_item.tax_inclusive,\n            gr_line_id: grItem.goods_receiving_line_id,\n            po_line_id: grItem.po_line_item.id,\n            available_inv_qty: remaining,\n            line_po_id: grItem.line_po_id,\n            line_gr_id: grItem.goods_receiving_id,\n            item_category_id: grItem.item_category_id,\n            tariff_id: grItem.tariff_id,\n            further_description: grItem.further_description,\n          });\n        }\n      }\n      for (const rec of splitGroups.values()) {\n        tablePI.push(rec);\n      }\n    }\n      break;\n  }\n\n  // Dedup key:\n  // - GR-based single line -> gr:<gr_line_id> (unique per GR sub-row)\n  // - combined split-parent line (gr_line_id empty, has line_gr_id)\n  //   -> grc:<line_gr_id>:<po_line_id> (unique per GR + PO line)\n  // - PO-based line -> po:<po_line_id>\n  const dedupKey = (pi) => {\n    if (pi.gr_line_id && pi.gr_line_id !== \"\") return `gr:${pi.gr_line_id}`;\n    if (pi.line_gr_id && pi.line_gr_id !== \"\")\n      return `grc:${pi.line_gr_id}:${pi.po_line_id}`;\n    return `po:${pi.po_line_id}`;\n  };\n  const existingKeys = new Set(existingPI.map(dedupKey));\n\n  tablePI = tablePI.filter(\n    (pi) => pi.invoice_qty !== 0 && !existingKeys.has(dedupKey(pi)),\n  );\n\n  const latestTablePI = [...existingPI, ...tablePI];\n\n  poId = [...new Set(latestTablePI.map((pi) => pi.line_po_id))];\n  purchaseOrderNumber = [\n    ...new Set(latestTablePI.map((pi) => pi.purchase_order_no)),\n  ];\n\n  grId = [...new Set(latestTablePI.map((pi) => pi.line_gr_id))];\n  goodsReceivingNumber = [\n    ...new Set(latestTablePI.map((pi) => pi.goods_receiving_no)),\n  ];\n\n  console.log(\"tablePI\", tablePI);\n  await this.setData({\n    supplier_name: referenceType.startsWith(\"Document\")\n      ? currentItemArray[0].supplier_id\n      : currentItemArray[0].supplier.id,\n    table_pi: [...existingPI, ...tablePI],\n    po_no_display: purchaseOrderNumber.join(\", \"),\n    po_id: poId,\n    gr_no_display: goodsReceivingNumber.join(\", \"),\n    gr_id: grId,\n    reference_type: referenceType,\n  });\n\n  setTimeout(async () => {\n    await processData(tablePI, referenceType);\n  }, 50);\n\n  this.triggerEvent(\"PIcalculation\", { PIlineItem: tablePI });\n  this.triggerEvent(\"onChange_supplier\");\n\n  this.hideLoading();\n})();\n",
         "type": "js"
       },
       {

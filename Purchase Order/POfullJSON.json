@@ -1736,7 +1736,9 @@
                 "pad": "*",
                 "desensitization_pattern": "",
                 "desensitization_replace": "",
-                "limit_count": null
+                "limit_count": null,
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100
               },
               "events": {
                 "onChange": "kgqi3ko2"
@@ -3035,7 +3037,13 @@
                 "tableColumn": false,
                 "subform": false,
                 "dynamicValueType": "fx",
-                "isDynamicValue": false
+                "isDynamicValue": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
               },
               "events": {
                 "onChange": "",
@@ -3094,7 +3102,13 @@
                 "pad": "*",
                 "desensitization_pattern": "",
                 "desensitization_replace": "",
-                "select-card_4c8m22dh": []
+                "select-card_4c8m22dh": [],
+                "highFrequencyInput": false,
+                "highFrequencyTimeField": "",
+                "highFrequencyDuration": 30,
+                "highFrequencyMinCount": 20,
+                "highFrequencyMaxItems": 5,
+                "highFrequencySortRule": 1
               },
               "events": {
                 "onChange": "",
@@ -3104,6 +3118,118 @@
               "novalid": {},
               "key": "2qhws23o",
               "model": "reference_number",
+              "rules": []
+            },
+            {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_pe7htnej",
+                "filterable": false,
+                "pagingEnabled": true,
+                "isShowExpandButton": false,
+                "buttonText": "新增",
+                "buttonPosition": "bottom",
+                "buttonAlign": "right",
+                "buttonSize": "default",
+                "buttonEvent": [],
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "project_code",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_pe7htnej",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "2085600321692696577",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "Project:Table:2085600321692696577"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 1,
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Project",
+              "novalid": {},
+              "key": "ytwqdu9o",
+              "model": "project_id",
               "rules": []
             },
             {
@@ -3651,6 +3777,47 @@
       },
       "key": "blku0rcf",
       "model": "grid_blku0rcf",
+      "rules": []
+    },
+    {
+      "version": "1.0.0",
+      "type": "custom-fields",
+      "mainIcon": "自定义字段",
+      "typeIcon": "自定义字段",
+      "icon": "icon-fenzu",
+      "group": "Container",
+      "groupSort": 6,
+      "enableScopes": ["Table"],
+      "options": {
+        "defaultValue": {},
+        "customClass": "",
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "col": 2,
+        "tip": "",
+        "validatorCheck": false,
+        "validator": "",
+        "remoteFunc": "func_b3w85tmv",
+        "remoteOption": "option_b3w85tmv",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "hideLabel": true
+      },
+      "events": {
+        "onChange": ""
+      },
+      "fields": [],
+      "name": "Custom Fields",
+      "key": "b3w85tmv",
+      "model": "custom_fields_b3w85tmv",
       "rules": []
     },
     {
@@ -4588,7 +4755,7 @@
                 "value": "1914242988707749889",
                 "type": "leaf",
                 "level": 1,
-                "propLabel": "父主键",
+                "propLabel": "Parent Primary Key",
                 "valueLabel": "",
                 "operatorLabel": "Equal",
                 "valueTypeLabel": "值",
@@ -4886,7 +5053,7 @@
                           },
                           {
                             "title": "View Info",
-                            "permission": "",
+                            "permission": "po_item_view_info",
                             "type": "custom",
                             "styleType": "Link",
                             "icon": "info-lg",
@@ -4904,11 +5071,9 @@
                         "collapse_all": 1,
                         "rowSelectionType": "None",
                         "batchOperate": [],
-                        "resizable": 0,
+                        "resizable": 1,
                         "emptyTip": "",
                         "tableHeightMode": "fixed",
-                        "tableFixedHeight": null,
-                        "tableMaxHeight": null,
                         "rowHeightType": "auto",
                         "hideIndex": false,
                         "showTableBorder": 0,
@@ -4967,7 +5132,7 @@
                                 }
                               ],
                               "hidden": "",
-                              "disabled": "",
+                              "disabled": "{{!{{value:po_supplier_id}}}}",
                               "ignoreFormDisabled": true
                             }
                           ]
@@ -5105,32 +5270,80 @@
                                                 "level": 4,
                                                 "children": [
                                                   {
-                                                    "id": 1761028775730,
-                                                    "parentId": 1761028775731,
+                                                    "id": 1782891211343,
                                                     "isTop": false,
-                                                    "prop": "table_sup_item_access.sup_price_tag_id",
-                                                    "operator": "numberEqual",
-                                                    "valueType": "field",
-                                                    "value": "{{value:price_tag_id}}",
-                                                    "type": "leaf",
+                                                    "parentId": 1761028775731,
+                                                    "type": "branch",
+                                                    "operator": "all",
                                                     "level": 5,
-                                                    "propLabel": "Price Tag",
-                                                    "valueLabel": "",
-                                                    "operatorLabel": "Equal"
+                                                    "children": [
+                                                      {
+                                                        "id": 1761028775730,
+                                                        "parentId": 1782891211343,
+                                                        "isTop": false,
+                                                        "prop": "table_sup_item_access.sup_price_tag_id",
+                                                        "operator": "numberEqual",
+                                                        "valueType": "field",
+                                                        "value": "{{value:price_tag_id}}",
+                                                        "type": "leaf",
+                                                        "level": 6,
+                                                        "propLabel": "Price Tag",
+                                                        "valueLabel": "",
+                                                        "operatorLabel": "Equal"
+                                                      },
+                                                      {
+                                                        "id": 1782891211344,
+                                                        "parentId": 1782891211343,
+                                                        "isTop": false,
+                                                        "prop": "table_sup_item_access.sup_price_tag_id",
+                                                        "operator": "isNotNull",
+                                                        "valueType": "value",
+                                                        "value": null,
+                                                        "type": "leaf",
+                                                        "level": 6,
+                                                        "propLabel": "Price Tag",
+                                                        "valueLabel": "",
+                                                        "operatorLabel": "Is Not Null"
+                                                      }
+                                                    ]
                                                   },
                                                   {
-                                                    "id": 1761028775732,
-                                                    "parentId": 1761028775731,
+                                                    "id": 1782891211345,
                                                     "isTop": false,
-                                                    "prop": "table_sup_item_access.supplier_id",
-                                                    "operator": "equal",
-                                                    "valueType": "field",
-                                                    "value": "{{value:po_supplier_id}}",
-                                                    "type": "leaf",
+                                                    "parentId": 1761028775731,
+                                                    "type": "branch",
+                                                    "operator": "all",
                                                     "level": 5,
-                                                    "propLabel": "Supplier Code",
-                                                    "valueLabel": "",
-                                                    "operatorLabel": "Equal"
+                                                    "children": [
+                                                      {
+                                                        "id": 1761028775732,
+                                                        "parentId": 1782891211345,
+                                                        "isTop": false,
+                                                        "prop": "table_sup_item_access.supplier_id",
+                                                        "operator": "equal",
+                                                        "valueType": "field",
+                                                        "value": "{{value:po_supplier_id}}",
+                                                        "type": "leaf",
+                                                        "level": 6,
+                                                        "propLabel": "Supplier Code",
+                                                        "valueLabel": "",
+                                                        "operatorLabel": "Equal"
+                                                      },
+                                                      {
+                                                        "id": 1782891211346,
+                                                        "parentId": 1782891211345,
+                                                        "isTop": false,
+                                                        "prop": "table_sup_item_access.supplier_id",
+                                                        "operator": "isNotNull",
+                                                        "valueType": "value",
+                                                        "value": null,
+                                                        "type": "leaf",
+                                                        "level": 6,
+                                                        "propLabel": "Supplier Code",
+                                                        "valueLabel": "",
+                                                        "operatorLabel": "Is Not Null"
+                                                      }
+                                                    ]
                                                   }
                                                 ]
                                               }
@@ -5570,6 +5783,103 @@
                         },
                         {
                           "version": "1.0.0",
+                          "type": "editor",
+                          "mainIcon": "富文本",
+                          "typeIcon": "富文本",
+                          "icon": "icon-fuwenbenkuang",
+                          "group": "Text",
+                          "groupSort": 9,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": "",
+                            "width": "",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customToolbar": [
+                              [
+                                "bold",
+                                "italic",
+                                "underline",
+                                "strike",
+                                {
+                                  "color": []
+                                },
+                                {
+                                  "background": []
+                                },
+                                {
+                                  "align": []
+                                },
+                                {
+                                  "list": "ordered"
+                                },
+                                {
+                                  "list": "bullet"
+                                },
+                                {
+                                  "indent": "-1"
+                                },
+                                {
+                                  "indent": "+1"
+                                }
+                              ],
+                              [
+                                {
+                                  "font": []
+                                },
+                                {
+                                  "header": [1, 2, 3, 4, 5, 6, false]
+                                }
+                              ],
+                              [
+                                {
+                                  "script": "sub"
+                                },
+                                {
+                                  "script": "super"
+                                }
+                              ],
+                              ["link", "image", "blockquote", "code-block"],
+                              [
+                                {
+                                  "direction": "rtl"
+                                }
+                              ],
+                              ["clean"]
+                            ],
+                            "action": "/blade-resource/oss/endpoint/put-file",
+                            "headers": [],
+                            "withCredentials": false,
+                            "disabled": false,
+                            "required": false,
+                            "validatorCheck": false,
+                            "validator": "",
+                            "tip": "",
+                            "remoteFunc": "func_nxb74r28",
+                            "remoteOption": "option_nxb74r28",
+                            "tableColumn": true,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": ""
+                          },
+                          "name": "Further Description",
+                          "novalid": {},
+                          "key": "nxb74r28",
+                          "model": "further_description",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
                           "name": "Quantity",
                           "el": "su-fm-enhanced-number-input",
                           "mainIcon": "数字",
@@ -5587,7 +5897,7 @@
                             "disabled": false,
                             "dataBind": true,
                             "required": true,
-                            "validator": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\n\nconst quantity = value;\nconst moq = this.getValue(`${fieldPrefix}.moq_qty`);\nconst hasValidQty = quantity > 0 && quantity >= moq;\n\nif (hasValidQty) {\n  callback();\n} else {\n  callback(`Quantity must be greater than or equal to MOQ (${moq}).`);\n}",
+                            "validator": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\n\nconst quantity = value;\nconst moq = parseFloat(this.getValue(`${fieldPrefix}.moq_qty`)) || 0;\nconst hasValidQty = quantity > 0 && quantity >= moq;\n\nif (hasValidQty) {\n  callback();\n} else {\n  callback(`Quantity must be greater than or equal to MOQ (${moq}).`);\n}",
                             "hideLabel": false,
                             "placeholder": "",
                             "min": null,
@@ -5624,7 +5934,11 @@
                             "pad": "*",
                             "desensitization_pattern": "",
                             "desensitization_replace": "",
-                            "validatorCheck": true
+                            "validatorCheck": true,
+                            "summary": true,
+                            "summaryMethod": "sum",
+                            "summaryPosition": "bottom",
+                            "summaryFixed": false
                           },
                           "events": {
                             "onReady": "73i6eolq",
@@ -5643,7 +5957,7 @@
                               "message": ""
                             },
                             {
-                              "func": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\n\nconst quantity = value;\nconst moq = this.getValue(`${fieldPrefix}.moq_qty`);\nconst hasValidQty = quantity > 0 && quantity >= moq;\n\nif (hasValidQty) {\n  callback();\n} else {\n  callback(`Quantity must be greater than or equal to MOQ (${moq}).`);\n}"
+                              "func": "const fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\n\nconst quantity = value;\nconst moq = parseFloat(this.getValue(`${fieldPrefix}.moq_qty`)) || 0;\nconst hasValidQty = quantity > 0 && quantity >= moq;\n\nif (hasValidQty) {\n  callback();\n} else {\n  callback(`Quantity must be greater than or equal to MOQ (${moq}).`);\n}"
                             }
                           ]
                         },
@@ -5786,7 +6100,7 @@
                             "sorts": []
                           },
                           "events": {
-                            "onChange": "",
+                            "onChange": "c8wb3138",
                             "onFocus": "",
                             "onBlur": ""
                           },
@@ -5813,7 +6127,7 @@
                             "disabled": false,
                             "dataBind": true,
                             "required": false,
-                            "validator": "console.log(\"arguments[0]\", arguments[0]);\n\nconst fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\n\nconst unitPrice = value;\nconst minPrice = this.getValue(`${fieldPrefix}.min_price`);\nconst maxPrice = this.getValue(`${fieldPrefix}.max_price`);\n\nconst min1 = !minPrice || minPrice === 0 ? -Infinity : minPrice;\nconst max1 = !maxPrice || maxPrice === 0 ? Infinity : maxPrice;\n\nconst hasValidQty = unitPrice >= min1 && unitPrice <= max1;\n\nif (hasValidQty) {\n  callback();\n} else {\n  callback(\"Invalid Unit Price\");\n}\n",
+                            "validator": "console.log(\"arguments[0]\", arguments[0]);\n\nconst fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\n\nconst unitPrice = value;\nconst minPrice = parseFloat(this.getValue(`${fieldPrefix}.min_price`)) || 0;\nconst maxPrice = parseFloat(this.getValue(`${fieldPrefix}.max_price`)) || 0;\n\nconst min1 = !minPrice || minPrice === 0 ? -Infinity : minPrice;\nconst max1 = !maxPrice || maxPrice === 0 ? Infinity : maxPrice;\n\nconst hasValidQty = unitPrice >= min1 && unitPrice <= max1;\n\nif (hasValidQty) {\n  callback();\n} else {\n  callback(\"Invalid Unit Price\");\n}\n",
                             "hideLabel": false,
                             "placeholder": "",
                             "min": -9999999,
@@ -5851,7 +6165,7 @@
                           "model": "unit_price",
                           "rules": [
                             {
-                              "func": "console.log(\"arguments[0]\", arguments[0]);\n\nconst fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\n\nconst unitPrice = value;\nconst minPrice = this.getValue(`${fieldPrefix}.min_price`);\nconst maxPrice = this.getValue(`${fieldPrefix}.max_price`);\n\nconst min1 = !minPrice || minPrice === 0 ? -Infinity : minPrice;\nconst max1 = !maxPrice || maxPrice === 0 ? Infinity : maxPrice;\n\nconst hasValidQty = unitPrice >= min1 && unitPrice <= max1;\n\nif (hasValidQty) {\n  callback();\n} else {\n  callback(\"Invalid Unit Price\");\n}\n"
+                              "func": "console.log(\"arguments[0]\", arguments[0]);\n\nconst fieldPrefix = arguments[0].field.split(\".\").slice(0, 2).join(\".\");\n\nconst unitPrice = value;\nconst minPrice = parseFloat(this.getValue(`${fieldPrefix}.min_price`)) || 0;\nconst maxPrice = parseFloat(this.getValue(`${fieldPrefix}.max_price`)) || 0;\n\nconst min1 = !minPrice || minPrice === 0 ? -Infinity : minPrice;\nconst max1 = !maxPrice || maxPrice === 0 ? Infinity : maxPrice;\n\nconst hasValidQty = unitPrice >= min1 && unitPrice <= max1;\n\nif (hasValidQty) {\n  callback();\n} else {\n  callback(\"Invalid Unit Price\");\n}\n"
                             }
                           ]
                         },
@@ -6710,6 +7024,109 @@
                           "rules": []
                         },
                         {
+                          "version": "1.0.0",
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": "",
+                            "multiple": false,
+                            "disabled": false,
+                            "clearable": false,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_arnd0ppe",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "tariff_code",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": ""
+                            },
+                            "remoteFunc": "func_arnd0ppe",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": true,
+                            "subform": false,
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "1902006834999447554",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:firstLvDeptId}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              },
+                              "source": "Tariff:Table:1902006834999447554"
+                            },
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "sorts": []
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Tariff",
+                          "novalid": {},
+                          "key": "arnd0ppe",
+                          "model": "tariff_id",
+                          "rules": []
+                        },
+                        {
                           "name": "Min Price",
                           "el": "su-fm-currency-input",
                           "mainIcon": "金额",
@@ -7167,7 +7584,13 @@
                             "labelWrap": false,
                             "dynamicValueType": "fx",
                             "isDynamicValue": false,
-                            "dynamicValueFx": ""
+                            "dynamicValueFx": "",
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
                           },
                           "events": {
                             "onChange": "",
@@ -7177,6 +7600,69 @@
                           "novalid": {},
                           "key": "unv2vppq",
                           "model": "return_quantity",
+                          "rules": []
+                        },
+                        {
+                          "name": "Created Return Qty",
+                          "type": "number",
+                          "icon": "icon-number",
+                          "mainIcon": "金额",
+                          "typeIcon": "金额",
+                          "group": "Number",
+                          "groupSort": 0,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-number-rmb",
+                          "options": {
+                            "width": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "defaultValue": 0,
+                            "min": 0,
+                            "max": 9999999,
+                            "step": 1,
+                            "disabled": true,
+                            "controls": false,
+                            "controlsPosition": "",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "dataBind": true,
+                            "precision": 3,
+                            "customProps": {
+                              "progressColor": "",
+                              "dividingNumber": "",
+                              "showNumber": "",
+                              "viewMode": "",
+                              "format": "rmb",
+                              "cacheProp": true
+                            },
+                            "tip": "",
+                            "remoteFunc": "func_0zm9jqbg",
+                            "remoteOption": "option_0zm9jqbg",
+                            "tableColumn": true,
+                            "subform": false,
+                            "labelWrap": false,
+                            "dynamicValueType": "fx",
+                            "isDynamicValue": false,
+                            "dynamicValueFx": "",
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "novalid": {},
+                          "key": "q6ua1yda",
+                          "model": "created_return_qty",
                           "rules": []
                         },
                         {
@@ -7385,6 +7871,175 @@
                           "novalid": {},
                           "key": "zms8insb",
                           "model": "line_remark_2",
+                          "rules": []
+                        },
+                        {
+                          "name": "Required Delivery Date",
+                          "type": "date",
+                          "mainIcon": "日期",
+                          "typeIcon": "日期",
+                          "icon": "icon-date",
+                          "group": "DateTime",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": "",
+                            "readonly": false,
+                            "disabled": false,
+                            "editable": false,
+                            "clearable": true,
+                            "placeholder": "",
+                            "startPlaceholder": "",
+                            "endPlaceholder": "",
+                            "type": "timestamp",
+                            "timeStampType": "timestamp",
+                            "format": "YYYY-MM-DD",
+                            "timestamp": false,
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_n1frv9ao",
+                            "remoteOption": "option_n1frv9ao",
+                            "tableColumn": true,
+                            "subform": false,
+                            "dynamicValueType": "fx",
+                            "isDynamicValue": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "novalid": {},
+                          "key": "vquhn2vo",
+                          "model": "po_expected_date",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": "",
+                            "multiple": false,
+                            "disabled": false,
+                            "clearable": false,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_pe7htnej",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "isShowExpandButton": false,
+                            "buttonText": "新增",
+                            "buttonPosition": "bottom",
+                            "buttonAlign": "right",
+                            "buttonSize": "default",
+                            "buttonEvent": [],
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "project_code",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": "",
+                              "children": ""
+                            },
+                            "remoteFunc": "func_pe7htnej",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "2085600321692696577",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{value:organization_id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              },
+                              "source": "Project:Table:2085600321692696577"
+                            },
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "sorts": [],
+                            "paging_enabled": 1,
+                            "page_size": 10
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Project",
+                          "novalid": {},
+                          "key": "x1vx20ne",
+                          "model": "project_id",
                           "rules": []
                         },
                         {
@@ -12179,7 +12834,8 @@
             "pad": "*",
             "desensitization_pattern": "",
             "desensitization_replace": "",
-            "enabled": false
+            "enabled": false,
+            "permission": ""
           },
           "events": {
             "onClick": "idjbg50d"
@@ -12226,7 +12882,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "po_save_as_issued"
           },
           "events": {
             "onClick": "xx3z0lyn"
@@ -12916,7 +13573,8 @@
                   "image": "",
                   "icon": "",
                   "cascade": "",
-                  "children": ""
+                  "children": "",
+                  "explain": ""
                 },
                 "remoteFunc": "func_ht0p6sod",
                 "customClass": "",
@@ -12949,7 +13607,15 @@
                 },
                 "paging_enabled": 0,
                 "sorts": [],
-                "labelWrap": true
+                "labelWrap": true,
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
               },
               "events": {
                 "onReady": "",
@@ -13832,7 +14498,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "const showStatusHTML = async (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\"draft_status\"]);\n      break;\n    case \"Issued\":\n      this.display([\"issued_status\"]);\n      break;\n    case \"Processing\":\n      this.display([\"processing_status\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    case \"Cancelled\":\n      this.display([\"cancelled_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst displayFields = async () => {\n  const poDeliveryAddress = this.getValue(\"po_delivery_address\");\n  const preqNo = this.getValue(\"preq_no\");\n  const totalTax = this.getValue(\"po_total_tax\");\n\n  if (totalTax > 0) {\n    this.display([\"po_total_tax\", \"total_tax_currency\"]);\n  }\n\n  if (poDeliveryAddress === \"Supplier\") {\n    this.display(\"po_receiving_supplier\");\n    this.hide(\"po_plant\");\n  }\n\n  if (preqNo) {\n    this.display(\"preq_no\");\n  }\n};\n\nconst displayCurrency = async () => {\n  const currencyCode = this.getValue(\"po_currency\");\n\n  if (currencyCode && currencyCode !== \"----\" && currencyCode !== \"MYR\") {\n    this.display([\n      \"exchange_rate\",\n      \"exchange_rate_myr\",\n      \"exchange_rate_currency\",\n      \"myr_total_amount\",\n      \"total_amount_myr\",\n    ]);\n  }\n\n  this.setData({\n    total_gross_currency: currencyCode,\n    total_discount_currency: currencyCode,\n    total_tax_currency: currencyCode,\n    total_amount_currency: currencyCode,\n    exchange_rate_currency: currencyCode,\n  });\n};\n\nconst displayPlantAddress = async () => {\n  const plant = this.getValue(\"po_plant\");\n\n  if (plant) {\n    this.display(\"address_grid\");\n  }\n};\n\nconst displayTax = async () => {\n  const totalTax = this.getValue(\"po_total_tax\");\n\n  if (totalTax > 0.0) {\n    this.display([\"po_total_tax\", \"total_tax_currency\"]);\n  }\n};\n\nconst enabledUOMField = async () => {\n  const tablePO = this.getValue(\"table_po\");\n\n  tablePO.forEach((po, rowIndex) => {\n    if (po.item_id || po.item_desc !== \"\") {\n      this.triggerEvent(\"LineItem_onChange_fillback\", {\n        poItem: po,\n        index: rowIndex,\n      });\n    }\n\n  });\n};\n\nconst disabledEditField = async (status) => {\n  if (status !== \"Draft\" && status !== \"Issued\") {\n    this.disabled(\n      [\n        \"purchase_order_no\",\n        \"po_supplier_id\",\n        \"organization_id\",\n        \"po_date\",\n        \"po_currency\",\n        \"po_delivery_address\",\n        \"po_plant\",\n        \"po_receiving_supplier\",\n        \"po_billing_name\",\n        \"po_billing_cp\",\n        \"po_billing_address\",\n        \"po_shipping_address\",\n        \"po_payment_terms\",\n        \"po_expected_date\",\n        \"po_shipping_preference\",\n        \"po_ref_doc\",\n        \"table_po\",\n        \"po_total_gross\",\n        \"po_total_discount\",\n        \"po_total_tax\",\n        \"po_total\",\n        \"po_remark\",\n        \"po_remark2\",\n        \"po_remark3\",\n        \"po_remark4\",\n        \"po_remark5\",\n        \"po_tnc\",\n        \"billing_address_line_1\",\n        \"billing_address_line_2\",\n        \"billing_address_line_3\",\n        \"billing_address_line_4\",\n        \"billing_address_city\",\n        \"billing_postal_code\",\n        \"billing_address_state\",\n        \"billing_address_country\",\n        \"shipping_address_line_1\",\n        \"shipping_address_line_2\",\n        \"shipping_address_line_3\",\n        \"shipping_address_line_4\",\n        \"shipping_address_city\",\n        \"shipping_postal_code\",\n        \"shipping_address_state\",\n        \"shipping_address_country\",\n        \"exchange_rate\",\n        \"myr_total_amount\",\n      ],\n      true,\n    );\n\n    this.hide([\n      \"link_billing_address\",\n      \"link_shipping_address\",\n      \"button_save_as_draft\",\n      \"button_save_as_issue\",\n    ]);\n  } else if (status === \"Issued\") {\n    this.hide(\"button_save_as_draft\");\n  }\n};\n\nconst cloneResetQuantity = async (data) => {\n  const tablePO = this.getValue(\"table_po\");\n\n  for (const po of tablePO) {\n    po.received_qty = 0;\n    po.return_quantity = 0;\n    po.invoice_qty = 0;\n    po.posted_qty = 0;\n    po.min_price = 0;\n    po.max_price = 0;\n    po.outstanding_quantity = 0;\n    po.preq_id = \"\";\n    po.line_status = \"\";\n    po.pi_status = \"\";\n  }\n\n  data[\"table_po\"] = tablePO;\n  data[\"gr_status\"] = \"\";\n  data[\"pi_posted_status\"] = \"\";\n  data[\"pi_status\"] = \"\";\n  data[\"return_status\"] = \"\";\n  data[\"partially_received\"] = `0 / ${tablePO.length}`;\n  data[\"fully_received\"] = `0 / ${tablePO.length}`;\n  data[\"po_date\"] = new Date().toISOString().split(\"T\")[0];\n  data[\"po_status\"] = \"Draft\";\n  data[\"preq_no\"] = \"\";\n  data[\"preq_id\"] = [];\n  data[\"purchase_order_no\"] = null;\n\n  this.hide(\"preq_no\");\n\n  return data;\n};\n\nconst setPlant = async (organizationId, pageStatus, data) => {\n  const currentDept = this.getVarSystem(\"deptIds\");\n\n  if (currentDept === organizationId) {\n    this.disabled(\"po_plant\", false);\n\n    if (pageStatus === \"Add\" || pageStatus === \"Clone\") {\n      this.setData({\"po_plant\":currentDept});\n    }\n  } else {\n    if (pageStatus === \"Add\" || pageStatus === \"Clone\") {\n      this.setData({\"po_plant\":currentDept});\n    }\n    this.disabled(\"po_plant\", true);\n  }\n\n  return data;\n};\n\nconst checkAccIntegrationType = async (organizationId, data) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n      data[\"acc_integration_type\"] = aiData.acc_integration_type;\n    }\n  }\n\n  return data;\n};\n\n(async () => {\n  try {\n    const status = await this.getValue(\"po_status\");\n    const data = {};\n    const pageStatus = this.isAdd\n      ? \"Add\"\n      : this.isEdit\n        ? \"Edit\"\n        : this.isView\n          ? \"View\"\n          : this.isCopy\n            ? \"Clone\"\n            : (() => {\n                this.$message.error(\"Invalid page status\");\n              })();\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\");\n    }\n    data[\"page_status\"] = pageStatus;\n    this.hide([\n      \"exchange_rate\",\n      \"exchange_rate_myr\",\n      \"exchange_rate_currency\",\n      \"myr_total_amount\",\n      \"total_amount_myr\",\n    ]);\n    const tabGR = document.getElementById(\"tab-tab_gr\");\n\n    switch (pageStatus) {\n      case \"Add\":\n        this.display([\"draft_status\"]);\n        const supplierID = this.getValue(\"po_supplier_id\");\n        this.disabled(\"table_po\", !supplierID);\n        data[\"organization_id\"] = organizationId;\n        data[\"po_date\"] = new Date().toISOString().split(\"T\")[0];\n\n        // hide GR Tab\n        if (tabGR) {\n          tabGR.style.display = \"none\";\n        }\n        await setPlant(organizationId, pageStatus, data);\n        await checkAccIntegrationType(organizationId, data);\n        await enabledUOMField();\n        await displayFields();\n        await displayCurrency();\n        await displayPlantAddress();\n        await displayTax();\n        break;\n\n      case \"Edit\":\n        await disabledEditField(status);\n        await showStatusHTML(status);\n        await checkAccIntegrationType(organizationId, data);\n        await enabledUOMField();\n        await displayFields();\n        await displayCurrency();\n        await displayPlantAddress();\n        await displayTax();\n        await setPlant(organizationId, pageStatus, data);\n        data[\"previous_status\"] = this.getValue(\"po_status\");\n        this.disabled(\n          status !== \"Draft\"\n            ? [\"purchase_order_no\", \"purchase_order_no_type\"]\n            : [],\n          true,\n        );\n\n        // hide GR Tab\n        if (tabGR) {\n          tabGR.style.display = \"none\";\n        }\n        break;\n\n      case \"Clone\":\n        // hide GR Tab\n        if (tabGR) {\n          tabGR.style.display = \"none\";\n        }\n        await displayFields();\n        await checkAccIntegrationType(organizationId, data);\n        await setPlant(organizationId, pageStatus, data);\n        await enabledUOMField();\n        await displayCurrency();\n        await displayPlantAddress();\n        await displayTax();\n        await showStatusHTML(\"Draft\");\n        await cloneResetQuantity(data);\n\n        break;\n\n      case \"View\":\n        this.hide([\n          \"link_billing_address\",\n          \"link_shipping_address\",\n          \"button_save_as_draft\",\n          \"button_save_as_issue\",\n        ]);\n\n        // hide GR Tab\n        if (tabGR && status !== \"Processing\") {\n          tabGR.style.display = \"none\";\n        }\n        await showStatusHTML(status);\n        await displayFields();\n        await displayCurrency();\n        await displayPlantAddress();\n        await displayTax();\n\n        break;\n    }\n\n    this.setData(data);\n    this.refreshFieldOptionData('po_plant')\n  } catch (error) {\n    this.$message.error(error);\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"purchase_order_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"purchase_order_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"purchase_order_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"purchase_order_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        purchase_order_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ purchase_order_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
+        "func": "const showStatusHTML = async (status) => {\n  switch (status) {\n    case \"Draft\":\n      this.display([\"draft_status\"]);\n      break;\n    case \"Issued\":\n      this.display([\"issued_status\"]);\n      break;\n    case \"Processing\":\n      this.display([\"processing_status\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    case \"Cancelled\":\n      this.display([\"cancelled_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\nconst displayFields = async () => {\n  const poDeliveryAddress = this.getValue(\"po_delivery_address\");\n  const preqNo = this.getValue(\"preq_no\");\n  const totalTax = this.getValue(\"po_total_tax\");\n\n  if (totalTax > 0) {\n    this.display([\"po_total_tax\", \"total_tax_currency\"]);\n  }\n\n  if (poDeliveryAddress === \"Supplier\") {\n    this.display(\"po_receiving_supplier\");\n    this.hide(\"po_plant\");\n  }\n\n  if (preqNo) {\n    this.display(\"preq_no\");\n  }\n};\n\nconst displayCurrency = async () => {\n  const currencyCode = this.getValue(\"po_currency\");\n\n  if (currencyCode && currencyCode !== \"----\" && currencyCode !== \"MYR\") {\n    this.display([\n      \"exchange_rate\",\n      \"exchange_rate_myr\",\n      \"exchange_rate_currency\",\n      \"myr_total_amount\",\n      \"total_amount_myr\",\n    ]);\n  }\n\n  this.setData({\n    total_gross_currency: currencyCode,\n    total_discount_currency: currencyCode,\n    total_tax_currency: currencyCode,\n    total_amount_currency: currencyCode,\n    exchange_rate_currency: currencyCode,\n  });\n};\n\nconst displayPlantAddress = async () => {\n  const plant = this.getValue(\"po_plant\");\n\n  if (plant) {\n    this.display(\"address_grid\");\n  }\n};\n\nconst displayTax = async () => {\n  const totalTax = this.getValue(\"po_total_tax\");\n\n  if (totalTax > 0.0) {\n    this.display([\"po_total_tax\", \"total_tax_currency\"]);\n  }\n};\n\nconst enabledUOMField = async () => {\n  const tablePO = this.getValue(\"table_po\");\n\n  tablePO.forEach((po, rowIndex) => {\n    if (po.item_id || po.item_desc !== \"\") {\n      this.triggerEvent(\"LineItem_onChange_fillback\", {\n        poItem: po,\n        index: rowIndex,\n      });\n    }\n  });\n};\n\nconst disabledEditField = async (status) => {\n  if (status !== \"Draft\" && status !== \"Issued\") {\n    this.disabled(\n      [\n        \"purchase_order_no\",\n        \"po_supplier_id\",\n        \"organization_id\",\n        \"po_date\",\n        \"po_currency\",\n        \"po_delivery_address\",\n        \"po_plant\",\n        \"po_receiving_supplier\",\n        \"po_billing_name\",\n        \"po_billing_cp\",\n        \"po_billing_address\",\n        \"po_shipping_address\",\n        \"po_payment_terms\",\n        \"po_expected_date\",\n        \"po_shipping_preference\",\n        \"po_ref_doc\",\n        \"table_po\",\n        \"po_total_gross\",\n        \"po_total_discount\",\n        \"po_total_tax\",\n        \"po_total\",\n        \"po_remark\",\n        \"po_remark2\",\n        \"po_remark3\",\n        \"po_remark4\",\n        \"po_remark5\",\n        \"po_tnc\",\n        \"billing_address_line_1\",\n        \"billing_address_line_2\",\n        \"billing_address_line_3\",\n        \"billing_address_line_4\",\n        \"billing_address_city\",\n        \"billing_postal_code\",\n        \"billing_address_state\",\n        \"billing_address_country\",\n        \"shipping_address_line_1\",\n        \"shipping_address_line_2\",\n        \"shipping_address_line_3\",\n        \"shipping_address_line_4\",\n        \"shipping_address_city\",\n        \"shipping_postal_code\",\n        \"shipping_address_state\",\n        \"shipping_address_country\",\n        \"exchange_rate\",\n        \"myr_total_amount\",\n      ],\n      true,\n    );\n\n    this.hide([\n      \"link_billing_address\",\n      \"link_shipping_address\",\n      \"button_save_as_draft\",\n      \"button_save_as_issue\",\n    ]);\n  } else if (status === \"Issued\") {\n    this.hide(\"button_save_as_draft\");\n  }\n};\n\nconst cloneResetQuantity = async (data) => {\n  const tablePO = this.getValue(\"table_po\");\n\n  for (const po of tablePO) {\n    po.received_qty = 0;\n    po.created_received_qty = 0;\n    po.return_quantity = 0;\n    po.invoice_qty = 0;\n    po.posted_qty = 0;\n    po.min_price = 0;\n    po.max_price = 0;\n    po.outstanding_quantity = 0;\n    po.preq_id = \"\";\n    po.line_status = \"\";\n    po.pi_status = \"\";\n  }\n\n  data[\"table_po\"] = tablePO;\n  data[\"gr_status\"] = \"\";\n  data[\"pi_posted_status\"] = \"\";\n  data[\"pi_status\"] = \"\";\n  data[\"return_status\"] = \"\";\n  data[\"partially_received\"] = `0 / ${tablePO.length}`;\n  data[\"fully_received\"] = `0 / ${tablePO.length}`;\n  data[\"po_date\"] = new Date().toISOString().split(\"T\")[0];\n  data[\"po_status\"] = \"Draft\";\n  data[\"preq_no\"] = \"\";\n  data[\"preq_id\"] = [];\n  data[\"purchase_order_no\"] = null;\n  data[\"linked_so_id\"] = \"\";\n\n  this.hide(\"preq_no\");\n\n  return data;\n};\n\nconst setPlant = async (organizationId, pageStatus, data) => {\n  const currentDept = this.getVarSystem(\"deptIds\");\n\n  if (currentDept === organizationId) {\n    this.disabled(\"po_plant\", false);\n\n    if (pageStatus === \"Add\" || pageStatus === \"Clone\") {\n      this.setData({ po_plant: currentDept });\n    }\n  } else {\n    if (pageStatus === \"Add\" || pageStatus === \"Clone\") {\n      this.setData({ po_plant: currentDept });\n    }\n    this.disabled(\"po_plant\", true);\n  }\n\n  return data;\n};\n\nconst checkAccIntegrationType = async (organizationId, data) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n      data[\"acc_integration_type\"] = aiData.acc_integration_type;\n    }\n  }\n\n  return data;\n};\n\n(async () => {\n  try {\n    const status = await this.getValue(\"po_status\");\n    const data = {};\n    const pageStatus = this.isAdd\n      ? \"Add\"\n      : this.isEdit\n        ? \"Edit\"\n        : this.isView\n          ? \"View\"\n          : this.isCopy\n            ? \"Clone\"\n            : (() => {\n                this.$message.error(\"Invalid page status\");\n              })();\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\");\n    }\n    data[\"page_status\"] = pageStatus;\n    this.hide([\n      \"exchange_rate\",\n      \"exchange_rate_myr\",\n      \"exchange_rate_currency\",\n      \"myr_total_amount\",\n      \"total_amount_myr\",\n    ]);\n    const tabGR = document.getElementById(\"tab-tab_gr\");\n\n    switch (pageStatus) {\n      case \"Add\":\n        this.display([\"draft_status\"]);\n        const supplierID = this.getValue(\"po_supplier_id\");\n        this.disabled(\"table_po\", !supplierID);\n        data[\"organization_id\"] = organizationId;\n        data[\"po_date\"] = new Date().toISOString().split(\"T\")[0];\n\n        // hide GR Tab\n        if (tabGR) {\n          tabGR.style.display = \"none\";\n        }\n        await setPlant(organizationId, pageStatus, data);\n        await checkAccIntegrationType(organizationId, data);\n        await enabledUOMField();\n        await displayFields();\n        await displayCurrency();\n        await displayPlantAddress();\n        await displayTax();\n        break;\n\n      case \"Edit\":\n        await disabledEditField(status);\n        await showStatusHTML(status);\n        await checkAccIntegrationType(organizationId, data);\n        await enabledUOMField();\n        await displayFields();\n        await displayCurrency();\n        await displayPlantAddress();\n        await displayTax();\n        await setPlant(organizationId, pageStatus, data);\n        data[\"previous_status\"] = this.getValue(\"po_status\");\n        this.disabled(\n          status !== \"Draft\"\n            ? [\"purchase_order_no\", \"purchase_order_no_type\"]\n            : [],\n          true,\n        );\n\n        // hide GR Tab\n        if (tabGR) {\n          tabGR.style.display = \"none\";\n        }\n        break;\n\n      case \"Clone\":\n        // hide GR Tab\n        if (tabGR) {\n          tabGR.style.display = \"none\";\n        }\n        await displayFields();\n        await checkAccIntegrationType(organizationId, data);\n        await setPlant(organizationId, pageStatus, data);\n        await enabledUOMField();\n        await displayCurrency();\n        await displayPlantAddress();\n        await displayTax();\n        await showStatusHTML(\"Draft\");\n        await cloneResetQuantity(data);\n\n        break;\n\n      case \"View\":\n        this.hide([\n          \"link_billing_address\",\n          \"link_shipping_address\",\n          \"button_save_as_draft\",\n          \"button_save_as_issue\",\n        ]);\n\n        // hide GR Tab\n        if (tabGR && status !== \"Processing\") {\n          tabGR.style.display = \"none\";\n        }\n        await showStatusHTML(status);\n        await displayFields();\n        await displayCurrency();\n        await displayPlantAddress();\n        await displayTax();\n\n        break;\n    }\n\n    this.setData(data);\n    this.refreshFieldOptionData(\"po_plant\");\n  } catch (error) {\n    this.$message.error(error);\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"purchase_order_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"purchase_order_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"purchase_order_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"purchase_order_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        purchase_order_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ purchase_order_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
         "type": "js",
         "rules": []
       },
@@ -13898,14 +14564,14 @@
       {
         "key": "esujrmtg",
         "name": "POnumber_onChange_fillback_currency",
-        "func": "const fetchLatestPricing = async (result, overwrite) => {\n  for (const item of result) {\n    if (overwrite === \"Yes\") {\n      updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;\n      updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;\n      updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;\n      updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;\n      updates[`table_po.${item.line_index}.from_historical`] =\n        item.from_historical;\n      updates[`table_po.${item.line_index}.quantity`] = item.quantity;\n      updates[`table_po.${item.line_index}.discount`] = item.discount;\n      updates[`table_po.${item.line_index}.discount_uom`] = item.discount_uom;\n    }\n\n    updates[`table_po.${item.line_index}.max_price`] = item.max_price;\n    updates[`table_po.${item.line_index}.min_price`] = item.min_price;\n    updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n  }\n\n  await this.setData(updates);\n  await this.triggerEvent(\"POcalculation\");\n};\n\n(async () => {\n  console.log(arguments[0]);\n\n  this.disabled(\"table_po\", !arguments[0].value);\n\n  const tablePO = this.getValue(\"table_po\");\n\n  if (tablePO.length > 0 && arguments[0].value) {\n    const hasItemID = tablePO.some((item) => item.item_id);\n    const plantID = this.getValue(\"po_plant\");\n    if (hasItemID) {\n      await this.runWorkflow(\n        \"2067818102244966401\",\n        {\n          document_type: \"PO\",\n          supp_cust_id: supplierID,\n          plant_id: plantID,\n          item_data: tablePO.map((item, index) => {\n            return {\n              item_id: item.item_id,\n              unit_price: item.unit_price,\n              line_index: index,\n              uom_id: item.quantity_uom,\n              tax_rate: item.tax_preference || null,\n              tax_percent: item.tax_percent || null,\n              quantity: item.quantity,\n              discount: item.discount,\n              discount_uom: item.discount_uom,\n            };\n          }),\n        },\n        async (result) => {\n          console.log(\"result\", result);\n          const updates = {};\n\n          if (result.data.needOverwrite === \"No\") return;\n\n          await this.$confirm(\n            `The supplier has been changed. Please choose one: <br><br>Please choose one: <br>\n        <strong>Overwrite:</strong> Replace the price based on the latest supplier. <em>(If any)</em><br>\n        <strong>Keep:</strong> Keep the existing item price.`,\n            \"Supplier Change Detected\",\n            {\n              confirmButtonText: \"Overwrite\",\n              cancelButtonText: \"Keep\",\n              dangerouslyUseHTMLString: true,\n              type: \"info\",\n              distinguishCancelAndClose: true,\n\n              beforeClose: async (action, instance, done) => {\n                if (action === \"confirm\") {\n                  await fetchLatestPricing(result.data.data, \"Yes\");\n\n                  done();\n                } else if (action === \"cancel\") {\n                  await fetchLatestPricing(result.data.data, \"No\");\n\n                  done();\n                } else {\n                  done();\n                }\n              },\n            },\n          );\n        },\n        (error) => {\n          console.log(\"error\", error);\n        },\n      );\n    }\n  }\n\n  const currencyID = arguments[0].fieldModel.item.currency_id;\n  const paymentTermID = arguments[0].fieldModel.item.supplier_payment_term_id;\n  const priceTagID = arguments[0].fieldModel.item.price_tag_id;\n\n  const resCurrency = await db\n    .collection(\"currency\")\n    .where({ id: currencyID })\n    .get();\n\n  const currencyEntry = await resCurrency.data[0];\n  const currencyCode = await currencyEntry.currency_code;\n\n  if (!currencyCode) {\n    this.hide([\n      \"exchange_rate\",\n      \"exchange_rate_myr\",\n      \"exchange_rate_currency\",\n      \"myr_total_amount\",\n      \"total_amount_myr\",\n    ]);\n    return;\n  } else {\n    this.setData({\n      total_gross_currency: currencyCode,\n      total_discount_currency: currencyCode,\n      total_tax_currency: currencyCode,\n      total_amount_currency: currencyCode,\n      exchange_rate_currency: currencyCode,\n    });\n\n    if (currencyCode !== \"----\" && currencyCode !== \"MYR\") {\n      this.setData({ exchange_rate: currencyEntry.currency_buying_rate });\n\n      this.display([\n        \"exchange_rate\",\n        \"exchange_rate_myr\",\n        \"exchange_rate_currency\",\n        \"myr_total_amount\",\n        \"total_amount_myr\",\n      ]);\n    } else {\n      this.setData({ exchange_rate: 1 });\n      this.hide([\n        \"exchange_rate\",\n        \"exchange_rate_myr\",\n        \"exchange_rate_currency\",\n        \"myr_total_amount\",\n        \"total_amount_myr\",\n      ]);\n    }\n  }\n\n  this.setData({\n    po_payment_terms: paymentTermID,\n    price_tag_id: priceTagID,\n    po_currency: currencyCode,\n  });\n})();\n",
+        "func": "// Pick the description this supplier has bound to the item on the Item master.\n// Reads table_sup_item_bind (supplier_id / item_description) -- NOT the customer\n// twin. An item may carry several rows for the same supplier: take the first one\n// that actually has a description. Falls back to the item's own material_desc.\nconst resolveItemDesc = (item, supplierId) => {\n  const fallback = item?.material_desc || \"\";\n  if (!supplierId || Array.isArray(supplierId)) return fallback;\n\n  const binds = Array.isArray(item?.table_sup_item_bind)\n    ? item.table_sup_item_bind\n    : [];\n  const wanted = String(supplierId).trim();\n\n  for (const row of binds) {\n    if (!row) continue;\n    if (String(row.supplier_id ?? \"\").trim() !== wanted) continue;\n    const desc = String(row.item_description ?? \"\").trim();\n    if (desc) return desc;\n  }\n\n  return fallback;\n};\n\nconst fetchLatestPricing = async (\n  result,\n  overwrite,\n  itemById,\n  itemIdByLine,\n  supplierId,\n) => {\n  const updates = {};\n  for (const item of result) {\n    if (overwrite === \"Yes\") {\n      updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;\n      updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;\n      updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;\n      updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;\n      updates[`table_po.${item.line_index}.from_historical`] =\n        item.from_historical;\n      updates[`table_po.${item.line_index}.quantity`] = item.quantity;\n      updates[`table_po.${item.line_index}.discount`] = item.discount;\n      updates[`table_po.${item.line_index}.discount_uom`] = item.discount_uom;\n\n      // Re-resolve the line description against the new supplier's binding.\n      const masterId = itemIdByLine[item.line_index];\n      const master = masterId ? itemById[String(masterId)] : null;\n      if (master) {\n        updates[`table_po.${item.line_index}.item_desc`] = resolveItemDesc(\n          master,\n          supplierId,\n        );\n      }\n    }\n\n    updates[`table_po.${item.line_index}.max_price`] = item.max_price;\n    updates[`table_po.${item.line_index}.min_price`] = item.min_price;\n    updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n  }\n\n  await this.setData(updates);\n  await this.triggerEvent(\"POcalculation\");\n};\n\n(async () => {\n  console.log(arguments[0]);\n\n  // Captured once -- `arguments` resolves lexically through the nested arrow\n  // callbacks below, which reads as a trap even though it works.\n  const newSupplierId = arguments[0].value;\n\n  this.disabled(\"table_po\", !newSupplierId);\n\n  const tablePO = this.getValue(\"table_po\");\n\n  if (tablePO.length > 0 && newSupplierId) {\n    const hasItemID = tablePO.some((item) => item.item_id);\n    const plantID = this.getValue(\"po_plant\");\n    if (hasItemID) {\n      // Line -> item master, needed to re-resolve item_desc for the new\n      // supplier. Started here (not awaited) so the single batched fetch\n      // overlaps the pricing workflow round-trip.\n      const itemIdByLine = {};\n      tablePO.forEach((line, index) => {\n        if (line.item_id) itemIdByLine[index] = line.item_id;\n      });\n      const itemIds = [...new Set(Object.values(itemIdByLine))];\n      const itemsPromise = itemIds.length\n        ? db\n            .collection(\"Item\")\n            .filter(new Filter().in(\"id\", itemIds).build())\n            .get()\n            .catch(() => ({ data: [] }))\n        : Promise.resolve({ data: [] });\n\n      await this.runWorkflow(\n        \"2067818102244966401\",\n        {\n          document_type: \"PO\",\n          supp_cust_id: newSupplierId,\n          plant_id: plantID,\n          item_data: tablePO.map((item, index) => {\n            return {\n              item_id: item.item_id,\n              unit_price: item.unit_price,\n              line_index: index,\n              uom_id: item.quantity_uom,\n              tax_rate: item.tax_preference || null,\n              tax_percent: item.tax_percent || null,\n              quantity: item.quantity,\n              discount: item.discount,\n              discount_uom: item.discount_uom,\n            };\n          }),\n        },\n        async (result) => {\n          console.log(\"result\", result);\n\n          const resItems = await itemsPromise;\n          const itemById = {};\n          for (const it of (resItems && resItems.data) || [])\n            itemById[String(it.id)] = it;\n\n          if (result.data.needOverwrite === \"No\")\n            await fetchLatestPricing(\n              result.data.data,\n              \"No\",\n              itemById,\n              itemIdByLine,\n              newSupplierId,\n            );\n\n          await this.$confirm(\n            `The supplier has been changed. Please choose one: <br><br>\n        <strong>Overwrite:</strong> Replace the price and description based on the latest supplier. <em>(If any)</em><br>\n        <strong>Keep:</strong> Keep the existing item price and description.`,\n            \"Supplier Change Detected\",\n            {\n              confirmButtonText: \"Overwrite\",\n              cancelButtonText: \"Keep\",\n              dangerouslyUseHTMLString: true,\n              type: \"info\",\n              distinguishCancelAndClose: true,\n\n              beforeClose: async (action, instance, done) => {\n                if (action === \"confirm\") {\n                  await fetchLatestPricing(\n                    result.data.data,\n                    \"Yes\",\n                    itemById,\n                    itemIdByLine,\n                    newSupplierId,\n                  );\n\n                  done();\n                } else if (action === \"cancel\") {\n                  await fetchLatestPricing(\n                    result.data.data,\n                    \"No\",\n                    itemById,\n                    itemIdByLine,\n                    newSupplierId,\n                  );\n\n                  done();\n                } else {\n                  done();\n                }\n              },\n            },\n          );\n        },\n        (error) => {\n          console.log(\"error\", error);\n        },\n      );\n    }\n  }\n\n  const currencyID = arguments[0].fieldModel.item.currency_id;\n  const paymentTermID = arguments[0].fieldModel.item.supplier_payment_term_id;\n  const priceTagID = arguments[0].fieldModel.item.price_tag_id;\n\n  const resCurrency = await db\n    .collection(\"currency\")\n    .where({ id: currencyID })\n    .get();\n\n  const currencyEntry = resCurrency.data[0];\n  const currencyCode = currencyEntry?.currency_code || null;\n\n  if (!currencyCode) {\n    this.hide([\n      \"exchange_rate\",\n      \"exchange_rate_myr\",\n      \"exchange_rate_currency\",\n      \"myr_total_amount\",\n      \"total_amount_myr\",\n    ]);\n    return;\n  } else {\n    this.setData({\n      total_gross_currency: currencyCode,\n      total_discount_currency: currencyCode,\n      total_tax_currency: currencyCode,\n      total_amount_currency: currencyCode,\n      exchange_rate_currency: currencyCode,\n    });\n\n    if (currencyCode !== \"----\" && currencyCode !== \"MYR\") {\n      this.setData({ exchange_rate: currencyEntry.currency_buying_rate });\n\n      this.display([\n        \"exchange_rate\",\n        \"exchange_rate_myr\",\n        \"exchange_rate_currency\",\n        \"myr_total_amount\",\n        \"total_amount_myr\",\n      ]);\n    } else {\n      this.setData({ exchange_rate: 1 });\n      this.hide([\n        \"exchange_rate\",\n        \"exchange_rate_myr\",\n        \"exchange_rate_currency\",\n        \"myr_total_amount\",\n        \"total_amount_myr\",\n      ]);\n    }\n  }\n\n  this.setData({\n    po_payment_terms: paymentTermID,\n    price_tag_id: priceTagID,\n    po_currency: currencyCode,\n  });\n})();\n",
         "type": "js",
         "rules": []
       },
       {
         "key": "stvadm9w",
         "name": "LineItem_onChange_fillback",
-        "func": "const resetData = async (rowIndex) => {\n  this.setData({\n    [`table_po.${rowIndex}.item_name`]: \"\",\n    [`table_po.${rowIndex}.item_desc`]: \"\",\n    [`table_po.${rowIndex}.quantity`]: 0,\n    [`table_po.${rowIndex}.quantity_uom`]: \"\",\n    [`table_po.${rowIndex}.unit_price`]: 0,\n    [`table_po.${rowIndex}.gross`]: 0,\n    [`table_po.${rowIndex}.discount`]: 0,\n    [`table_po.${rowIndex}.discount_uom`]: \"\",\n    [`table_po.${rowIndex}.discount_amount`]: 0,\n    [`table_po.${rowIndex}.tax_preference`]: \"\",\n    [`table_po.${rowIndex}.tax_percent`]: \"\",\n    [`table_po.${rowIndex}.tax_amount`]: 0,\n    [`table_po.${rowIndex}.tax_inclusive`]: 0,\n    [`table_po.${rowIndex}.po_amount`]: 0,\n    [`table_po.${rowIndex}.received_qty`]: 0,\n    [`table_po.${rowIndex}.return_quantity`]: 0,\n    [`table_po.${rowIndex}.item_category_id`]: \"\",\n    [`table_po.${rowIndex}.table_uom_conversion`]: \"\",\n    [`table_po.${rowIndex}.alt_uom`]: \"\",\n  });\n};\n\n(async () => {\n  const rowIndex = arguments[0].rowIndex;\n  const poItem = arguments[0].poItem;\n  const supplierID = this.getValue(\"po_supplier_id\");\n  const plantID = this.getValue(\"po_plant\");\n\n  console.log(\"arguments line item\", arguments[0]);\n  if (arguments[0].fieldModel && !poItem) {\n    console.log(\"arguments line item reset\", arguments[0].fieldModel);\n    console.log(\"arguments line item reset\", poItem);\n    await resetData(rowIndex);\n\n    await this.runWorkflow(\n      \"2067818102244966401\",\n      {\n        document_type: \"PO\",\n        supp_cust_id: supplierID,\n        plant_id: plantID,\n        item_data: [\n          {\n            item_id: arguments[0].value,\n            line_index: rowIndex,\n            uom_id:\n              arguments[0].fieldModel.item.purchase_default_uom ||\n              arguments[0].fieldModel.item.based_uom,\n          },\n        ],\n      },\n      async (result) => {\n        console.log(\"result\", result);\n        const updates = {};\n\n        for (const item of result.data.data) {\n          updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;\n          updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;\n          updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;\n          updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;\n          updates[`table_po.${item.line_index}.from_historical`] =\n            item.from_historical;\n          updates[`table_po.${item.line_index}.max_price`] = item.max_price;\n          updates[`table_po.${item.line_index}.min_price`] = item.min_price;\n          updates[`table_po.${item.line_index}.quantity`] = item.quantity;\n          updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n          updates[`table_po.${item.line_index}.discount`] = item.discount;\n          updates[`table_po.${item.line_index}.discount_uom`] =\n            item.discount_uom;\n          updates[`table_po.${item.line_index}.item_category_id`] =\n            arguments[0].fieldModel.item.item_category;\n          updates[`table_po.${item.line_index}.item_desc`] =\n            arguments[0].fieldModel.item.material_desc;\n          updates[`table_po.${item.line_index}.item_name`] =\n            arguments[0].fieldModel.item.material_name;\n        }\n        await this.setData(updates);\n        await this.triggerEvent(\"POcalculation\");\n      },\n      (error) => {\n        console.log(\"error\", error);\n      },\n    );\n\n    this.setData({\n      [`table_po.${rowIndex}.alt_uom`]: JSON.stringify(\n        arguments[0].fieldModel.item.table_uom_conversion,\n      ),\n    });\n\n    this.refreshFieldOptionData([\n      `table_po.${rowIndex}.quantity_uom`,\n      `table_po.${rowIndex}.tax_percent`,\n    ]);\n  } else if (!arguments[0].fieldModel && poItem) {\n    const rowIndex = arguments[0].index;\n    if (poItem.item_id) {\n      const resItem = await db\n        .collection(\"Item\")\n        .where({ id: poItem.item_id })\n        .get();\n\n      if (resItem && resItem.data.length > 0) {\n        const itemData = resItem.data[0];\n      }\n    }\n\n    this.setData({\n      [`table_po.${rowIndex}.alt_uom`]: JSON.stringify(poItem.alt_uom),\n    });\n\n    this.refreshFieldOptionData([\n      `table_po.${rowIndex}.quantity_uom`,\n      `table_po.${rowIndex}.tax_percent`,\n    ]);\n  } else if (!arguments[0].value) {\n    await resetData(rowIndex);\n  } else {\n    const tablePO = this.getValue(\"table_po\");\n    for (const [rowIndex, po] of tablePO.entries()) {\n      console.log(po.quantity_uom);\n      if (po.quantity_uom) {\n        this.refreshFieldOptionData([\n          `table_po.${rowIndex}.quantity_uom`,\n          `table_po.${rowIndex}.tax_percent`,\n        ]);\n      }\n    }\n  }\n})();\n",
+        "func": "// Pick the description this supplier has bound to the item on the Item master.\n// Reads table_sup_item_bind (supplier_id / item_description) -- NOT the customer\n// twin. An item may carry several rows for the same supplier: take the first one\n// that actually has a description. Falls back to the item's own material_desc.\nconst resolveItemDesc = (item, supplierId) => {\n  const fallback = item?.material_desc || \"\";\n  if (!supplierId || Array.isArray(supplierId)) return fallback;\n\n  const binds = Array.isArray(item?.table_sup_item_bind)\n    ? item.table_sup_item_bind\n    : [];\n  const wanted = String(supplierId).trim();\n\n  for (const row of binds) {\n    if (!row) continue;\n    if (String(row.supplier_id ?? \"\").trim() !== wanted) continue;\n    const desc = String(row.item_description ?? \"\").trim();\n    if (desc) return desc;\n  }\n\n  return fallback;\n};\n\nconst resetData = async (rowIndex) => {\n  this.setData({\n    [`table_po.${rowIndex}.item_name`]: \"\",\n    [`table_po.${rowIndex}.item_desc`]: \"\",\n    [`table_po.${rowIndex}.quantity`]: 0,\n    [`table_po.${rowIndex}.quantity_uom`]: \"\",\n    [`table_po.${rowIndex}.unit_price`]: 0,\n    [`table_po.${rowIndex}.gross`]: 0,\n    [`table_po.${rowIndex}.discount`]: 0,\n    [`table_po.${rowIndex}.discount_uom`]: \"\",\n    [`table_po.${rowIndex}.discount_amount`]: 0,\n    [`table_po.${rowIndex}.tax_preference`]: \"\",\n    [`table_po.${rowIndex}.tax_percent`]: \"\",\n    [`table_po.${rowIndex}.tax_amount`]: 0,\n    [`table_po.${rowIndex}.tax_inclusive`]: 0,\n    [`table_po.${rowIndex}.po_amount`]: 0,\n    [`table_po.${rowIndex}.received_qty`]: 0,\n    [`table_po.${rowIndex}.return_quantity`]: 0,\n    [`table_po.${rowIndex}.item_category_id`]: \"\",\n    [`table_po.${rowIndex}.table_uom_conversion`]: \"\",\n    [`table_po.${rowIndex}.alt_uom`]: \"\",\n    [`table_po.${rowIndex}.further_description`]: \"\",\n  });\n};\n\n(async () => {\n  const rowIndex = arguments[0].rowIndex;\n  const poItem = arguments[0].poItem;\n  const supplierID = this.getValue(\"po_supplier_id\");\n  const plantID = this.getValue(\"po_plant\");\n\n  console.log(\"arguments line item\", arguments[0]);\n  if (arguments[0].fieldModel && !poItem) {\n    console.log(\"arguments line item reset\", arguments[0].fieldModel);\n    console.log(\"arguments line item reset\", poItem);\n    await resetData(rowIndex);\n\n    let defaultPurchaseDetail =\n      arguments[0].fieldModel.item.table_uom_conversion.find(\n        (uom) => uom.purchase_default_uom === 1,\n      );\n\n    if (!defaultPurchaseDetail) {\n      defaultPurchaseDetail =\n        arguments[0].fieldModel.item.table_uom_conversion.find(\n          (uom) => uom.alt_uom_id === arguments[0].fieldModel.item.based_uom,\n        );\n    }\n\n    await this.runWorkflow(\n      \"2067818102244966401\",\n      {\n        document_type: \"PO\",\n        supp_cust_id: supplierID,\n        plant_id: plantID,\n        item_data: [\n          {\n            item_id: arguments[0].value,\n            line_index: rowIndex,\n            uom_id: defaultPurchaseDetail.alt_uom_id,\n          },\n        ],\n      },\n      async (result) => {\n        console.log(\"result\", result);\n        const updates = {};\n\n        for (const item of result.data.data) {\n          updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;\n          updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;\n          updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;\n          updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;\n          updates[`table_po.${item.line_index}.from_historical`] =\n            item.from_historical;\n          updates[`table_po.${item.line_index}.max_price`] = item.max_price;\n          updates[`table_po.${item.line_index}.min_price`] = item.min_price;\n          updates[`table_po.${item.line_index}.quantity`] = item.quantity;\n          updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n          updates[`table_po.${item.line_index}.discount`] = item.discount;\n          updates[`table_po.${item.line_index}.discount_uom`] =\n            item.discount_uom;\n          updates[`table_po.${item.line_index}.item_category_id`] =\n            arguments[0].fieldModel.item.item_category;\n          updates[`table_po.${item.line_index}.item_desc`] = resolveItemDesc(\n            arguments[0].fieldModel.item,\n            supplierID,\n          );\n          updates[`table_po.${item.line_index}.item_name`] =\n            arguments[0].fieldModel.item.material_name;\n          updates[`table_po.${item.line_index}.further_description`] =\n            arguments[0].fieldModel.item.further_description;\n        }\n        await this.setData(updates);\n        await this.triggerEvent(\"POcalculation\");\n      },\n      (error) => {\n        console.log(\"error\", error);\n      },\n    );\n\n    this.setData({\n      [`table_po.${rowIndex}.alt_uom`]: JSON.stringify(\n        arguments[0].fieldModel.item.table_uom_conversion,\n      ),\n    });\n\n    this.refreshFieldOptionData([\n      `table_po.${rowIndex}.quantity_uom`,\n      `table_po.${rowIndex}.tax_percent`,\n    ]);\n  } else if (!arguments[0].fieldModel && poItem) {\n    const rowIndex = arguments[0].index;\n    if (poItem.item_id) {\n      const resItem = await db\n        .collection(\"Item\")\n        .where({ id: poItem.item_id })\n        .get();\n\n      if (resItem && resItem.data.length > 0) {\n        const itemData = resItem.data[0];\n      }\n    }\n\n    this.setData({\n      [`table_po.${rowIndex}.alt_uom`]: JSON.stringify(poItem.alt_uom),\n    });\n\n    this.refreshFieldOptionData([\n      `table_po.${rowIndex}.quantity_uom`,\n      `table_po.${rowIndex}.tax_percent`,\n    ]);\n  } else if (!arguments[0].value) {\n    await resetData(rowIndex);\n  } else {\n    const tablePO = this.getValue(\"table_po\");\n    for (const [rowIndex, po] of tablePO.entries()) {\n      console.log(po.quantity_uom);\n      if (po.quantity_uom) {\n        this.refreshFieldOptionData([\n          `table_po.${rowIndex}.quantity_uom`,\n          `table_po.${rowIndex}.tax_percent`,\n        ]);\n      }\n    }\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -13972,28 +14638,28 @@
       {
         "key": "g87hzp9l",
         "name": "onClick_open_billing_address",
-        "func": "const data = this.getValues();\n\nthis.toView({\n  target: \"1905102178127777793\",\n  targetType: \"Page\",\n  mode: \"dialog\",\n  type: \"add\",\n  position: \"right\",\n  title: \"Manage Billing Address\",\n  params: {\n    address_purpose: \"Billing\",\n    address_line1: data.billing_address_line_1,\n    address_line2: data.billing_address_line_2,\n    address_line3: data.billing_address_line_3,\n    address_line4: data.billing_address_line_4,\n    city: data.billing_address_city,\n    postal_code: data.billing_postal_code,\n    state: data.billing_address_state,\n    country: data.billing_address_country,\n    moduleName: \"po\",\n    address_name: data.billing_address_name,\n    address_phone: data.billing_address_phone,\n    address_attention: data.billing_attention,\n    acc_integration_type: data.acc_integration_type,\n    address_fax: data.billing_address_fax\n  },\n});\n",
+        "func": "const data = this.getValues();\n\nthis.toView({\n  target: \"1905102178127777793\",\n  targetType: \"Page\",\n  mode: \"dialog\",\n  type: \"add\",\n  position: \"right\",\n  title: \"Manage Billing Address\",\n  params: {\n    plant_id: data.po_plant,\n    address_purpose: \"Billing\",\n    address_line1: data.billing_address_line_1,\n    address_line2: data.billing_address_line_2,\n    address_line3: data.billing_address_line_3,\n    address_line4: data.billing_address_line_4,\n    city: data.billing_address_city,\n    postal_code: data.billing_postal_code,\n    state: data.billing_address_state,\n    country: data.billing_address_country,\n    moduleName: \"po\",\n    address_name: data.billing_address_name,\n    address_phone: data.billing_address_phone,\n    address_attention: data.billing_attention,\n    acc_integration_type: data.acc_integration_type,\n    address_fax: data.billing_address_fax\n  },\n});\n",
         "type": "js",
         "rules": []
       },
       {
         "key": "1vdaekv3",
         "name": "onChange_plant",
-        "func": "const resetAddrFields = async () => {\n  this.setData({\n    'po_shipping_address': '',\n    'po_billing_address': '',\n    'billing_address_line_1': '',\n    'billing_address_line_2': '',\n    'billing_address_line_3': '',\n    'billing_address_line_4': '',\n    'billing_address_city': '',\n    'billing_address_state': '',\n    'billing_postal_code': '',\n    'billing_address_country': '',\n    'billing_address_name': \"\",\n    'billing_address_phone': \"\",\n    'billing_attention': \"\",\n    'shipping_address_line_1': '',\n    'shipping_address_line_2': '',\n    'shipping_address_line_3': '',\n    'shipping_address_line_4': '',\n    'shipping_address_city': '',\n    'shipping_address_state': '',\n    'shipping_postal_code': '',\n    'shipping_address_country': '',\n    'shipping_address_name': \"\",\n    'shipping_address_phone': \"\",\n    'shipping_attention': \"\",\n    'billing_address_fax': '',\n    'shipping_address_fax': ''\n    });\n}\n\nconst setAddressFields = (addressType, address) => {\n    this.setData({\n    [`${addressType}_address_line_1`]: address.address_line_1,\n    [`${addressType}_address_line_2`]: address.address_line_2,\n    [`${addressType}_address_line_3`]: address.address_line_3,\n    [`${addressType}_address_line_4`]: address.address_line_4,\n    [`${addressType}_address_city`]: address.address_city,\n    [`${addressType}_address_state`]: address.address_state,\n    [`${addressType}_postal_code`]: address.address_postal_code,\n    [`${addressType}_address_country`]: address.address_country_id,\n    [`${addressType}_address_name`]: address.address_name,\n    [`${addressType}_address_phone`]: address.address_phone,\n    [`${addressType}_attention`]: address.address_attention,\n    });\n};\n\n(async () => {\n  \n  const data = this.getValues();\n  console.log('arguments', arguments[0])\n  const plant = this.getValue('po_plant');\n\n  if (plant) {\n    this.display('address_grid');\n    await resetAddrFields();\n\n    const [resShipping, resPlant] = await Promise.all([\n        db.collection('address_purpose').where({ purpose_name: 'Shipping' }).get(),\n        db.collection('plant_address').where({ plant_id: plant }).get(), ])\n\n    if (resPlant.data.length === 0 || resShipping.data.length === 0) return;\n\n    const addresses = resPlant.data;\n    const shippingAddrId = resShipping.data[0].id;\n\n    addresses.forEach(async (address) => {\n\n      let country = '';\n      let state = '';\n\n      if(address.address_country_id) {\n          const resCountry = await db.collection(\"country\").where({ id: address.address_country_id }).get();\n          country = resCountry?.data[0]?.country_name || '';\n      }\n\n      if(address.address_state) {\n          const resState = await db.collection(\"state\").where({ id: address.address_state }).get();\n          state = resState?.data[0]?.state_name || '';\n      }\n\n      const isShipping = address.plant_purpose === shippingAddrId;\n      const addressType = isShipping ? 'shipping' : 'billing';\n      const addressTypeUpperCase = isShipping ? \"Shipping\" : \"Billing\";\n\n      const addressLines = [\n        address.address_line_1,\n        address.address_line_2,\n        address.address_line_3,\n        address.address_line_4,\n      ]\n      .filter((line) => line) \n      .join(\n        ([address.address_line_1, address.address_line_2, address.address_line_3, address.address_line_4]\n          .filter((line) => line)\n          .pop() || \"\").endsWith(\",\") ? \" \" : \", \"\n      );\n\n      const cityDetails = [\n        address.address_city,\n        address.address_postal_code,\n        address.address_state ? state : '',\n        address.address_country_id ? country : \"\"\n      ]\n      .filter((detail) => detail) \n      .join(\n        ([address.address_city, address.address_postal_code, address.address_state ? state : '', address.address_country_id ? country : \"\"]\n          .filter((detail) => detail)\n          .pop() || \"\").endsWith(\",\") ? \" \" : \", \"\n      );\n\n      const addressAttention = address.address_attention ? '\\nAttention: ' + address.address_attention : ''\n\n      const addressPurposeName =`\\n${addressTypeUpperCase}` + ' Address';\n\n      const addressPersonParts = [\n      address.address_name,\n      address.address_phone\n      ].filter((part) => part); // Remove undefined or null\n      const addressPerson = addressPersonParts.length > 0 ? addressPersonParts.join(' | ') : '';\n                \n      const formattedAddress = [\n        addressPerson,\n        addressPurposeName,\n        addressLines,\n        cityDetails,\n        addressAttention\n      ].filter(Boolean).join('\\n');\n\n        setAddressFields(\n        addressType,\n        address,\n        );\n\n        if(addressType === 'shipping') {\n        this.setData({ 'po_shipping_address': formattedAddress });\n        } else {\n        this.setData({ \n            'po_billing_address': formattedAddress, \n            });\n        }\n    });\n  }\n})();",
+        "func": "const resetAddrFields = async () => {\n  this.setData({\n    'po_shipping_address': '',\n    'po_billing_address': '',\n    'billing_address_line_1': '',\n    'billing_address_line_2': '',\n    'billing_address_line_3': '',\n    'billing_address_line_4': '',\n    'billing_address_city': '',\n    'billing_address_state': '',\n    'billing_postal_code': '',\n    'billing_address_country': '',\n    'billing_address_name': \"\",\n    'billing_address_phone': \"\",\n    'billing_attention': \"\",\n    'shipping_address_line_1': '',\n    'shipping_address_line_2': '',\n    'shipping_address_line_3': '',\n    'shipping_address_line_4': '',\n    'shipping_address_city': '',\n    'shipping_address_state': '',\n    'shipping_postal_code': '',\n    'shipping_address_country': '',\n    'shipping_address_name': \"\",\n    'shipping_address_phone': \"\",\n    'shipping_attention': \"\",\n    'billing_address_fax': '',\n    'shipping_address_fax': ''\n    });\n}\n\nconst setAddressFields = (addressType, address) => {\n    this.setData({\n    [`${addressType}_address_line_1`]: address.address_line_1,\n    [`${addressType}_address_line_2`]: address.address_line_2,\n    [`${addressType}_address_line_3`]: address.address_line_3,\n    [`${addressType}_address_line_4`]: address.address_line_4,\n    [`${addressType}_address_city`]: address.address_city,\n    [`${addressType}_address_state`]: address.address_state,\n    [`${addressType}_postal_code`]: address.address_postal_code,\n    [`${addressType}_address_country`]: address.address_country_id,\n    [`${addressType}_address_name`]: address.address_name,\n    [`${addressType}_address_phone`]: address.address_phone,\n    [`${addressType}_attention`]: address.address_attention,\n    });\n};\n\n(async () => {\n  \n  const data = this.getValues();\n  console.log('arguments', arguments[0])\n  const plant = this.getValue('po_plant');\n\n  if (plant) {\n    this.display('address_grid');\n    await resetAddrFields();\n\n    const [resShipping, resPlant] = await Promise.all([\n        db.collection('address_purpose').where({ purpose_name: 'Shipping' }).get(),\n        db.collection('plant_address').where({ plant_id: plant, is_default: 1 }).get(), ])\n\n    if (resPlant.data.length === 0 || resShipping.data.length === 0) return;\n\n    const addresses = resPlant.data;\n    const shippingAddrId = resShipping.data[0].id;\n\n    addresses.forEach(async (address) => {\n\n      let country = '';\n      let state = '';\n\n      if(address.address_country_id) {\n          const resCountry = await db.collection(\"country\").where({ id: address.address_country_id }).get();\n          country = resCountry?.data[0]?.country_name || '';\n      }\n\n      if(address.address_state) {\n          const resState = await db.collection(\"state\").where({ id: address.address_state }).get();\n          state = resState?.data[0]?.state_name || '';\n      }\n\n      const isShipping = address.plant_purpose === shippingAddrId;\n      const addressType = isShipping ? 'shipping' : 'billing';\n      const addressTypeUpperCase = isShipping ? \"Shipping\" : \"Billing\";\n\n      const addressLines = [\n        address.address_line_1,\n        address.address_line_2,\n        address.address_line_3,\n        address.address_line_4,\n      ]\n      .filter((line) => line) \n      .join(\n        ([address.address_line_1, address.address_line_2, address.address_line_3, address.address_line_4]\n          .filter((line) => line)\n          .pop() || \"\").endsWith(\",\") ? \" \" : \", \"\n      );\n\n      const cityDetails = [\n        address.address_city,\n        address.address_postal_code,\n        address.address_state ? state : '',\n        address.address_country_id ? country : \"\"\n      ]\n      .filter((detail) => detail) \n      .join(\n        ([address.address_city, address.address_postal_code, address.address_state ? state : '', address.address_country_id ? country : \"\"]\n          .filter((detail) => detail)\n          .pop() || \"\").endsWith(\",\") ? \" \" : \", \"\n      );\n\n      const addressAttention = address.address_attention ? '\\nAttention: ' + address.address_attention : ''\n\n      const addressPurposeName =`\\n${addressTypeUpperCase}` + ' Address';\n\n      const addressPersonParts = [\n      address.address_name,\n      address.address_phone\n      ].filter((part) => part); // Remove undefined or null\n      const addressPerson = addressPersonParts.length > 0 ? addressPersonParts.join(' | ') : '';\n                \n      const formattedAddress = [\n        addressPerson,\n        addressPurposeName,\n        addressLines,\n        cityDetails,\n        addressAttention\n      ].filter(Boolean).join('\\n');\n\n        setAddressFields(\n        addressType,\n        address,\n        );\n\n        if(addressType === 'shipping') {\n        this.setData({ 'po_shipping_address': formattedAddress });\n        } else {\n        this.setData({ \n            'po_billing_address': formattedAddress, \n            });\n        }\n    });\n  }\n})();",
         "type": "js",
         "rules": []
       },
       {
         "key": "xozjz2dd",
         "name": "onClick_open_shipping_address",
-        "func": "const data = this.getValues();\n\nthis.toView({\n  target: \"1905102178127777793\",\n  targetType: \"Page\",\n  mode: \"dialog\",\n  type: \"add\",\n  position: \"right\",\n  title: \"Manage Shipping Address\",\n  params: {\n    address_purpose: \"Shipping\",\n    address_line1: data.shipping_address_line_1,\n    address_line2: data.shipping_address_line_2,\n    address_line3: data.shipping_address_line_3,\n    address_line4: data.shipping_address_line_4,\n    city: data.shipping_address_city,\n    postal_code: data.shipping_postal_code,\n    state: data.shipping_address_state,\n    country: data.shipping_address_country,\n    moduleName: \"po\",\n    address_name: data.shipping_address_name,\n    address_phone: data.shipping_address_phone,\n    address_attention: data.shipping_attention,\n    acc_integration_type: data.acc_integration_type,\n    address_fax: data.shipping_address_fax\n  },\n});",
+        "func": "const data = this.getValues();\n\nthis.toView({\n  target: \"1905102178127777793\",\n  targetType: \"Page\",\n  mode: \"dialog\",\n  type: \"add\",\n  position: \"right\",\n  title: \"Manage Shipping Address\",\n  params: {\n    plant_id: data.po_plant,\n    address_purpose: \"Shipping\",\n    address_line1: data.shipping_address_line_1,\n    address_line2: data.shipping_address_line_2,\n    address_line3: data.shipping_address_line_3,\n    address_line4: data.shipping_address_line_4,\n    city: data.shipping_address_city,\n    postal_code: data.shipping_postal_code,\n    state: data.shipping_address_state,\n    country: data.shipping_address_country,\n    moduleName: \"po\",\n    address_name: data.shipping_address_name,\n    address_phone: data.shipping_address_phone,\n    address_attention: data.shipping_attention,\n    acc_integration_type: data.acc_integration_type,\n    address_fax: data.shipping_address_fax\n  },\n});",
         "type": "js",
         "rules": []
       },
       {
         "key": "xx3z0lyn",
         "name": "onClick_save_issued",
-        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst saveWorkflow = async (data) => {\n  await this.runWorkflow(\n    \"2069257894280118274\",\n    { allData: data },\n    (res) => {\n      this.$message.success(`${this.isEdit ? \"Update\" : \"Add\"} successfully`);\n      closeDialog();\n    },\n    async (error) => {\n      this.hideLoading();\n      console.error(error);\n      if (error.data?.code === 402) {\n        await this.$confirm(\n          `${error.data.msg}<br><br><strong>Do you wish to continue?</strong>`,\n          `Existing draft records detected`,\n          {\n            confirmButtonText: \"Proceed\",\n            cancelButtonText: \"Cancel\",\n            type: \"error\",\n            dangerouslyUseHTMLString: true,\n          },\n        ).catch(async () => {\n          console.log(\"User clicked Cancel or closed the dialog\");\n          this.hideLoading();\n          throw new Error(\"Saving purchase order cancelled.\");\n        });\n\n        this.showLoading(\"Saving Purchase Orders...\");\n        await this.runWorkflow(\n          \"1998576990124572673\",\n          { po_id: data.id },\n          async (res) => {\n            await saveWorkflow(data);\n          },\n          (error) => {\n            this.hideLoading();\n            this.$message.error(error || error.toString());\n            console.error(error);\n          },\n        );\n      }\n    },\n  );\n};\n\n(async () => {\n  this.showLoading(\"Saving Purchase Orders...\");\n  const data = this.getValues();\n  let entry = data;\n  console.log(\"data\", data);\n  for (const [index, lineItem] of data.table_po.entries()) {\n    await this.validate(`table_po.${index}.unit_price`);\n  }\n\n  entry.po_status = \"Issued\";\n\n  const {\n    draft_status,\n    issued_status,\n    processing_status,\n    completed_status,\n    cancelled_status,\n    ...cleanData\n  } = entry;\n\n  await saveWorkflow(cleanData);\n})();\n",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\n// Escape dynamic text before injecting into dangerouslyUseHTMLString dialogs.\nconst escapeHtml = (s) =>\n  String(s ?? \"\").replace(\n    /[&<>\"']/g,\n    (c) =>\n      ({\n        \"&\": \"&amp;\",\n        \"<\": \"&lt;\",\n        \">\": \"&gt;\",\n        '\"': \"&quot;\",\n        \"'\": \"&#39;\",\n      })[c],\n  );\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    // Check for the specific error structure: { \"table_so.1dz9gq2q.so_item_price\": { \"message\": \"...\" } }\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const value = obj[key];\n        // If value has a message property, return it\n        if (value && typeof value === \"object\" && value.message) {\n          return value.message;\n        }\n        // Recursively search\n        const found = findFieldMessage(value);\n        if (found) return found;\n      }\n    }\n  }\n  return null;\n};\nconst saveWorkflow = async (data) => {\n  await this.runWorkflow(\n    \"2069257894280118274\",\n    { allData: data },\n    async (res) => {\n      // The pre-save gate returns code 200 with { so_confirm, msg } when it needs\n      // a user decision — so it does NOT trigger the platform's error toast.\n      const out = (res && res.data && res.data.data) || (res && res.data) || {};\n      const soConfirm = Number(out.so_confirm);\n\n      if (soConfirm === 406) {\n        // Not eligible (item not in Item Alias / currency mismatch).\n        this.hideLoading();\n        const proceed = await this.$confirm(\n          `${escapeHtml(out.msg)}<br><br><strong>If you proceed, the purchase order will be issued but no Sales Order will be created or linked. Continue?</strong>`,\n          `Auto-create Sales Order skipped`,\n          {\n            confirmButtonText: \"Proceed\",\n            cancelButtonText: \"Cancel\",\n            type: \"warning\",\n            dangerouslyUseHTMLString: true,\n          },\n        )\n          .then(() => true)\n          .catch(() => false);\n        if (!proceed) {\n          this.hideLoading();\n          return;\n        }\n        this.showLoading(\"Saving Purchase Orders...\");\n        data.auto_so_skip = true;\n        await saveWorkflow(data);\n        return;\n      }\n\n      if (soConfirm === 408) {\n        // Eligible — ask whether to auto-create the linked Sales Order.\n        this.hideLoading();\n        const createSO = await this.$confirm(\n          `${escapeHtml(out.msg)}<br><br><strong>Do you want to auto-create the linked Sales Order now?</strong>`,\n          `Internal Trading – Auto-create Sales Order`,\n          {\n            confirmButtonText: \"Yes, create SO\",\n            cancelButtonText: \"No, issue without SO\",\n            type: \"info\",\n            dangerouslyUseHTMLString: true,\n          },\n        )\n          .then(() => true)\n          .catch(() => false);\n        this.showLoading(\"Saving Purchase Orders...\");\n        if (createSO) {\n          data.auto_so_confirmed = true;\n        } else {\n          data.auto_so_skip = true;\n        }\n        await saveWorkflow(data);\n        return;\n      }\n\n      if (soConfirm === 409) {\n        // Linked PO no longer eligible — confirm unlinking the SO.\n        this.hideLoading();\n        const proceed = await this.$confirm(\n          `${escapeHtml(out.msg)}<br><br><strong>Proceed and issue the purchase order unlinked?</strong>`,\n          `Sales Order will be unlinked`,\n          {\n            confirmButtonText: \"Proceed\",\n            cancelButtonText: \"Cancel\",\n            type: \"warning\",\n            dangerouslyUseHTMLString: true,\n          },\n        )\n          .then(() => true)\n          .catch(() => false);\n        if (!proceed) {\n          this.hideLoading();\n          return;\n        }\n        this.showLoading(\"Saving Purchase Orders...\");\n        data.unlink_confirmed = true;\n        await saveWorkflow(data);\n        return;\n      }\n\n      if (soConfirm === 410) {\n        // Supplier changed to a different internal org — unlink old + create new.\n        this.hideLoading();\n        const proceed = await this.$confirm(\n          `${escapeHtml(out.msg)}<br><br><strong>Proceed?</strong>`,\n          `Internal Trading – Re-link Sales Order`,\n          {\n            confirmButtonText: \"Proceed\",\n            cancelButtonText: \"Cancel\",\n            type: \"warning\",\n            dangerouslyUseHTMLString: true,\n          },\n        )\n          .then(() => true)\n          .catch(() => false);\n        if (!proceed) {\n          this.hideLoading();\n          return;\n        }\n        this.showLoading(\"Saving Purchase Orders...\");\n        data.swap_confirmed = true;\n        await saveWorkflow(data);\n        return;\n      }\n\n      if (soConfirm === 411) {\n        // Linked SO already being fulfilled — block the edit (no retry).\n        this.hideLoading();\n        await this.$alert(\n          `${escapeHtml(out.msg)}<br><br>The purchase order was not saved.`,\n          \"Cannot edit a fulfilled Sales Order's purchase order\",\n          {\n            confirmButtonText: \"OK\",\n            type: \"error\",\n            dangerouslyUseHTMLString: true,\n          },\n        );\n        this.hideLoading();\n        return;\n      }\n\n      if (soConfirm === 412) {\n        // PO saved, but reflecting changes into the linked SO failed (non-blocking).\n        this.hideLoading();\n        await this.$alert(\n          `The purchase order was saved, but the linked Sales Order could not be updated:<br><br>${escapeHtml(out.msg)}<br><br>Please update the Sales Order manually or contact your administrator.`,\n          \"Sales Order not updated\",\n          {\n            confirmButtonText: \"OK\",\n            type: \"warning\",\n            dangerouslyUseHTMLString: true,\n          },\n        );\n        closeDialog();\n        return;\n      }\n\n      // Normal success.\n      this.$message.success(`${this.isEdit ? \"Update\" : \"Add\"} successfully`);\n      closeDialog();\n    },\n    async (error) => {\n      this.hideLoading();\n      console.error(error);\n      if (error.data?.code === 402) {\n        // 402 - Existing draft GR/PI: delete then retry\n        const proceed = await this.$confirm(\n          `${escapeHtml(error.data.msg)}<br><br><strong>Do you wish to continue?</strong>`,\n          `Existing draft records detected`,\n          {\n            confirmButtonText: \"Proceed\",\n            cancelButtonText: \"Cancel\",\n            type: \"error\",\n            dangerouslyUseHTMLString: true,\n          },\n        )\n          .then(() => true)\n          .catch(() => false);\n\n        if (!proceed) {\n          // User cancelled — close quietly, not an error.\n          this.hideLoading();\n          return;\n        }\n\n        this.showLoading(\"Saving Purchase Orders...\");\n        await this.runWorkflow(\n          \"1998576990124572673\",\n          { po_id: data.id },\n          async (res) => {\n            await saveWorkflow(data);\n          },\n          (error) => {\n            this.hideLoading();\n            this.$message.error(error || error.toString());\n            console.error(error);\n          },\n        );\n      } else if (error.data?.code === 407) {\n        // 407 - PO was issued, but the linked Sales Order auto-creation failed.\n        // Non-blocking: the PO is already saved; just inform the user.\n        await this.$alert(\n          `The purchase order was issued successfully, but the linked Sales Order could not be created automatically:<br><br>${escapeHtml(error.data.msg)}<br><br>Please create the Sales Order manually or contact your administrator.`,\n          \"Sales Order not created\",\n          {\n            confirmButtonText: \"OK\",\n            type: \"warning\",\n            dangerouslyUseHTMLString: true,\n          },\n        );\n        closeDialog();\n      } else {\n        this.$message.error(error.data?.msg || error.toString());\n      }\n    },\n  );\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Saving Purchase Orders...\");\n    const data = this.getValues();\n    let entry = data;\n    console.log(\"data\", data);\n    for (const [index, lineItem] of data.table_po.entries()) {\n      await this.validate([`table_po.${index}.unit_price`, `table_po.${index}.quantity`]);\n    }\n\n    entry.po_status = \"Issued\";\n\n    const {\n      draft_status,\n      issued_status,\n      processing_status,\n      completed_status,\n      cancelled_status,\n      ...cleanData\n    } = entry;\n\n    await saveWorkflow(cleanData);\n  } catch (error) {\n    console.error(\"error\", error);\n    this.hideLoading();\n    // Try to get message from standard locations first\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || error.toString();\n    } else {\n      errorMessage = error.toString() || error.message;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(errorMessage);\n  }\n})();\n",
         "type": "js",
         "rules": []
       },
@@ -14044,7 +14710,7 @@
       {
         "key": "jgotfd7h",
         "name": "onConfirm_batchAddItem",
-        "func": "(async () => {\n  const currentItemArray = arguments[0].itemArray;\n  const poLineItems = this.getValue(\"table_po\");\n  const itemArray = [];\n  const supplierID = this.getValue(\"po_supplier_id\");\n  const plantID = this.getValue(\"po_plant\");\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\"Please select at least one item.\", \"Error\", {\n      confirmButtonText: \"OK\",\n      type: \"error\",\n    });\n\n    return;\n  }\n\n  for (const item of currentItemArray) {\n    const poItem = {\n      item_id: item.id,\n      item_name: item.material_name,\n      item_desc: item.material_desc,\n      unit_price: item.purchase_unit_price || 0,\n      item_category_id: item.item_category,\n      tax_preference: item.mat_purchase_tax_id || null,\n      tax_percent: item.purchase_tax_percent || null,\n      quantity_uom: item.purchase_default_uom || item.based_uom,\n    };\n\n    itemArray.push(poItem);\n  }\n\n  await this.setData({\n    table_po: [...poLineItems, ...itemArray],\n  });\n\n  this.closeDialog(\"dialog_item_selection\");\n\n  setTimeout(async () => {\n    for (const [index, item] of currentItemArray.entries()) {\n      const newIndex = poLineItems.length + index;\n      this.setData({\n        [`table_po.${newIndex}.alt_uom`]: JSON.stringify(\n          item.table_uom_conversion,\n        ),\n      });\n\n      this.disabled([`table_po.${newIndex}.quantity_uom`], false);\n      this.refreshFieldOptionData([`table_po.${newIndex}.quantity_uom`]);\n\n      if (item.mat_purchase_tax_id) {\n        this.disabled([`table_po.${newIndex}.tax_percent`], false);\n      }\n    }\n\n    await this.runWorkflow(\n      \"2067818102244966401\",\n      {\n        document_type: \"PO\",\n        supp_cust_id: supplierID,\n        plant_id: plantID,\n        item_data: itemArray.map((item, index) => {\n          return {\n            item_id: item.item_id,\n            unit_price: item.unit_price,\n            line_index: poLineItems.length + index,\n            uom_id: item.quantity_uom,\n            tax_rate: item.tax_preference || null,\n            tax_percent: item.tax_percent || null,\n          };\n        }),\n      },\n      async (result) => {\n        console.log(\"result\", result);\n        const updates = {};\n\n        for (const item of result.data.data) {\n          updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;\n          updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;\n          updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;\n          updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;\n          updates[`table_po.${item.line_index}.from_historical`] =\n            item.from_historical;\n          updates[`table_po.${item.line_index}.max_price`] = item.max_price;\n          updates[`table_po.${item.line_index}.min_price`] = item.min_price;\n          updates[`table_po.${item.line_index}.quantity`] = item.quantity;\n          updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n          updates[`table_po.${item.line_index}.discount`] = item.discount;\n          updates[`table_po.${item.line_index}.discount_uom`] =\n            item.discount_uom;\n        }\n\n        await this.setData(updates);\n        await this.triggerEvent(\"POcalculation\");\n      },\n      (error) => {\n        console.log(\"error\", error);\n      },\n    );\n  }, 50);\n})();\n",
+        "func": "// Pick the description this supplier has bound to the item on the Item master.\n// Reads table_sup_item_bind (supplier_id / item_description) -- NOT the customer\n// twin. An item may carry several rows for the same supplier: take the first one\n// that actually has a description. Falls back to the item's own material_desc.\nconst resolveItemDesc = (item, supplierId) => {\n  const fallback = item?.material_desc || \"\";\n  if (!supplierId || Array.isArray(supplierId)) return fallback;\n\n  const binds = Array.isArray(item?.table_sup_item_bind)\n    ? item.table_sup_item_bind\n    : [];\n  const wanted = String(supplierId).trim();\n\n  for (const row of binds) {\n    if (!row) continue;\n    if (String(row.supplier_id ?? \"\").trim() !== wanted) continue;\n    const desc = String(row.item_description ?? \"\").trim();\n    if (desc) return desc;\n  }\n\n  return fallback;\n};\n\n(async () => {\n  const currentItemArray = arguments[0].itemArray;\n  const poLineItems = this.getValue(\"table_po\");\n  const itemArray = [];\n  const supplierID = this.getValue(\"po_supplier_id\");\n  const plantID = this.getValue(\"po_plant\");\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\"Please select at least one item.\", \"Error\", {\n      confirmButtonText: \"OK\",\n      type: \"error\",\n    });\n\n    return;\n  }\n\n  for (const item of currentItemArray) {\n    let defaultPurchaseDetail = item.table_uom_conversion.find(\n      (uom) => uom.purchase_default_uom === 1,\n    );\n\n    if (!defaultPurchaseDetail) {\n      defaultPurchaseDetail = item.table_uom_conversion.find(\n        (uom) => uom.alt_uom_id === item.based_uom,\n      );\n    }\n\n    const poItem = {\n      item_id: item.id,\n      item_name: item.material_name,\n      item_desc: resolveItemDesc(item, supplierID),\n      unit_price: defaultPurchaseDetail.purchase_unit_price || 0,\n      item_category_id: item.item_category,\n      tax_preference: defaultPurchaseDetail.mat_purchase_tax_id || null,\n      tax_percent: defaultPurchaseDetail.purchase_tax_percent || null,\n      quantity_uom: defaultPurchaseDetail.alt_uom_id || null,\n      further_description: item.further_description,\n    };\n\n    itemArray.push(poItem);\n  }\n\n  await this.setData({\n    table_po: [...poLineItems, ...itemArray],\n  });\n\n  this.closeDialog(\"dialog_item_selection\");\n\n  setTimeout(async () => {\n    for (const [index, item] of currentItemArray.entries()) {\n      const newIndex = poLineItems.length + index;\n      this.setData({\n        [`table_po.${newIndex}.alt_uom`]: JSON.stringify(\n          item.table_uom_conversion,\n        ),\n      });\n\n      this.disabled([`table_po.${newIndex}.quantity_uom`], false);\n      this.refreshFieldOptionData([`table_po.${newIndex}.quantity_uom`]);\n\n      if (item.mat_purchase_tax_id) {\n        this.disabled([`table_po.${newIndex}.tax_percent`], false);\n      }\n    }\n\n    await this.runWorkflow(\n      \"2067818102244966401\",\n      {\n        document_type: \"PO\",\n        supp_cust_id: supplierID,\n        plant_id: plantID,\n        item_data: itemArray.map((item, index) => {\n          return {\n            item_id: item.item_id,\n            unit_price: item.unit_price,\n            line_index: poLineItems.length + index,\n            uom_id: item.quantity_uom,\n            tax_rate: item.tax_preference || null,\n            tax_percent: item.tax_percent || null,\n          };\n        }),\n      },\n      async (result) => {\n        console.log(\"result\", result);\n        const updates = {};\n\n        for (const item of result.data.data) {\n          updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;\n          updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;\n          updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;\n          updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;\n          updates[`table_po.${item.line_index}.from_historical`] =\n            item.from_historical;\n          updates[`table_po.${item.line_index}.max_price`] = item.max_price;\n          updates[`table_po.${item.line_index}.min_price`] = item.min_price;\n          updates[`table_po.${item.line_index}.quantity`] = item.quantity;\n          updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n          updates[`table_po.${item.line_index}.discount`] = item.discount;\n          updates[`table_po.${item.line_index}.discount_uom`] =\n            item.discount_uom;\n        }\n\n        await this.setData(updates);\n        await this.triggerEvent(\"POcalculation\");\n      },\n      (error) => {\n        console.log(\"error\", error);\n      },\n    );\n  }, 50);\n})();\n",
         "type": "js"
       },
       {
@@ -14062,7 +14728,7 @@
       {
         "key": "c8wb3138",
         "name": "onBlur_quantity",
-        "func": "(async () => {\n  const data = this.getValues();\n  console.log('data', data)\n  console.log('arguments[0]', arguments[0])\n  const quantity = arguments[0].value\n  const moq = arguments[0].row.moq_qty\n  if (arguments[0].row.from_historical === 0 && quantity >= moq) {\n    const supplierID = this.getValue(\"po_supplier_id\");\n    const plantID = this.getValue(\"po_plant\");\n\n    await this.runWorkflow(\n      \"2067818102244966401\",\n      {\n        document_type: \"PO\",\n        supp_cust_id: supplierID,\n        plant_id: plantID,\n        item_data: [\n          {\n            item_id: arguments[0].row.item_id,\n            unit_price: arguments[0].row.unit_price,\n            line_index: arguments[0].rowIndex,\n            uom_id: arguments[0].row.quantity_uom,\n            tax_rate: arguments[0].row.tax_preference || null,\n            tax_percent: arguments[0].row.tax_percent || null,\n            quantity: arguments[0].value,\n            discount: arguments[0].row.discount,\n            discount_uom: arguments[0].row.discount_uom,\n          },\n        ],\n      },\n      async (result) => {\n        console.log(\"result\", result);\n        const updates = {};\n\n        if (result.data.needOverwrite === \"No\") return;\n\n        await this.$confirm(\n          \"Multipricing found for this item. Do you want to use it?\",\n          \"Confirmation\",\n          {\n            confirmButtonText: \"Overwrite\",\n            cancelButtonText: \"Keep\",\n            dangerouslyUseHTMLString: true,\n            type: \"info\",\n            distinguishCancelAndClose: true,\n\n            beforeClose: async (action, instance, done) => {\n              if (action === \"confirm\") {\n                for (const item of result.data.data) {\n                  updates[`table_po.${item.line_index}.unit_price`] =\n                    item.unit_price;\n                  updates[`table_po.${item.line_index}.quantity_uom`] =\n                    item.uom_id;\n                  updates[`table_po.${item.line_index}.tax_preference`] =\n                    item.tax_rate;\n                  updates[`table_po.${item.line_index}.tax_percent`] =\n                    item.tax_percent;\n                  updates[`table_po.${item.line_index}.from_historical`] =\n                    item.from_historical;\n                  updates[`table_po.${item.line_index}.max_price`] =\n                    item.max_price;\n                  updates[`table_po.${item.line_index}.min_price`] =\n                    item.min_price;\n                  updates[`table_po.${item.line_index}.quantity`] =\n                    item.quantity;\n                  updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n                  updates[`table_po.${item.line_index}.discount`] =\n                    item.discount;\n                  updates[`table_po.${item.line_index}.discount_uom`] =\n                    item.discount_uom;\n                }\n\n                await this.setData(updates);\n                await this.triggerEvent(\"POcalculation\");\n                done();\n              } else if (action === \"cancel\") {\n                done();\n              } else {\n                done();\n              }\n            },\n          },\n        );\n      },\n      (error) => {\n        console.log(\"error\", error);\n      },\n    );\n  }\n})();\n",
+        "func": "(async () => {\n  const data = this.getValues();\n  const quantity = arguments[0].row.quantity;\n  const uomID = arguments[0].row.quantity_uom;\n  const moq = arguments[0].row.moq_qty;\n  let callWorkflow = false;\n\n  if (arguments[0].row.from_historical === 0) {\n    if (arguments[0].field === \"quantity\" && quantity >= moq) {\n      callWorkflow = true;\n    } else if (arguments[0].field === \"quantity_uom\") {\n      callWorkflow = true;\n    }\n  }\n\n  if (callWorkflow) {\n    const supplierID = this.getValue(\"po_supplier_id\");\n    const plantID = this.getValue(\"po_plant\");\n\n    await this.runWorkflow(\n      \"2067818102244966401\",\n      {\n        document_type: \"PO\",\n        supp_cust_id: supplierID,\n        plant_id: plantID,\n        item_data: [\n          {\n            item_id: arguments[0].row.item_id,\n            unit_price: arguments[0].row.unit_price,\n            line_index: arguments[0].rowIndex,\n            uom_id: arguments[0].row.quantity_uom,\n            tax_rate: arguments[0].row.tax_preference || null,\n            tax_percent: arguments[0].row.tax_percent || null,\n            quantity: arguments[0].row.quantity,\n            discount: arguments[0].row.discount,\n            discount_uom: arguments[0].row.discount_uom,\n          },\n        ],\n      },\n      async (result) => {\n        console.log(\"result\", result);\n        const updates = {};\n\n        if (result.data.needOverwrite === \"No\") {\n          for (const item of result.data.data) {\n            updates[`table_po.${item.line_index}.max_price`] = item.max_price;\n            updates[`table_po.${item.line_index}.min_price`] = item.min_price;\n            updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n          }\n\n          await this.setData(updates);\n          return;\n        }\n\n        await this.$confirm(\n          \"Multipricing found for this item. Do you want to use it?\",\n          \"Confirmation\",\n          {\n            confirmButtonText: \"Overwrite\",\n            cancelButtonText: \"Keep\",\n            dangerouslyUseHTMLString: true,\n            type: \"info\",\n            distinguishCancelAndClose: true,\n\n            beforeClose: async (action, instance, done) => {\n              if (action === \"confirm\") {\n                for (const item of result.data.data) {\n                  updates[`table_po.${item.line_index}.unit_price`] =\n                    item.unit_price;\n                  updates[`table_po.${item.line_index}.quantity_uom`] =\n                    item.uom_id;\n                  updates[`table_po.${item.line_index}.tax_preference`] =\n                    item.tax_rate;\n                  updates[`table_po.${item.line_index}.tax_percent`] =\n                    item.tax_percent;\n                  updates[`table_po.${item.line_index}.from_historical`] =\n                    item.from_historical;\n                  updates[`table_po.${item.line_index}.max_price`] =\n                    item.max_price;\n                  updates[`table_po.${item.line_index}.min_price`] =\n                    item.min_price;\n                  updates[`table_po.${item.line_index}.quantity`] =\n                    item.quantity;\n                  updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n                  updates[`table_po.${item.line_index}.discount`] =\n                    item.discount;\n                  updates[`table_po.${item.line_index}.discount_uom`] =\n                    item.discount_uom;\n                }\n\n                await this.setData(updates);\n                await this.triggerEvent(\"POcalculation\");\n                done();\n              } else if (action === \"cancel\") {\n                for (const item of result.data.data) {\n                  updates[`table_po.${item.line_index}.max_price`] =\n                    item.max_price;\n                  updates[`table_po.${item.line_index}.min_price`] =\n                    item.min_price;\n                  updates[`table_po.${item.line_index}.moq_qty`] = item.moq;\n                }\n\n                await this.setData(updates);\n                done();\n              } else {\n                done();\n              }\n            },\n          },\n        );\n      },\n      (error) => {\n        console.log(\"error\", error);\n      },\n    );\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -14125,13 +14791,13 @@
       {
         "key": "jvp0faus",
         "name": "onConfirm_applyPriceHistory",
-        "func": "(async () => {\n  const currentItemArray = arguments[0].selectedRecords;\n  const poLineItems = this.getValue(\"table_po\");\n  let updates = {};\n  let latestPOItems = [];\n\n  if (currentItemArray.length === 0) {\n    return;\n  }\n\n  let organizationId = this.getVarGlobal(\"deptParentId\");\n  if (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  }\n\n  const resPOItem = await Promise.all(\n    currentItemArray.map((record) =>\n      db.collection(\"purchase_order_2ukyuanr_sub\").doc(record.id).get(),\n    ),\n  );\n\n  const poItemData = resPOItem.map((response) => response.data[0]);\n  const itemArray = [];\n\n  for (const item of poItemData) {\n    const matchedSelectedRecord = currentItemArray.find(\n      (record) => record.id === item.id,\n    );\n    const poItem = {\n      item_id: item.item_id,\n      item_name: item.item_name,\n      item_desc: item.item_desc,\n      more_desc: item.more_desc,\n      quantity: matchedSelectedRecord\n        ? matchedSelectedRecord.quantity\n        : item.quantity,\n      quantity_uom: item.quantity_uom,\n      unit_price: matchedSelectedRecord\n        ? matchedSelectedRecord.unit_price\n        : item.unit_price,\n      gross: item.gross,\n      discount: item.discount,\n      discount_uom: item.discount_uom,\n      discount_amount: item.discount_amount,\n      tax_preference: item.tax_preference,\n      tax_percent: item.tax_percent,\n      tax_amount: item.tax_amount,\n      tax_inclusive: item.tax_inclusive,\n      po_amount: item.po_amount,\n      line_remark_1: item.line_remark_1,\n      line_remark_2: item.line_remark_2,\n      item_category_id: item.item_category_id,\n    };\n\n    itemArray.push(poItem);\n  }\n\n  latestPOItems = [...poLineItems, ...itemArray];\n  updates[\"table_po\"] = latestPOItems;\n  setTimeout(async () => {\n    await this.setData(updates);\n    this.triggerEvent(\"POcalculation\");\n  }, 50);\n})();\n",
+        "func": "(async () => {\n  const currentItemArray = arguments[0].selectedRecords;\n  const poLineItems = this.getValue(\"table_po\");\n  let updates = {};\n  let latestPOItems = [];\n\n  if (currentItemArray.length === 0) {\n    return;\n  }\n\n  let organizationId = this.getVarGlobal(\"deptParentId\");\n  if (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  }\n\n  const resPOItem = await Promise.all(\n    currentItemArray.map((record) =>\n      db.collection(\"purchase_order_2ukyuanr_sub\").doc(record.id).get(),\n    ),\n  );\n\n  const poItemData = resPOItem.map((response) => response.data[0]);\n  const itemArray = [];\n\n  for (const item of poItemData) {\n    const matchedSelectedRecord = currentItemArray.find(\n      (record) => record.id === item.id,\n    );\n    const poItem = {\n      item_id: item.item_id,\n      item_name: item.item_name,\n      item_desc: item.item_desc,\n      more_desc: item.more_desc,\n      quantity: matchedSelectedRecord\n        ? matchedSelectedRecord.quantity\n        : item.quantity,\n      quantity_uom: item.quantity_uom,\n      unit_price: matchedSelectedRecord\n        ? matchedSelectedRecord.unit_price\n        : item.unit_price,\n      gross: item.gross,\n      discount: item.discount,\n      discount_uom: item.discount_uom,\n      discount_amount: item.discount_amount,\n      tax_preference: item.tax_preference,\n      tax_percent: item.tax_percent,\n      tax_amount: item.tax_amount,\n      tax_inclusive: item.tax_inclusive,\n      po_amount: item.po_amount,\n      line_remark_1: item.line_remark_1,\n      line_remark_2: item.line_remark_2,\n      item_category_id: item.item_category_id,\n      further_description: item.further_description,\n    };\n\n    itemArray.push(poItem);\n  }\n\n  latestPOItems = [...poLineItems, ...itemArray];\n  updates[\"table_po\"] = latestPOItems;\n  setTimeout(async () => {\n    await this.setData(updates);\n    this.triggerEvent(\"POcalculation\");\n  }, 50);\n})();\n",
         "type": "js"
       },
       {
         "key": "w9a2fymj",
         "name": "onConfirm_applyLinePriceHistory",
-        "func": "(async () => {\n  const currentItemArray = arguments[0].selectedRecords;\n  const rowIndex = arguments[0].rowIndex;\n  const poLineItems = this.getValue(\"table_po\");\n  let updates = {};\n  let latestPOItems = [];\n\n  if (currentItemArray.length === 0) {\n    return;\n  }\n\n  let organizationId = this.getVarGlobal(\"deptParentId\");\n  if (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  }\n\n  const currentItem = currentItemArray[0];\n  const resPOItem = await db\n    .collection(\"purchase_order_2ukyuanr_sub\")\n    .doc(currentItem.id)\n    .get();\n\n  const poItemData = resPOItem.data[0];\n  const poItem = {\n    item_id: poItemData.item_id,\n    item_name: poItemData.item_name,\n    item_desc: poItemData.item_desc,\n    more_desc: poItemData.more_desc,\n    quantity: currentItem.quantity,\n    quantity_uom: poItemData.quantity_uom,\n    unit_price: currentItem.unit_price,\n    gross: poItemData.gross,\n    discount: poItemData.discount,\n    discount_uom: poItemData.discount_uom,\n    discount_amount: poItemData.discount_amount,\n    tax_preference: poItemData.tax_preference,\n    tax_percent: poItemData.tax_percent,\n    tax_amount: poItemData.tax_amount,\n    tax_inclusive: poItemData.tax_inclusive,\n    po_amount: poItemData.po_amount,\n    line_remark_1: poItemData.line_remark_1,\n    line_remark_2: poItemData.line_remark_2,\n    item_category_id: poItemData.item_category_id,\n  };\n\n  latestPOItems = [...poLineItems];\n  latestPOItems[rowIndex] = poItem;\n\n  updates[\"table_po\"] = latestPOItems;\n\n  setTimeout(async () => {\n    await this.setData(updates);\n    this.triggerEvent(\"POcalculation\");\n  }, 50);\n})();\n",
+        "func": "(async () => {\n  const currentItemArray = arguments[0].selectedRecords;\n  const rowIndex = arguments[0].rowIndex;\n  const poLineItems = this.getValue(\"table_po\");\n  let updates = {};\n  let latestPOItems = [];\n\n  if (currentItemArray.length === 0) {\n    return;\n  }\n\n  let organizationId = this.getVarGlobal(\"deptParentId\");\n  if (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  }\n\n  const currentItem = currentItemArray[0];\n  const resPOItem = await db\n    .collection(\"purchase_order_2ukyuanr_sub\")\n    .doc(currentItem.id)\n    .get();\n\n  const poItemData = resPOItem.data[0];\n  const poItem = {\n    item_id: poItemData.item_id,\n    item_name: poItemData.item_name,\n    item_desc: poItemData.item_desc,\n    more_desc: poItemData.more_desc,\n    quantity: currentItem.quantity,\n    quantity_uom: poItemData.quantity_uom,\n    unit_price: currentItem.unit_price,\n    gross: poItemData.gross,\n    discount: poItemData.discount,\n    discount_uom: poItemData.discount_uom,\n    discount_amount: poItemData.discount_amount,\n    tax_preference: poItemData.tax_preference,\n    tax_percent: poItemData.tax_percent,\n    tax_amount: poItemData.tax_amount,\n    tax_inclusive: poItemData.tax_inclusive,\n    po_amount: poItemData.po_amount,\n    line_remark_1: poItemData.line_remark_1,\n    line_remark_2: poItemData.line_remark_2,\n    item_category_id: poItemData.item_category_id,\n    further_description: poItemData.further_description,\n  };\n\n  latestPOItems = [...poLineItems];\n  latestPOItems[rowIndex] = poItem;\n\n  updates[\"table_po\"] = latestPOItems;\n\n  setTimeout(async () => {\n    await this.setData(updates);\n    this.triggerEvent(\"POcalculation\");\n  }, 50);\n})();\n",
         "type": "js"
       },
       {
@@ -14239,6 +14905,7 @@
         "concurrency": 0,
         "remark": ""
       }
-    ]
+    ],
+    "watchers": []
   }
 }
