@@ -1016,6 +1016,14 @@
                           "propLabel": "Organization"
                         },
                         {
+                          "prop": "project_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_kku8SAT9.data.data.project_id}}",
+                          "valueLabel": "",
+                          "propLabel": "Project"
+                        },
+                        {
                           "prop": "ref_doc",
                           "operator": "",
                           "valueType": "field",
@@ -1307,6 +1315,14 @@
                                   "value": "{{node:code_node_kku8SAT9.data.data.organization_id}}",
                                   "valueLabel": "",
                                   "propLabel": "Organization"
+                                },
+                                {
+                                  "prop": "project_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_kku8SAT9.data.data.project_id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Project"
                                 },
                                 {
                                   "prop": "ref_doc",
