@@ -4026,6 +4026,14 @@
                                       "propLabel": "Freight Charges"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_Nj60Z2XF.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "to_no",
                                       "operator": "",
                                       "valueType": "field",
@@ -4553,6 +4561,14 @@
                                       "value": "{{node:code_node_Nj60Z2XF.data.allData.di_freight_charges}}",
                                       "valueLabel": "",
                                       "propLabel": "Freight Charges"
+                                    },
+                                    {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_Nj60Z2XF.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
                                     }
                                   ]
                                 }
@@ -5074,6 +5090,14 @@
                               "value": "{{node:code_node_Nj60Z2XF.data.allData.di_freight_charges}}",
                               "valueLabel": "",
                               "propLabel": "Freight Charges"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_Nj60Z2XF.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             }
                           ]
                         }
@@ -6193,7 +6217,7 @@
                         "name": "Prepare Picking Data",
                         "script": {
                           "type": "javascript",
-                          "code": "const parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    console.error(\"JSON parse error:\", error);\n    return defaultValue;\n  }\n};\n\nconst allData = {{node:code_node_l5Y5WSQG.data.toData}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst ppId = allData.id\nconst pickingNoType = {{node:get_node_QQZAg4u9.data.data.id}};\nconst organizationId = allData.organization_id;\n\nconst existingTOData = {{node:get_node_zG6KDDEF.data.data}} || null;\nconst isUpdate = existingTOData && existingTOData.id ? 1 : 0;\nconst existingTO = isUpdate === 1 ? existingTOData : null;\n\n// Process table items with grouping for serialized items\nconst pickingItemGroups = new Map();\n\nallData.table_to.forEach((item, toLineIndex) => {\n  if (item.temp_qty_data && item.material_id) {\n    try {\n      const tempData = parseJsonSafely(item.temp_qty_data);\n\n      tempData.forEach((tempItem) => {\n        const materialId = tempItem.material_id || item.material_id;\n        // Create a grouping key based on item, batch, location, and TO line index to prevent merging separate lines\n        const groupKey = `${materialId}_${tempItem.batch_id || \"no-batch\"}_${tempItem.location_id}_line${toLineIndex}`;\n\n        if (!pickingItemGroups.has(groupKey)) {\n          // Create new group\n          pickingItemGroups.set(groupKey, {\n            item_code: String(materialId),\n            item_name: item.material_name,\n            item_desc: item.to_material_desc || \"\",\n            more_desc: item.more_desc || \"\",\n            batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            qty_to_pick: 0,\n            item_uom: String(item.to_order_uom_id),\n            pending_process_qty: 0,\n            source_bin: String(tempItem.location_id),\n            line_status: \"Open\",\n            so_no: item.line_so_no,\n            to_no: allData.to_no,\n            so_id: item.line_so_id,\n            so_line_id: item.so_line_item_id,\n            to_id: ppId,\n            to_line_id: item.id,\n            serial_numbers: [],\n          });\n        }\n\n        const group = pickingItemGroups.get(groupKey);\n        group.qty_to_pick += parseFloat(tempItem.to_quantity);\n        group.pending_process_qty += parseFloat(tempItem.to_quantity);\n\n        // Add serial number if exists\n        if (tempItem.serial_number) {\n          group.serial_numbers.push(String(tempItem.serial_number));\n        }\n      });\n    } catch (error) {\n      console.error(`Error parsing temp_qty_data: ${error.message}`);\n    }\n  }\n});\n\n// Convert grouped items to picking items array\nconst tablePickingItems = [];\npickingItemGroups.forEach((group) => {\n  // Format serial numbers with comma if any exist\n  if (group.serial_numbers.length > 0) {\n    group.serial_numbers = group.serial_numbers.join(\", \");\n    group.is_serialized_item = 1;\n  } else {\n    delete group.serial_numbers;\n    group.is_serialized_item = 0;\n  }\n  tablePickingItems.push(group);\n});\n\n// Get SO numbers for display\nconst soNOs = [...new Set(tablePickingItems.map((pi) => pi.so_no).filter(Boolean))];\n\n// Build the transfer order data\nconst transferOrderData = {\n  to_status: \"Created\",\n  to_id: 'issued',\n  to_id_type: pickingNoType,\n  plant_id: allData.plant_id,\n  organization_id: organizationId,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Picking Plan\",\n  to_no: [ppId],\n  so_no: soNOs.join(\", \"),\n  customer_id: allData.customer_name,\n  ref_doc: allData.to_ref_doc,\n  assigned_to: allData.assigned_to,\n  table_picking_items: tablePickingItems,\n  is_deleted: 0,\n};\n\n// Notification data\nlet notificationData = null;\nlet removedUsers = [];\nlet addedUsers = [];\n\nif (isUpdate === 1 && existingTO) {\n  // Prepare for update\n  transferOrderData.updated_by = allData.to_created_by;\n  transferOrderData.updated_at = new Date().toISOString();\n\n  // Determine notification recipients for update\n  if (existingTO.assigned_to && allData.assigned_to) {\n    const oldAssigned = Array.isArray(existingTO.assigned_to)\n      ? existingTO.assigned_to\n      : [existingTO.assigned_to];\n\n    const newAssigned = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n\n    // Users who were removed\n    removedUsers = oldAssigned.filter((userId) => !newAssigned.includes(userId));\n\n    // Users who were added\n    addedUsers = newAssigned.filter((userId) => !oldAssigned.includes(userId));\n  }\n} else {\n  // Prepare for create\n  transferOrderData.created_by = allData.to_created_by;\n  transferOrderData.created_at = new Date().toISOString().slice(0, 19).replace(\"T\", \" \");\n\n  // New assignment notification\n  if (allData.assigned_to && allData.assigned_to.length > 0) {\n    addedUsers = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n  }\n}\n\nreturn {\n  isUpdate,\n  existingTOId: existingTO ? existingTO.id : null,\n  existingTONo: existingTO ? existingTO.to_id : null,\n  transferOrderData,\n  ppId,\n  ppNo: allData.to_no,\n  removedUsers,\n  addedUsers,\n  pickingStatus: \"Created\",\n};\n"
+                          "code": "const parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    console.error(\"JSON parse error:\", error);\n    return defaultValue;\n  }\n};\n\nconst allData = {{node:code_node_l5Y5WSQG.data.toData}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst ppId = allData.id\nconst pickingNoType = {{node:get_node_QQZAg4u9.data.data.id}};\nconst organizationId = allData.organization_id;\n\nconst existingTOData = {{node:get_node_zG6KDDEF.data.data}} || null;\nconst isUpdate = existingTOData && existingTOData.id ? 1 : 0;\nconst existingTO = isUpdate === 1 ? existingTOData : null;\n\n// Process table items with grouping for serialized items\nconst pickingItemGroups = new Map();\n\nallData.table_to.forEach((item, toLineIndex) => {\n  if (item.temp_qty_data && item.material_id) {\n    try {\n      const tempData = parseJsonSafely(item.temp_qty_data);\n\n      tempData.forEach((tempItem) => {\n        const materialId = tempItem.material_id || item.material_id;\n        // Create a grouping key based on item, batch, location, and TO line index to prevent merging separate lines\n        const groupKey = `${materialId}_${tempItem.batch_id || \"no-batch\"}_${tempItem.location_id}_line${toLineIndex}`;\n\n        if (!pickingItemGroups.has(groupKey)) {\n          // Create new group\n          pickingItemGroups.set(groupKey, {\n            item_code: String(materialId),\n            item_name: item.material_name,\n            item_desc: item.to_material_desc || \"\",\n            more_desc: item.more_desc || \"\",\n            batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            qty_to_pick: 0,\n            item_uom: String(item.to_order_uom_id),\n            pending_process_qty: 0,\n            source_bin: String(tempItem.location_id),\n            line_status: \"Open\",\n            so_no: item.line_so_no,\n            to_no: allData.to_no,\n            so_id: item.line_so_id,\n            so_line_id: item.so_line_item_id,\n            to_id: ppId,\n            to_line_id: item.id,\n            serial_numbers: [],\n          });\n        }\n\n        const group = pickingItemGroups.get(groupKey);\n        group.qty_to_pick += parseFloat(tempItem.to_quantity);\n        group.pending_process_qty += parseFloat(tempItem.to_quantity);\n\n        // Add serial number if exists\n        if (tempItem.serial_number) {\n          group.serial_numbers.push(String(tempItem.serial_number));\n        }\n      });\n    } catch (error) {\n      console.error(`Error parsing temp_qty_data: ${error.message}`);\n    }\n  }\n});\n\n// Convert grouped items to picking items array\nconst tablePickingItems = [];\npickingItemGroups.forEach((group) => {\n  // Format serial numbers with comma if any exist\n  if (group.serial_numbers.length > 0) {\n    group.serial_numbers = group.serial_numbers.join(\", \");\n    group.is_serialized_item = 1;\n  } else {\n    delete group.serial_numbers;\n    group.is_serialized_item = 0;\n  }\n  tablePickingItems.push(group);\n});\n\n// Get SO numbers for display\nconst soNOs = [...new Set(tablePickingItems.map((pi) => pi.so_no).filter(Boolean))];\n\n// Build the transfer order data\nconst transferOrderData = {\n  to_status: \"Created\",\n  to_id: 'issued',\n  to_id_type: pickingNoType,\n  plant_id: allData.plant_id,\n  organization_id: organizationId,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Picking Plan\",\n  to_no: [ppId],\n  so_no: soNOs.join(\", \"),\n  customer_id: allData.customer_name,\n  ref_doc: allData.to_ref_doc,\n  assigned_to: allData.assigned_to,\n  project_id: allData.project_id ?? \"\",\n  table_picking_items: tablePickingItems,\n  is_deleted: 0,\n};\n\n// Notification data\nlet notificationData = null;\nlet removedUsers = [];\nlet addedUsers = [];\n\nif (isUpdate === 1 && existingTO) {\n  // Prepare for update\n  transferOrderData.updated_by = allData.to_created_by;\n  transferOrderData.updated_at = new Date().toISOString();\n\n  // Determine notification recipients for update\n  if (existingTO.assigned_to && allData.assigned_to) {\n    const oldAssigned = Array.isArray(existingTO.assigned_to)\n      ? existingTO.assigned_to\n      : [existingTO.assigned_to];\n\n    const newAssigned = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n\n    // Users who were removed\n    removedUsers = oldAssigned.filter((userId) => !newAssigned.includes(userId));\n\n    // Users who were added\n    addedUsers = newAssigned.filter((userId) => !oldAssigned.includes(userId));\n  }\n} else {\n  // Prepare for create\n  transferOrderData.created_by = allData.to_created_by;\n  transferOrderData.created_at = new Date().toISOString().slice(0, 19).replace(\"T\", \" \");\n\n  // New assignment notification\n  if (allData.assigned_to && allData.assigned_to.length > 0) {\n    addedUsers = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n  }\n}\n\nreturn {\n  isUpdate,\n  existingTOId: existingTO ? existingTO.id : null,\n  existingTONo: existingTO ? existingTO.to_id : null,\n  transferOrderData,\n  ppId,\n  ppNo: allData.to_no,\n  removedUsers,\n  addedUsers,\n  pickingStatus: \"Created\",\n};\n"
                         },
                         "response_json": [
                           {
@@ -6311,7 +6335,7 @@
                         "name": "Picking Create or Update",
                         "script": {
                           "type": "javascript",
-                          "code": "const preparedData = {{node:code_node_cDgPpyos.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n};\n\n// For CREATE operation - use full transferOrderData\n\n// For TO status update\nconst toUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  ppId: preparedData.ppId,\n  ppUpdateData: toUpdateFields,\n  ppNo: preparedData.ppNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
+                          "code": "const preparedData = {{node:code_node_cDgPpyos.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n  project_id: transferOrderData.project_id,\n};\n\n// For CREATE operation - use full transferOrderData\n\n// For TO status update\nconst toUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  ppId: preparedData.ppId,\n  ppUpdateData: toUpdateFields,\n  ppNo: preparedData.ppNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
                         },
                         "response_json": [
                           {
@@ -6505,6 +6529,14 @@
                                       "propLabel": "Assigned To"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_furAo9AM.data.updateData.project_id}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "table_picking_items",
                                       "operator": "",
                                       "valueType": "field",
@@ -6642,6 +6674,14 @@
                                       "value": "{{node:code_node_furAo9AM.data.createData.assigned_to}}",
                                       "valueLabel": "",
                                       "propLabel": "Assigned To"
+                                    },
+                                    {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_furAo9AM.data.createData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
                                     },
                                     {
                                       "prop": "created_at",
@@ -8185,6 +8225,14 @@
                               "value": "{{node:code_node_Nj60Z2XF.data.allData.di_freight_charges}}",
                               "valueLabel": "",
                               "propLabel": "Freight Charges"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_Nj60Z2XF.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             }
                           ]
                         }
@@ -8668,6 +8716,14 @@
                               "value": "{{node:code_node_Nj60Z2XF.data.allData.di_freight_charges}}",
                               "valueLabel": "",
                               "propLabel": "Freight Charges"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_Nj60Z2XF.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             }
                           ]
                         }
