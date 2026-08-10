@@ -3,7 +3,7 @@
 Handoff for the mobile team. Two independent desktop changes that mobile must
 mirror, or it will read and write columns the desktop no longer uses.
 
-Desktop side is complete and verified across 13 forms, 15 workflows and 8
+Desktop side is complete and verified across 14 forms, 17 workflows and 11
 converters. Nothing is deployed yet.
 
 ---
@@ -31,30 +31,32 @@ level, so a document and each of its lines can be attributed to a project.
 ## Scope
 
 **Delivery Info (6):** SQT, SO, GD, SR, Picking, PRT
-**`project_id` (11):** SQT, SO, GD, SI, SR, SRR, PREQ, PO, GR, PI, PRT
+**`project_id` (13):** SQT, SO, GD, SI, SR, SRR, PREQ, PO, GR, PI, PRT, Picking, Putaway
 
-| Module | Delivery Info | `project_id` |
-|---|---|---|
-| Quotation (SQT) | ✅ 13 fields | ✅ header + line |
-| Sales Order (SO) | ✅ | ✅ |
-| Goods Delivery (GD) | ✅ | ✅ |
-| Sales Return (SR) | ✅ | ✅ |
-| Picking | ✅ | — |
-| Purchase Return (PRT) | ✅ | ✅ |
-| Sales Invoice (SI) | — | ✅ |
-| Sales Return Receiving (SRR) | — | ✅ |
-| Purchase Requisition (PREQ) | — | ✅ |
-| Purchase Order (PO) | — | ✅ |
-| Goods Receiving (GR) | — | ✅ |
-| Purchase Invoice (PI) | — | ✅ |
+| Module | Delivery Info | `project_id` | Line array |
+|---|---|---|---|
+| Quotation (SQT) | ✅ 13 fields | ✅ header + line | `table_sqt` |
+| Sales Order (SO) | ✅ | ✅ | `table_so` |
+| Goods Delivery (GD) | ✅ | ✅ | `table_gd` |
+| Sales Return (SR) | ✅ | ✅ | `table_sr` |
+| Picking | ✅ | ✅ | `table_picking_items` |
+| Purchase Return (PRT) | ✅ | ✅ | `table_prt` |
+| Sales Invoice (SI) | — | ✅ | `table_si` |
+| Sales Return Receiving (SRR) | — | ✅ | `table_srr` |
+| Purchase Requisition (PREQ) | — | ✅ | `table_pr` |
+| Purchase Order (PO) | — | ✅ | `table_po` |
+| Goods Receiving (GR) | — | ✅ | `table_gr` |
+| Purchase Invoice (PI) | — | ✅ | `table_pi` |
+| **Putaway** | — | ✅ | `table_putaway_item` |
 
 Two modules are deliberately absent:
 
 - **SRR has no Delivery Info at all.** `SRRfullJSON.json` binds zero delivery
   fields — neither `di_*` nor the old per-method ones. It never had a delivery
   section. SRR is `project_id` only.
-- **Picking Plan (PP) is desktop-only.** It carries the 13 Delivery Info fields,
-  but mobile does not implement PP. No mobile work.
+- **Picking Plan (PP) is desktop-only.** It carries both the 13 Delivery Info
+  fields *and* `project_id` (line array `table_to`), but mobile does not implement
+  PP. No mobile work either way.
 
 **Transition strategy: clean switch.** Mobile reads and writes `di_*` only, with no
 fallback to the old columns. See [Sequencing](#sequencing) — this makes the data
@@ -136,18 +138,36 @@ rather than merging ambiguous delivery arrangements.
 ## Change 2 — `project_id`
 
 - **FK → Project `2085600321692696577`, stores the record id.** Same on all
-  eleven modules.
-- **Two bindings per form** — the header, and one inside the line-item array:
-  `table_sqt`, `table_so`, `table_gd`, `table_si`, `table_sr`, `table_srr`,
-  `table_pr`, `table_po`, `table_gr`, `table_pi`, `table_prt`.
-- **No cascade.** There is no `onChange` on any of the eleven forms — picking a
-  header project does **not** populate the lines. Each line is set independently,
-  and a blank line stays blank through conversion. If mobile wants header→line
-  auto-fill, raise it as a product decision rather than adding it silently.
+  thirteen modules.
+- **Two bindings per form** — the header, and one inside the line-item array. The
+  array name differs per module; see the [Scope](#scope) table.
+- **No cascade.** There is no `onChange` on any form — picking a header project
+  does **not** populate the lines. Each line is set independently, and a blank line
+  stays blank through conversion. If mobile wants header→line auto-fill, raise it
+  as a product decision rather than adding it silently.
 - **Never carry `project_id` across organizations.** Project is org-scoped, so the
   cross-org bridges (GD→GR, SI→PI) deliberately omit it. Any internal-trading
   conversion on mobile must do the same — copying the id would point at a project
   row the receiving org does not own.
+
+### Where it flows
+
+Both header and line-level values carry through every same-org conversion:
+
+```
+SQT → SO → GD → SI          GD → Picking
+PREQ → PO → GR → PI         GR → Putaway
+                            SR, SRR, PRT (no inbound conversion)
+```
+
+Two of these are worth calling out because the value is rebuilt rather than copied:
+
+- **GD → Picking** — the Picking record is assembled from a `transferOrderData`
+  object, so `project_id` is set on that object rather than passed straight through.
+- **GR → Putaway** — the Putaway header and each Putaway **line** are built by two
+  separate whitelists. The line builder runs inside the GR subform loop, so the
+  line-level project is a distinct mapping from the header one. Mobile must set
+  both if it creates Putaways from a GR.
 
 ---
 
@@ -186,9 +206,13 @@ already `dataBind: true` on every form, so the columns exist on every collection
 ### `project_id`
 
 - Set a header project and a *different* project on one line; save and reopen —
-  both persist independently.
+  both persist independently. Repeat on all thirteen modules.
 - Convert SQT→SO, SO→GD, GD→SI, PREQ→PO, PO→GR, GR→PI → header and per-line values
   arrive intact.
+- **GD→Picking** and **GR→Putaway** → header *and* line values arrive; these two are
+  rebuilt rather than copied, so check the line level explicitly.
+- Convert from **two** source documents into one Picking → `project_id` comes through
+  empty, same single-source rule as Delivery Info.
 - Convert across organizations (GD→GR, SI→PI) → `project_id` is empty on the
   receiving document.
 
