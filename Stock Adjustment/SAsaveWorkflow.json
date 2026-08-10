@@ -727,7 +727,7 @@
                 }
               ]
             },
-{
+            {
               "id": "code_node_SAItemIDs",
               "type": "code-node",
               "data": {
@@ -843,7 +843,7 @@
                 }
               },
               "blocks": [
-{
+                {
                   "id": "code_node_qrsgEz2F",
                   "type": "code-node",
                   "data": {
@@ -892,7 +892,7 @@
                         "bsonType": "string",
                         "isExpand": false
                       },
-{
+                      {
                         "key": "7ov84m0t",
                         "name": "material_id",
                         "title": "material_id",
@@ -908,7 +908,7 @@
                         "bsonType": "string",
                         "isExpand": false
                       },
-{
+                      {
                         "key": "0ghbcfxr",
                         "name": "balancesToProcess",
                         "title": "balancesToProcess",
@@ -928,7 +928,7 @@
                           }
                         ]
                       },
-{
+                      {
                         "key": "4ccj2hbx",
                         "name": "doc_date",
                         "title": "doc_date",
@@ -989,7 +989,7 @@
                   },
                   "blocks": []
                 },
-{
+                {
                   "id": "loop_NygsPXBU",
                   "type": "loop",
                   "data": {
@@ -1037,7 +1037,7 @@
                     }
                   },
                   "blocks": [
-{
+                    {
                       "id": "code_node_GmKmvMGe",
                       "type": "code-node",
                       "data": {
@@ -1086,7 +1086,7 @@
                             "bsonType": "string",
                             "isExpand": false
                           },
-{
+                          {
                             "key": "6uixt627",
                             "name": "manufacturing_date",
                             "title": "manufacturing_date",
@@ -1271,7 +1271,7 @@
                                       "valueLabel": "",
                                       "propLabel": "Batch ID"
                                     },
-{
+                                    {
                                       "prop": "itemData",
                                       "operator": "",
                                       "valueType": "field",
@@ -1556,7 +1556,7 @@
                                       "valueLabel": "",
                                       "propLabel": "Batch ID"
                                     },
-{
+                                    {
                                       "prop": "itemData",
                                       "operator": "",
                                       "valueType": "field",
@@ -1789,9 +1789,7 @@
                 {
                   "id": "if_block_ReorderSaTrue",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "workflow_node_ReorderSaCompleted",
@@ -1855,9 +1853,7 @@
                 {
                   "id": "if_block_ReorderSaFalse",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -1893,9 +1889,7 @@
                 {
                   "id": "if_block_DKdGezds",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_node_ArYV2yrs",
@@ -2087,9 +2081,7 @@
                 {
                   "id": "if_block_nxL-BNr9",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -2563,7 +2555,7 @@
         }
       ]
     },
-{
+    {
       "id": "return_node_ribqfzwc",
       "type": "return-node",
       "data": {
