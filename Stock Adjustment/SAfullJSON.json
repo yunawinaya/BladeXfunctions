@@ -2129,6 +2129,118 @@
           },
           "list": [
             {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_pe7htnej",
+                "filterable": false,
+                "pagingEnabled": true,
+                "isShowExpandButton": false,
+                "buttonText": "新增",
+                "buttonPosition": "bottom",
+                "buttonAlign": "right",
+                "buttonSize": "default",
+                "buttonEvent": [],
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "project_code",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_pe7htnej",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "2085600321692696577",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "Project:Table:2085600321692696577"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 1,
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Project",
+              "novalid": {},
+              "key": "dkx1fqmc",
+              "model": "project_id",
+              "rules": []
+            },
+            {
               "name": "Reference Documents",
               "type": "fileupload",
               "mainIcon": "文件上传",
@@ -3724,7 +3836,13 @@
                 "pad": "*",
                 "desensitization_pattern": "",
                 "desensitization_replace": "",
-                "select-card_4c8m22dh": []
+                "select-card_4c8m22dh": [],
+                "highFrequencyInput": false,
+                "highFrequencyTimeField": "",
+                "highFrequencyDuration": 30,
+                "highFrequencyMinCount": 20,
+                "highFrequencyMaxItems": 5,
+                "highFrequencySortRule": 1
               },
               "events": {
                 "onChange": "",
@@ -3735,6 +3853,118 @@
               "novalid": {},
               "key": "jas3cxdm",
               "model": "item_remark3",
+              "rules": []
+            },
+            {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_pe7htnej",
+                "filterable": false,
+                "pagingEnabled": true,
+                "isShowExpandButton": false,
+                "buttonText": "新增",
+                "buttonPosition": "bottom",
+                "buttonAlign": "right",
+                "buttonSize": "default",
+                "buttonEvent": [],
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "project_code",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_pe7htnej",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "2085600321692696577",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "Project:Table:2085600321692696577"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 1,
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Project",
+              "novalid": {},
+              "key": "nrbvs8b6",
+              "model": "project_id",
               "rules": []
             }
           ],
@@ -4165,7 +4395,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "sa_save_as_completed"
           },
           "events": {
             "onClick": "9o86bjii"
@@ -4208,7 +4439,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "sa_save_as_completed_post"
           },
           "events": {
             "onClick": "otmqv4xj"
@@ -4253,7 +4485,8 @@
             "right": 4,
             "pad": "*",
             "desensitization_pattern": "",
-            "desensitization_replace": ""
+            "desensitization_replace": "",
+            "permission": "sa_save_as_post"
           },
           "events": {
             "onClick": "ygadczb4"
@@ -5822,7 +6055,7 @@
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": false,
+                "hidden": true,
                 "dataBind": true,
                 "precision": 3,
                 "customProps": {
@@ -5837,7 +6070,13 @@
                 "remoteFunc": "func_tu0zllfe",
                 "remoteOption": "option_tu0zllfe",
                 "tableColumn": true,
-                "subform": false
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
               },
               "events": {
                 "onChange": "",
@@ -5874,7 +6113,7 @@
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": false,
+                "hidden": true,
                 "dataBind": true,
                 "precision": 3,
                 "customProps": {
@@ -5889,7 +6128,13 @@
                 "remoteFunc": "func_tu0zllfe",
                 "remoteOption": "option_tu0zllfe",
                 "tableColumn": true,
-                "subform": false
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
               },
               "events": {
                 "onChange": "",
@@ -6198,7 +6443,9 @@
                 "desensitization_pattern": "",
                 "desensitization_replace": "",
                 "auto_refresh": 0,
-                "auto_refresh_debounce": 100
+                "auto_refresh_debounce": 100,
+                "fixedColumn": true,
+                "fixedColumnPosition": "right"
               },
               "events": {
                 "onChange": "istx6cid",
@@ -6256,7 +6503,9 @@
                 "right": 4,
                 "pad": "*",
                 "desensitization_pattern": "",
-                "desensitization_replace": ""
+                "desensitization_replace": "",
+                "fixedColumn": true,
+                "fixedColumnPosition": "right"
               },
               "events": {
                 "onChange": "rssfkrqp",
@@ -6399,7 +6648,9 @@
                 "pad": "*",
                 "desensitization_pattern": "",
                 "desensitization_replace": "",
-                "limit_count": null
+                "limit_count": null,
+                "fixedColumn": true,
+                "fixedColumnPosition": "right"
               },
               "events": {
                 "onChange": "mrvpkjl6",
@@ -6475,6 +6726,26 @@
         "func": ""
       },
       {
+        "key": "onCommentPublish",
+        "name": "onCommentPublish",
+        "func": ""
+      },
+      {
+        "key": "onCommentDelete",
+        "name": "onCommentDelete",
+        "func": ""
+      },
+      {
+        "key": "onMention",
+        "name": "onMention",
+        "func": ""
+      },
+      {
+        "key": "onLoad",
+        "name": "onLoad",
+        "func": ""
+      },
+      {
         "key": "onFormChange",
         "name": "onFormChange",
         "type": "rule"
@@ -6498,7 +6769,7 @@
             "key": "dagyjcsh",
             "action": "js",
             "options": {
-              "func": "const allData = this.getValues();\nconst lineItemData = arguments[0]?.row;\nconst rowIndex = arguments[0]?.rowIndex;\nconst adjustment_type = allData.adjustment_type;\nconst materialId = lineItemData.material_id;\nconst plantId = allData.plant_id;\nconst uomId = lineItemData.uom_id;\n\nconsole.log(\"materialId\", materialId);\n\nconst fetchUomData = async (uomIds) => {\n  if (!uomIds || uomIds.length === 0) return [];\n\n  try {\n    const resUOM = await Promise.all(\n      uomIds.map((id) =>\n        db.collection(\"unit_of_measurement\").where({ id }).get(),\n      ),\n    );\n\n    return resUOM.map((response) => response.data[0]).filter(Boolean);\n  } catch (error) {\n    console.error(\"Error fetching UOM data:\", error);\n    return [];\n  }\n};\n\n// Initially hide serial number column\nthis.hide(\"sa_item_balance.table_item_balance.serial_number\");\n\nconst filterZeroQuantityRecords = (data, itemData) => {\n  return data.filter((record) => {\n    // For serialized items, check both serial number existence AND quantity > 0\n    if (itemData && itemData.serial_number_management === 1) {\n      // First check if serial number exists and is not empty\n      const hasValidSerial =\n        record.serial_number && record.serial_number.trim() !== \"\";\n\n      if (!hasValidSerial) {\n        return false; // Exclude if no valid serial number\n      }\n\n      // Then check if any quantity fields have value > 0\n      const hasQuantity =\n        (record.block_qty && record.block_qty > 0) ||\n        (record.reserved_qty && record.reserved_qty > 0) ||\n        (record.unrestricted_qty && record.unrestricted_qty > 0) ||\n        (record.qualityinsp_qty && record.qualityinsp_qty > 0) ||\n        (record.intransit_qty && record.intransit_qty > 0) ||\n        (record.balance_quantity && record.balance_quantity > 0);\n\n      console.log(\n        `Serial ${record.serial_number}: hasQuantity=${hasQuantity}, unrestricted=${record.unrestricted_qty}, reserved=${record.reserved_qty}, balance=${record.balance_quantity}`,\n      );\n\n      return hasQuantity; // Only include if both serial exists AND has quantity > 0\n    }\n\n    // For batch and regular items, check if any quantity fields have value > 0\n    const hasQuantity =\n      (record.block_qty && record.block_qty > 0) ||\n      (record.reserved_qty && record.reserved_qty > 0) ||\n      (record.unrestricted_qty && record.unrestricted_qty > 0) ||\n      (record.qualityinsp_qty && record.qualityinsp_qty > 0) ||\n      (record.intransit_qty && record.intransit_qty > 0) ||\n      (record.balance_quantity && record.balance_quantity > 0);\n\n    return hasQuantity;\n  });\n};\n\nconst mergeWithSavedData = (freshDbData, savedDataArray, itemData) => {\n  if (!savedDataArray || savedDataArray.length === 0) {\n    console.log(\"No saved data to merge, using fresh DB data\");\n    return freshDbData;\n  }\n\n  console.log(\"Merging fresh DB data with existing saved data\");\n\n  const savedDataMap = new Map();\n  savedDataArray.forEach((savedItem) => {\n    let key;\n    if (itemData && itemData.serial_number_management === 1) {\n      // For serialized items, always use serial number as primary key\n      // Include batch_id if item also has batch management\n      if (itemData.item_batch_management === 1) {\n        key = `${savedItem.location_id || \"no_location\"}-${\n          savedItem.serial_number || \"no_serial\"\n        }-${savedItem.batch_id || \"no_batch\"}`;\n      } else {\n        key = `${savedItem.location_id || \"no_location\"}-${\n          savedItem.serial_number || \"no_serial\"\n        }`;\n      }\n    } else if (\n      itemData &&\n      itemData.serial_number_management !== 1 &&\n      itemData.item_batch_management === 1\n    ) {\n      // For batch items (non-serialized), use batch as key\n      key = `${savedItem.location_id || \"no_location\"}-${\n        savedItem.batch_id || \"no_batch\"\n      }`;\n    } else {\n      // For regular items, use only location or balance_id\n      key = `${savedItem.location_id || savedItem.balance_id || \"no_key\"}`;\n    }\n    savedDataMap.set(key, savedItem);\n  });\n\n  const mergedData = freshDbData.map((dbItem) => {\n    let key;\n    if (itemData && itemData.serial_number_management === 1) {\n      // For serialized items, always use serial number as primary key\n      // Include batch_id if item also has batch management\n      if (itemData.item_batch_management === 1) {\n        key = `${dbItem.location_id || \"no_location\"}-${\n          dbItem.serial_number || \"no_serial\"\n        }-${dbItem.batch_id || \"no_batch\"}`;\n      } else {\n        key = `${dbItem.location_id || \"no_location\"}-${\n          dbItem.serial_number || \"no_serial\"\n        }`;\n      }\n    } else if (\n      itemData &&\n      itemData.serial_number_management !== 1 &&\n      itemData.item_batch_management === 1\n    ) {\n      key = `${dbItem.location_id || \"no_location\"}-${\n        dbItem.batch_id || \"no_batch\"\n      }`;\n    } else {\n      key = `${dbItem.location_id || dbItem.balance_id || \"no_key\"}`;\n    }\n\n    const savedItem = savedDataMap.get(key);\n\n    if (savedItem) {\n      console.log(\n        `Merging saved data for ${key}: DB unrestricted=${dbItem.unrestricted_qty}, saved data merged`,\n      );\n\n      // Merge all relevant fields from saved data, preserving saved modifications\n      return {\n        ...dbItem, // Start with DB data as base\n        ...savedItem, // Override with saved data (this preserves all saved modifications)\n        // Ensure critical DB fields are not overwritten if they shouldn't be\n        id: dbItem.id, // Keep original DB id\n        balance_id: dbItem.id, // Keep balance_id reference to original\n        // Preserve saved-specific fields that don't exist in DB\n        fm_key: savedItem.fm_key,\n        category: savedItem.category,\n        sa_quantity: savedItem.sa_quantity,\n        movement_type: savedItem.movement_type,\n        remarks: savedItem.remarks || dbItem.remarks,\n      };\n    } else {\n      return {\n        ...dbItem,\n        balance_id: dbItem.id, // Ensure balance_id is set for non-saved items\n      };\n    }\n  });\n\n  // Add saved-only records that don't exist in DB (shouldn't normally happen for SA)\n  savedDataArray.forEach((savedItem) => {\n    let key;\n    if (itemData && itemData.serial_number_management === 1) {\n      // For serialized items, always use serial number as primary key\n      // Include batch_id if item also has batch management\n      if (itemData.item_batch_management === 1) {\n        key = `${savedItem.location_id || \"no_location\"}-${\n          savedItem.serial_number || \"no_serial\"\n        }-${savedItem.batch_id || \"no_batch\"}`;\n      } else {\n        key = `${savedItem.location_id || \"no_location\"}-${\n          savedItem.serial_number || \"no_serial\"\n        }`;\n      }\n    } else if (\n      itemData &&\n      itemData.serial_number_management !== 1 &&\n      itemData.item_batch_management === 1\n    ) {\n      key = `${savedItem.location_id || \"no_location\"}-${\n        savedItem.batch_id || \"no_batch\"\n      }`;\n    } else {\n      key = `${savedItem.location_id || savedItem.balance_id || \"no_key\"}`;\n    }\n\n    const existsInDb = freshDbData.some((dbItem) => {\n      let dbKey;\n      if (itemData && itemData.serial_number_management === 1) {\n        // For serialized items, always use serial number as primary key\n        // Include batch_id if item also has batch management\n        if (itemData.item_batch_management === 1) {\n          dbKey = `${dbItem.location_id || \"no_location\"}-${\n            dbItem.serial_number || \"no_serial\"\n          }-${dbItem.batch_id || \"no_batch\"}`;\n        } else {\n          dbKey = `${dbItem.location_id || \"no_location\"}-${\n            dbItem.serial_number || \"no_serial\"\n          }`;\n        }\n      } else if (\n        itemData &&\n        itemData.serial_number_management !== 1 &&\n        itemData.item_batch_management === 1\n      ) {\n        dbKey = `${dbItem.location_id || \"no_location\"}-${\n          dbItem.batch_id || \"no_batch\"\n        }`;\n      } else {\n        dbKey = `${dbItem.location_id || dbItem.balance_id || \"no_key\"}`;\n      }\n      return dbKey === key;\n    });\n\n    if (!existsInDb) {\n      console.log(`Adding saved-only data for ${key}`);\n      mergedData.push({\n        ...savedItem,\n        balance_id: savedItem.balance_id || savedItem.id, // Ensure balance_id exists\n      });\n    }\n  });\n\n  return mergedData;\n};\n\n// Proceed with original queries if no tempQtyData\nif (materialId) {\n  db.collection(\"Item\")\n    .where({\n      id: materialId,\n    })\n    .get()\n    .then(async (response) => {\n      console.log(\"response item\", response);\n      const itemData = response.data[0];\n      console.log(\"itemData\", itemData);\n\n      // Get UOM options and set up material UOM\n      const altUoms = itemData.table_uom_conversion?.map(\n        (data) => data.alt_uom_id,\n      );\n      let uomOptions = [];\n\n      const res = await fetchUomData(altUoms);\n      uomOptions.push(...res);\n\n      console.log(\"uomOptions\", uomOptions);\n\n      await this.setOptionData([`sa_item_balance.material_uom`], uomOptions);\n\n      this.setData({\n        [`sa_item_balance.material_id`]: itemData.material_code,\n        [`sa_item_balance.material_name`]: itemData.material_name,\n        [`sa_item_balance.row_index`]: rowIndex,\n        [`sa_item_balance.material_uom`]: uomId,\n      });\n\n      const previousBalanceData =\n        lineItemData.balance_index === \"\" ||\n        lineItemData.balance_index === undefined\n          ? []\n          : JSON.parse(lineItemData.balance_index);\n\n      console.log(\"previousBalanceData\", previousBalanceData);\n\n      // Handle Serialized Items (takes priority over batch management)\n      if (itemData.serial_number_management === 1) {\n        console.log(\n          \"Processing serialized item (may also have batch management)\",\n        );\n\n        // Show serial number column\n        this.display(\"sa_item_balance.table_item_balance.serial_number\");\n        this.display(\"sa_item_balance.search_serial_number\");\n        this.display(\"sa_item_balance.confirm_search\");\n        this.display(\"sa_item_balance.reset_search\");\n        this.setData({\n          [`sa_item_balance.is_serialized`]: 1,\n        });\n\n        // Show or hide batch column based on whether item also has batch management\n        if (itemData.item_batch_management === 1) {\n          this.display([\n            \"sa_item_balance.table_item_balance.batch_id\",\n            \"sa_item_balance.table_item_balance.expired_date\",\n            \"sa_item_balance.table_item_balance.manufacturing_date\",\n          ]);\n          console.log(\n            \"Serialized item with batch management - showing both serial and batch columns\",\n          );\n        } else {\n          this.hide([\n            \"sa_item_balance.table_item_balance.batch_id\",\n            \"sa_item_balance.table_item_balance.expired_date\",\n            \"sa_item_balance.table_item_balance.manufacturing_date\",\n          ]);\n          console.log(\n            \"Serialized item without batch management - hiding batch column\",\n          );\n        }\n\n        db.collection(\"item_serial_balance\")\n          .where({\n            material_id: materialId,\n            plant_id: plantId,\n          })\n          .get()\n          .then((response) => {\n            console.log(\"response item_serial_balance\", response.data);\n            let itemBalanceData = response.data || [];\n\n            // Map the data and remove the original id to prevent duplicate key errors\n            const mappedData = Array.isArray(itemBalanceData)\n              ? itemBalanceData.map((item) => {\n                  const { id, ...itemWithoutId } = item; // Remove original id\n                  return {\n                    ...itemWithoutId,\n                    balance_id: id, // Keep balance_id for reference\n                  };\n                })\n              : (() => {\n                  const { id, ...itemWithoutId } = itemBalanceData;\n                  return { ...itemWithoutId, balance_id: id };\n                })();\n\n            let finalData = mappedData;\n\n            if (previousBalanceData && previousBalanceData.length > 0) {\n              finalData = mergeWithSavedData(\n                mappedData,\n                previousBalanceData,\n                itemData,\n              );\n            }\n\n            const filteredData = filterZeroQuantityRecords(finalData, itemData);\n            console.log(\"Final filtered serialized data:\", filteredData);\n\n            // Set default category to Unrestricted if not already set\n            filteredData.forEach((item) => {\n              if (!item.category) {\n                item.category = \"Unrestricted\";\n              }\n            });\n\n            // For Stock Count, display negative sa_quantity for OUT movements\n            if (adjustment_type === \"Stock Count\") {\n              filteredData.forEach((item) => {\n                if (item.movement_type === \"OUT\" && item.sa_quantity > 0) {\n                  item.sa_quantity = -item.sa_quantity;\n                }\n              });\n            } else {\n              filteredData.forEach((item) => {\n                item.movement_type = \"Out\";\n              });\n            }\n\n            this.setData({\n              [`sa_item_balance.table_item_balance`]: filteredData,\n            });\n\n            this.setData({\n              [`sa_item_balance.table_item_balance_raw`]:\n                JSON.stringify(filteredData),\n            });\n\n            if (adjustment_type === \"Write Off\") {\n              this.setData({\n                [`sa_item_balance.table_item_balance.movement_type`]: \"Out\",\n              });\n              this.hide(\"sa_item_balance.table_item_balance.movement_type\");\n            } else if (adjustment_type === \"Stock Count\") {\n              // For Stock Count, movement_type is determined by quantity sign\n              this.disabled(\n                [`sa_item_balance.table_item_balance.movement_type`],\n                true,\n              );\n              this.display([\n                `sa_item_balance.table_item_balance.movement_type`,\n              ]);\n            } else {\n              this.setData({\n                [`sa_item_balance.table_item_balance.movement_type`]: \"Out\",\n              });\n              this.disabled(\n                [`sa_item_balance.table_item_balance.movement_type`],\n                true,\n              );\n              this.display([\n                `sa_item_balance.table_item_balance.movement_type`,\n              ]);\n            }\n          })\n          .catch((error) => {\n            console.error(\"Error fetching item serial balance data:\", error);\n          });\n\n        // Handle Batch Items (only if not serialized)\n      } else if (itemData.item_batch_management === 1) {\n        console.log(\"Processing batch item (non-serialized)\");\n\n        // Show batch column and hide serial number column\n        this.display([\n          \"sa_item_balance.table_item_balance.batch_id\",\n          \"sa_item_balance.table_item_balance.expired_date\",\n          \"sa_item_balance.table_item_balance.manufacturing_date\",\n        ]);\n        this.hide(\"sa_item_balance.table_item_balance.serial_number\");\n\n        // Hide serial number column\n        this.hide(\"sa_item_balance.table_item_balance.serial_number\");\n        this.hide(\"sa_item_balance.search_serial_number\");\n        this.hide(\"sa_item_balance.confirm_search\");\n        this.hide(\"sa_item_balance.reset_search\");\n        this.setData({\n          [`sa_item_balance.is_serialized`]: 0,\n        });\n\n        db.collection(\"item_batch_balance\")\n          .where({\n            material_id: materialId,\n            plant_id: plantId,\n          })\n          .get()\n          .then((response) => {\n            console.log(\"response item_batch_balance\", response.data);\n            let itemBalanceData = response.data || [];\n\n            // Map the data and remove the original id to prevent duplicate key errors\n            const mappedData = Array.isArray(itemBalanceData)\n              ? itemBalanceData.map((item) => {\n                  const { id, ...itemWithoutId } = item; // Remove original id\n                  return {\n                    ...itemWithoutId,\n                    balance_id: id, // Keep balance_id for reference\n                  };\n                })\n              : (() => {\n                  const { id, ...itemWithoutId } = itemBalanceData;\n                  return { ...itemWithoutId, balance_id: id };\n                })();\n\n            let finalData = mappedData;\n\n            if (previousBalanceData && previousBalanceData.length > 0) {\n              finalData = mergeWithSavedData(\n                mappedData,\n                previousBalanceData,\n                itemData,\n              );\n            }\n\n            const filteredData = filterZeroQuantityRecords(finalData, itemData);\n            console.log(\"Final filtered batch data:\", filteredData);\n\n            // Set default category to Unrestricted if not already set\n            filteredData.forEach((item) => {\n              if (!item.category) {\n                item.category = \"Unrestricted\";\n              }\n            });\n\n            // For Stock Count, display negative sa_quantity for OUT movements\n            if (adjustment_type === \"Stock Count\") {\n              filteredData.forEach((item) => {\n                if (item.movement_type === \"OUT\" && item.sa_quantity > 0) {\n                  item.sa_quantity = -item.sa_quantity;\n                }\n              });\n            }\n\n            this.setData({\n              [`sa_item_balance.table_item_balance`]: filteredData,\n            });\n\n            if (adjustment_type === \"Write Off\") {\n              this.setData({\n                [`sa_item_balance.table_item_balance.movement_type`]: \"Out\",\n              });\n              this.hide(\"sa_item_balance.table_item_balance.movement_type\");\n            } else if (adjustment_type === \"Stock Count\") {\n              // For Stock Count, movement_type is determined by quantity sign\n              this.disabled(\n                [`sa_item_balance.table_item_balance.movement_type`],\n                true,\n              );\n              this.display([\n                `sa_item_balance.table_item_balance.movement_type`,\n              ]);\n            } else {\n              this.display([\n                `sa_item_balance.table_item_balance.movement_type`,\n              ]);\n            }\n          })\n          .catch((error) => {\n            console.error(\"Error fetching item batch balance data:\", error);\n          });\n\n        // Handle Regular Items (no batch, no serial)\n      } else {\n        console.log(\"Processing regular item (no batch, no serial)\");\n\n        // Hide both batch and serial columns\n        this.hide([\n          \"sa_item_balance.table_item_balance.batch_id\",\n          \"sa_item_balance.table_item_balance.expired_date\",\n          \"sa_item_balance.table_item_balance.manufacturing_date\",\n        ]);\n        this.hide(\"sa_item_balance.table_item_balance.serial_number\");\n\n        // Hide serial number column\n        this.hide(\"sa_item_balance.table_item_balance.serial_number\");\n        this.hide(\"sa_item_balance.search_serial_number\");\n        this.hide(\"sa_item_balance.confirm_search\");\n        this.hide(\"sa_item_balance.reset_search\");\n        this.setData({\n          [`sa_item_balance.is_serialized`]: 0,\n        });\n\n        db.collection(\"item_balance\")\n          .where({\n            material_id: materialId,\n            plant_id: plantId,\n          })\n          .get()\n          .then((response) => {\n            console.log(\"response item_balance\", response.data);\n            let itemBalanceData = response.data || [];\n\n            // Map the data and remove the original id to prevent duplicate key errors\n            const mappedData = Array.isArray(itemBalanceData)\n              ? itemBalanceData.map((item) => {\n                  const { id, ...itemWithoutId } = item; // Remove original id\n                  return {\n                    ...itemWithoutId,\n                    balance_id: id, // Keep balance_id for reference\n                  };\n                })\n              : (() => {\n                  const { id, ...itemWithoutId } = itemBalanceData;\n                  return { ...itemWithoutId, balance_id: id };\n                })();\n\n            let finalData = mappedData;\n\n            if (previousBalanceData && previousBalanceData.length > 0) {\n              finalData = mergeWithSavedData(\n                mappedData,\n                previousBalanceData,\n                itemData,\n              );\n            }\n\n            const filteredData = filterZeroQuantityRecords(finalData, itemData);\n            console.log(\"Final filtered regular data:\", filteredData);\n\n            // Set default category to Unrestricted if not already set\n            filteredData.forEach((item) => {\n              if (!item.category) {\n                item.category = \"Unrestricted\";\n              }\n            });\n\n            // For Stock Count, display negative sa_quantity for OUT movements\n            if (adjustment_type === \"Stock Count\") {\n              filteredData.forEach((item) => {\n                if (item.movement_type === \"OUT\" && item.sa_quantity > 0) {\n                  item.sa_quantity = -item.sa_quantity;\n                }\n              });\n            }\n\n            this.setData({\n              [`sa_item_balance.table_item_balance`]: filteredData,\n            });\n\n            if (adjustment_type === \"Write Off\") {\n              this.setData({\n                [`sa_item_balance.table_item_balance.movement_type`]: \"Out\",\n              });\n              this.hide(\"sa_item_balance.table_item_balance.movement_type\");\n            } else if (adjustment_type === \"Stock Count\") {\n              // For Stock Count, movement_type is determined by quantity sign\n              this.disabled(\n                [`sa_item_balance.table_item_balance.movement_type`],\n                true,\n              );\n              this.display([\n                `sa_item_balance.table_item_balance.movement_type`,\n              ]);\n            } else {\n              this.display([\n                `sa_item_balance.table_item_balance.movement_type`,\n              ]);\n            }\n          })\n          .catch((error) => {\n            console.error(\"Error fetching item balance data:\", error);\n          });\n      }\n    })\n    .catch((error) => {\n      console.error(\"Error fetching item data:\", error);\n    });\n}\n"
+              "func": "(async () => {\n  this.showLoading(\"Loading inventory data...\");\n  try {\n    const allData = this.getValues();\n    const lineItemData = arguments[0]?.row;\n    const rowIndex = arguments[0]?.rowIndex;\n    const adjustment_type = allData.adjustment_type;\n    const materialId = lineItemData.material_id;\n    const plantId = allData.plant_id;\n    const uomId = lineItemData.uom_id;\n\n    if (!materialId) return;\n\n    // ============= HELPERS =============\n\n    const fetchUomData = async (uomIds) => {\n      if (!uomIds || uomIds.length === 0) return [];\n      try {\n        const resUOM = await Promise.all(\n          uomIds.map((id) =>\n            db.collection(\"unit_of_measurement\").where({ id }).get(),\n          ),\n        );\n        return resUOM.map((response) => response.data[0]).filter(Boolean);\n      } catch (error) {\n        console.error(\"Error fetching UOM data:\", error);\n        return [];\n      }\n    };\n\n    const parseJSON = (str) => {\n      if (\n        !str ||\n        str === \"[]\" ||\n        (typeof str === \"string\" && str.trim() === \"\")\n      )\n        return [];\n      try {\n        const parsed = JSON.parse(str);\n        return Array.isArray(parsed) ? parsed : [];\n      } catch {\n        return [];\n      }\n    };\n\n    const filterZeroQuantityRecords = (data, itemData) => {\n      return data.filter((record) => {\n        if (itemData.serial_number_management === 1) {\n          const hasValidSerial =\n            record.serial_number && record.serial_number.trim() !== \"\";\n          if (!hasValidSerial) return false;\n        }\n        return (\n          (record.block_qty && record.block_qty > 0) ||\n          (record.reserved_qty && record.reserved_qty > 0) ||\n          (record.unrestricted_qty && record.unrestricted_qty > 0) ||\n          (record.qualityinsp_qty && record.qualityinsp_qty > 0) ||\n          (record.intransit_qty && record.intransit_qty > 0) ||\n          (record.balance_quantity && record.balance_quantity > 0)\n        );\n      });\n    };\n\n    const generateKey = (item, itemData) => {\n      if (itemData.serial_number_management === 1) {\n        if (itemData.item_batch_management === 1) {\n          return `${item.location_id || \"no_location\"}-${\n            item.serial_number || \"no_serial\"\n          }-${item.batch_id || \"no_batch\"}`;\n        }\n        return `${item.location_id || \"no_location\"}-${\n          item.serial_number || \"no_serial\"\n        }`;\n      }\n      if (itemData.item_batch_management === 1) {\n        return `${item.location_id || \"no_location\"}-${\n          item.batch_id || \"no_batch\"\n        }`;\n      }\n      return `${item.location_id || item.balance_id || \"no_key\"}`;\n    };\n\n    // Merge fresh DB data with previously-saved balance_index. Only carries over\n    // user-editable fields (sa_quantity, category, movement_type, remarks, fm_key)\n    // from saved data — balance qty fields always come from fresh DB so the dialog\n    // never shows or validates against stale stock.\n    const mergeWithSavedData = (freshDbData, savedDataArray, itemData) => {\n      if (!savedDataArray || savedDataArray.length === 0) {\n        return freshDbData;\n      }\n\n      const savedDataMap = new Map(\n        savedDataArray.map((savedItem) => [\n          generateKey(savedItem, itemData),\n          savedItem,\n        ]),\n      );\n\n      const mergedData = freshDbData.map((dbItem) => {\n        const key = generateKey(dbItem, itemData);\n        const savedItem = savedDataMap.get(key);\n\n        if (savedItem) {\n          return {\n            ...dbItem,\n            balance_id: dbItem.id,\n            fm_key: savedItem.fm_key,\n            category: savedItem.category,\n            sa_quantity: savedItem.sa_quantity,\n            movement_type: savedItem.movement_type,\n            remarks: savedItem.remarks || dbItem.remarks,\n          };\n        }\n\n        return {\n          ...dbItem,\n          balance_id: dbItem.id,\n        };\n      });\n\n      savedDataArray.forEach((savedItem) => {\n        const key = generateKey(savedItem, itemData);\n        const existsInDb = freshDbData.some(\n          (dbItem) => generateKey(dbItem, itemData) === key,\n        );\n\n        if (!existsInDb) {\n          mergedData.push({\n            ...savedItem,\n            balance_id: savedItem.balance_id || savedItem.id,\n          });\n        }\n      });\n\n      return mergedData;\n    };\n\n    const mapBalanceData = (itemBalanceData) => {\n      return Array.isArray(itemBalanceData)\n        ? itemBalanceData.map((item) => {\n            const { id, ...itemWithoutId } = item;\n            return {\n              ...itemWithoutId,\n              balance_id: id,\n            };\n          })\n        : (() => {\n            const { id, ...itemWithoutId } = itemBalanceData;\n            return { ...itemWithoutId, balance_id: id };\n          })();\n    };\n\n    const applyAdjustmentTypeBehavior = (filteredData, isSerial) => {\n      filteredData.forEach((item) => {\n        if (!item.category) item.category = \"Unrestricted\";\n      });\n\n      if (adjustment_type === \"Stock Count\") {\n        filteredData.forEach((item) => {\n          if (item.movement_type === \"OUT\" && item.sa_quantity > 0) {\n            item.sa_quantity = -item.sa_quantity;\n          }\n        });\n      } else if (isSerial) {\n        filteredData.forEach((item) => {\n          item.movement_type = \"OUT\";\n        });\n      }\n    };\n\n    const applyMovementTypeUI = (isSerial) => {\n      if (adjustment_type === \"Write Off\") {\n        this.setData({\n          [`sa_item_balance.table_item_balance.movement_type`]: \"OUT\",\n        });\n        this.hide(\"sa_item_balance.table_item_balance.movement_type\");\n      } else if (adjustment_type === \"Stock Count\") {\n        this.disabled(\n          [`sa_item_balance.table_item_balance.movement_type`],\n          true,\n        );\n        this.display([`sa_item_balance.table_item_balance.movement_type`]);\n      } else if (isSerial) {\n        this.setData({\n          [`sa_item_balance.table_item_balance.movement_type`]: \"OUT\",\n        });\n        this.disabled(\n          [`sa_item_balance.table_item_balance.movement_type`],\n          true,\n        );\n        this.display([`sa_item_balance.table_item_balance.movement_type`]);\n      } else {\n        this.display([`sa_item_balance.table_item_balance.movement_type`]);\n      }\n    };\n\n    // ============= MAIN =============\n\n    this.hide(\"sa_item_balance.table_item_balance.serial_number\");\n\n    let itemData;\n    try {\n      const itemResponse = await db\n        .collection(\"Item\")\n        .where({ id: materialId })\n        .get();\n      itemData = itemResponse.data?.[0];\n    } catch (error) {\n      console.error(\"Error fetching item data:\", error);\n      return;\n    }\n    if (!itemData) return;\n\n    const altUoms = itemData.table_uom_conversion?.map(\n      (data) => data.alt_uom_id,\n    );\n    const uomOptions = await fetchUomData(altUoms);\n    await this.setOptionData([`sa_item_balance.material_uom`], uomOptions);\n\n    this.setData({\n      [`sa_item_balance.material_id`]: itemData.material_code,\n      [`sa_item_balance.material_name`]: itemData.material_name,\n      [`sa_item_balance.row_index`]: rowIndex,\n      [`sa_item_balance.material_uom`]: uomId,\n    });\n\n    const previousBalanceData = parseJSON(lineItemData.balance_index);\n    const isSerial = itemData.serial_number_management === 1;\n    const isBatch = itemData.item_batch_management === 1;\n\n    if (isSerial) {\n      this.display([\n        \"sa_item_balance.table_item_balance.serial_number\",\n        \"sa_item_balance.search_serial_number\",\n        \"sa_item_balance.confirm_search\",\n        \"sa_item_balance.reset_search\",\n      ]);\n      this.setData({ [`sa_item_balance.is_serialized`]: 1 });\n\n      if (isBatch) {\n        this.display([\n          \"sa_item_balance.table_item_balance.batch_id\",\n          \"sa_item_balance.table_item_balance.expired_date\",\n          \"sa_item_balance.table_item_balance.manufacturing_date\",\n        ]);\n      } else {\n        this.hide([\n          \"sa_item_balance.table_item_balance.batch_id\",\n          \"sa_item_balance.table_item_balance.expired_date\",\n          \"sa_item_balance.table_item_balance.manufacturing_date\",\n        ]);\n      }\n\n      try {\n        const response = await db\n          .collection(\"item_serial_balance\")\n          .where({ material_id: materialId, plant_id: plantId })\n          .get();\n        const mappedData = mapBalanceData(response.data || []);\n        const finalData = mergeWithSavedData(\n          mappedData,\n          previousBalanceData,\n          itemData,\n        );\n        const filteredData = filterZeroQuantityRecords(finalData, itemData);\n        applyAdjustmentTypeBehavior(filteredData, true);\n\n        this.setData({\n          [`sa_item_balance.table_item_balance`]: filteredData,\n        });\n        this.setData({\n          [`sa_item_balance.table_item_balance_raw`]:\n            JSON.stringify(filteredData),\n        });\n\n        applyMovementTypeUI(true);\n      } catch (error) {\n        console.error(\"Error fetching item serial balance data:\", error);\n      }\n    } else if (isBatch) {\n      this.display([\n        \"sa_item_balance.table_item_balance.batch_id\",\n        \"sa_item_balance.table_item_balance.expired_date\",\n        \"sa_item_balance.table_item_balance.manufacturing_date\",\n      ]);\n      this.hide([\n        \"sa_item_balance.table_item_balance.serial_number\",\n        \"sa_item_balance.search_serial_number\",\n        \"sa_item_balance.confirm_search\",\n        \"sa_item_balance.reset_search\",\n      ]);\n      this.setData({ [`sa_item_balance.is_serialized`]: 0 });\n\n      try {\n        const response = await db\n          .collection(\"item_batch_balance\")\n          .where({ material_id: materialId, plant_id: plantId })\n          .get();\n        const mappedData = mapBalanceData(response.data || []);\n        const finalData = mergeWithSavedData(\n          mappedData,\n          previousBalanceData,\n          itemData,\n        );\n        const filteredData = filterZeroQuantityRecords(finalData, itemData);\n        applyAdjustmentTypeBehavior(filteredData, false);\n\n        this.setData({\n          [`sa_item_balance.table_item_balance`]: filteredData,\n        });\n\n        applyMovementTypeUI(false);\n      } catch (error) {\n        console.error(\"Error fetching item batch balance data:\", error);\n      }\n    } else {\n      this.hide([\n        \"sa_item_balance.table_item_balance.batch_id\",\n        \"sa_item_balance.table_item_balance.expired_date\",\n        \"sa_item_balance.table_item_balance.manufacturing_date\",\n        \"sa_item_balance.table_item_balance.serial_number\",\n        \"sa_item_balance.search_serial_number\",\n        \"sa_item_balance.confirm_search\",\n        \"sa_item_balance.reset_search\",\n      ]);\n      this.setData({ [`sa_item_balance.is_serialized`]: 0 });\n\n      try {\n        const response = await db\n          .collection(\"item_balance\")\n          .where({ material_id: materialId, plant_id: plantId })\n          .get();\n        const mappedData = mapBalanceData(response.data || []);\n        const finalData = mergeWithSavedData(\n          mappedData,\n          previousBalanceData,\n          itemData,\n        );\n        const filteredData = filterZeroQuantityRecords(finalData, itemData);\n        applyAdjustmentTypeBehavior(filteredData, false);\n\n        this.setData({\n          [`sa_item_balance.table_item_balance`]: filteredData,\n        });\n\n        applyMovementTypeUI(false);\n      } catch (error) {\n        console.error(\"Error fetching item balance data:\", error);\n      }\n    }\n  } catch (error) {\n    console.error(\"Error in stock adjustment dialog:\", error);\n  } finally {\n    this.hideLoading();\n  }\n})();\n"
             }
           }
         ]
@@ -6543,7 +6814,7 @@
             "key": "kubjftq7",
             "action": "js",
             "options": {
-              "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Saving Stock Adjustment as Completed...\");\n\n    const data = this.getValues();\n    console.log(\"data\", data);\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      \"2032025505853816833\",\n      { allData: data, saveAs: \"Completed\", pageStatus: data.page_status },\n      async (res) => {\n        console.log(\"Stock Adjustment saved successfully:\", res);\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to save Stock Adjustment:\", err);\n        this.hideLoading();\n        workflowResult = err;\n      },\n    );\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    // Handle workflow errors\n    if (\n      workflowResult.data.code === \"400\" ||\n      workflowResult.data.code === 400 ||\n      workflowResult.data.success === false\n    ) {\n      this.hideLoading();\n      const errorMessage =\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Failed to save Stock Adjustment\";\n      this.$message.error(errorMessage);\n      return;\n    }\n\n    // Handle success\n    if (\n      workflowResult.data.code === \"200\" ||\n      workflowResult.data.code === 200 ||\n      workflowResult.data.success === true\n    ) {\n      this.hideLoading();\n      const successMessage =\n        workflowResult.data.message ||\n        workflowResult.data.msg ||\n        \"Misc Issue saved successfully\";\n      this.$message.success(successMessage);\n      closeDialog();\n    } else {\n      this.hideLoading();\n      this.$message.error(\"Unknown workflow status\");\n    }\n  } catch (error) {\n    this.hideLoading();\n    console.error(\"Error:\", error);\n    const errorMessage = error.message || \"Failed to save Stock Adjustment\";\n    this.$message.error(errorMessage);\n  }\n})();\n"
+              "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n  }\n};\n\nconst runSAWorkflow = async (data) => {\n  return new Promise((resolve, reject) => {\n    this.runWorkflow(\n      \"2032025505853816833\",\n      { allData: data, saveAs: \"Completed\", pageStatus: data.page_status },\n      (res) => {\n        console.log(\"Stock Adjustment workflow response:\", res);\n        resolve(res);\n      },\n      (err) => {\n        console.error(\"Failed to save Stock Adjustment:\", err);\n        reject(err);\n      },\n    );\n  });\n};\n\nconst handleWorkflowResult = async (workflowResult) => {\n  if (!workflowResult || !workflowResult.data) {\n    this.hideLoading();\n    this.models[\"_data\"] = {\n      ...this.models[\"_data\"],\n      is_error: 1,\n      is_processing: 0,\n    };\n    this.$message.error(\"No response from workflow. Please contact support.\");\n    return;\n  }\n\n  const resultCode = workflowResult.data.code;\n\n  if (\n    resultCode === \"400\" ||\n    resultCode === 400 ||\n    workflowResult.data.success === false\n  ) {\n    this.hideLoading();\n    this.models[\"_data\"] = {\n      ...this.models[\"_data\"],\n      is_error: 1,\n      is_processing: 0,\n    };\n    const errorMessage =\n      workflowResult.data.msg ||\n      workflowResult.data.message ||\n      \"Failed to save Stock Adjustment. Please contact support.\";\n    this.$message.error(errorMessage);\n    return;\n  }\n\n  if (\n    resultCode === \"200\" ||\n    resultCode === 200 ||\n    workflowResult.data.success === true\n  ) {\n    this.hideLoading();\n    this.models[\"_data\"] = { ...this.models[\"_data\"], is_processing: 0 };\n    const successMessage =\n      workflowResult.data.message ||\n      workflowResult.data.msg ||\n      \"Stock Adjustment saved successfully\";\n    this.$message.success(successMessage);\n    closeDialog();\n    return;\n  }\n\n  this.hideLoading();\n  this.models[\"_data\"] = {\n    ...this.models[\"_data\"],\n    is_error: 1,\n    is_processing: 0,\n  };\n  this.$message.error(\"Unknown workflow status. Please contact support.\");\n};\n\n(async () => {\n  try {\n    if (this.models[\"_data\"]?.is_processing === 1) {\n      this.$message.warning(\"Workflow is already in progress. Please wait.\");\n      return;\n    }\n\n    if (this.models[\"_data\"]?.is_error === 1) {\n      this.$message.error(\n        \"A workflow error occurred. Please contact support.\",\n      );\n      return;\n    }\n\n    this.models[\"_data\"] = { ...this.models[\"_data\"], is_processing: 1 };\n\n    const data = this.getValues();\n    this.showLoading(\"Saving Stock Adjustment as Completed...\");\n    console.log(\"data\", data);\n\n    const workflowResult = await runSAWorkflow(data);\n    await handleWorkflowResult(workflowResult);\n  } catch (error) {\n    this.hideLoading();\n    this.models[\"_data\"] = {\n      ...this.models[\"_data\"],\n      is_error: 1,\n      is_processing: 0,\n    };\n    console.error(\"Error:\", error);\n    const errorMessage =\n      error.message || \"Failed to save Stock Adjustment. Please contact support.\";\n    this.$message.error(errorMessage);\n  }\n})();\n"
             }
           }
         ]
@@ -6679,7 +6950,7 @@
       {
         "key": "otmqv4xj",
         "name": "onClick_completed_post",
-        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n  }\n};\n\nconst postToAccounting = async (stockAdjustmentId, organizationId) => {\n  const resAI = await db\n    .collection(\"accounting_integration\")\n    .where({ organization_id: organizationId })\n    .get();\n\n  const aiData = resAI.data[0];\n\n  if (aiData.acc_integration_type !== \"No Accounting Integration\") {\n    await db.collection(\"stock_adjustment\").doc(stockAdjustmentId).update({\n      posted_status: \"Pending Post\",\n    });\n  }\n\n  switch (aiData.acc_integration_type) {\n    case \"SQL Accounting\":\n      console.log(\"Calling SQL Accounting workflow\");\n\n      await this.runWorkflow(\n        \"1958732352162164738\",\n        { key: \"value\" },\n        async (res) => {\n          console.log(\"成功结果：\", res);\n          if (res.data.status === \"running\") {\n            // Run workflow\n            await this.runWorkflow(\n              \"1909088441531375617\",\n              { key: \"value\" },\n              (res) => {\n                console.log(\"成功结果：\", res);\n                this.$message.success(\"Add Stock Adjustment successfully.\");\n                closeDialog();\n              },\n              (err) => {\n                console.error(\"失败结果：\", err);\n                this.hideLoading();\n                closeDialog();\n                throw new Error(\n                  \"Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n                );\n              },\n            );\n          }\n        },\n        (err) => {\n          console.log(\"失败结果：\", err);\n          this.hideLoading();\n          closeDialog();\n          throw new Error(\n            \"Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n          );\n        },\n      );\n      break;\n\n    case \"AutoCount Accounting\":\n      console.log(\"Calling AutoCount workflow\");\n      await this.runWorkflow(\n        \"1996041757448597505\",\n        { sa_id: [result.id] },\n        (res) => {\n          console.log(\"成功结果：\", res);\n          this.$message.success(\"Add Stock Adjustment successfully.\");\n          closeDialog();\n        },\n        (err) => {\n          console.error(\"失败结果：\", err);\n          this.hideLoading();\n          closeDialog();\n          throw new Error(\n            \"Your AutoCount accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n          );\n        },\n      );\n      break;\n\n    case \"No Accounting Integration\":\n      this.$message.success(\"Add Stock Adjustment successfully.\");\n      closeDialog();\n      console.log(\"Not calling workflow\");\n      break;\n\n    case \"SQL Accounting V2\":\n    case \"AutoCount Accounting V2\":\n      this.$message.success(\"Add Stock Adjustment successfully.\");\n      closeDialog();\n      await this.runWorkflow(\n        \"2013511169625042946\",\n        {\n          agent_id: aiData.agent_id,\n          task_type: \"post_aj\",\n          payload: [stockAdjustmentId],\n          priority: \"0\",\n        },\n        async (res) => {\n          console.log(\"成功结果：\", res);\n          // this.$message.success(\"Update Misc Issue successfully.\");\n        },\n        (err) => {\n          console.log(\"失败结果：\", err);\n          // this.hideLoading();\n        },\n      );\n      break;\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Saving Stock Adjustment as Completed...\");\n\n    const data = this.getValues();\n    console.log(\"data\", data);\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      \"2032025505853816833\",\n      { allData: data, saveAs: \"Completed\", pageStatus: data.page_status },\n      async (res) => {\n        console.log(\"Stock Adjustment saved successfully:\", res);\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to save Stock Adjustment:\", err);\n        this.hideLoading();\n        workflowResult = err;\n      },\n    );\n\n    console.log(\"Workflow result:\", workflowResult);\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    // Handle workflow errors\n    if (\n      workflowResult.data.code === \"400\" ||\n      workflowResult.data.code === 400 ||\n      workflowResult.data.success === false\n    ) {\n      this.hideLoading();\n      const errorMessage =\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Failed to save Stock Adjustment\";\n      this.$message.error(errorMessage);\n      return;\n    }\n\n    // Handle success\n    if (\n      workflowResult.data.code === \"200\" ||\n      workflowResult.data.code === 200 ||\n      workflowResult.data.success === true\n    ) {\n      const stockAdjustmentId = data.id ?? workflowResult.data.id[0];\n\n      await postToAccounting(stockAdjustmentId, data.organization_id);\n    } else {\n      this.hideLoading();\n      this.$message.error(\"Unknown workflow status\");\n    }\n  } catch (error) {\n    this.hideLoading();\n    console.error(\"Error:\", error);\n    const errorMessage = error.message || \"Failed to save Stock Adjustment\";\n    this.$message.error(errorMessage);\n  }\n})();\n",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n  }\n};\n\nconst runSAWorkflow = async (data) => {\n  return new Promise((resolve, reject) => {\n    this.runWorkflow(\n      \"2032025505853816833\",\n      { allData: data, saveAs: \"Completed\", pageStatus: data.page_status },\n      (res) => {\n        console.log(\"Stock Adjustment workflow response:\", res);\n        resolve(res);\n      },\n      (err) => {\n        console.error(\"Failed to save Stock Adjustment:\", err);\n        reject(err);\n      },\n    );\n  });\n};\n\nconst handleWorkflowResult = async (workflowResult) => {\n  if (!workflowResult || !workflowResult.data) {\n    this.hideLoading();\n    this.models[\"_data\"] = {\n      ...this.models[\"_data\"],\n      is_error: 1,\n      is_processing: 0,\n    };\n    this.$message.error(\"No response from workflow. Please contact support.\");\n    return;\n  }\n\n  const resultCode = workflowResult.data.code;\n\n  if (\n    resultCode === \"400\" ||\n    resultCode === 400 ||\n    workflowResult.data.success === false\n  ) {\n    this.hideLoading();\n    this.models[\"_data\"] = {\n      ...this.models[\"_data\"],\n      is_error: 1,\n      is_processing: 0,\n    };\n    const errorMessage =\n      workflowResult.data.msg ||\n      workflowResult.data.message ||\n      \"Failed to save Stock Adjustment. Please contact support.\";\n    this.$message.error(errorMessage);\n    return;\n  }\n\n  if (\n    resultCode === \"200\" ||\n    resultCode === 200 ||\n    workflowResult.data.success === true\n  ) {\n    const accIntegrationType = this.models[\"_data\"].acc_integration_type;\n    const organizationId = this.models[\"_data\"].organization_id;\n    if (\n      accIntegrationType === \"SQL Accounting\" &&\n      organizationId &&\n      organizationId !== \"\"\n    ) {\n      console.log(\"Calling SQL Accounting workflow\");\n\n      await this.runWorkflow(\n        \"1958732352162164738\",\n        { key: \"value\" },\n        async (res) => {\n          console.log(\"成功结果：\", res);\n          if (res.data.status === \"running\") {\n            await this.runWorkflow(\n              \"1909088441531375617\",\n              { key: \"value\" },\n              (res) => {\n                console.log(\"成功结果：\", res);\n                this.models[\"_data\"] = {\n                  ...this.models[\"_data\"],\n                  is_processing: 0,\n                };\n                this.$message.success(\"Add Stock Adjustment successfully.\");\n                closeDialog();\n              },\n              (err) => {\n                console.error(\"失败结果：\", err);\n                this.hideLoading();\n                this.models[\"_data\"] = {\n                  ...this.models[\"_data\"],\n                  is_error: 1,\n                  is_processing: 0,\n                };\n                closeDialog();\n                throw new Error(\n                  \"Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n                );\n              },\n            );\n          }\n        },\n        (err) => {\n          console.log(\"失败结果：\", err);\n          this.hideLoading();\n          this.models[\"_data\"] = {\n            ...this.models[\"_data\"],\n            is_error: 1,\n            is_processing: 0,\n          };\n          closeDialog();\n          throw new Error(\n            \"Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n          );\n        },\n      );\n    } else if (\n      accIntegrationType === \"AutoCount Accounting\" &&\n      organizationId &&\n      organizationId !== \"\"\n    ) {\n      console.log(\"Calling AutoCount workflow\");\n      await this.runWorkflow(\n        \"1996041757448597505\",\n        { sa_id: [result.id] },\n        (res) => {\n          console.log(\"成功结果：\", res);\n          this.models[\"_data\"] = {\n            ...this.models[\"_data\"],\n            is_processing: 0,\n          };\n          this.$message.success(\"Add Stock Adjustment successfully.\");\n          closeDialog();\n        },\n        (err) => {\n          console.error(\"失败结果：\", err);\n          this.hideLoading();\n          this.models[\"_data\"] = {\n            ...this.models[\"_data\"],\n            is_error: 1,\n            is_processing: 0,\n          };\n          closeDialog();\n          throw new Error(\n            \"Your AutoCount accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\",\n          );\n        },\n      );\n    } else if (\n      accIntegrationType === \"No Accounting Integration\" &&\n      organizationId &&\n      organizationId !== \"\"\n    ) {\n      this.models[\"_data\"] = { ...this.models[\"_data\"], is_processing: 0 };\n      this.$message.success(\"Add Stock Adjustment successfully\");\n      closeDialog();\n      console.log(\"Not calling workflow\");\n    } else {\n      this.models[\"_data\"] = { ...this.models[\"_data\"], is_processing: 0 };\n      closeDialog();\n    }\n    return;\n  }\n\n  this.hideLoading();\n  this.models[\"_data\"] = {\n    ...this.models[\"_data\"],\n    is_error: 1,\n    is_processing: 0,\n  };\n  this.$message.error(\"Unknown workflow status. Please contact support.\");\n};\n\n(async () => {\n  try {\n    if (this.models[\"_data\"]?.is_processing === 1) {\n      this.$message.warning(\"Workflow is already in progress. Please wait.\");\n      return;\n    }\n\n    if (this.models[\"_data\"]?.is_error === 1) {\n      this.$message.error(\"A workflow error occurred. Please contact support.\");\n      return;\n    }\n\n    this.models[\"_data\"] = { ...this.models[\"_data\"], is_processing: 1 };\n\n    const data = this.getValues();\n    this.showLoading(\"Saving Stock Adjustment as Completed...\");\n    console.log(\"data\", data);\n\n    const workflowResult = await runSAWorkflow(data);\n    await handleWorkflowResult(workflowResult);\n  } catch (error) {\n    this.hideLoading();\n    this.models[\"_data\"] = {\n      ...this.models[\"_data\"],\n      is_error: 1,\n      is_processing: 0,\n    };\n    console.error(\"Error:\", error);\n    const errorMessage =\n      error.message ||\n      \"Failed to save Stock Adjustment. Please contact support.\";\n    this.$message.error(errorMessage);\n  }\n})();\n",
         "type": "js"
       },
       {
