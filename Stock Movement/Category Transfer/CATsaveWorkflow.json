@@ -1509,7 +1509,7 @@
                 }
               ]
             },
-{
+            {
               "id": "code_node_CatItemIDs",
               "type": "code-node",
               "data": {
@@ -1625,7 +1625,7 @@
                 }
               },
               "blocks": [
-{
+                {
                   "id": "code_node_PeidsgXa",
                   "type": "code-node",
                   "data": {
@@ -1751,7 +1751,7 @@
                           }
                         ]
                       },
-{
+                      {
                         "key": "4ccj2hbx",
                         "name": "doc_date",
                         "title": "doc_date",
@@ -1803,7 +1803,7 @@
                   },
                   "blocks": []
                 },
-{
+                {
                   "id": "loop_NWeT5dSb",
                   "type": "loop",
                   "data": {
@@ -1851,7 +1851,7 @@
                     }
                   },
                   "blocks": [
-{
+                    {
                       "id": "code_node_SXZuEFWW",
                       "type": "code-node",
                       "data": {
@@ -1892,7 +1892,7 @@
                             "isExpand": false,
                             "children": []
                           },
-{
+                          {
                             "key": "6uixt627",
                             "name": "manufacturing_date",
                             "title": "manufacturing_date",
@@ -2052,7 +2052,7 @@
                               "valueLabel": "",
                               "propLabel": "Batch ID"
                             },
-{
+                            {
                               "prop": "itemData",
                               "operator": "",
                               "valueType": "field",
@@ -2302,7 +2302,7 @@
                               "valueLabel": "",
                               "propLabel": "Batch ID"
                             },
-{
+                            {
                               "prop": "itemData",
                               "operator": "",
                               "valueType": "field",
@@ -2814,9 +2814,7 @@
                 {
                   "id": "if_block_ReorderCatTrue",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "workflow_node_ReorderCatCompleted",
@@ -2880,9 +2878,7 @@
                 {
                   "id": "if_block_ReorderCatFalse",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3372,7 +3368,7 @@
         }
       ]
     },
-{
+    {
       "id": "return_node_b8XNN3w1",
       "type": "return-node",
       "data": {

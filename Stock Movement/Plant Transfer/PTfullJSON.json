@@ -2517,6 +2517,118 @@
               "options": {
                 "defaultValue": "",
                 "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_pe7htnej",
+                "filterable": false,
+                "pagingEnabled": true,
+                "isShowExpandButton": false,
+                "buttonText": "新增",
+                "buttonPosition": "bottom",
+                "buttonAlign": "right",
+                "buttonSize": "default",
+                "buttonEvent": [],
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "project_code",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_pe7htnej",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "2085600321692696577",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "Project:Table:2085600321692696577"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 1,
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Project",
+              "novalid": {},
+              "key": "kqutjrpm",
+              "model": "project_id",
+              "rules": []
+            },
+            {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
                 "disabled": true,
                 "clearable": false,
                 "placeholder": "",
@@ -2552,7 +2664,7 @@
                   "icon": "",
                   "explain": "",
                   "cascade": "",
-                  "children": "children"
+                  "children": ""
                 },
                 "remoteFunc": "func_7jpb6y8c",
                 "customClass": "",
@@ -2566,7 +2678,7 @@
                 "subform": false,
                 "datasource": {
                   "rules": {
-                    "collectionId": "",
+                    "collectionId": "2025846960482627586",
                     "list": [
                       {
                         "id": 1723795236686,
@@ -3731,8 +3843,9 @@
                       "icon": "",
                       "type": "addBtn",
                       "events": [],
-                      "hidden": "",
-                      "disabled": ""
+                      "hidden": "{{{{value:stock_movement_status}} === 'Created'}}",
+                      "disabled": "",
+                      "ignoreFormDisabled": false
                     }
                   ]
                 },
@@ -3740,7 +3853,7 @@
                 "useTableV2": false,
                 "groupBy": "",
                 "filters": [],
-                "filter_collapse": 0,
+                "filter_collapse": 1,
                 "rowActions": [
                   {
                     "title": "Delete",
@@ -3765,12 +3878,12 @@
                         "name": "onStockMovementOpenSplitDialog"
                       }
                     ],
-                    "hidden": "{{{{value:stock_movement_status}} === 'Created'}}",
+                    "hidden": "{{{{value:stock_movement_status}} !== 'Created'}}",
                     "disabled": "",
                     "ignoreFormDisabled": false
                   }
                 ],
-                "collapse_all": 0,
+                "collapse_all": 1,
                 "rowSelectionType": "None",
                 "batchOperate": [],
                 "resizable": 0,
@@ -6891,7 +7004,13 @@
                     "remoteFunc": "func_57uf2dmx",
                     "remoteOption": "option_57uf2dmx",
                     "tableColumn": true,
-                    "subform": false
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
                   },
                   "events": {
                     "onChange": ""
@@ -6900,6 +7019,118 @@
                   "novalid": {},
                   "key": "57uf2dmx",
                   "model": "is_serial_allocated",
+                  "rules": []
+                },
+                {
+                  "version": "1.0.0",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": false,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_pe7htnej",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "isShowExpandButton": false,
+                    "buttonText": "新增",
+                    "buttonPosition": "bottom",
+                    "buttonAlign": "right",
+                    "buttonSize": "default",
+                    "buttonEvent": [],
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "project_code",
+                      "image": "",
+                      "icon": "",
+                      "explain": "",
+                      "cascade": "",
+                      "children": ""
+                    },
+                    "remoteFunc": "func_pe7htnej",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": false,
+                    "subform": false,
+                    "datasource": {
+                      "rules": {
+                        "collectionId": "2085600321692696577",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{value:organization_id}}",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      },
+                      "source": "Project:Table:2085600321692696577"
+                    },
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": [],
+                    "paging_enabled": 1,
+                    "page_size": 10
+                  },
+                  "events": {
+                    "onReady": "",
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Project",
+                  "novalid": {},
+                  "key": "26gdlrie",
+                  "model": "project_id",
                   "rules": []
                 }
               ],
@@ -15884,60 +16115,6 @@
                           "rules": []
                         },
                         {
-                          "type": "textarea",
-                          "mainIcon": "多行文本",
-                          "typeIcon": "多行文本",
-                          "icon": "icon-diy-com-textarea",
-                          "group": "Text",
-                          "groupSort": 2,
-                          "enableScopes": ["Component", "Table", "Page"],
-                          "options": {
-                            "width": "",
-                            "defaultValue": "",
-                            "required": false,
-                            "requiredMessage": "",
-                            "disabled": true,
-                            "pattern": "",
-                            "patternMessage": "",
-                            "validatorCheck": false,
-                            "validator": "",
-                            "placeholder": "",
-                            "customClass": "",
-                            "labelWidth": 100,
-                            "isLabelWidth": false,
-                            "hidden": true,
-                            "dataBind": false,
-                            "clearable": false,
-                            "maxlength": "",
-                            "showWordLimit": false,
-                            "rows": 2,
-                            "autosize": false,
-                            "customProps": {},
-                            "tip": "",
-                            "remoteFunc": "func_2riwj8w7",
-                            "remoteOption": "option_2riwj8w7",
-                            "tableColumn": false,
-                            "subform": false,
-                            "select-card_n7ge7fmb": ["dataBind"],
-                            "left": 3,
-                            "right": 4,
-                            "pad": "*",
-                            "desensitization_pattern": "",
-                            "desensitization_replace": "",
-                            "select-card_4c8m22dh": []
-                          },
-                          "events": {
-                            "onChange": "",
-                            "onFocus": "",
-                            "onBlur": ""
-                          },
-                          "name": "SN Data",
-                          "novalid": {},
-                          "key": "wd2y9ryg",
-                          "model": "serial_number_data",
-                          "rules": []
-                        },
-                        {
                           "version": "1.0.0",
                           "type": "switch",
                           "mainIcon": "开关",
@@ -15982,117 +16159,6 @@
                           "novalid": {},
                           "key": "8i0hdg9e",
                           "model": "is_batch_item",
-                          "rules": []
-                        },
-                        {
-                          "version": "1.0.0",
-                          "type": "switch",
-                          "mainIcon": "开关",
-                          "typeIcon": "开关",
-                          "icon": "icon-switch",
-                          "group": "Select",
-                          "groupSort": 8,
-                          "enableScopes": ["Component", "Table", "Page"],
-                          "options": {
-                            "defaultValue": 0,
-                            "required": false,
-                            "requiredMessage": "",
-                            "validatorCheck": false,
-                            "validator": "",
-                            "disabled": false,
-                            "customClass": "",
-                            "labelWidth": 100,
-                            "isLabelWidth": false,
-                            "hidden": false,
-                            "dataBind": true,
-                            "width": "",
-                            "customProps": {},
-                            "tip": "",
-                            "booleanValueMode": false,
-                            "alignright": false,
-                            "checkboxMode": false,
-                            "remoteFunc": "func_9og0drpe",
-                            "remoteOption": "option_9og0drpe",
-                            "tableColumn": false,
-                            "subform": false,
-                            "select-card_n7ge7fmb": [],
-                            "left": 3,
-                            "right": 4,
-                            "pad": "*",
-                            "desensitization_pattern": "",
-                            "desensitization_replace": ""
-                          },
-                          "events": {
-                            "onChange": ""
-                          },
-                          "name": "Is Parent Split",
-                          "novalid": {},
-                          "key": "hllu1vwa",
-                          "model": "is_parent_split",
-                          "rules": []
-                        },
-                        {
-                          "version": "1.0.0",
-                          "name": "Import Excel",
-                          "el": "su-fm-excel-parse",
-                          "mainIcon": "解析Excel",
-                          "typeIcon": "解析Excel",
-                          "group": "File",
-                          "groupSort": 3,
-                          "enableScopes": ["Component", "Table", "Page"],
-                          "options": {
-                            "customClass": "",
-                            "labelWidth": 100,
-                            "isLabelWidth": false,
-                            "hidden": false,
-                            "dataBind": false,
-                            "required": false,
-                            "validator": "",
-                            "disabled": false,
-                            "hideLabel": false,
-                            "label": "解析Excel",
-                            "width": null,
-                            "height": null,
-                            "placeholder": "Import Data",
-                            "buttonSize": "default",
-                            "buttonType": "primary",
-                            "buttonPlain": false,
-                            "buttonRound": false,
-                            "buttonCircle": false,
-                            "action": "/su-code-service/io/convertExcelToJson",
-                            "accept": ".xlsx,.xls",
-                            "headers": [],
-                            "customProps": {
-                              "valueType": "array",
-                              "arrayType": "object",
-                              "buttonText": "Upload",
-                              "uploadingText": "Uploading..."
-                            },
-                            "remoteFunc": "func_owfosbca",
-                            "remoteOption": "option_owfosbca",
-                            "tableColumn": false,
-                            "subform": false,
-                            "dynamicValueType": "fx",
-                            "isDynamicValue": false,
-                            "select-card_n7ge7fmb": [],
-                            "left": 3,
-                            "right": 4,
-                            "pad": "*",
-                            "desensitization_pattern": "",
-                            "desensitization_replace": ""
-                          },
-                          "events": {
-                            "onUploadSuccess": "a68ndwx4",
-                            "onUploadError": "",
-                            "onFocus": "",
-                            "onBlur": "",
-                            "change": ""
-                          },
-                          "source": "system",
-                          "type": "custom",
-                          "novalid": {},
-                          "key": "24b6wifm",
-                          "model": "import_data",
                           "rules": []
                         }
                       ],
@@ -16466,102 +16532,6 @@
               "rules": []
             },
             {
-              "type": "select",
-              "mainIcon": "下拉单选",
-              "typeIcon": "下拉单选",
-              "icon": "icon-select",
-              "group": "Select",
-              "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
-              "el": "fm-select",
-              "options": {
-                "defaultValue": "",
-                "multiple": true,
-                "disabled": false,
-                "clearable": false,
-                "placeholder": "",
-                "required": false,
-                "requiredMessage": "",
-                "validatorCheck": false,
-                "validator": "",
-                "width": "",
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1"
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2"
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": false,
-                "remoteType": "datasource",
-                "remoteOption": "option_7nbvmpse",
-                "filterable": false,
-                "pagingEnabled": true,
-                "remoteOptions": [],
-                "props": {
-                  "value": "",
-                  "label": "",
-                  "image": "",
-                  "icon": "",
-                  "explain": ""
-                },
-                "remoteFunc": "func_7nbvmpse",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": true,
-                "dataBind": true,
-                "customProps": {},
-                "tip": "",
-                "tableColumn": true,
-                "subform": false,
-                "datasource": {
-                  "rules": {
-                    "collectionId": "",
-                    "list": [
-                      {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "",
-                        "valueType": "",
-                        "value": "",
-                        "type": "leaf",
-                        "level": 1
-                      }
-                    ]
-                  }
-                },
-                "auto_refresh": 0,
-                "auto_refresh_debounce": 100,
-                "select-card_n7ge7fmb": [],
-                "left": 3,
-                "right": 4,
-                "pad": "*",
-                "desensitization_pattern": "",
-                "desensitization_replace": ""
-              },
-              "events": {
-                "onReady": "",
-                "onChange": "",
-                "onFocus": "t46ck1ta",
-                "onBlur": ""
-              },
-              "name": "Serial Numbers",
-              "novalid": {},
-              "key": "6yw5csth",
-              "model": "select_serial_number",
-              "rules": []
-            },
-            {
               "type": "number",
               "name": "Quantity",
               "icon": "icon-number",
@@ -16595,7 +16565,8 @@
                   "showNumber": "",
                   "viewMode": "",
                   "format": "rmb",
-                  "cacheProp": true
+                  "cacheProp": true,
+                  "number_rule": ""
                 },
                 "tip": "",
                 "remoteFunc": "func_ac6iup4s",
@@ -16798,7 +16769,7 @@
                             "isTop": false,
                             "operator": "numberEqual",
                             "valueType": "field",
-                            "value": "{{value:plant_id}}",
+                            "value": "{{value:issuing_operation_faci}}",
                             "type": "leaf",
                             "level": 2,
                             "propLabel": "Plant",
@@ -16930,7 +16901,7 @@
                             "prop": "plant_id",
                             "operator": "numberEqual",
                             "valueType": "field",
-                            "value": "{{value:plant_id}}",
+                            "value": "{{value:issuing_operation_faci}}",
                             "type": "leaf",
                             "level": 2,
                             "propLabel": "Plant",
@@ -20774,7 +20745,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "const showStatusHTML = (status) => {\n  const statusMap = {\n    Draft: \"draft_status\",\n    Issued: \"issued_status\",\n    \"In Progress\": \"processing_status\",\n    Created: \"created_status\",\n    Completed: \"completed_status\",\n    \"Fully Posted\": \"fullyposted_status\",\n    Cancelled: \"cancel_status\",\n  };\n\n  if (statusMap[status]) {\n    this.display([statusMap[status]]);\n  }\n};\n\nconst CONFIG = {\n  fields: {\n    all: [\n      \"stock_movement.item_selection\",\n      \"stock_movement.transfer_stock\",\n      \"stock_movement.total_quantity\",\n      \"stock_movement.to_recv_qty\",\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n      \"stock_movement.quantity_uom\",\n      \"stock_movement.category\",\n      \"stock_movement.stock_summary\",\n      \"movement_reason\",\n      \"delivery_method\",\n      \"receiving_operation_faci\",\n    ],\n    buttons: [\n      \"button_post\",\n      \"comp_post_button\",\n      \"button_inprogress_ift\",\n      \"button_complete_receive\",\n      \"button_save_as_draft\",\n      \"button_issued_ift\",\n    ],\n    hide: [\n      \"stock_movement.view_stock\",\n      \"stock_movement.edit_stock\",\n      \"stock_movement.unit_price\",\n      \"stock_movement.amount\",\n      \"is_production_order\",\n    ],\n  },\n  hideFields: {\n    \"Plant Transfer\": [\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n      \"stock_movement.category\",\n      \"stock_movement.to_recv_qty\",\n      \"stock_movement.batch_id\",\n      \"stock_movement.batch_no\",\n      \"stock_movement.location_id\",\n      \"stock_movement.storage_location_id\",\n      \"stock_movement.view_hu\",\n      \"stock_movement.select_hu\",\n      \"parent_id\",\n    ],\n    \"Plant Transfer (Receiving)\": [\n      \"stock_movement.transfer_stock\",\n      \"stock_movement.total_quantity\",\n      \"stock_movement.quantity_uom\",\n      \"delivery_method\",\n      \"receiving_operation_faci\",\n      \"stock_movement.stock_summary\",\n      \"stock_movement.item_remark\",\n      \"stock_movement.item_remark_2\",\n      \"stock_movement.item_remark_3\",\n    ],\n  },\n  buttonConfig: {\n    Add: [\"button_save_as_draft\", \"button_issued_ift\"],\n    Draft: [\"button_save_as_draft\", \"button_issued_ift\"],\n    Issued: [\"button_inprogress_ift\"],\n    \"In Progress\": [\"button_inprogress_ift\"],\n    Created: {\n      \"Plant Transfer (Receiving)\": [\"button_complete_receive\"],\n    },\n    Completed: [\"button_post\"],\n  },\n};\n\nconst initMovementReason = async () => {\n  const resType = await db\n    .collection(\"blade_dict\")\n    .where({ dict_key: \"Plant Transfer\" })\n    .get();\n\n  const movementTypeId = resType.data[0]?.id;\n\n  if (movementTypeId) {\n    const resReason = await db\n      .collection(\"blade_dict\")\n      .where({ parent_id: movementTypeId })\n      .get();\n    this.setOptionData(\"movement_reason\", resReason.data);\n  }\n};\n\nconst configureFields = (movementType) => {\n  this.display(CONFIG.fields.all);\n  this.hide(CONFIG.fields.hide);\n\n  if (CONFIG.hideFields[movementType]) {\n    this.hide(CONFIG.hideFields[movementType]);\n  }\n\n  if (movementType === \"Plant Transfer (Receiving)\") {\n    this.disabled([\"stock_movement.received_quantity_uom\"], true);\n    this.disabled([\"stock_movement.category\"], false);\n  }\n};\n\nconst configureButtons = (pageStatus, stockMovementStatus, movementType) => {\n  this.hide(CONFIG.fields.buttons);\n\n  if (pageStatus === \"Add\" || stockMovementStatus === \"Draft\") {\n    this.display(CONFIG.buttonConfig.Draft);\n  } else if (stockMovementStatus === \"Issued\") {\n    this.display(CONFIG.buttonConfig.Issued);\n  } else if (\n    stockMovementStatus === \"In Progress\" &&\n    movementType === \"Plant Transfer\"\n  ) {\n    this.display(CONFIG.buttonConfig[\"In Progress\"]);\n  } else if (\n    stockMovementStatus === \"Created\" &&\n    movementType === \"Plant Transfer (Receiving)\"\n  ) {\n    this.display(CONFIG.buttonConfig.Created[\"Plant Transfer (Receiving)\"]);\n  } else if (\n    stockMovementStatus === \"Completed\" ||\n    stockMovementStatus === \"Fully Posted\"\n  ) {\n    this.display(CONFIG.buttonConfig.Completed);\n  }\n};\n\nconst checkAccIntegrationType = async (organizationId) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n\n      this.setData({ acc_integration_type: aiData.acc_integration_type });\n      if (aiData.acc_integration_type === \"No Accounting Integration\") {\n        this.hide([\"button_post\", \"comp_post_button\"]);\n      }\n    }\n  }\n};\n\nconst displayDeliveryField = async () => {\n  const deliveryMethodName = this.getValue(\"delivery_method\");\n\n  const fields = [\n    \"self_pickup\",\n    \"courier_service\",\n    \"company_truck\",\n    \"shipping_service\",\n    \"third_party_transporter\",\n  ];\n\n  if (\n    deliveryMethodName &&\n    typeof deliveryMethodName === \"string\" &&\n    deliveryMethodName.trim() !== \"\" &&\n    deliveryMethodName !== \"{}\"\n  ) {\n    this.setData({ delivery_method_text: deliveryMethodName });\n\n    const visibilityMap = {\n      \"Self Pickup\": \"self_pickup\",\n      \"Courier Service\": \"courier_service\",\n      \"Company Truck\": \"company_truck\",\n      \"Shipping Service\": \"shipping_service\",\n      \"3rd Party Transporter\": \"third_party_transporter\",\n    };\n\n    const selectedField = visibilityMap[deliveryMethodName] || null;\n\n    if (!selectedField) {\n      this.hide(fields);\n    } else {\n      fields.forEach((field) => {\n        field === selectedField ? this.display(field) : this.hide(field);\n      });\n    }\n  } else {\n    this.setData({ delivery_method_text: \"\" });\n    this.hide(fields);\n  }\n};\n\nconst filterPTReceivingCategory = async () => {\n  const data = this.getValues();\n  const stockMovement = data.stock_movement;\n\n  const categoryObjectResponse = await db\n    .collection(\"blade_dict\")\n    .where({ code: \"inventory_category\" })\n    .get();\n\n  const allowedCategories = [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"];\n\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    allowedCategories.includes(category.dict_key),\n  );\n\n  for (const [rowIndex, sm] of stockMovement.entries()) {\n    await this.setOptionData(\n      [`stock_movement.${rowIndex}.category`],\n      filteredCategories,\n    );\n\n    // Blocked stock stays Blocked on arrival — lock the field so the\n    // receiving user can't re-classify it; other categories remain editable.\n    await this.disabled(\n      [`stock_movement.${rowIndex}.category`],\n      sm.category === \"Blocked\",\n    );\n  }\n};\n\nconst displayManufacturingAndExpiredDate = async (status, pageStatus) => {\n  const tableSM = this.getValue(\"stock_movement\");\n\n  if (pageStatus === \"Edit\" && status === \"Created\") {\n    for (const [index, item] of tableSM.entries()) {\n      if (item.batch_no && item.batch_no !== \"-\") {\n        await this.display([\n          \"stock_movement.manufacturing_date\",\n          \"stock_movement.expired_date\",\n        ]);\n      } else {\n        if (item.batch_no === \"\" || !item.batch_no) {\n          await this.disabled(`stock_movement.${index}.batch_no`, false);\n        }\n      }\n    }\n  } else if (pageStatus === \"View\" || status === \"Completed\") {\n    for (const [_index, item] of tableSM.entries()) {\n      if (item.batch_no && item.batch_no !== \"-\") {\n        await this.display([\n          \"stock_movement.manufacturing_date\",\n          \"stock_movement.expired_date\",\n        ]);\n      }\n    }\n  }\n};\n\nconst editDisabledField = () => {\n  this.disabled(\n    [\n      \"issue_date\",\n      \"stock_movement_no\",\n      \"movement_type\",\n      \"movement_reason\",\n      \"issued_by\",\n      \"issuing_operation_faci\",\n      \"remarks\",\n      \"remark\",\n      \"remark2\",\n      \"remark3\",\n      \"delivery_method\",\n      \"reference_documents\",\n      \"receiving_operation_faci\",\n      \"movement_id\",\n\n      \"cp_driver_name\",\n      \"cp_ic_no\",\n      \"cp_driver_contact_no\",\n      \"cp_vehicle_number\",\n      \"cp_pickup_date\",\n      \"cp_validity_collection\",\n\n      \"cs_courier_company\",\n      \"cs_shipping_date\",\n      \"cs_tracking_number\",\n      \"cs_est_arrival_date\",\n      \"cs_freight_charges\",\n\n      \"ct_driver_name\",\n      \"ct_driver_contact_no\",\n      \"ct_ic_no\",\n      \"ct_vehicle_number\",\n      \"ct_est_delivery_date\",\n      \"ct_delivery_cost\",\n\n      \"ss_shipping_company\",\n      \"ss_shipping_date\",\n      \"ss_freight_charges\",\n      \"ss_shipping_method\",\n      \"ss_est_arrival_date\",\n      \"ss_tracking_number\",\n\n      \"tpt_vehicle_number\",\n      \"tpt_transport_name\",\n      \"tpt_ic_no\",\n      \"tpt_driver_contact_no\",\n\n      \"stock_movement\",\n      \"stock_movement.item_selection\",\n      \"stock_movement.total_quantity\",\n      \"stock_movement.category\",\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n    ],\n    true,\n  );\n  hideBatchAdd();\n\n  this.hide([\"stock_movement.transfer_stock\"]);\n};\n\nconst hideSerialNumberRecordTab = () => {\n  setTimeout(() => {\n    const tableSerialNumber = this.getValue(\"table_sn_records\");\n    if (!tableSerialNumber || tableSerialNumber.length === 0) {\n      const tab = document.querySelector(\n        '.el-drawer[role=\"dialog\"] .el-tabs__item#tab-serial_number_records',\n      );\n      if (tab) {\n        tab.style.display = \"none\";\n      }\n    }\n  }, 10);\n};\n\nconst setPlant = (organizationId, pageStatus) => {\n  const currentDept = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  const isSameDept = currentDept === organizationId;\n\n  this.disabled(\"issuing_operation_faci\", !isSameDept);\n\n  if (pageStatus === \"Add\" && !isSameDept) {\n    this.setData({ issuing_operation_faci: currentDept });\n  }\n  return currentDept;\n};\n\nconst setStorageLocation = async (plantID) => {\n  try {\n    if (plantID) {\n      let defaultStorageLocationID = \"\";\n\n      const resStorageLocation = await db\n        .collection(\"storage_location\")\n        .where({\n          plant_id: plantID,\n          is_deleted: 0,\n          is_default: 1,\n          storage_status: 1,\n          location_type: \"Common\",\n        })\n        .get();\n\n      if (resStorageLocation.data && resStorageLocation.data.length > 0) {\n        defaultStorageLocationID = resStorageLocation.data[0].id;\n        this.setData({\n          default_storage_location: defaultStorageLocationID,\n        });\n      }\n\n      if (defaultStorageLocationID && defaultStorageLocationID !== \"\") {\n        const resBinLocation = await db\n          .collection(\"bin_location\")\n          .where({\n            plant_id: plantID,\n            storage_location_id: defaultStorageLocationID,\n            is_deleted: 0,\n            is_default: 1,\n            bin_status: 1,\n          })\n          .get();\n\n        if (resBinLocation.data && resBinLocation.data.length > 0) {\n          this.setData({\n            default_bin: resBinLocation.data[0].id,\n          });\n        }\n      }\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\nconst handleBinLocation = async (defaultBin, defaultStorageLocation) => {\n  try {\n    if (defaultBin && defaultStorageLocation) {\n      this.setData({\n        [`stock_movement.storage_location_id`]: defaultStorageLocation,\n        [`stock_movement.location_id`]: defaultBin,\n      });\n    }\n    this.disabled(`stock_movement.storage_location_id`, false);\n    this.disabled(`stock_movement.location_id`, false);\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\nconst isGenerateBatch = async (organizationId) => {\n  try {\n    const resPlantTransferSetup = await db\n      .collection(\"plant_transfer_setup\")\n      .where({\n        organization_id: organizationId,\n      })\n      .get();\n\n    if (\n      !resPlantTransferSetup.data ||\n      resPlantTransferSetup.data.length === 0\n    ) {\n      return;\n    }\n\n    const isGenerateBatch = resPlantTransferSetup.data[0].generate_new_batch;\n\n    // view_hu always visible on receiving form so user can see source HU info per line\n    this.display([\"stock_movement.view_hu\"]);\n    // select_hu kept hidden for now (workflow auto-generates HU on Branch B); revisit if/when\n    // we want the receiving user to override the auto-generated HU\n    this.hide([\"stock_movement.select_hu\"]);\n\n    if (isGenerateBatch) {\n      this.display([\"stock_movement.batch_no\"]);\n      this.hide([\"stock_movement.batch_id\"]);\n    } else {\n      this.display([\"stock_movement.batch_id\"]);\n      this.hide([\"stock_movement.batch_no\"]);\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\nconst hideBatchAdd = () => {\n  setTimeout(() => {\n    const editButtons = document.querySelectorAll(\n      \".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link\",\n    );\n    editButtons.forEach((button) => {\n      button.style.display = \"none\";\n    });\n\n    const styleId = \"pt-hide-row-actions\";\n    if (!document.getElementById(styleId)) {\n      const style = document.createElement(\"style\");\n      style.id = styleId;\n      style.textContent = `\n        .fm-virtual-table__row-cell .scope-action { display: none !important; }\n        .fm-virtual-table__row-cell .scope-index { display: flex !important; }\n      `;\n      document.head.appendChild(style);\n    }\n  }, 500);\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    this.setData({ page_status: pageStatus });\n\n    switch (pageStatus) {\n      case \"Add\":\n        const nickName = this.getVarGlobal(\"nickname\");\n        this.setData({\n          organization_id: organizationId,\n          issued_by: nickName,\n          issue_date: new Date().toISOString().split(\"T\")[0],\n          movement_type: \"Plant Transfer\",\n        });\n\n        this.display([\"draft_status\"]);\n\n        configureFields(\"Plant Transfer\");\n        configureButtons(pageStatus, null, \"Plant Transfer\");\n        setPlant(organizationId, pageStatus);\n        hideSerialNumberRecordTab();\n        await initMovementReason();\n        await checkAccIntegrationType(organizationId);\n        break;\n\n      case \"Edit\":\n        const movementType = data.movement_type;\n\n        this.disabled(\"movement_type\", true);\n\n        configureFields(movementType);\n        configureButtons(pageStatus, data.stock_movement_status, movementType);\n\n        if (\n          data.stock_movement_status === \"Created\" &&\n          movementType === \"Plant Transfer (Receiving)\"\n        ) {\n          // received_quantity is now editable so the receiving plant can accept a\n          // partial transfer; completing part spawns a leftover Created child and\n          // keeps the issuing parent In Progress. HU lines stay whole-only (a\n          // handling unit can't be split) — locked here per row.\n          this.disabled([\"issuing_operation_faci\"], true);\n          (data.stock_movement || []).forEach((row, i) => {\n            if (row.handling_unit_id) {\n              this.disabled([`stock_movement.${i}.received_quantity`], true);\n            }\n          });\n          await filterPTReceivingCategory();\n          await displayManufacturingAndExpiredDate(\n            data.stock_movement_status,\n            pageStatus,\n          );\n          await setStorageLocation(data.issuing_operation_faci);\n          setTimeout(async () => {\n            await handleBinLocation(\n              this.getValue(\"default_bin\"),\n              this.getValue(\"default_storage_location\"),\n            );\n            hideBatchAdd();\n          }, 500);\n          await isGenerateBatch(organizationId);\n        }\n\n        // Terminal statuses are read-only. Cancelled belongs here too: its inventory\n        // reversal has already run, so the lines must not be editable even though no\n        // save button is rendered for that status.\n        if (\n          data.stock_movement_status === \"Completed\" ||\n          data.stock_movement_status === \"Fully Posted\" ||\n          data.stock_movement_status === \"Cancelled\"\n        ) {\n          editDisabledField();\n          if (movementType === \"Plant Transfer (Receiving)\") {\n            await displayManufacturingAndExpiredDate(\n              data.stock_movement_status,\n              pageStatus,\n            );\n          }\n        }\n\n        // Issued and In Progress share the same inventory state (stock already\n        // subtracted from source, sitting as In Transit at the receiving plant's\n        // default bin), so both allow line edits — the save workflow reconciles\n        // the delta. Locking receiving_operation_faci is what makes that safe:\n        // re-pointing it would strand the In Transit stock at the old plant.\n        if (\n          data.stock_movement_status === \"Issued\" ||\n          data.stock_movement_status === \"In Progress\"\n        ) {\n          this.disabled(\n            [\n              \"issuing_operation_faci\",\n              \"issue_date\",\n              \"movement_reason\",\n              \"receiving_operation_faci\",\n              \"stock_movement_no\",\n              \"stock_movement_no_type\",\n            ],\n            true,\n          );\n        }\n\n        // Once the receiving plant has (partially) received this transfer, a\n        // Completed receiving child exists. Editing the issuing parent from here\n        // would rebuild and clobber the outstanding leftover child, so lock the\n        // whole form (policy A). The server enforces the same via a 400 guard.\n        if (\n          data.stock_movement_status === \"In Progress\" &&\n          data.movement_type === \"Plant Transfer\" &&\n          data.id\n        ) {\n          try {\n            const receivedChild = await db\n              .collection(\"plant_transfer\")\n              .where({\n                parent_id: data.id,\n                movement_type: \"Plant Transfer (Receiving)\",\n                stock_movement_status: \"Completed\",\n                is_deleted: 0,\n              })\n              .get();\n            if (receivedChild?.data?.length > 0) {\n              editDisabledField();\n              this.$message?.info?.(\n                \"This Plant Transfer has been partially received and is now read-only.\",\n              );\n            }\n          } catch (e) {\n            console.error(\"PT received-child check failed:\", e);\n          }\n        }\n\n        if (data.stock_movement_status === \"Draft\") {\n          setPlant(organizationId, pageStatus);\n        }\n\n        showStatusHTML(data.stock_movement_status);\n        displayDeliveryField();\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        break;\n\n      case \"View\":\n        const viewMovementType = data.movement_type;\n\n        configureFields(viewMovementType);\n        configureButtons(\n          pageStatus,\n          data.stock_movement_status,\n          viewMovementType,\n        );\n        this.hide([\"stock_movement.transfer_stock\"]);\n\n        if (viewMovementType === \"Plant Transfer (Receiving)\") {\n          await displayManufacturingAndExpiredDate(\n            data.stock_movement_status,\n            pageStatus,\n          );\n          await isGenerateBatch(organizationId);\n        }\n\n        showStatusHTML(data.stock_movement_status);\n        displayDeliveryField();\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"stock_movement_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"stock_movement_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"stock_movement_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"stock_movement_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        stock_movement_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ stock_movement_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
+        "func": "const showStatusHTML = (status) => {\n  const statusMap = {\n    Draft: \"draft_status\",\n    Issued: \"issued_status\",\n    \"In Progress\": \"processing_status\",\n    Created: \"created_status\",\n    Completed: \"completed_status\",\n    \"Fully Posted\": \"fullyposted_status\",\n    Cancelled: \"cancel_status\",\n  };\n\n  if (statusMap[status]) {\n    this.display([statusMap[status]]);\n  }\n};\n\nconst CONFIG = {\n  fields: {\n    all: [\n      \"stock_movement.item_selection\",\n      \"stock_movement.transfer_stock\",\n      \"stock_movement.total_quantity\",\n      \"stock_movement.to_recv_qty\",\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n      \"stock_movement.quantity_uom\",\n      \"stock_movement.category\",\n      \"stock_movement.stock_summary\",\n      \"movement_reason\",\n      \"delivery_method\",\n      \"receiving_operation_faci\",\n    ],\n    buttons: [\n      \"button_post\",\n      \"comp_post_button\",\n      \"button_inprogress_ift\",\n      \"button_complete_receive\",\n      \"button_save_as_draft\",\n      \"button_issued_ift\",\n    ],\n    hide: [\n      \"stock_movement.view_stock\",\n      \"stock_movement.edit_stock\",\n      \"stock_movement.unit_price\",\n      \"stock_movement.amount\",\n      \"is_production_order\",\n    ],\n  },\n  hideFields: {\n    \"Plant Transfer\": [\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n      \"stock_movement.category\",\n      \"stock_movement.to_recv_qty\",\n      \"stock_movement.batch_id\",\n      \"stock_movement.batch_no\",\n      \"stock_movement.location_id\",\n      \"stock_movement.storage_location_id\",\n      \"stock_movement.view_hu\",\n      \"stock_movement.select_hu\",\n      \"parent_id\",\n    ],\n    \"Plant Transfer (Receiving)\": [\n      \"stock_movement.transfer_stock\",\n      \"stock_movement.total_quantity\",\n      \"stock_movement.quantity_uom\",\n      \"delivery_method\",\n      \"receiving_operation_faci\",\n      \"stock_movement.stock_summary\",\n      \"stock_movement.item_remark\",\n      \"stock_movement.item_remark_2\",\n      \"stock_movement.item_remark_3\",\n    ],\n  },\n  buttonConfig: {\n    Add: [\"button_save_as_draft\", \"button_issued_ift\"],\n    Draft: [\"button_save_as_draft\", \"button_issued_ift\"],\n    Issued: [\"button_inprogress_ift\"],\n    \"In Progress\": [\"button_inprogress_ift\"],\n    Created: {\n      \"Plant Transfer (Receiving)\": [\"button_complete_receive\"],\n    },\n    Completed: [\"button_post\"],\n  },\n};\n\nconst initMovementReason = async () => {\n  const resType = await db\n    .collection(\"blade_dict\")\n    .where({ dict_key: \"Plant Transfer\" })\n    .get();\n\n  const movementTypeId = resType.data[0]?.id;\n\n  if (movementTypeId) {\n    const resReason = await db\n      .collection(\"blade_dict\")\n      .where({ parent_id: movementTypeId })\n      .get();\n    this.setOptionData(\"movement_reason\", resReason.data);\n  }\n};\n\nconst configureFields = (movementType) => {\n  this.display(CONFIG.fields.all);\n  this.hide(CONFIG.fields.hide);\n\n  if (CONFIG.hideFields[movementType]) {\n    this.hide(CONFIG.hideFields[movementType]);\n  }\n\n  if (movementType === \"Plant Transfer (Receiving)\") {\n    this.disabled([\"stock_movement.received_quantity_uom\"], true);\n    this.disabled([\"stock_movement.category\"], false);\n  }\n};\n\nconst configureButtons = (pageStatus, stockMovementStatus, movementType) => {\n  this.hide(CONFIG.fields.buttons);\n\n  if (pageStatus === \"Add\" || stockMovementStatus === \"Draft\") {\n    this.display(CONFIG.buttonConfig.Draft);\n  } else if (stockMovementStatus === \"Issued\") {\n    this.display(CONFIG.buttonConfig.Issued);\n  } else if (\n    stockMovementStatus === \"In Progress\" &&\n    movementType === \"Plant Transfer\"\n  ) {\n    this.display(CONFIG.buttonConfig[\"In Progress\"]);\n  } else if (\n    stockMovementStatus === \"Created\" &&\n    movementType === \"Plant Transfer (Receiving)\"\n  ) {\n    this.display(CONFIG.buttonConfig.Created[\"Plant Transfer (Receiving)\"]);\n  } else if (\n    stockMovementStatus === \"Completed\" ||\n    stockMovementStatus === \"Fully Posted\"\n  ) {\n    this.display(CONFIG.buttonConfig.Completed);\n  }\n};\n\nconst checkAccIntegrationType = async (organizationId) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n\n      this.setData({ acc_integration_type: aiData.acc_integration_type });\n      if (aiData.acc_integration_type === \"No Accounting Integration\") {\n        this.hide([\"button_post\", \"comp_post_button\"]);\n      }\n    }\n  }\n};\n\nconst displayDeliveryField = async () => {\n  const deliveryMethodName = this.getValue(\"delivery_method\");\n\n  const fields = [\n    \"self_pickup\",\n    \"courier_service\",\n    \"company_truck\",\n    \"shipping_service\",\n    \"third_party_transporter\",\n  ];\n\n  if (\n    deliveryMethodName &&\n    typeof deliveryMethodName === \"string\" &&\n    deliveryMethodName.trim() !== \"\" &&\n    deliveryMethodName !== \"{}\"\n  ) {\n    this.setData({ delivery_method_text: deliveryMethodName });\n\n    const visibilityMap = {\n      \"Self Pickup\": \"self_pickup\",\n      \"Courier Service\": \"courier_service\",\n      \"Company Truck\": \"company_truck\",\n      \"Shipping Service\": \"shipping_service\",\n      \"3rd Party Transporter\": \"third_party_transporter\",\n    };\n\n    const selectedField = visibilityMap[deliveryMethodName] || null;\n\n    if (!selectedField) {\n      this.hide(fields);\n    } else {\n      fields.forEach((field) => {\n        field === selectedField ? this.display(field) : this.hide(field);\n      });\n    }\n  } else {\n    this.setData({ delivery_method_text: \"\" });\n    this.hide(fields);\n  }\n};\n\nconst filterPTReceivingCategory = async () => {\n  const data = this.getValues();\n  const stockMovement = data.stock_movement;\n\n  const categoryObjectResponse = await db\n    .collection(\"blade_dict\")\n    .where({ code: \"inventory_category\" })\n    .get();\n\n  const allowedCategories = [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"];\n\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    allowedCategories.includes(category.dict_key),\n  );\n\n  for (const [rowIndex, sm] of stockMovement.entries()) {\n    await this.setOptionData(\n      [`stock_movement.${rowIndex}.category`],\n      filteredCategories,\n    );\n\n    // Blocked stock stays Blocked on arrival — lock the field so the\n    // receiving user can't re-classify it; other categories remain editable.\n    await this.disabled(\n      [`stock_movement.${rowIndex}.category`],\n      sm.category === \"Blocked\",\n    );\n  }\n};\n\nconst displayManufacturingAndExpiredDate = async (status, pageStatus) => {\n  const tableSM = this.getValue(\"stock_movement\");\n\n  if (pageStatus === \"Edit\" && status === \"Created\") {\n    for (const [index, item] of tableSM.entries()) {\n      if (item.batch_no && item.batch_no !== \"-\") {\n        await this.display([\n          \"stock_movement.manufacturing_date\",\n          \"stock_movement.expired_date\",\n        ]);\n      } else {\n        if (item.batch_no === \"\" || !item.batch_no) {\n          await this.disabled(`stock_movement.${index}.batch_no`, false);\n        }\n      }\n    }\n  } else if (pageStatus === \"View\" || status === \"Completed\") {\n    for (const [_index, item] of tableSM.entries()) {\n      if (item.batch_no && item.batch_no !== \"-\") {\n        await this.display([\n          \"stock_movement.manufacturing_date\",\n          \"stock_movement.expired_date\",\n        ]);\n      }\n    }\n  }\n};\n\nconst editDisabledField = () => {\n  this.disabled(\n    [\n      \"issue_date\",\n      \"stock_movement_no\",\n      \"movement_type\",\n      \"movement_reason\",\n      \"issued_by\",\n      \"issuing_operation_faci\",\n      \"remarks\",\n      \"remark\",\n      \"remark2\",\n      \"remark3\",\n      \"delivery_method\",\n      \"reference_documents\",\n      \"receiving_operation_faci\",\n      \"movement_id\",\n\n      \"cp_driver_name\",\n      \"cp_ic_no\",\n      \"cp_driver_contact_no\",\n      \"cp_vehicle_number\",\n      \"cp_pickup_date\",\n      \"cp_validity_collection\",\n\n      \"cs_courier_company\",\n      \"cs_shipping_date\",\n      \"cs_tracking_number\",\n      \"cs_est_arrival_date\",\n      \"cs_freight_charges\",\n\n      \"ct_driver_name\",\n      \"ct_driver_contact_no\",\n      \"ct_ic_no\",\n      \"ct_vehicle_number\",\n      \"ct_est_delivery_date\",\n      \"ct_delivery_cost\",\n\n      \"ss_shipping_company\",\n      \"ss_shipping_date\",\n      \"ss_freight_charges\",\n      \"ss_shipping_method\",\n      \"ss_est_arrival_date\",\n      \"ss_tracking_number\",\n\n      \"tpt_vehicle_number\",\n      \"tpt_transport_name\",\n      \"tpt_ic_no\",\n      \"tpt_driver_contact_no\",\n\n      \"stock_movement\",\n      \"stock_movement.item_selection\",\n      \"stock_movement.total_quantity\",\n      \"stock_movement.category\",\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n    ],\n    true,\n  );\n  hideBatchAdd();\n\n  this.hide([\"stock_movement.transfer_stock\"]);\n};\n\nconst hideSerialNumberRecordTab = () => {\n  setTimeout(() => {\n    const tableSerialNumber = this.getValue(\"table_sn_records\");\n    if (!tableSerialNumber || tableSerialNumber.length === 0) {\n      const tab = document.querySelector(\n        '.el-drawer[role=\"dialog\"] .el-tabs__item#tab-serial_number_records',\n      );\n      if (tab) {\n        tab.style.display = \"none\";\n      }\n    }\n  }, 10);\n};\n\nconst setPlant = (organizationId, pageStatus) => {\n  const currentDept = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  const isSameDept = currentDept === organizationId;\n\n  this.disabled(\"issuing_operation_faci\", !isSameDept);\n\n  if (pageStatus === \"Add\" && !isSameDept) {\n    this.setData({ issuing_operation_faci: currentDept });\n  }\n  return currentDept;\n};\n\nconst setStorageLocation = async (plantID) => {\n  try {\n    if (plantID) {\n      let defaultStorageLocationID = \"\";\n\n      const resStorageLocation = await db\n        .collection(\"storage_location\")\n        .where({\n          plant_id: plantID,\n          is_deleted: 0,\n          is_default: 1,\n          storage_status: 1,\n          location_type: \"Common\",\n        })\n        .get();\n\n      if (resStorageLocation.data && resStorageLocation.data.length > 0) {\n        defaultStorageLocationID = resStorageLocation.data[0].id;\n        this.setData({\n          default_storage_location: defaultStorageLocationID,\n        });\n      }\n\n      if (defaultStorageLocationID && defaultStorageLocationID !== \"\") {\n        const resBinLocation = await db\n          .collection(\"bin_location\")\n          .where({\n            plant_id: plantID,\n            storage_location_id: defaultStorageLocationID,\n            is_deleted: 0,\n            is_default: 1,\n            bin_status: 1,\n          })\n          .get();\n\n        if (resBinLocation.data && resBinLocation.data.length > 0) {\n          this.setData({\n            default_bin: resBinLocation.data[0].id,\n          });\n        }\n      }\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\nconst handleBinLocation = async (defaultBin, defaultStorageLocation) => {\n  try {\n    if (defaultBin && defaultStorageLocation) {\n      // Default only the rows that have no bin yet. The whole-column form of\n      // this setData overwrites EVERY row, which would wipe the per-row bins a\n      // user picked when splitting a line and saved.\n      const rows = this.getValue(\"stock_movement\") || [];\n      const updates = {};\n\n      rows.forEach((row, index) => {\n        if (!row.storage_location_id) {\n          updates[`stock_movement.${index}.storage_location_id`] =\n            defaultStorageLocation;\n        }\n        if (!row.location_id) {\n          updates[`stock_movement.${index}.location_id`] = defaultBin;\n        }\n      });\n\n      if (Object.keys(updates).length > 0) {\n        this.setData(updates);\n      }\n    }\n    this.disabled(`stock_movement.storage_location_id`, false);\n    this.disabled(`stock_movement.location_id`, false);\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\n// Re-assert the editable state of split rows when a saved document is reopened.\n// The split handlers set this per row, but that only lasts for the session that\n// ran the split.\nconst applySplitFieldStates = (stockMovement) => {\n  for (const [index, row] of (stockMovement || []).entries()) {\n    if (row.is_split === \"Yes\" && row.parent_or_child === \"Split-Parent\") {\n      this.disabled(\n        [\n          `stock_movement.${index}.received_quantity`,\n          `stock_movement.${index}.storage_location_id`,\n          `stock_movement.${index}.location_id`,\n        ],\n        false,\n      );\n\n      // Defensive: handling-unit lines are blocked from splitting, but a whole\n      // handling unit must never become partially receivable.\n      if (row.handling_unit_id) {\n        this.disabled([`stock_movement.${index}.received_quantity`], true);\n      }\n    }\n  }\n};\n\nconst isGenerateBatch = async (organizationId) => {\n  try {\n    const resPlantTransferSetup = await db\n      .collection(\"plant_transfer_setup\")\n      .where({\n        organization_id: organizationId,\n      })\n      .get();\n\n    if (\n      !resPlantTransferSetup.data ||\n      resPlantTransferSetup.data.length === 0\n    ) {\n      return;\n    }\n\n    const isGenerateBatch = resPlantTransferSetup.data[0].generate_new_batch;\n\n    // view_hu always visible on receiving form so user can see source HU info per line\n    this.display([\"stock_movement.view_hu\"]);\n    // select_hu kept hidden for now (workflow auto-generates HU on Branch B); revisit if/when\n    // we want the receiving user to override the auto-generated HU\n    this.hide([\"stock_movement.select_hu\"]);\n\n    if (isGenerateBatch) {\n      this.display([\"stock_movement.batch_no\"]);\n      this.hide([\"stock_movement.batch_id\"]);\n    } else {\n      this.display([\"stock_movement.batch_id\"]);\n      this.hide([\"stock_movement.batch_no\"]);\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\nconst ROW_ACTION_STYLE_ID = \"pt-hide-row-actions\";\n\nconst hideBatchAddButtons = () => {\n  setTimeout(() => {\n    const editButtons = document.querySelectorAll(\n      \".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link\",\n    );\n    editButtons.forEach((button) => {\n      button.style.display = \"none\";\n    });\n  }, 500);\n};\n\nconst hideRowActions = () => {\n  setTimeout(() => {\n    if (!document.getElementById(ROW_ACTION_STYLE_ID)) {\n      const style = document.createElement(\"style\");\n      style.id = ROW_ACTION_STYLE_ID;\n      style.textContent = `\n        .fm-virtual-table__row-cell .scope-action { display: none !important; }\n        .fm-virtual-table__row-cell .scope-index { display: flex !important; }\n      `;\n      document.head.appendChild(style);\n    }\n  }, 500);\n};\n\n// The style above is appended to document.head and never removed, so it leaks\n// across drawer opens: a terminal-status Plant Transfer viewed earlier in the\n// same session would otherwise keep the Split row action hidden here.\nconst showRowActions = () => {\n  document.getElementById(ROW_ACTION_STYLE_ID)?.remove();\n};\n\nconst hideBatchAdd = () => {\n  hideBatchAddButtons();\n  hideRowActions();\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    this.setData({ page_status: pageStatus });\n\n    switch (pageStatus) {\n      case \"Add\":\n        const nickName = this.getVarGlobal(\"nickname\");\n        this.setData({\n          organization_id: organizationId,\n          issued_by: nickName,\n          issue_date: new Date().toISOString().split(\"T\")[0],\n          movement_type: \"Plant Transfer\",\n        });\n\n        this.display([\"draft_status\"]);\n\n        configureFields(\"Plant Transfer\");\n        configureButtons(pageStatus, null, \"Plant Transfer\");\n        setPlant(organizationId, pageStatus);\n        hideSerialNumberRecordTab();\n        await initMovementReason();\n        await checkAccIntegrationType(organizationId);\n        break;\n\n      case \"Edit\":\n        const movementType = data.movement_type;\n\n        this.disabled(\"movement_type\", true);\n\n        configureFields(movementType);\n        configureButtons(pageStatus, data.stock_movement_status, movementType);\n\n        if (\n          data.stock_movement_status === \"Created\" &&\n          movementType === \"Plant Transfer (Receiving)\"\n        ) {\n          // received_quantity is now editable so the receiving plant can accept a\n          // partial transfer; completing part spawns a leftover Created child and\n          // keeps the issuing parent In Progress. HU lines stay whole-only (a\n          // handling unit can't be split) — locked here per row.\n          this.disabled([\"issuing_operation_faci\"], true);\n          (data.stock_movement || []).forEach((row, i) => {\n            if (row.handling_unit_id) {\n              this.disabled([`stock_movement.${i}.received_quantity`], true);\n            }\n          });\n          await filterPTReceivingCategory();\n          await displayManufacturingAndExpiredDate(\n            data.stock_movement_status,\n            pageStatus,\n          );\n          applySplitFieldStates(data.stock_movement);\n          await setStorageLocation(data.issuing_operation_faci);\n          setTimeout(async () => {\n            await handleBinLocation(\n              this.getValue(\"default_bin\"),\n              this.getValue(\"default_storage_location\"),\n            );\n            // Only the header add/edit links are hidden here — the row actions\n            // must stay visible so the receiver can split a line.\n            hideBatchAddButtons();\n            showRowActions();\n          }, 500);\n          await isGenerateBatch(organizationId);\n        }\n\n        // Terminal statuses are read-only. Cancelled belongs here too: its inventory\n        // reversal has already run, so the lines must not be editable even though no\n        // save button is rendered for that status.\n        if (\n          data.stock_movement_status === \"Completed\" ||\n          data.stock_movement_status === \"Fully Posted\" ||\n          data.stock_movement_status === \"Cancelled\"\n        ) {\n          editDisabledField();\n          if (movementType === \"Plant Transfer (Receiving)\") {\n            await displayManufacturingAndExpiredDate(\n              data.stock_movement_status,\n              pageStatus,\n            );\n          }\n        }\n\n        // Issued and In Progress share the same inventory state (stock already\n        // subtracted from source, sitting as In Transit at the receiving plant's\n        // default bin), so both allow line edits — the save workflow reconciles\n        // the delta. Locking receiving_operation_faci is what makes that safe:\n        // re-pointing it would strand the In Transit stock at the old plant.\n        if (\n          data.stock_movement_status === \"Issued\" ||\n          data.stock_movement_status === \"In Progress\"\n        ) {\n          this.disabled(\n            [\n              \"issuing_operation_faci\",\n              \"issue_date\",\n              \"movement_reason\",\n              \"receiving_operation_faci\",\n              \"stock_movement_no\",\n              \"stock_movement_no_type\",\n            ],\n            true,\n          );\n        }\n\n        // Once the receiving plant has (partially) received this transfer, a\n        // Completed receiving child exists. Editing the issuing parent from here\n        // would rebuild and clobber the outstanding leftover child, so lock the\n        // whole form (policy A). The server enforces the same via a 400 guard.\n        if (\n          data.stock_movement_status === \"In Progress\" &&\n          data.movement_type === \"Plant Transfer\" &&\n          data.id\n        ) {\n          try {\n            const receivedChild = await db\n              .collection(\"plant_transfer\")\n              .where({\n                parent_id: data.id,\n                movement_type: \"Plant Transfer (Receiving)\",\n                stock_movement_status: \"Completed\",\n                is_deleted: 0,\n              })\n              .get();\n            if (receivedChild?.data?.length > 0) {\n              editDisabledField();\n              this.$message?.info?.(\n                \"This Plant Transfer has been partially received and is now read-only.\",\n              );\n            }\n          } catch (e) {\n            console.error(\"PT received-child check failed:\", e);\n          }\n        }\n\n        if (data.stock_movement_status === \"Draft\") {\n          setPlant(organizationId, pageStatus);\n        }\n\n        showStatusHTML(data.stock_movement_status);\n        displayDeliveryField();\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        break;\n\n      case \"View\":\n        const viewMovementType = data.movement_type;\n\n        configureFields(viewMovementType);\n        configureButtons(\n          pageStatus,\n          data.stock_movement_status,\n          viewMovementType,\n        );\n        this.hide([\"stock_movement.transfer_stock\"]);\n\n        if (viewMovementType === \"Plant Transfer (Receiving)\") {\n          await displayManufacturingAndExpiredDate(\n            data.stock_movement_status,\n            pageStatus,\n          );\n          await isGenerateBatch(organizationId);\n        }\n\n        showStatusHTML(data.stock_movement_status);\n        displayDeliveryField();\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"stock_movement_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"stock_movement_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"stock_movement_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"stock_movement_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        stock_movement_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ stock_movement_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
         "type": "js",
         "rules": [
           {
@@ -21093,7 +21064,7 @@
             "key": "yu3berpj",
             "action": "js",
             "options": {
-              "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Saving Plant Transfer as In Progress...\");\n\n    let data = this.getValues();\n    console.log(\"data\", data);\n\n    let pageStatus = data.page_status;\n    if (arguments[0].autoInProgress === 1) {\n      pageStatus = \"Edit\";\n      const id = arguments[0].id;\n      if (id && id !== \"\") {\n        data.id = id;\n      }\n    }\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      \"2025864403783462913\",\n      { allData: data, saveAs: \"In Progress\", pageStatus: pageStatus },\n      async (res) => {\n        console.log(\"Plant Transfer saved successfully:\", res);\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to save Plant Transfer:\", err);\n        this.hideLoading();\n        workflowResult = err;\n      },\n    );\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    // Handle workflow errors\n    if (\n      workflowResult.data.code === \"400\" ||\n      workflowResult.data.code === 400 ||\n      workflowResult.data.success === false\n    ) {\n      this.hideLoading();\n      const errorMessage =\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Failed to save Plant Transfer\";\n      this.$message.error(errorMessage);\n      return;\n    }\n\n    // Handle success\n    if (\n      workflowResult.data.code === \"200\" ||\n      workflowResult.data.code === 200 ||\n      workflowResult.data.success === true\n    ) {\n      this.hideLoading();\n      const successMessage =\n        workflowResult.data.message ||\n        workflowResult.data.msg ||\n        \"Plant Transfer saved successfully\";\n      this.$message.success(successMessage);\n      closeDialog();\n    } else {\n      this.hideLoading();\n      this.$message.error(\"Unknown workflow status\");\n    }\n  } catch (error) {\n    this.hideLoading();\n    console.error(\"Error:\", error);\n    const errorMessage = error.message || \"Failed to save Plant Transfer\";\n    this.$message.error(errorMessage);\n  }\n})();\n"
+              "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Saving Plant Transfer as In Progress...\");\n\n    let data = this.getValues();\n    console.log(\"data\", data);\n\n    let pageStatus = data.page_status;\n    if (arguments[0].autoInProgress === 1) {\n      pageStatus = \"Edit\";\n      const id = arguments[0].id;\n      if (id && id !== \"\") {\n        data.id = id;\n      }\n      data.stock_movement_status = \"Issued\";\n    }\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      \"2025864403783462913\",\n      { allData: data, saveAs: \"In Progress\", pageStatus: pageStatus },\n      async (res) => {\n        console.log(\"Plant Transfer saved successfully:\", res);\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to save Plant Transfer:\", err);\n        this.hideLoading();\n        workflowResult = err;\n      },\n    );\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    // Handle workflow errors\n    if (\n      workflowResult.data.code === \"400\" ||\n      workflowResult.data.code === 400 ||\n      workflowResult.data.success === false\n    ) {\n      this.hideLoading();\n      const errorMessage =\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Failed to save Plant Transfer\";\n      this.$message.error(errorMessage);\n      return;\n    }\n\n    // Handle success\n    if (\n      workflowResult.data.code === \"200\" ||\n      workflowResult.data.code === 200 ||\n      workflowResult.data.success === true\n    ) {\n      this.hideLoading();\n      const successMessage =\n        workflowResult.data.message ||\n        workflowResult.data.msg ||\n        \"Plant Transfer saved successfully\";\n      this.$message.success(successMessage);\n      closeDialog();\n    } else {\n      this.hideLoading();\n      this.$message.error(\"Unknown workflow status\");\n    }\n  } catch (error) {\n    this.hideLoading();\n    console.error(\"Error:\", error);\n    const errorMessage = error.message || \"Failed to save Plant Transfer\";\n    this.$message.error(errorMessage);\n  }\n})();\n"
             }
           }
         ]
@@ -21253,7 +21224,7 @@
       {
         "key": "anwhsp4c",
         "name": "onRowBatchAdd_item",
-        "func": "this.toView({\n  target: '1983386084789420033', \n  targetType: 'Page',\n  mode: 'dialog',\n  type: 'edit', \n  title: 'Batch Add' \n});",
+        "func": "const status = this.getValue(\"stock_movement_status\")\n\nif (status !== 'Created') {\n  this.toView({\n  target: '1983386084789420033', \n  targetType: 'Page',\n  mode: 'dialog',\n  type: 'edit', \n  title: 'Batch Add' \n  });\n}",
         "type": "js",
         "rules": []
       },
@@ -21523,13 +21494,13 @@
       {
         "key": "glsyl59t",
         "name": "onClick_cancel_split",
-        "func": "(async () => {\n  const data = this.getValue(\"split_dialog\");\n  const isSplit = this.getValue(`table_gr.${data.rowIndex}.is_split`);\n\n  const grItem = this.getValue(\"table_gr\");\n\n  if (isSplit && isSplit === \"Yes\") {\n    this.disabled(\n      [\n        `table_gr.${data.rowIndex}.received_qty`,\n        `table_gr.${data.rowIndex}.storage_location_id`,\n        `table_gr.${data.rowIndex}.location_id`,\n        `table_gr.${data.rowIndex}.line_remark_1`,\n        `table_gr.${data.rowIndex}.line_remark_2`,\n        `table_gr.${data.rowIndex}.line_remark_3`,\n      ],\n      false,\n    );\n\n    this.setData({\n      [`table_gr.${data.rowIndex}.is_split`]: \"No\",\n    });\n  }\n\n  for (const [index, putaway] of grItem.entries()) {\n    if (putaway.parent_or_child === \"Child\") {\n      this.disabled([`table_gr.${index}.button_split`], true);\n    } else {\n      this.disabled([`table_gr.${index}.button_split`], false);\n    }\n  }\n\n  await this.triggerEvent(\"func_reset_split_dialog\");\n  await this.closeDialog(\"split_dialog\");\n})();\n",
+        "func": "// split_dialog Cancel. Nothing on the table has been mutated at this point:\n// a fresh split has not run yet, and a re-split has already collapsed its\n// siblings back into one regular row (PTclearSplit), which stays valid.\n(async () => {\n  try {\n    this.setData({\n      [`split_dialog.item_id`]: \"\",\n      [`split_dialog.item_name`]: \"\",\n      [`split_dialog.to_received_qty`]: 0,\n      [`split_dialog.rowIndex`]: 0,\n      [`split_dialog.no_of_split`]: 0,\n      [`split_dialog.table_split`]: [],\n    });\n\n    await this.closeDialog(\"split_dialog\");\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "crcf8voq",
         "name": "onClick_save_split",
-        "func": "// Helper to generate letter suffix (A, B, C, ..., Z, AA, AB, ...)\nconst getLetterSuffix = (index) => {\n  let suffix = \"\";\n  let num = index;\n  while (num >= 0) {\n    suffix = String.fromCharCode(65 + (num % 26)) + suffix;\n    num = Math.floor(num / 26) - 1;\n  }\n  return suffix;\n};\n\nconst setGrItemData = async (\n  itemData,\n  lineIndex,\n  receivedQty,\n  storageLocationId,\n  locationId,\n  lineRemark1,\n  lineRemark2,\n  lineRemark3,\n  isSplit,\n  parentOrChild,\n  parentIndex,\n  selectSerialNumber = [],\n  splitSourceIndex = null,\n  dialogBatchNo = undefined,\n  dialogManufacturingDate = undefined,\n  dialogExpiredDate = undefined,\n  options = {},\n) => {\n  // For Split-Parent: treat like regular row (keeps ordered_qty, initial_received_qty, etc.)\n  const isSplitParent = parentOrChild === \"Split-Parent\";\n\n  // isNewRow: this row did not exist before the split, so it must not reuse the\n  // source row's fm_key. resetSerials: the serial picks describe the pre-split\n  // quantity, so they no longer describe this row. fromDialog: the batch/date\n  // arguments carry real values from the split dialog, rather than being absent\n  // because the caller is merely passing an existing row through.\n  //\n  // Handling units are not cleared here: GRtableSplit already warns and clears\n  // temp_hu_data/view_hu on the source row before the dialog opens, and the\n  // spread carries that through.\n  const {\n    isNewRow = false,\n    resetSerials = false,\n    fromDialog = false,\n  } = options;\n\n  // Only a row being built from the split dialog takes its batch and dates from\n  // that dialog. A Split-Parent row that is merely preserved keeps its own,\n  // otherwise splitting an unrelated row blanks every existing Split-Parent's\n  // item_batch_no.\n  const takeBatchFromDialog = isSplitParent && fromDialog;\n\n  const row = {\n    // Spread first so fields this function does not enumerate (temp_hu_data,\n    // view_hu, serial_number_data, plant_id, organization_id, supplier_id,\n    // invoice_qty, return_quantity, ...) survive the rebuild. Every explicit key\n    // below overrides the spread.\n    ...itemData,\n\n    // Line identification\n    line_index: lineIndex,\n\n    // Item information (copied from parent)\n    item_id: itemData.item_id,\n    item_name: itemData.item_name,\n    item_desc: itemData.item_desc,\n    more_desc: itemData.more_desc,\n\n    // Quantity fields - Split-Parent keeps ordered_qty proportionally\n    ordered_qty:\n      parentOrChild === \"Parent\" || isSplitParent ? itemData.ordered_qty : 0,\n    ordered_qty_uom: itemData.ordered_qty_uom,\n    base_ordered_qty:\n      parentOrChild === \"Parent\" || isSplitParent\n        ? itemData.base_ordered_qty\n        : 0,\n    base_ordered_qty_uom: itemData.base_ordered_qty_uom,\n    to_received_qty:\n      parentOrChild === \"Parent\"\n        ? (itemData.ordered_qty || 0) - (itemData.initial_received_qty || 0)\n        : isSplitParent\n          ? (itemData.ordered_qty || 0) -\n            (itemData.initial_received_qty || 0) -\n            receivedQty\n          : receivedQty,\n    to_received_qty_uom: itemData.to_received_qty_uom,\n    received_qty:\n      isSplit === \"No\" && parentOrChild === \"Parent\"\n        ? itemData.received_qty\n        : receivedQty,\n    base_received_qty:\n      isSplit === \"No\" && parentOrChild === \"Parent\"\n        ? itemData.base_received_qty\n        : receivedQty * (itemData.uom_conversion || 1),\n    base_received_qty_uom: itemData.base_received_qty_uom,\n    initial_received_qty:\n      parentOrChild === \"Parent\" || isSplitParent\n        ? itemData.initial_received_qty\n        : 0,\n    item_uom: itemData.item_uom,\n    base_item_uom: itemData.base_item_uom,\n    uom_conversion: itemData.uom_conversion,\n\n    // Location fields\n    storage_location_id: storageLocationId,\n    location_id: locationId,\n\n    // Batch and inspection - Split-Parent takes batch/date per-row from the\n    // split dialog. \"-\" (non-batch) stays \"-\"; batch items use the dialog value\n    // (a manual batch, \"Auto-generated batch number\", or \"\" for pending manual\n    // entry). Dates follow the same rule (null for non-batch items).\n    item_batch_no: takeBatchFromDialog\n      ? itemData.item_batch_no === \"-\"\n        ? \"-\"\n        : dialogBatchNo !== undefined && dialogBatchNo !== null\n          ? dialogBatchNo\n          : \"\"\n      : itemData.item_batch_no,\n    manufacturing_date: takeBatchFromDialog\n      ? itemData.item_batch_no === \"-\"\n        ? null\n        : dialogManufacturingDate || null\n      : itemData.manufacturing_date,\n    expired_date: takeBatchFromDialog\n      ? itemData.item_batch_no === \"-\"\n        ? null\n        : dialogExpiredDate || null\n      : itemData.expired_date,\n    inspection_required: itemData.inspection_required,\n    inv_category: itemData.inv_category,\n\n    // PO reference (copied from parent)\n    line_po_no: itemData.line_po_no,\n    line_po_id: itemData.line_po_id,\n    po_line_item_id: itemData.po_line_item_id,\n\n    // Pricing\n    unit_price: itemData.unit_price,\n    total_price:\n      parentOrChild === \"Parent\"\n        ? itemData.total_price\n        : receivedQty * itemData.unit_price,\n    item_costing_method: itemData.item_costing_method,\n    item_category_id: itemData.item_category_id,\n\n    // Serialization\n    is_serialized_item: itemData.is_serialized_item,\n    serial_numbers: selectSerialNumber,\n    select_serial_number: selectSerialNumber,\n\n    // Formula\n    has_formula: itemData.has_formula,\n    formula: itemData.formula,\n\n    // Remarks\n    line_remark_1: lineRemark1,\n    line_remark_2: lineRemark2,\n    line_remark_3: lineRemark3,\n\n    // Split tracking fields\n    is_split: isSplit,\n    parent_or_child: parentOrChild,\n    parent_index: parentIndex,\n\n    // Split-Parent tracking: original row index before split\n    split_source_index: splitSourceIndex,\n  };\n\n  // Every row loses its DB sub-record id. On save the platform soft-deletes the\n  // existing lines and re-inserts the whole table in array order, so an id-less\n  // row is what keeps the saved order equal to the on-screen order. Leave an id\n  // on the untouched rows and the platform matches those in place and pushes the\n  // new split row to the end instead.\n  delete row.id;\n\n  // fm_key is the client-side render key. The spread copied the source row's,\n  // so a genuinely new row must drop it; the platform mints a replacement.\n  if (isNewRow) {\n    delete row.fm_key;\n  }\n\n  // The serial numbers were allocated against the pre-split quantity, so the\n  // stored allocation no longer describes this row. Each split row carries only\n  // the serials picked for it in the dialog.\n  if (resetSerials) {\n    row.serial_number_data = \"\";\n    row.is_serial_allocated =\n      selectSerialNumber && selectSerialNumber.length > 0 ? 1 : 0;\n  }\n\n  return row;\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const tableGR = data.table_gr;\n    const splitDialogData = data.split_dialog;\n    const tableSplit = splitDialogData.table_split;\n    const rowIndex = splitDialogData.rowIndex;\n    const isParentSplit = splitDialogData.is_parent_split;\n\n    // Validate total split quantity with over_receive_tolerance\n    const totalSplitQty = parseFloat(\n      tableSplit\n        .reduce((sum, item) => sum + (parseFloat(item.received_qty) || 0), 0)\n        .toFixed(3),\n    );\n\n    // Validate against ordered qty (not remaining), accounting for prior receipts\n    const orderedQty = parseFloat(tableGR[rowIndex].ordered_qty) || 0;\n    const initialReceivedQty =\n      parseFloat(tableGR[rowIndex].initial_received_qty) || 0;\n\n    // Get the item's over_receive_tolerance\n    const itemId = tableGR[rowIndex].item_id;\n    let overReceiveTolerance = 0;\n\n    if (itemId) {\n      const { data: itemData } = await db\n        .collection(\"Item\")\n        .where({ id: itemId })\n        .get();\n      if (itemData && itemData.length > 0) {\n        // over_receive_tolerance now lives per-UOM inside table_uom_conversion,\n        // keyed by alt_uom_id — match the GR line's ordered UOM.\n        overReceiveTolerance =\n          ((itemData[0].table_uom_conversion || []).find(\n            (c) => c.alt_uom_id === tableGR[rowIndex].ordered_qty_uom,\n          ) || {}).over_receive_tolerance || 0;\n      }\n    }\n\n    // Maximum allowed total qty with tolerance (ordered qty based)\n    const maxAllowedTotalQty = parseFloat(\n      ((orderedQty * (100 + overReceiveTolerance)) / 100).toFixed(3),\n    );\n\n    if (totalSplitQty <= 0) {\n      throw new Error(\"Total split quantity must be greater than 0.\");\n    }\n\n    if (totalSplitQty + initialReceivedQty > maxAllowedTotalQty) {\n      const maxAllowedQty = parseFloat(\n        (maxAllowedTotalQty - initialReceivedQty).toFixed(3),\n      );\n      throw new Error(\n        `Total split quantity (${totalSplitQty}) exceeds maximum allowed quantity (${maxAllowedQty}) based on tolerance.`,\n      );\n    }\n\n    const latestTableGR = [];\n\n    for (const [index, grItem] of tableGR.entries()) {\n      if (index === rowIndex) {\n        // Check if this is a split-parent (parallel) split\n        if (isParentSplit === 1) {\n          // Split-Parent mode: Create N independent rows (no hierarchy)\n          const baseLineIndex = grItem.parent_index + 1;\n\n          for (const [dialogLineIndex, dialogItem] of tableSplit.entries()) {\n            const letterSuffix = getLetterSuffix(dialogLineIndex);\n            const splitParentItem = await setGrItemData(\n              grItem,\n              `${baseLineIndex}-${letterSuffix}`, // e.g., \"1-A\", \"1-B\"\n              dialogItem.received_qty,\n              dialogItem.storage_location_id,\n              dialogItem.location_id,\n              dialogItem.line_remark_1,\n              dialogItem.line_remark_2,\n              dialogItem.line_remark_3,\n              \"Yes\", // is_split\n              \"Split-Parent\", // NEW: Split-Parent type\n              index, // parent_index (for tracking)\n              dialogItem.select_serial_number || [],\n              index, // split_source_index\n              dialogItem.batch_no,\n              dialogItem.manufacturing_date,\n              dialogItem.expired_date,\n              // The first row succeeds the source row; the rest are new.\n              {\n                isNewRow: dialogLineIndex !== 0,\n                resetSerials: true,\n                fromDialog: true,\n              },\n            );\n            latestTableGR.push(splitParentItem);\n          }\n        } else {\n          // Hierarchy mode: Create parent row + child rows (existing behavior)\n          // Create parent row (summary row, no location/qty editable)\n          const parentItem = await setGrItemData(\n            grItem,\n            grItem.parent_index + 1,\n            totalSplitQty,\n            \"\", // storage_location_id cleared for parent\n            \"\", // location_id cleared for parent\n            grItem.line_remark_1,\n            grItem.line_remark_2,\n            grItem.line_remark_3,\n            \"Yes\", // is_split\n            \"Parent\",\n            index,\n            grItem.select_serial_number,\n            null, // splitSourceIndex\n            undefined, // dialogBatchNo\n            undefined, // dialogManufacturingDate\n            undefined, // dialogExpiredDate\n            // Parent is the same logical line as the row being split.\n            { isNewRow: false, resetSerials: true },\n          );\n          latestTableGR.push(parentItem);\n\n          // Create child rows from split dialog\n          for (const [dialogLineIndex, dialogItem] of tableSplit.entries()) {\n            const childItem = await setGrItemData(\n              grItem,\n              `${grItem.parent_index + 1} - ${dialogLineIndex + 1}`,\n              dialogItem.received_qty,\n              dialogItem.storage_location_id,\n              dialogItem.location_id,\n              dialogItem.line_remark_1,\n              dialogItem.line_remark_2,\n              dialogItem.line_remark_3,\n              \"No\", // is_split\n              \"Child\",\n              index,\n              dialogItem.select_serial_number || [],\n              null, // splitSourceIndex\n              undefined, // dialogBatchNo\n              undefined, // dialogManufacturingDate\n              undefined, // dialogExpiredDate\n              { isNewRow: true, resetSerials: true },\n            );\n            latestTableGR.push(childItem);\n          }\n        }\n      } else {\n        // Preserve existing row unchanged\n        const preservedItem = await setGrItemData(\n          grItem,\n          grItem.line_index,\n          grItem.received_qty,\n          grItem.storage_location_id,\n          grItem.location_id,\n          grItem.line_remark_1,\n          grItem.line_remark_2,\n          grItem.line_remark_3,\n          grItem.is_split,\n          grItem.parent_or_child,\n          grItem.parent_index,\n          grItem.select_serial_number,\n          grItem.split_source_index,\n        );\n        latestTableGR.push(preservedItem);\n      }\n    }\n\n    await this.setData({ table_gr: latestTableGR });\n\n    // Apply field states after data update\n    const updatedTableGR = this.getValue(\"table_gr\");\n\n    for (const [index, grItem] of updatedTableGR.entries()) {\n      if (grItem.is_split === \"Yes\" && grItem.parent_or_child === \"Parent\") {\n        // Disable most fields for split parent, but keep editable:\n        // - item_batch_no (if manually entered)\n        // - manufacturing_date\n        // - expired_date\n        // (user fills these on parent, children inherit them)\n        this.disabled(\n          [\n            `table_gr.${index}.received_qty`,\n            `table_gr.${index}.base_received_qty`,\n            `table_gr.${index}.storage_location_id`,\n            `table_gr.${index}.location_id`,\n            `table_gr.${index}.line_remark_1`,\n            `table_gr.${index}.line_remark_2`,\n            `table_gr.${index}.line_remark_3`,\n            `table_gr.${index}.select_serial_number`,\n            `table_gr.${index}.inv_category`,\n          ],\n          true,\n        );\n\n        // Clear location fields display for parent\n        this.setData({\n          [`table_gr.${index}.storage_location_id`]: \"\",\n          [`table_gr.${index}.location_id`]: \"\",\n        });\n      } else if (grItem.parent_or_child === \"Split-Parent\") {\n        // Split-Parent rows: behave like regular rows (independent location,\n        // batch, etc.) but re-splitting is disabled.\n        this.disabled([`table_gr.${index}.button_split`], true);\n\n        // Enable non-batch editable fields\n        this.disabled(\n          [\n            `table_gr.${index}.received_qty`,\n            `table_gr.${index}.base_received_qty`,\n            `table_gr.${index}.storage_location_id`,\n            `table_gr.${index}.location_id`,\n            `table_gr.${index}.line_remark_1`,\n            `table_gr.${index}.line_remark_2`,\n            `table_gr.${index}.line_remark_3`,\n            `table_gr.${index}.inv_category`,\n          ],\n          false,\n        );\n\n        // Batch field: editable for manual-entry batch items whether empty or\n        // pre-filled from the split dialog. \"-\" (non-batch) and\n        // \"Auto-generated batch number\" stay disabled.\n        const isManualBatch =\n          grItem.item_id &&\n          grItem.item_batch_no !== \"-\" &&\n          grItem.item_batch_no !== \"Auto-generated batch number\";\n        this.disabled(\n          [`table_gr.${index}.item_batch_no`],\n          !isManualBatch,\n        );\n\n        // Manufacturing/expired dates: disabled for non-batch items\n        const isNonBatch = grItem.item_batch_no === \"-\";\n        this.disabled(\n          [\n            `table_gr.${index}.manufacturing_date`,\n            `table_gr.${index}.expired_date`,\n          ],\n          isNonBatch,\n        );\n\n        // Handle serialized items for Split-Parent\n        if (grItem.is_serialized_item === 1) {\n          this.disabled(\n            [\n              `table_gr.${index}.select_serial_number`,\n              `table_gr.${index}.received_qty`,\n            ],\n            false,\n          );\n        }\n      } else if (grItem.parent_or_child === \"Child\") {\n        // Disable split button for children\n        this.disabled([`table_gr.${index}.button_split`], true);\n\n        // Disable batch and date fields for children (inherited from parent)\n        this.disabled(\n          [\n            `table_gr.${index}.item_batch_no`,\n            `table_gr.${index}.manufacturing_date`,\n            `table_gr.${index}.expired_date`,\n          ],\n          true,\n        );\n\n        // Handle serialized items\n        if (grItem.is_serialized_item === 1) {\n          this.disabled(\n            [\n              `table_gr.${index}.select_serial_number`,\n              `table_gr.${index}.received_qty`,\n            ],\n            true,\n          );\n        }\n      } else {\n        // Regular non-split row - enable split button\n        this.disabled([`table_gr.${index}.button_split`], false);\n\n        if (grItem.is_serialized_item === 1) {\n          this.disabled(\n            [\n              `table_gr.${index}.select_serial_number`,\n              `table_gr.${index}.received_qty`,\n            ],\n            false,\n          );\n        }\n      }\n    }\n\n    await this.closeDialog(\"split_dialog\");\n    await this.triggerEvent(\"func_reset_split_dialog\");\n  } catch (error) {\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
+        "func": "// split_dialog Confirm — replaces the source line with N sibling Split-Parent\n// rows. Flat mode only: every resulting row is a real line that the Complete\n// path (code_node_PTcompCompute) processes independently.\n\n// Letter suffix for the display line index: A, B, C, ..., Z, AA, AB, ...\nconst getLetterSuffix = (index) => {\n  let suffix = \"\";\n  let num = index;\n  while (num >= 0) {\n    suffix = String.fromCharCode(65 + (num % 26)) + suffix;\n    num = Math.floor(num / 26) - 1;\n  }\n  return suffix;\n};\n\n// Split the line's balance entries across the split rows, FIFO in array order.\n// A receiving line normally carries exactly ONE entry, in which case each row\n// gets a clone of it carrying that row's share; a legacy multi-entry line has\n// its entries consumed in order, and an entry spanning a row boundary is cloned\n// into both rows with complementary quantities. Everything except sm_quantity is\n// copied verbatim — the snapshot quantities are availability figures, not\n// balances to divide.\nconst sliceTempQtyData = (tempQtyDataStr, splitQtys) => {\n  let entries = [];\n  try {\n    entries = JSON.parse(tempQtyDataStr || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  if (!Array.isArray(entries)) {\n    entries = [];\n  }\n\n  const pool = entries.map((entry) => ({\n    entry: entry,\n    remaining: parseFloat(entry.sm_quantity) || 0,\n  }));\n  let poolIndex = 0;\n\n  return splitQtys.map((splitQty) => {\n    let needed = parseFloat(splitQty) || 0;\n    const slice = [];\n\n    while (needed > 0.0005 && poolIndex < pool.length) {\n      const current = pool[poolIndex];\n      if (current.remaining <= 0.0005) {\n        poolIndex++;\n        continue;\n      }\n      const take = Math.min(current.remaining, needed);\n      // Deep clone so no two rows share an entry object.\n      const cloned = JSON.parse(JSON.stringify(current.entry));\n      cloned.sm_quantity = parseFloat(take.toFixed(3));\n      delete cloned.id;\n      slice.push(cloned);\n\n      current.remaining = parseFloat((current.remaining - take).toFixed(3));\n      needed = parseFloat((needed - take).toFixed(3));\n    }\n\n    return JSON.stringify(slice);\n  });\n};\n\n// Spread-based so fields this handler does not enumerate — handling_unit_id and\n// view_hu (neither is a declared column), temp_hu_data, batch_id, issuing_plant,\n// receiving_plant, uom_options, balance_id — survive the rebuild.\nconst buildPtRow = (sourceRow, overrides, options = {}) => {\n  const { isNewRow = false } = options;\n  const row = Object.assign({}, sourceRow, overrides);\n\n  // Every row loses its DB sub-record id. On save the platform soft-deletes the\n  // existing lines and re-inserts the whole table in array order, so an id-less\n  // row is what keeps the saved order equal to the on-screen order. Leave an id\n  // on the untouched rows and the platform matches those in place and pushes the\n  // new split rows to the end instead.\n  delete row.id;\n\n  // fm_key is the client-side render key. The spread copied the source row's, so\n  // a genuinely new row must drop it; the platform mints a replacement.\n  if (isNewRow) {\n    delete row.fm_key;\n  }\n\n  return row;\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const tableSM = data.stock_movement;\n    const splitDialogData = data.split_dialog;\n    const tableSplit = splitDialogData.table_split || [];\n    const rowIndex = splitDialogData.rowIndex;\n    const sourceRow = tableSM[rowIndex];\n\n    if (!sourceRow) {\n      throw new Error(\"The line being split no longer exists.\");\n    }\n    if (tableSplit.length < 2) {\n      throw new Error(\"A split needs at least 2 rows.\");\n    }\n\n    for (const [i, splitItem] of tableSplit.entries()) {\n      if (!(parseFloat(splitItem.received_qty) > 0)) {\n        throw new Error(`Split row ${i + 1}: quantity must be greater than 0.`);\n      }\n      if (!splitItem.storage_location_id || !splitItem.location_id) {\n        throw new Error(\n          `Split row ${i + 1}: storage location and bin are required.`,\n        );\n      }\n    }\n\n    // Exact sum, not a tolerance ceiling. Under-splitting would silently drop\n    // quantity: the leftover child that carries an unreceived remainder is built\n    // per line, so anything not present on a line is never re-offered and its\n    // In Transit stock is stranded with no document able to consume it.\n    const totalSplitQty = parseFloat(\n      tableSplit\n        .reduce((sum, item) => sum + (parseFloat(item.received_qty) || 0), 0)\n        .toFixed(3),\n    );\n    const totalQuantity = parseFloat(\n      (parseFloat(sourceRow.total_quantity) || 0).toFixed(3),\n    );\n\n    if (Math.abs(totalSplitQty - totalQuantity) > 0.0005) {\n      throw new Error(\n        `Split quantities (${totalSplitQty}) must equal the line's total quantity (${totalQuantity}) exactly.`,\n      );\n    }\n\n    const tempSlices = sliceTempQtyData(\n      sourceRow.temp_qty_data,\n      tableSplit.map((item) => item.received_qty),\n    );\n\n    // Cosmetic only — the save workflow re-stamps line_index = arrayIndex + 1\n    // before anything reads it.\n    const baseLineIndex = parseInt(sourceRow.line_index, 10) || rowIndex + 1;\n    const unitPrice = parseFloat(sourceRow.unit_price) || 0;\n\n    const latestTableSM = [];\n\n    for (const [index, smItem] of tableSM.entries()) {\n      if (index !== rowIndex) {\n        latestTableSM.push(buildPtRow(smItem, {}));\n        continue;\n      }\n\n      for (const [splitIndex, splitItem] of tableSplit.entries()) {\n        const qty = parseFloat(splitItem.received_qty) || 0;\n        latestTableSM.push(\n          buildPtRow(\n            smItem,\n            {\n              line_index: `${baseLineIndex}-${getLetterSuffix(splitIndex)}`,\n              total_quantity: qty,\n              // Seeded to the full share; the receiver can still lower it to\n              // receive this row partially, which spawns a leftover child.\n              received_quantity: qty,\n              amount: parseFloat((qty * unitPrice).toFixed(4)),\n              storage_location_id: splitItem.storage_location_id,\n              location_id: splitItem.location_id,\n              temp_qty_data: tempSlices[splitIndex],\n              is_split: \"Yes\",\n              parent_or_child: \"Split-Parent\",\n              parent_index: index,\n              split_source_index: index,\n            },\n            // The first row succeeds the source row; the rest are new.\n            { isNewRow: splitIndex !== 0 },\n          ),\n        );\n      }\n    }\n\n    await this.setData({ stock_movement: latestTableSM });\n\n    // Every row's per-index state has to be re-asserted: the whole table was\n    // replaced, so indices below the split point have shifted and the new rows\n    // have never been through the mount-time passes.\n    const categoryRes = await db\n      .collection(\"blade_dict\")\n      .where({ code: \"inventory_category\" })\n      .get();\n    const allowedCategories = [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"];\n    const filteredCategories = (categoryRes.data || []).filter((category) =>\n      allowedCategories.includes(category.dict_key),\n    );\n\n    const updatedTableSM = this.getValue(\"stock_movement\");\n\n    for (const [index, smItem] of updatedTableSM.entries()) {\n      // Handling units are whole-only, so their quantity stays locked.\n      this.disabled(\n        [`stock_movement.${index}.received_quantity`],\n        !!smItem.handling_unit_id,\n      );\n      this.disabled(\n        [\n          `stock_movement.${index}.storage_location_id`,\n          `stock_movement.${index}.location_id`,\n        ],\n        false,\n      );\n\n      // Batch number is editable only while blank (mirrors the mount-time rule);\n      // \"-\" is non-batch and \"Auto-generated batch number\" is filled on save.\n      this.disabled(\n        [`stock_movement.${index}.batch_no`],\n        !(smItem.batch_no === \"\" || !smItem.batch_no),\n      );\n\n      await this.setOptionData(\n        [`stock_movement.${index}.category`],\n        filteredCategories,\n      );\n      // Blocked stock stays Blocked on arrival.\n      this.disabled(\n        [`stock_movement.${index}.category`],\n        smItem.category === \"Blocked\",\n      );\n    }\n\n    await this.closeDialog(\"split_dialog\");\n\n    this.setData({\n      [`split_dialog.item_id`]: \"\",\n      [`split_dialog.item_name`]: \"\",\n      [`split_dialog.to_received_qty`]: 0,\n      [`split_dialog.rowIndex`]: 0,\n      [`split_dialog.no_of_split`]: 0,\n      [`split_dialog.table_split`]: [],\n    });\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js",
         "rules": []
       },
@@ -21542,13 +21513,13 @@
       {
         "key": "vqgha7yu",
         "name": "onClick_confirm_split",
-        "func": "(async () => {\n  const data = this.getValue(\"split_dialog\");\n  const noOfSplit = data.no_of_split;\n  const toReceivedQty = data.to_received_qty;\n  const rowIndex = data.rowIndex;\n  const uom = this.getValue(`table_gr.${rowIndex}.item_uom`);\n  const isSerializedItem = this.getValue(\n    `table_gr.${rowIndex}.is_serialized_item`,\n  );\n  const storageLocationId = this.getValue(\n    `table_gr.${rowIndex}.storage_location_id`,\n  );\n  const locationId = this.getValue(`table_gr.${rowIndex}.location_id`);\n  const isBatchItem = data.is_batch_item;\n  const batchNo = this.getValue(`table_gr.${rowIndex}.item_batch_no`);\n  const manufacturingDate = this.getValue(\n    `table_gr.${rowIndex}.manufacturing_date`,\n  );\n  const expiredDate = this.getValue(`table_gr.${rowIndex}.expired_date`);\n\n  // Validation for serialized items\n  if (isSerializedItem === 1 && noOfSplit > toReceivedQty) {\n    this.$message.error(\n      \"Number of split cannot be greater than quantity to receive for serialized item\",\n    );\n    return;\n  }\n\n  const splitData = [];\n  const qtyByRow = parseFloat((toReceivedQty / noOfSplit).toFixed(3));\n\n  for (let i = 0; i < noOfSplit; i++) {\n    const lineData = {\n      sub_seq: i + 1,\n      received_qty: qtyByRow,\n      item_uom: uom,\n      storage_location_id: storageLocationId,\n      location_id: locationId,\n      line_remark_1: \"\",\n      line_remark_2: \"\",\n      line_remark_3: \"\",\n      batch_no: isBatchItem === 1 ? batchNo : \"\",\n      manufacturing_date: isBatchItem === 1 ? manufacturingDate : \"\",\n      expired_date: isBatchItem === 1 ? expiredDate : \"\",\n    };\n    splitData.push(lineData);\n  }\n\n  await this.setData({ [`split_dialog.table_split`]: splitData });\n\n  if (batchNo === \"\") {\n    await this.disabled(\"split_dialog.table_split.batch_no\", false);\n  }\n\n  // Handle serialized items\n  if (isSerializedItem === 1) {\n    await this.disabled(\"split_dialog.table_split.received_qty\", true);\n    await this.setData({ [`split_dialog.table_split.received_qty`]: 0 });\n\n    const serialNumbers = this.getValue(\n      `table_gr.${rowIndex}.select_serial_number`,\n    );\n    for (let i = 0; i < noOfSplit; i++) {\n      await this.setOptionData(\n        `split_dialog.table_split.${i}.select_serial_number`,\n        serialNumbers,\n      );\n    }\n  }\n})();\n",
+        "func": "// split_dialog \"Confirm Add\" — generates the blank split rows for the entered\n// number of splits, seeded with an even share of the sent quantity.\n(async () => {\n  try {\n    const data = this.getValue(\"split_dialog\");\n    const totalQty = parseFloat(data.to_received_qty) || 0;\n    const rowIndex = data.rowIndex;\n\n    const noOfSplit = parseInt(data.no_of_split, 10);\n    if (!Number.isInteger(noOfSplit) || noOfSplit < 2) {\n      this.$message.error(\n        \"Number of splits must be a whole number of at least 2.\",\n      );\n      return;\n    }\n\n    const uom = this.getValue(\n      `stock_movement.${rowIndex}.received_quantity_uom`,\n    );\n    const storageLocationId = this.getValue(\n      `stock_movement.${rowIndex}.storage_location_id`,\n    );\n    const locationId = this.getValue(`stock_movement.${rowIndex}.location_id`);\n\n    // The shares must sum EXACTLY to the sent quantity, so the last row takes\n    // the remainder. An even toFixed(3) split does not: 10/3 seeds three rows of\n    // 3.333 which totals 9.999, and the confirm handler's exact-sum check would\n    // reject a dialog the user never touched.\n    const evenQty = parseFloat((totalQty / noOfSplit).toFixed(3));\n    const splitData = [];\n    let allocated = 0;\n\n    for (let i = 0; i < noOfSplit; i++) {\n      const qty =\n        i === noOfSplit - 1\n          ? parseFloat((totalQty - allocated).toFixed(3))\n          : evenQty;\n      allocated = parseFloat((allocated + qty).toFixed(3));\n\n      splitData.push({\n        sub_seq: i + 1,\n        received_qty: qty,\n        item_uom: uom,\n        storage_location_id: storageLocationId,\n        location_id: locationId,\n      });\n    }\n\n    await this.setData({ [`split_dialog.table_split`]: splitData });\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "yvojuc4u",
         "name": "onRowRemove_SplitTable",
-        "func": "setTimeout(async () => {\n  const data = this.getValue(\"split_dialog\");\n  const noOfSplit = data.no_of_split - 1;\n  const toReceivedQty = data.to_received_qty;\n  const rowIndex = data.rowIndex;\n  const uom = this.getValue(`table_gr.${rowIndex}.item_uom`);\n  const isSerializedItem = this.getValue(\n    `table_gr.${rowIndex}.is_serialized_item`,\n  );\n\n  const splitData = data.table_split;\n  const qtyByRow = parseFloat((toReceivedQty / noOfSplit).toFixed(3));\n\n  // Imported rows carry their own per-row quantities (and UOM conversions), so\n  // don't redistribute them evenly on delete — only renumber. Manual splits are\n  // still redistributed evenly. Import is detectable by a populated import_data.\n  const imp = data.import_data;\n  const isImported =\n    imp &&\n    (typeof imp === \"object\"\n      ? Object.keys(imp).length > 0\n      : String(imp).trim() !== \"\");\n\n  // Recalculate/redistribute quantities (skipped for imported rows)\n  for (const [index, split] of splitData.entries()) {\n    if (!isImported) {\n      split.received_qty = qtyByRow;\n    }\n    split.item_uom = uom;\n    split.sub_seq = index + 1;\n  }\n\n  await this.setData({ [`split_dialog.no_of_split`]: noOfSplit });\n  await this.setData({ [`split_dialog.table_split`]: splitData });\n  await this.disabled(\"split_dialog.is_parent_split\", false);\n\n  // Handle serialized items\n  if (isSerializedItem === 1) {\n    await this.disabled(\"split_dialog.table_split.received_qty\", true);\n    await this.setData({ [`split_dialog.table_split.received_qty`]: 0 });\n\n    const serialNumbers = this.getValue(\n      `table_gr.${rowIndex}.select_serial_number`,\n    );\n    for (let i = 0; i < noOfSplit; i++) {\n      await this.setOptionData(\n        `split_dialog.table_split.${i}.select_serial_number`,\n        serialNumbers,\n      );\n    }\n  }\n}, 100);\n",
+        "func": "// split_dialog table_split row removed. The platform removes the row first, so\n// read back on a timeout, then renumber and redistribute the sent quantity over\n// the rows that remain.\nsetTimeout(async () => {\n  try {\n    const data = this.getValue(\"split_dialog\");\n    const splitData = data.table_split || [];\n    const totalQty = parseFloat(data.to_received_qty) || 0;\n    const rowIndex = data.rowIndex;\n    const uom = this.getValue(\n      `stock_movement.${rowIndex}.received_quantity_uom`,\n    );\n\n    const noOfSplit = splitData.length;\n\n    // Same remainder-on-last-row rule as PTconfirmSplitting: the shares must\n    // still sum exactly to the sent quantity or the confirm handler rejects an\n    // otherwise untouched dialog.\n    const evenQty =\n      noOfSplit > 0 ? parseFloat((totalQty / noOfSplit).toFixed(3)) : 0;\n    let allocated = 0;\n\n    for (const [index, split] of splitData.entries()) {\n      const qty =\n        index === noOfSplit - 1\n          ? parseFloat((totalQty - allocated).toFixed(3))\n          : evenQty;\n      allocated = parseFloat((allocated + qty).toFixed(3));\n\n      split.received_qty = qty;\n      split.item_uom = uom;\n      split.sub_seq = index + 1;\n    }\n\n    await this.setData({ [`split_dialog.no_of_split`]: noOfSplit });\n    await this.setData({ [`split_dialog.table_split`]: splitData });\n\n    if (noOfSplit > 0 && noOfSplit < 2) {\n      this.$message.warning(\n        \"A split needs at least 2 rows. Add a row or cancel the split.\",\n      );\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || String(error));\n  }\n}, 100);\n",
         "type": "js"
       },
       {
@@ -21566,19 +21537,19 @@
       {
         "key": "bjs0xdbs",
         "name": "onStockMovementOpenSplitDialog",
-        "func": "",
+        "func": "// Split rowAction on the receiving form's stock_movement table.\n// Opens split_dialog for a fresh split, or confirm_split_dialog to redo an\n// existing one. Flat mode only: the line is replaced by sibling Split-Parent\n// rows, each of which the Complete path processes independently.\n(async () => {\n  try {\n    const rowIndex = arguments[0].index;\n    const smItem = this.getValues().stock_movement[rowIndex];\n\n    if (!smItem) {\n      return;\n    }\n\n    // A handling unit is one physical pallet and cannot land in two bins, so an\n    // HU line is whole-only (the Complete path snaps a partial receive back up\n    // to the full qty for exactly this reason). Unlike GR we never clear\n    // temp_hu_data here: on the receiving document it describes stock that was\n    // already sent, not a pending pick.\n    let entries = [];\n    try {\n      entries = JSON.parse(smItem.temp_qty_data || \"[]\");\n    } catch (e) {\n      entries = [];\n    }\n    const hasHU =\n      !!smItem.handling_unit_id ||\n      (Array.isArray(entries) && entries.some((b) => b && b.handling_unit_id));\n\n    if (hasHU) {\n      this.$message.error(\n        \"Lines carrying a handling unit cannot be split. Receive the handling unit whole.\",\n      );\n      return;\n    }\n\n    if (smItem.is_serialized_item === 1) {\n      this.$message.error(\"Serialized item lines cannot be split.\");\n      return;\n    }\n\n    // The split is over what was SENT (total_quantity), not over what the user\n    // has currently typed into received_quantity — the shares must add back up\n    // to the sent qty so no In Transit quantity is stranded.\n    const totalQty = parseFloat(smItem.total_quantity) || 0;\n    if (totalQty <= 0) {\n      this.$message.error(\"Cannot split when total quantity is 0 or less.\");\n      return;\n    }\n\n    if (smItem.is_split === \"Yes\") {\n      this.setData({ [`confirm_split_dialog.rowIndex`]: rowIndex });\n      await this.openDialog(\"confirm_split_dialog\");\n      return;\n    }\n\n    await this.openDialog(\"split_dialog\");\n\n    // is_parent_split stays 0 so the dialog's batch/manufacturing/expired\n    // columns stay hidden by their own fx — Plant Transfer takes the batch from\n    // the stock that was sent, never from the split dialog.\n    this.setData({\n      [`split_dialog.item_id`]: smItem.item_selection,\n      [`split_dialog.item_name`]: smItem.item_name,\n      [`split_dialog.to_received_qty`]: totalQty,\n      [`split_dialog.rowIndex`]: rowIndex,\n      [`split_dialog.is_parent_split`]: 0,\n      [`split_dialog.no_of_split`]: 0,\n      [`split_dialog.table_split`]: [],\n    });\n\n    // The dialog is shared with Goods Receiving; Plant Transfer collects only\n    // quantity + storage + bin, so hide everything else at runtime.\n    this.hide([\n      \"split_dialog.is_parent_split\",\n      \"split_dialog.import_data\",\n      \"split_dialog.is_batch_item\",\n      \"split_dialog.table_split.select_serial_number\",\n      \"split_dialog.table_split.line_remark_1\",\n      \"split_dialog.table_split.line_remark_2\",\n      \"split_dialog.table_split.line_remark_3\",\n    ]);\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "py1rj30o",
         "name": "onCancel_cancel_edit_split",
-        "func": "(async () => {\n    const index = this.getValue(`confirm_split_dialog.rowIndex`)\n\n    this.disabled([\n        `table_gr.${index}.received_qty`,\n        `table_gr.${index}.storage_location_id`,\n        `table_gr.${index}.location_id`,\n        `table_gr.${index}.remark`,\n    ], false)\n\n    await this.closeDialog('confirm_split_dialog');\n})();",
+        "func": "// confirm_split_dialog Cancel — the user declined to redo an existing split.\n// Nothing to restore: the collapse only happens on Confirm (PTclearSplit), and\n// no row fields are disabled on the way into this dialog.\n(async () => {\n  try {\n    this.setData({ [`confirm_split_dialog.rowIndex`]: 0 });\n    await this.closeDialog(\"confirm_split_dialog\");\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "tkjg2izc",
         "name": "onConfirm_edit_split",
-        "func": "(async () => {\n  const data = this.getValues();\n  const rowIndex = this.getValue(\"confirm_split_dialog.rowIndex\");\n  const tableGR = data.table_gr;\n  const currentRow = tableGR[rowIndex];\n\n  // Open split dialog and close confirmation dialog\n  await this.openDialog(\"split_dialog\");\n  await this.closeDialog(\"confirm_split_dialog\");\n\n  // Rebuild table_gr to clear the existing split. newRowIndex is the row in\n  // the rebuilt table that the re-split dialog should target.\n  let latestTableGR;\n  let newRowIndex;\n\n  if (currentRow.parent_or_child === \"Split-Parent\") {\n    // Split-Parent has no persistent summary row, so collapse all sibling\n    // Split-Parent rows (same split_source_index) back into a single regular\n    // row, then re-split that row. Without this the clicked row would be\n    // removed entirely and split_dialog.rowIndex would dangle into a shorter\n    // table, causing \"Cannot read properties of undefined (reading\n    // 'ordered_qty')\" on the next confirm.\n    const splitSourceIndex = currentRow.split_source_index;\n    const isSibling = (item) =>\n      item.parent_or_child === \"Split-Parent\" &&\n      item.split_source_index === splitSourceIndex;\n\n    // Preserve the received total across the collapsed siblings.\n    const totalReceivedQty = parseFloat(\n      tableGR\n        .filter(isSibling)\n        .reduce((sum, item) => sum + (parseFloat(item.received_qty) || 0), 0)\n        .toFixed(3),\n    );\n    const uomConversion = currentRow.uom_conversion || 1;\n\n    const restoredRow = {\n      ...currentRow,\n      received_qty: totalReceivedQty,\n      base_received_qty: parseFloat(\n        (totalReceivedQty * uomConversion).toFixed(3),\n      ),\n      to_received_qty:\n        (currentRow.ordered_qty || 0) - (currentRow.initial_received_qty || 0),\n      is_split: \"No\",\n      parent_or_child: \"Parent\", // regular (non-split) row default\n      split_source_index: null,\n    };\n\n    latestTableGR = [];\n    newRowIndex = -1;\n    for (const item of tableGR) {\n      if (isSibling(item)) {\n        // Replace the first sibling encountered with the restored row; drop\n        // the remaining siblings.\n        if (newRowIndex === -1) {\n          newRowIndex = latestTableGR.length;\n          latestTableGR.push(restoredRow);\n        }\n      } else {\n        latestTableGR.push(item);\n      }\n    }\n\n    // Align the restored regular row's parent_index with its new position.\n    latestTableGR[newRowIndex].parent_index = newRowIndex;\n  } else {\n    // Hierarchy split: remove child rows; the Parent summary row remains in\n    // place so its index stays valid.\n    latestTableGR = tableGR.filter(\n      (item) =>\n        !(item.parent_or_child === \"Child\" && item.parent_index === rowIndex),\n    );\n    newRowIndex = rowIndex;\n  }\n\n  await this.setData({ table_gr: latestTableGR });\n\n  // Configure the split dialog against the rebuilt table.\n  const targetRow = latestTableGR[newRowIndex];\n  const toReceivedQty =\n    (targetRow.ordered_qty || 0) - (targetRow.initial_received_qty || 0);\n\n  await this.setData({\n    [`split_dialog.item_id`]: targetRow.item_id,\n    [`split_dialog.item_name`]: targetRow.item_name,\n    [`split_dialog.to_received_qty`]: toReceivedQty,\n    [`split_dialog.rowIndex`]: newRowIndex,\n    [`split_dialog.is_parent_split`]: 0, // Reset to default\n  });\n\n  // Handle serialized items\n  if (targetRow.is_serialized_item === 1) {\n    await this.display(\"split_dialog.table_split.select_serial_number\");\n    await this.setData({\n      [`split_dialog.serial_number_data`]: targetRow.serial_numbers,\n    });\n  } else {\n    await this.hide(\"split_dialog.table_split.select_serial_number\");\n  }\n})();\n",
+        "func": "// confirm_split_dialog Confirm — \"entering the edit mode will clear the split\n// information\". Collapses the clicked row's sibling Split-Parent rows back into\n// one regular row, then reopens split_dialog against it so the user can re-split.\n\n// Sibling grouping key. split_source_index is not a declared subform column, so\n// on a reloaded document it may be absent; parent_index is declared and is the\n// fallback. A row with neither is NEVER collapsed — workflow-built rows can\n// share a defaulted parent_index, and grouping on that would merge unrelated\n// lines.\nconst keyOfRow = (row) => {\n  if (row.split_source_index !== undefined && row.split_source_index !== null) {\n    return `s:${row.split_source_index}`;\n  }\n  if (row.parent_index !== undefined && row.parent_index !== null) {\n    return `p:${row.parent_index}`;\n  }\n  return null;\n};\n\n// Two entries describe the same physical stock when every identifying field\n// matches; only then may their quantities be added back together. Slices made by\n// PTconfirmSplit always match, so a split followed by a collapse round-trips to\n// the original entry set.\nconst identityOf = (entry) =>\n  [\n    entry.balance_id || \"\",\n    entry.batch_id || \"\",\n    entry.handling_unit_id || \"\",\n    entry.category || entry.category_from || \"\",\n    entry.location_id || \"\",\n    entry.serial_number || \"\",\n  ].join(\"|\");\n\nconst mergeTempQtyData = (rows) => {\n  const merged = new Map();\n\n  for (const row of rows) {\n    let entries = [];\n    try {\n      entries = JSON.parse(row.temp_qty_data || \"[]\");\n    } catch (e) {\n      entries = [];\n    }\n    if (!Array.isArray(entries)) {\n      continue;\n    }\n\n    for (const entry of entries) {\n      const key = identityOf(entry);\n      if (merged.has(key)) {\n        const target = merged.get(key);\n        target.sm_quantity = parseFloat(\n          (\n            (parseFloat(target.sm_quantity) || 0) +\n            (parseFloat(entry.sm_quantity) || 0)\n          ).toFixed(3),\n        );\n      } else {\n        const cloned = JSON.parse(JSON.stringify(entry));\n        cloned.sm_quantity = parseFloat(cloned.sm_quantity) || 0;\n        delete cloned.id;\n        merged.set(key, cloned);\n      }\n    }\n  }\n\n  return Array.from(merged.values());\n};\n\n(async () => {\n  try {\n    const rowIndex = this.getValue(\"confirm_split_dialog.rowIndex\");\n    const tableSM = this.getValues().stock_movement;\n    const currentRow = tableSM[rowIndex];\n\n    if (!currentRow) {\n      throw new Error(\"The line being re-split no longer exists.\");\n    }\n\n    const groupKey = keyOfRow(currentRow);\n    if (groupKey === null) {\n      throw new Error(\n        \"This split cannot be edited because its grouping information is missing.\",\n      );\n    }\n\n    const isSibling = (row) =>\n      row.is_split === \"Yes\" &&\n      row.parent_or_child === \"Split-Parent\" &&\n      keyOfRow(row) === groupKey;\n\n    const siblings = tableSM.filter(isSibling);\n    if (siblings.length === 0) {\n      throw new Error(\"No split rows found for this line.\");\n    }\n\n    await this.openDialog(\"split_dialog\");\n    await this.closeDialog(\"confirm_split_dialog\");\n\n    const sumOf = (selector) =>\n      parseFloat(\n        siblings\n          .reduce((sum, row) => sum + (parseFloat(selector(row)) || 0), 0)\n          .toFixed(3),\n      );\n\n    const totalQty = sumOf((row) => row.total_quantity);\n    const totalReceived = sumOf((row) => row.received_quantity);\n    const first = siblings[0];\n\n    const restoredRow = Object.assign({}, first, {\n      total_quantity: totalQty,\n      received_quantity: totalReceived,\n      amount: parseFloat(\n        (totalReceived * (parseFloat(first.unit_price) || 0)).toFixed(4),\n      ),\n      temp_qty_data: JSON.stringify(mergeTempQtyData(siblings)),\n      is_split: \"No\",\n      // \"Parent\" is the column's default for a regular row; only the pair\n      // is_split === \"Yes\" && parent_or_child === \"Parent\" means a summary row,\n      // and this row is no longer split.\n      parent_or_child: \"Parent\",\n      parent_index: null,\n      split_source_index: null,\n    });\n    delete restoredRow.id;\n\n    // Replace the first sibling in place with the restored row and drop the\n    // rest, so the row keeps its position in the document.\n    const latestTableSM = [];\n    let newRowIndex = -1;\n\n    for (const row of tableSM) {\n      if (isSibling(row)) {\n        if (newRowIndex === -1) {\n          newRowIndex = latestTableSM.length;\n          latestTableSM.push(restoredRow);\n        }\n      } else {\n        latestTableSM.push(Object.assign({}, row));\n      }\n    }\n\n    latestTableSM[newRowIndex].parent_index = newRowIndex;\n\n    await this.setData({ stock_movement: latestTableSM });\n\n    // Indices below the collapse point have shifted, so re-assert every row's\n    // per-index state (same pass as PTconfirmSplit).\n    const categoryRes = await db\n      .collection(\"blade_dict\")\n      .where({ code: \"inventory_category\" })\n      .get();\n    const allowedCategories = [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"];\n    const filteredCategories = (categoryRes.data || []).filter((category) =>\n      allowedCategories.includes(category.dict_key),\n    );\n\n    const updatedTableSM = this.getValue(\"stock_movement\");\n\n    for (const [index, smItem] of updatedTableSM.entries()) {\n      this.disabled(\n        [`stock_movement.${index}.received_quantity`],\n        !!smItem.handling_unit_id,\n      );\n      this.disabled(\n        [\n          `stock_movement.${index}.storage_location_id`,\n          `stock_movement.${index}.location_id`,\n        ],\n        false,\n      );\n      this.disabled(\n        [`stock_movement.${index}.batch_no`],\n        !(smItem.batch_no === \"\" || !smItem.batch_no),\n      );\n      await this.setOptionData(\n        [`stock_movement.${index}.category`],\n        filteredCategories,\n      );\n      this.disabled(\n        [`stock_movement.${index}.category`],\n        smItem.category === \"Blocked\",\n      );\n    }\n\n    // Re-seed the split dialog against the restored row. This path opens the\n    // dialog without going through PTtableSplit, so it repeats the same runtime\n    // hides.\n    const targetRow = latestTableSM[newRowIndex];\n\n    await this.setData({\n      [`split_dialog.item_id`]: targetRow.item_selection,\n      [`split_dialog.item_name`]: targetRow.item_name,\n      [`split_dialog.to_received_qty`]: totalQty,\n      [`split_dialog.rowIndex`]: newRowIndex,\n      [`split_dialog.is_parent_split`]: 0,\n      [`split_dialog.no_of_split`]: 0,\n      [`split_dialog.table_split`]: [],\n    });\n\n    this.hide([\n      \"split_dialog.is_parent_split\",\n      \"split_dialog.import_data\",\n      \"split_dialog.is_batch_item\",\n      \"split_dialog.table_split.select_serial_number\",\n      \"split_dialog.table_split.line_remark_1\",\n      \"split_dialog.table_split.line_remark_2\",\n      \"split_dialog.table_split.line_remark_3\",\n    ]);\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || String(error));\n  }\n})();\n",
         "type": "js"
       }
     ],
