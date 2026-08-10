@@ -458,6 +458,14 @@
                               "propLabel": "Organization"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_O4tWJ5JH.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "acc_integration_type",
                               "operator": "",
                               "valueType": "field",
@@ -661,6 +669,14 @@
                               "value": "{{node:code_node_O4tWJ5JH.data.allData.organization_id}}",
                               "valueLabel": "",
                               "propLabel": "Organization"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_O4tWJ5JH.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "acc_integration_type",
@@ -2332,6 +2348,14 @@
                               "propLabel": "Organization"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_O4tWJ5JH.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "acc_integration_type",
                               "operator": "",
                               "valueType": "field",
@@ -2493,6 +2517,14 @@
                               "value": "{{node:code_node_O4tWJ5JH.data.allData.organization_id}}",
                               "valueLabel": "",
                               "propLabel": "Organization"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_O4tWJ5JH.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "acc_integration_type",
