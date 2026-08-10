@@ -1420,7 +1420,7 @@
                               "valueLabel": "",
                               "propLabel": "Stock Movement Status"
                             },
-{
+                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -1613,75 +1613,75 @@
                 }
               ]
             },
-{
-  "id": "code_node_MsiItemIDs",
-  "type": "code-node",
-  "data": {
-    "language": "javascript",
-    "code": "",
-    "timeout": 30000,
-    "title": "Collect Item IDs",
-    "isValidator": true,
-    "nodeName": "Collect Item IDs",
-    "name": "Collect Item IDs",
-    "script": {
-      "type": "javascript",
-      "code": "// One batched Item fetch for the whole subform (was: one get-node per line,\n// inside the loop). Mirrors the dedup already used by updateItemTransactionDate.\nconst tableSM = {{node:code_node_ISWz5KGY.data.allData.stock_movement}} || [];\nconst itemIDs = [...new Set(tableSM.filter(i => i.item_selection).map(i => i.item_selection))];\nreturn { itemIDs: itemIDs };"
-    },
-    "response_json": [
-      {
-        "key": "msiitmids",
-        "name": "itemIDs",
-        "title": "Item IDs",
-        "description": "",
-        "bsonType": "any",
-        "isExpand": false,
-        "children": []
-      }
-    ]
-  },
-  "blocks": []
-},
-{
-  "id": "search_node_MsiItems",
-  "type": "search-node",
-  "data": {
-    "table_id": {
-      "source": "Item:Table:1901546842240438273",
-      "rules": {
-        "collectionId": "1901546842240438273",
-        "list": [
-          {
-            "isTop": true,
-            "type": "branch",
-            "operator": "all",
-            "level": 1,
-            "children": [
-              {
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_node_MsiItemIDs.data.itemIDs}}",
-                "type": "leaf",
-                "level": 2,
-                "propLabel": "Primary Key ID",
-                "operatorLabel": "In"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "condition": {},
-    "limit": 200,
-    "title": "Get Items",
-    "isValidator": true,
-    "nodeName": "Get Items",
-    "name": "Get Items"
-  },
-  "blocks": []
-},
-{
+            {
+              "id": "code_node_MsiItemIDs",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Collect Item IDs",
+                "isValidator": true,
+                "nodeName": "Collect Item IDs",
+                "name": "Collect Item IDs",
+                "script": {
+                  "type": "javascript",
+                  "code": "// One batched Item fetch for the whole subform (was: one get-node per line,\n// inside the loop). Mirrors the dedup already used by updateItemTransactionDate.\nconst tableSM = {{node:code_node_ISWz5KGY.data.allData.stock_movement}} || [];\nconst itemIDs = [...new Set(tableSM.filter(i => i.item_selection).map(i => i.item_selection))];\nreturn { itemIDs: itemIDs };"
+                },
+                "response_json": [
+                  {
+                    "key": "msiitmids",
+                    "name": "itemIDs",
+                    "title": "Item IDs",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_MsiItems",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 1,
+                        "children": [
+                          {
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_MsiItemIDs.data.itemIDs}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Primary Key ID",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Items",
+                "isValidator": true,
+                "nodeName": "Get Items",
+                "name": "Get Items"
+              },
+              "blocks": []
+            },
+            {
               "id": "loop_BBZNjfzE",
               "type": "loop",
               "data": {
@@ -1729,7 +1729,7 @@
                 }
               },
               "blocks": [
-{
+                {
                   "id": "code_node_PeidsgXa",
                   "type": "code-node",
                   "data": {
@@ -1745,15 +1745,15 @@
                       "code": "const page_status = {{workflowparams:pageStatus}};\nconst stock_movement_status = {{node:code_node_ISWz5KGY.data.stock_movement_status}}\nlet allData;\n\nif (page_status === \"Add\") {\n  const rawData = {{node:add_node_1p1Kdkhz.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData;\n} else if (page_status === \"Edit\") {\n  allData = {{node:get_node_7CFMbGI0.data.data}}\n} else {\n  allData = {{node:code_node_ISWz5KGY.data.allData}}\n}\n\nconst plant_id = allData.issuing_operation_faci;\nconst organization_id = allData.organization_id;\nconst stock_movement_no = allData.stock_movement_no;\nconst doc_date = allData.issue_date;\n\n// Current subform row comes straight from the loop variable — no redis index\n// counter (the old counter was keyed only on issued_by, so two concurrent saves\n// by the same user corrupted each other's index).\nconst item = {{node:loop_BBZNjfzE}};\nconst material_id = item.item_selection;\nconst material_uom = item.quantity_uom || item.received_quantity_uom;\nconst total_quantity = item.total_quantity;\nconst location_id = item.location_id;\nconst batch_id = item.batch_id || null;\nconst remark = item.item_remark || null;\nconst remark2 = item.item_remark_2 || null;\nconst remark3 = item.item_remark_3 || null;\nconst poNO = item.po_no || null;\nconst inventory_category = \"Unrestricted\";\n\nlet balancesToProcess = [];\nconst tempData = item.temp_qty_data;\nif (tempData) {\n  try {\n    const parsed = JSON.parse(tempData);\n    if (Array.isArray(parsed)) {\n      balancesToProcess = parsed.filter(\n        (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0\n      );\n    }\n  } catch (e) {\n    balancesToProcess = [];\n  }\n}\n\n// Map poNO into each balance entry\nbalancesToProcess = balancesToProcess.map(entry => ({\n  ...entry,\n  po_no: poNO\n}));\n\n// itemData for SUBTRACT_INVENTORY, picked from the single batched Item fetch\n// (previously one get-node per subform line, inside this loop).\nconst itemsRaw = {{node:search_node_MsiItems.data.data}} || [];\nconst itemsArr = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemData = itemsArr.find(i => i && String(i.id) === String(material_id)) || null;\n\nreturn {\n  plant_id: plant_id,\n  organization_id: organization_id,\n  stock_movement_no: stock_movement_no,\n  page_status: page_status,\n  material_id: material_id,\n  material_uom: material_uom,\n  total_quantity: total_quantity,\n  location_id: location_id,\n  batch_id: batch_id,\n  inventory_category: inventory_category,\n  doc_date: doc_date,\n  remark: remark,\n  remark2: remark2,\n  remark3: remark3,\n  balancesToProcess: balancesToProcess,\n  itemData: itemData\n};"
                     },
                     "response_json": [
-          {
-            "key": "msiitmdata",
-            "name": "itemData",
-            "title": "Item Data",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
+                      {
+                        "key": "msiitmdata",
+                        "name": "itemData",
+                        "title": "Item Data",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      },
                       {
                         "key": "zdxudxha",
                         "name": "plant_id",
@@ -1855,7 +1855,7 @@
                           }
                         ]
                       },
-{
+                      {
                         "key": "4ccj2hbx",
                         "name": "doc_date",
                         "title": "doc_date",
@@ -1907,7 +1907,7 @@
                   },
                   "blocks": []
                 },
-{
+                {
                   "id": "loop_NWeT5dSb",
                   "type": "loop",
                   "data": {
@@ -1955,7 +1955,7 @@
                     }
                   },
                   "blocks": [
-{
+                    {
                       "id": "code_node_SXZuEFWW",
                       "type": "code-node",
                       "data": {
@@ -2004,7 +2004,7 @@
                             "bsonType": "string",
                             "isExpand": false
                           },
-{
+                          {
                             "key": "6uixt627",
                             "name": "manufacturing_date",
                             "title": "manufacturing_date",
@@ -2156,7 +2156,7 @@
                               "valueLabel": "",
                               "propLabel": "Batch ID"
                             },
-{
+                            {
                               "prop": "itemData",
                               "operator": "",
                               "valueType": "field",
@@ -2668,9 +2668,7 @@
                 {
                   "id": "if_block_ReorderMsiTrue",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "workflow_node_ReorderMsiCompleted",
@@ -2734,9 +2732,7 @@
                 {
                   "id": "if_block_ReorderMsiFalse",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3125,7 +3121,7 @@
                               "valueLabel": "",
                               "propLabel": "Stock Movement Status"
                             },
-{
+                            {
                               "prop": "issuing_operation_faci",
                               "operator": "",
                               "valueType": "field",
@@ -3306,7 +3302,7 @@
         }
       ]
     },
-{
+    {
       "id": "return_node_b8XNN3w1",
       "type": "return-node",
       "data": {

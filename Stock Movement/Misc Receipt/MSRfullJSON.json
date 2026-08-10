@@ -2822,6 +2822,118 @@
           },
           "list": [
             {
+              "version": "1.0.0",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_pe7htnej",
+                "filterable": false,
+                "pagingEnabled": true,
+                "isShowExpandButton": false,
+                "buttonText": "新增",
+                "buttonPosition": "bottom",
+                "buttonAlign": "right",
+                "buttonSize": "default",
+                "buttonEvent": [],
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "project_code",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_pe7htnej",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "2085600321692696577",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{value:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "Project:Table:2085600321692696577"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 1,
+                "page_size": 10
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Project",
+              "novalid": {},
+              "key": "dej27slr",
+              "model": "project_id",
+              "rules": []
+            },
+            {
               "name": "Reference Documents",
               "type": "fileupload",
               "mainIcon": "文件上传",
@@ -2878,261 +2990,6 @@
               "novalid": {}
             },
             {
-              "name": "Receiving Plant",
-              "type": "treeselect",
-              "mainIcon": "下拉树状单选",
-              "typeIcon": "下拉树状单选",
-              "icon": "icon-shuxuanzeqi",
-              "group": "Select",
-              "groupSort": 4,
-              "enableScopes": ["Component", "Table", "Page"],
-              "options": {
-                "defaultValue": "",
-                "width": "",
-                "placeholder": "",
-                "disabled": false,
-                "clearable": false,
-                "options": [
-                  {
-                    "value": "Option 1",
-                    "label": "Option 1",
-                    "children": [
-                      {
-                        "value": "Option 1 - children",
-                        "label": "Option 1 - children"
-                      }
-                    ]
-                  },
-                  {
-                    "value": "Option 2",
-                    "label": "Option 2",
-                    "children": [
-                      {
-                        "value": "Option 2 - children",
-                        "label": "Option 2 - children"
-                      }
-                    ]
-                  },
-                  {
-                    "value": "Option 3",
-                    "label": "Option 3"
-                  }
-                ],
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "remoteOption": "option_d4051zkj",
-                "remoteOptions": [],
-                "props": {
-                  "value": "id",
-                  "label": "dept_name",
-                  "children": "children",
-                  "cascade": "",
-                  "image": "",
-                  "icon": ""
-                },
-                "remoteFunc": "func_d4051zkj",
-                "customClass": "",
-                "labelWidth": 100,
-                "isLabelWidth": false,
-                "hidden": false,
-                "dataBind": true,
-                "required": true,
-                "validatorCheck": false,
-                "validator": "",
-                "multiple": false,
-                "filterable": false,
-                "checkStrictly": false,
-                "customProps": {},
-                "tip": "",
-                "tableColumn": false,
-                "subform": false,
-                "paging_enabled": 0,
-                "paging_way": "Pagination",
-                "page_size": 10,
-                "more_fields": [],
-                "datasource": {
-                  "source": "组织机构(勿删勿改):Table:1789995126399348747",
-                  "rules": {
-                    "collectionId": "1789995126399348747",
-                    "list": [
-                      {
-                        "id": 1751947443028,
-                        "parentId": 1751947443029,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1751947446883,
-                            "parentId": 1751947443028,
-                            "isTop": false,
-                            "prop": "id",
-                            "operator": "numberNotEqual",
-                            "valueType": "field",
-                            "value": "{{value:issuing_operation_faci}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "主键ID",
-                            "valueLabel": "",
-                            "operatorLabel": "不等于",
-                            "valueTypeLabel": "字段"
-                          },
-                          {
-                            "id": 1751947443031,
-                            "isTop": false,
-                            "parentId": 1751947443028,
-                            "type": "branch",
-                            "operator": "any",
-                            "level": 2,
-                            "children": [
-                              {
-                                "id": 1751947737248,
-                                "isTop": false,
-                                "parentId": 1751947443031,
-                                "type": "branch",
-                                "operator": "all",
-                                "level": 3,
-                                "children": [
-                                  {
-                                    "id": 1751947443030,
-                                    "parentId": 1751947737248,
-                                    "isTop": false,
-                                    "prop": "parent_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{value:organization_id}}",
-                                    "type": "leaf",
-                                    "level": 4,
-                                    "propLabel": "父主键",
-                                    "valueLabel": "",
-                                    "operatorLabel": "等于",
-                                    "valueTypeLabel": "字段"
-                                  },
-                                  {
-                                    "id": 1751947737249,
-                                    "parentId": 1751947737248,
-                                    "isTop": false,
-                                    "prop": "id",
-                                    "operator": "in",
-                                    "valueType": "formula",
-                                    "value": "{{global:deptIdList}}.split(',')",
-                                    "type": "leaf",
-                                    "level": 4,
-                                    "propLabel": "主键ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "等于任意一个",
-                                    "valueTypeLabel": "公式"
-                                  }
-                                ]
-                              },
-                              {
-                                "id": 1751947443035,
-                                "isTop": false,
-                                "parentId": 1751947443031,
-                                "type": "branch",
-                                "operator": "all",
-                                "level": 3,
-                                "children": [
-                                  {
-                                    "id": 1751947443032,
-                                    "parentId": 1751947443035,
-                                    "isTop": false,
-                                    "prop": "id",
-                                    "operator": "in",
-                                    "valueType": "formula",
-                                    "value": "{{global:deptIdList}}.split(',')",
-                                    "type": "leaf",
-                                    "level": 4,
-                                    "propLabel": "主键ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "等于任意一个",
-                                    "valueTypeLabel": "公式"
-                                  },
-                                  {
-                                    "id": 1751947443036,
-                                    "parentId": 1751947443035,
-                                    "isTop": false,
-                                    "prop": "parent_id",
-                                    "operator": "numberEqual",
-                                    "valueType": "field",
-                                    "value": "{{system:deptIds}}",
-                                    "type": "leaf",
-                                    "level": 4,
-                                    "propLabel": "父主键",
-                                    "valueLabel": "",
-                                    "operatorLabel": "等于",
-                                    "valueTypeLabel": "字段"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "url_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "body_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "request_params": {
-                  "list": [
-                    {
-                      "prop": "",
-                      "propLabel": "",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "value",
-                      "valueTypeLabel": "",
-                      "valueLabel": ""
-                    }
-                  ]
-                },
-                "columns": []
-              },
-              "events": {
-                "onChange": "",
-                "onFocus": "",
-                "onBlur": ""
-              },
-              "novalid": {},
-              "key": "4n2aboey",
-              "model": "receiving_operation_faci",
-              "rules": [
-                {
-                  "required": true,
-                  "message": ""
-                }
-              ]
-            },
-            {
               "name": "movement id",
               "type": "input",
               "mainIcon": "单行文本",
@@ -3171,7 +3028,20 @@
                 "remoteFunc": "func_ml2wl5g8",
                 "remoteOption": "option_ml2wl5g8",
                 "tableColumn": false,
-                "subform": false
+                "subform": false,
+                "highFrequencyInput": false,
+                "highFrequencyTimeField": "",
+                "highFrequencyDuration": 30,
+                "highFrequencyMinCount": 20,
+                "highFrequencyMaxItems": 5,
+                "highFrequencySortRule": 1,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
               },
               "events": {
                 "onChange": "",
@@ -5311,7 +5181,7 @@
                     "patternCheck": false,
                     "patternMessage": "",
                     "validatorCheck": true,
-                    "validator": "const prefix = value.split(/\\d/)[0];\nlet organizationId = this.getVarGlobal(\"deptParentId\");\nif (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n}\ndb.collection(\"batch_level_config\")\n  .where({ organization_id: organizationId })\n  .get()\n  .then(response => {\n    console.log('response', response.data)\n    if(response.data.length > 0) {\n        let batchPrefix = response.data[0].batch_prefix;\n\n        if(batchPrefix && batchPrefix !== '') {\n            batchPrefix = batchPrefix + '-'\n        }\n\n        if(batchPrefix === prefix) {\n            callback('Prefix is reserved by the system.');\n        } else {\n            db.collection(\"batch\")\n            .where({\n                batch_number: value,\n                organization_id: organizationId\n            })\n            .get()\n            .then(resBatch => {\n                const matchingBatches = resBatch.data || [];\n                \n                if (matchingBatches.length > 0 && value) {\n                callback('Batch number already exists');\n                } else {\n                callback();\n                }\n            })\n            .catch(error => {\n                console.error(\"Error checking batch number:\", error);\n                callback('Error checking batch number');\n            });\n        }\n    }\n  })\n  .catch(error => {\n    console.error(\"Error checking batch number:\", error);\n    callback('Error checking batch number');\n  });",
+                    "validator": "const prefix = value.split(/\\d/)[0];\nlet organizationId = this.getVarGlobal(\"deptParentId\");\nif (organizationId === \"0\") {\n  organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n}\n\ndb.collection(\"batch\")\n  .where({\n    batch_number: value,\n    organization_id: organizationId,\n  })\n  .get()\n  .then((resBatch) => {\n    const matchingBatches = resBatch.data || [];\n\n    if (matchingBatches.length > 0 && value) {\n      callback(\"Batch number already exists\");\n    } else {\n      callback();\n    }\n  })\n  .catch((error) => {\n    console.error(\"Error checking batch number:\", error);\n    callback(\"Error checking batch number\");\n  });\n",
                     "placeholder": "",
                     "customClass": "",
                     "disabled": true,
@@ -5351,7 +5221,7 @@
                       "message": ""
                     },
                     {
-                      "func": "const prefix = value.split(/\\d/)[0];\nlet organizationId = this.getVarGlobal(\"deptParentId\");\nif (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n}\ndb.collection(\"batch_level_config\")\n  .where({ organization_id: organizationId })\n  .get()\n  .then(response => {\n    console.log('response', response.data)\n    if(response.data.length > 0) {\n        let batchPrefix = response.data[0].batch_prefix;\n\n        if(batchPrefix && batchPrefix !== '') {\n            batchPrefix = batchPrefix + '-'\n        }\n\n        if(batchPrefix === prefix) {\n            callback('Prefix is reserved by the system.');\n        } else {\n            db.collection(\"batch\")\n            .where({\n                batch_number: value,\n                organization_id: organizationId\n            })\n            .get()\n            .then(resBatch => {\n                const matchingBatches = resBatch.data || [];\n                \n                if (matchingBatches.length > 0 && value) {\n                callback('Batch number already exists');\n                } else {\n                callback();\n                }\n            })\n            .catch(error => {\n                console.error(\"Error checking batch number:\", error);\n                callback('Error checking batch number');\n            });\n        }\n    }\n  })\n  .catch(error => {\n    console.error(\"Error checking batch number:\", error);\n    callback('Error checking batch number');\n  });"
+                      "func": "const prefix = value.split(/\\d/)[0];\nlet organizationId = this.getVarGlobal(\"deptParentId\");\nif (organizationId === \"0\") {\n  organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n}\n\ndb.collection(\"batch\")\n  .where({\n    batch_number: value,\n    organization_id: organizationId,\n  })\n  .get()\n  .then((resBatch) => {\n    const matchingBatches = resBatch.data || [];\n\n    if (matchingBatches.length > 0 && value) {\n      callback(\"Batch number already exists\");\n    } else {\n      callback();\n    }\n  })\n  .catch((error) => {\n    console.error(\"Error checking batch number:\", error);\n    callback(\"Error checking batch number\");\n  });\n"
                     }
                   ]
                 },
@@ -5993,7 +5863,13 @@
                     "pad": "*",
                     "desensitization_pattern": "",
                     "desensitization_replace": "",
-                    "select-card_4c8m22dh": []
+                    "select-card_4c8m22dh": [],
+                    "highFrequencyInput": false,
+                    "highFrequencyTimeField": "",
+                    "highFrequencyDuration": 30,
+                    "highFrequencyMinCount": 20,
+                    "highFrequencyMaxItems": 5,
+                    "highFrequencySortRule": 1
                   },
                   "events": {
                     "onChange": "",
@@ -6005,6 +5881,118 @@
                   "model": "item_remark_3",
                   "rules": [],
                   "novalid": {}
+                },
+                {
+                  "version": "1.0.0",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": false,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_pe7htnej",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "isShowExpandButton": false,
+                    "buttonText": "新增",
+                    "buttonPosition": "bottom",
+                    "buttonAlign": "right",
+                    "buttonSize": "default",
+                    "buttonEvent": [],
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "project_code",
+                      "image": "",
+                      "icon": "",
+                      "explain": "",
+                      "cascade": "",
+                      "children": ""
+                    },
+                    "remoteFunc": "func_pe7htnej",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": false,
+                    "subform": false,
+                    "datasource": {
+                      "rules": {
+                        "collectionId": "2085600321692696577",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{value:organization_id}}",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      },
+                      "source": "Project:Table:2085600321692696577"
+                    },
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": [],
+                    "paging_enabled": 1,
+                    "page_size": 10
+                  },
+                  "events": {
+                    "onReady": "",
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Project",
+                  "novalid": {},
+                  "key": "3en9co9s",
+                  "model": "project_id",
+                  "rules": []
                 },
                 {
                   "name": "Organization ID",
@@ -14555,7 +14543,7 @@
   "config": {
     "labelWidth": 180,
     "labelPosition": "left",
-    "size": "default",
+    "size": "large",
     "customClass": "padding",
     "ui": "element",
     "layout": "horizontal",
@@ -14566,7 +14554,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "const showStatusHTML = (status) => {\n  const statusMap = {\n    Draft: \"draft_status\",\n    Completed: \"completed_status\",\n    \"Fully Posted\": \"fullyposted_status\",\n    Cancelled: \"cancel_status\",\n  };\n\n  if (statusMap[status]) {\n    this.display([statusMap[status]]);\n  }\n};\n\nconst CONFIG = {\n  fields: {\n    all: [\n      \"stock_movement.item_selection\",\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n      \"stock_movement.unit_price\",\n      \"stock_movement.amount\",\n      \"stock_movement.location_id\",\n      \"stock_movement.storage_location_id\",\n      \"stock_movement.batch_id\",\n      \"stock_movement.category\",\n      \"movement_reason\",\n    ],\n    buttons: [\n      \"button_save_as_draft\",\n      \"button_completed\",\n      \"comp_post_button\",\n      \"button_post\",\n    ],\n    hide: [\"receiving_operation_faci\", \"is_production_order\"],\n  },\n  buttonConfig: {\n    Draft: [\"button_save_as_draft\", \"button_completed\", \"comp_post_button\"],\n    Completed: [\"button_post\"],\n  },\n};\n\nconst initMovementReason = async () => {\n  const resType = await db\n    .collection(\"blade_dict\")\n    .where({ dict_key: \"Miscellaneous Receipt\" })\n    .get();\n\n  const movementTypeId = resType.data[0]?.id;\n\n  if (movementTypeId) {\n    const resReason = await db\n      .collection(\"blade_dict\")\n      .where({ parent_id: movementTypeId })\n      .get();\n    this.setOptionData(\"movement_reason\", resReason.data);\n  }\n};\n\nconst configureFields = () => {\n  this.display(CONFIG.fields.all);\n  this.hide(CONFIG.fields.hide);\n};\n\nconst configureButtons = (pageStatus, stockMovementStatus) => {\n  this.hide(CONFIG.fields.buttons);\n\n  if (pageStatus === \"Add\" || stockMovementStatus === \"Draft\") {\n    this.display(CONFIG.buttonConfig.Draft);\n  } else if (stockMovementStatus === \"Completed\") {\n    this.display(CONFIG.buttonConfig.Completed);\n  }\n};\n\nconst checkAccIntegrationType = async (organizationId) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n\n      this.setData({ acc_integration_type: aiData.acc_integration_type });\n      if (aiData.acc_integration_type === \"No Accounting Integration\") {\n        this.hide([\"button_post\", \"comp_post_button\"]);\n      }\n    }\n  }\n};\n\nconst editDisabledField = () => {\n  this.disabled(\n    [\n      \"issue_date\",\n      \"stock_movement_no\",\n      \"movement_type\",\n      \"movement_reason\",\n      \"issued_by\",\n      \"issuing_operation_faci\",\n      \"remarks\",\n      \"remark\",\n      \"remark2\",\n      \"remark3\",\n      \"reference_documents\",\n      \"movement_id\",\n      \"stock_movement\",\n      \"stock_movement.item_selection\",\n      \"stock_movement.category\",\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n      \"stock_movement.unit_price\",\n      \"stock_movement.amount\",\n      \"stock_movement.location_id\",\n      \"stock_movement.storage_location_id\",\n      \"stock_movement.batch_id\",\n      \"stock_movement.manufacturing_date\",\n      \"stock_movement.expiry_date\",\n    ],\n    true,\n  );\n\n  // Hide edit button\n  setTimeout(() => {\n    const editButton = document.querySelector(\n      \".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--small.is-link\",\n    );\n    if (editButton) {\n      editButton.style.display = \"none\";\n    }\n  }, 500);\n\n  this.display(\"button_post\");\n};\n\nconst filterInvCategory = async (stockMovement) => {\n  const allowedCategories = [\"Unrestricted\", \"Blocked\"];\n\n  const categoryObjectResponse = await db\n    .collection(\"blade_dict\")\n    .where({ code: \"inventory_category\" })\n    .get();\n\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    allowedCategories.includes(category.dict_key),\n  );\n\n  for (const [index, _sm] of stockMovement.entries()) {\n    await this.setOptionData(\n      [`stock_movement.${index}.category`],\n      filteredCategories,\n    );\n    this.disabled([`stock_movement.${index}.category`], false);\n  }\n};\n\nconst viewSerialNumber = async () => {\n  const tableSM = this.getValue(\"stock_movement\");\n  tableSM.forEach((sm, index) => {\n    if (sm.is_serialized_item === 1) {\n      this.display(`stock_movement.select_serial_number`);\n      this.disabled(`stock_movement.${index}.received_quantity`, true);\n    } else {\n      this.disabled(`stock_movement.${index}.received_quantity`, false);\n    }\n  });\n};\n\nconst hideSerialNumberRecordTab = () => {\n  setTimeout(() => {\n    const tableSerialNumber = this.getValue(\"table_sn_records\");\n    if (!tableSerialNumber || tableSerialNumber.length === 0) {\n      const tabSelector =\n        '.el-drawer[role=\"dialog\"] .el-tabs__item.is-top#tab-serial_number_records[tabindex=\"-1\"][aria-selected=\"false\"]';\n      const tab = document.querySelector(tabSelector);\n\n      if (tab) {\n        tab.style.display = \"none\";\n      } else {\n        const fallbackTab = document.querySelector(\n          '.el-drawer[role=\"dialog\"] .el-tabs__item#tab-serial_number_records',\n        );\n        if (fallbackTab) {\n          fallbackTab.style.display = \"none\";\n        } else {\n          console.log(\"Completion tab not found\");\n        }\n      }\n\n      const inactiveTabSelector =\n        '.el-drawer[role=\"dialog\"] .el-tabs__item.is-top[tabindex=\"-1\"]:not(#tab-serial_number_records)';\n      const inactiveTab = document.querySelector(inactiveTabSelector);\n      if (inactiveTab) {\n        inactiveTab.setAttribute(\"aria-disabled\", \"true\");\n        inactiveTab.classList.add(\"is-disabled\");\n      }\n    }\n  }, 10);\n};\n\nconst displayManufacturingAndExpiredDate = async (status, pageStatus) => {\n  const tableSM = this.getValue(\"stock_movement\");\n\n  if (pageStatus === \"Edit\") {\n    if (status === \"Draft\") {\n      for (const [index, item] of tableSM.entries()) {\n        if (item.batch_id !== \"-\") {\n          await this.display([\n            \"stock_movement.manufacturing_date\",\n            \"stock_movement.expired_date\",\n          ]);\n          await this.disabled(\n            [\n              `stock_movement.${index}.manufacturing_date`,\n              `stock_movement.${index}.expired_date`,\n            ],\n            false,\n          );\n        } else {\n          await this.disabled(\n            [\n              `stock_movement.${index}.manufacturing_date`,\n              `stock_movement.${index}.expired_date`,\n            ],\n            true,\n          );\n        }\n      }\n    } else {\n      for (const [_index, item] of tableSM.entries()) {\n        if (item.batch_id !== \"-\") {\n          await this.display([\n            \"stock_movement.manufacturing_date\",\n            \"stock_movement.expired_date\",\n          ]);\n        }\n      }\n    }\n  } else {\n    for (const [_index, item] of tableSM.entries()) {\n      if (item.item_batch_no !== \"-\") {\n        await this.display([\n          \"stock_movement.manufacturing_date\",\n          \"stock_movement.expired_date\",\n        ]);\n      }\n    }\n  }\n};\n\nconst applySplitFieldStates = (stockMovement) => {\n  for (const [index, item] of stockMovement.entries()) {\n    if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") {\n      this.disabled(\n        [\n          `stock_movement.${index}.received_quantity`,\n          `stock_movement.${index}.storage_location_id`,\n          `stock_movement.${index}.location_id`,\n          `stock_movement.${index}.select_serial_number`,\n          `stock_movement.${index}.category`,\n          `stock_movement.${index}.button_hu`,\n          `stock_movement.${index}.item_remark`,\n          `stock_movement.${index}.item_remark2`,\n          `stock_movement.${index}.item_remark3`,\n        ],\n        true,\n      );\n    } else if (item.parent_or_child === \"Split-Parent\") {\n      this.disabled([`stock_movement.${index}.button_split`], true);\n      this.disabled(\n        [\n          `stock_movement.${index}.received_quantity`,\n          `stock_movement.${index}.storage_location_id`,\n          `stock_movement.${index}.location_id`,\n          `stock_movement.${index}.batch_id`,\n          `stock_movement.${index}.manufacturing_date`,\n          `stock_movement.${index}.expired_date`,\n          `stock_movement.${index}.category`,\n          `stock_movement.${index}.item_remark`,\n          `stock_movement.${index}.item_remark2`,\n          `stock_movement.${index}.item_remark3`,\n        ],\n        false,\n      );\n      if (item.is_serialized_item === 1) {\n        this.disabled(\n          [\n            `stock_movement.${index}.select_serial_number`,\n            `stock_movement.${index}.received_quantity`,\n          ],\n          false,\n        );\n      }\n    } else if (item.parent_or_child === \"Child\") {\n      this.disabled([`stock_movement.${index}.button_split`], true);\n      this.disabled(\n        [\n          `stock_movement.${index}.batch_id`,\n          `stock_movement.${index}.manufacturing_date`,\n          `stock_movement.${index}.expired_date`,\n        ],\n        true,\n      );\n      if (item.is_serialized_item === 1) {\n        this.disabled(\n          [\n            `stock_movement.${index}.select_serial_number`,\n            `stock_movement.${index}.received_quantity`,\n          ],\n          true,\n        );\n      }\n    }\n  }\n};\n\nconst displaySelectHU = async (plantId) => {\n  if (!plantId) {\n    this.hide([\"stock_movement.select_hu\", \"stock_movement.view_hu\"]);\n    return;\n  }\n\n  const resPutAwaySetup = await db\n    .collection(\"putaway_setup\")\n    .where({ plant_id: plantId, is_deleted: 0 })\n    .get();\n\n  setTimeout(() => {\n    if (\n      resPutAwaySetup &&\n      resPutAwaySetup.data.length > 0 &&\n      resPutAwaySetup.data[0].show_hu === 1\n    ) {\n      this.display([\"stock_movement.select_hu\", \"stock_movement.view_hu\"]);\n    } else {\n      this.hide([\"stock_movement.select_hu\", \"stock_movement.view_hu\"]);\n    }\n  }, 30);\n};\n\nconst setPlant = (organizationId, pageStatus) => {\n  const currentDept = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  const isSameDept = currentDept === organizationId;\n\n  this.disabled(\"issuing_operation_faci\", !isSameDept);\n  this.disabled('stock_movement', isSameDept);\n  if (pageStatus === \"Add\" && !isSameDept) {\n    this.setData({ issuing_operation_faci: currentDept });\n  }\n  return currentDept;\n};\n\nconst setStorageLocation = async (plantID) => {\n  try {\n    if (plantID) {\n      let defaultStorageLocationID = \"\";\n\n      const resStorageLocation = await db\n        .collection(\"storage_location\")\n        .where({\n          plant_id: plantID,\n          is_deleted: 0,\n          is_default: 1,\n          storage_status: 1,\n          location_type: \"Common\",\n        })\n        .get();\n\n      if (resStorageLocation.data && resStorageLocation.data.length > 0) {\n        defaultStorageLocationID = resStorageLocation.data[0].id;\n        this.setData({\n          default_storage_location: defaultStorageLocationID,\n        });\n      }\n\n      if (defaultStorageLocationID && defaultStorageLocationID !== \"\") {\n        const resBinLocation = await db\n          .collection(\"bin_location\")\n          .where({\n            plant_id: plantID,\n            storage_location_id: defaultStorageLocationID,\n            is_deleted: 0,\n            is_default: 1,\n            bin_status: 1,\n          })\n          .get();\n\n        if (resBinLocation.data && resBinLocation.data.length > 0) {\n          this.setData({\n            default_bin: resBinLocation.data[0].id,\n          });\n        }\n      }\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\nsetTimeout(async () => {\n  try {\n    const data = this.getValues();\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    switch (pageStatus) {\n      case \"Add\":\n        const nickName = this.getVarGlobal(\"nickname\");\n        let plantID = \"\";\n        this.setData({\n          organization_id: organizationId,\n          issued_by: nickName,\n          issue_date: new Date().toISOString().split(\"T\")[0],\n          page_status: pageStatus,\n          movement_type: \"Miscellaneous Receipt\",\n        });\n\n        this.disabled([\"movement_type\"], true);\n\n        this.display([\"draft_status\", \"button_save_as_draft\"]);\n        this.hide(CONFIG.fields.hide);\n\n        const convertFrom = this.getParamsVariables(\"convert_from\");\n\n        if (convertFrom === \"MSI\") {\n          const data = this.getValues();\n          plantID = data.issuing_operation_faci;\n          this.refreshFieldOptionData(\"msi_id\");\n          this.disabled([\"msr_type\", \"reference_from\", \"msi_id\"], true);\n          await setStorageLocation(plantID);\n          await displaySelectHU(plantID);\n          await this.triggerEvent(\"onChange_msiID\", { value: data.msi_id });\n        } else {\n          this.setData({ msr_type: \"Standard\" });\n          plantID = setPlant(organizationId, pageStatus);\n          await setStorageLocation(plantID);\n          await displaySelectHU(plantID);\n        }\n\n        configureFields();\n        configureButtons(pageStatus, null);\n        hideSerialNumberRecordTab();\n\n        await initMovementReason();\n        await checkAccIntegrationType(organizationId);\n\n        break;\n\n      case \"Edit\":\n        this.setData({ page_status: pageStatus });\n        this.hide(CONFIG.fields.hide);\n        configureFields();\n        configureButtons(pageStatus, data.stock_movement_status);\n\n        const plantId = data.issuing_operation_faci;\n\n        if (\n          data.stock_movement_status === \"Completed\" ||\n          data.stock_movement_status === \"Fully Posted\"\n        ) {\n          setTimeout(() => {\n            editDisabledField();\n          }, 200);\n        }\n\n        if (data.stock_movement_status === \"Draft\") {\n          setPlant(organizationId, pageStatus);\n          await filterInvCategory(data.stock_movement);\n          await viewSerialNumber();\n          await setStorageLocation(plantId);\n          applySplitFieldStates(data.stock_movement);\n        }\n\n        showStatusHTML(data.stock_movement_status);\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        await displayManufacturingAndExpiredDate(\n          data.stock_movement_status,\n          pageStatus,\n        );\n        await displaySelectHU(plantId);\n        break;\n\n      case \"View\":\n        configureFields();\n        configureButtons(pageStatus, data.stock_movement_status);\n        this.hide(CONFIG.fields.hide);\n\n        showStatusHTML(data.stock_movement_status);\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        await displayManufacturingAndExpiredDate(\n          data.stock_movement_status,\n          pageStatus,\n        );\n        await displaySelectHU(data.issuing_operation_faci);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n}, 500);\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"stock_movement_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"stock_movement_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"stock_movement_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"stock_movement_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        stock_movement_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ stock_movement_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
+        "func": "const showStatusHTML = (status) => {\n  const statusMap = {\n    Draft: \"draft_status\",\n    Completed: \"completed_status\",\n    \"Fully Posted\": \"fullyposted_status\",\n    Cancelled: \"cancel_status\",\n  };\n\n  if (statusMap[status]) {\n    this.display([statusMap[status]]);\n  }\n};\n\nconst CONFIG = {\n  fields: {\n    all: [\n      \"stock_movement.item_selection\",\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n      \"stock_movement.unit_price\",\n      \"stock_movement.amount\",\n      \"stock_movement.location_id\",\n      \"stock_movement.storage_location_id\",\n      \"stock_movement.batch_id\",\n      \"stock_movement.category\",\n      \"movement_reason\",\n    ],\n    buttons: [\n      \"button_save_as_draft\",\n      \"button_completed\",\n      \"comp_post_button\",\n      \"button_post\",\n    ],\n    hide: [\"receiving_operation_faci\", \"is_production_order\"],\n  },\n  buttonConfig: {\n    Draft: [\"button_save_as_draft\", \"button_completed\", \"comp_post_button\"],\n    Completed: [\"button_post\"],\n  },\n};\n\nconst initMovementReason = async () => {\n  const resType = await db\n    .collection(\"blade_dict\")\n    .where({ dict_key: \"Miscellaneous Receipt\" })\n    .get();\n\n  const movementTypeId = resType.data[0]?.id;\n\n  if (movementTypeId) {\n    const resReason = await db\n      .collection(\"blade_dict\")\n      .where({ parent_id: movementTypeId })\n      .get();\n    this.setOptionData(\"movement_reason\", resReason.data);\n  }\n};\n\nconst configureFields = () => {\n  this.display(CONFIG.fields.all);\n  this.hide(CONFIG.fields.hide);\n};\n\nconst configureButtons = (pageStatus, stockMovementStatus) => {\n  this.hide(CONFIG.fields.buttons);\n\n  if (pageStatus === \"Add\" || stockMovementStatus === \"Draft\") {\n    this.display(CONFIG.buttonConfig.Draft);\n  } else if (stockMovementStatus === \"Completed\") {\n    this.display(CONFIG.buttonConfig.Completed);\n  }\n};\n\nconst checkAccIntegrationType = async (organizationId) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n\n      this.setData({ acc_integration_type: aiData.acc_integration_type });\n      if (aiData.acc_integration_type === \"No Accounting Integration\") {\n        this.hide([\"button_post\", \"comp_post_button\"]);\n      }\n    }\n  }\n};\n\nconst editDisabledField = () => {\n  this.disabled(\n    [\n      \"issue_date\",\n      \"stock_movement_no\",\n      \"movement_type\",\n      \"movement_reason\",\n      \"issued_by\",\n      \"issuing_operation_faci\",\n      \"remarks\",\n      \"remark\",\n      \"remark2\",\n      \"remark3\",\n      \"reference_documents\",\n      \"movement_id\",\n      \"stock_movement\",\n      \"stock_movement.item_selection\",\n      \"stock_movement.category\",\n      \"stock_movement.received_quantity\",\n      \"stock_movement.received_quantity_uom\",\n      \"stock_movement.unit_price\",\n      \"stock_movement.amount\",\n      \"stock_movement.location_id\",\n      \"stock_movement.storage_location_id\",\n      \"stock_movement.batch_id\",\n      \"stock_movement.manufacturing_date\",\n      \"stock_movement.expiry_date\",\n    ],\n    true,\n  );\n\n  // Hide edit button\n  setTimeout(() => {\n    const editButton = document.querySelector(\n      \".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--small.is-link\",\n    );\n    if (editButton) {\n      editButton.style.display = \"none\";\n    }\n  }, 500);\n\n  this.display(\"button_post\");\n};\n\nconst filterInvCategory = async (stockMovement) => {\n  const allowedCategories = [\"Unrestricted\", \"Blocked\"];\n\n  const categoryObjectResponse = await db\n    .collection(\"blade_dict\")\n    .where({ code: \"inventory_category\" })\n    .get();\n\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    allowedCategories.includes(category.dict_key),\n  );\n\n  for (const [index, _sm] of stockMovement.entries()) {\n    await this.setOptionData(\n      [`stock_movement.${index}.category`],\n      filteredCategories,\n    );\n    this.disabled([`stock_movement.${index}.category`], false);\n  }\n};\n\nconst viewSerialNumber = async () => {\n  const tableSM = this.getValue(\"stock_movement\");\n  tableSM.forEach((sm, index) => {\n    if (sm.is_serialized_item === 1) {\n      this.display(`stock_movement.select_serial_number`);\n      this.disabled(`stock_movement.${index}.received_quantity`, true);\n    } else {\n      this.disabled(`stock_movement.${index}.received_quantity`, false);\n    }\n  });\n};\n\nconst hideSerialNumberRecordTab = () => {\n  setTimeout(() => {\n    const tableSerialNumber = this.getValue(\"table_sn_records\");\n    if (!tableSerialNumber || tableSerialNumber.length === 0) {\n      const tabSelector =\n        '.el-drawer[role=\"dialog\"] .el-tabs__item.is-top#tab-serial_number_records[tabindex=\"-1\"][aria-selected=\"false\"]';\n      const tab = document.querySelector(tabSelector);\n\n      if (tab) {\n        tab.style.display = \"none\";\n      } else {\n        const fallbackTab = document.querySelector(\n          '.el-drawer[role=\"dialog\"] .el-tabs__item#tab-serial_number_records',\n        );\n        if (fallbackTab) {\n          fallbackTab.style.display = \"none\";\n        } else {\n          console.log(\"Completion tab not found\");\n        }\n      }\n\n      const inactiveTabSelector =\n        '.el-drawer[role=\"dialog\"] .el-tabs__item.is-top[tabindex=\"-1\"]:not(#tab-serial_number_records)';\n      const inactiveTab = document.querySelector(inactiveTabSelector);\n      if (inactiveTab) {\n        inactiveTab.setAttribute(\"aria-disabled\", \"true\");\n        inactiveTab.classList.add(\"is-disabled\");\n      }\n    }\n  }, 10);\n};\n\nconst displayManufacturingAndExpiredDate = async (status, pageStatus) => {\n  const tableSM = this.getValue(\"stock_movement\");\n\n  if (pageStatus === \"Edit\") {\n    if (status === \"Draft\") {\n      for (const [index, item] of tableSM.entries()) {\n        if (item.batch_id !== \"-\") {\n          await this.display([\n            \"stock_movement.manufacturing_date\",\n            \"stock_movement.expired_date\",\n          ]);\n          await this.disabled(\n            [\n              `stock_movement.${index}.manufacturing_date`,\n              `stock_movement.${index}.expired_date`,\n            ],\n            false,\n          );\n        } else {\n          await this.disabled(\n            [\n              `stock_movement.${index}.manufacturing_date`,\n              `stock_movement.${index}.expired_date`,\n            ],\n            true,\n          );\n        }\n      }\n    } else {\n      for (const [_index, item] of tableSM.entries()) {\n        if (item.batch_id !== \"-\") {\n          await this.display([\n            \"stock_movement.manufacturing_date\",\n            \"stock_movement.expired_date\",\n          ]);\n        }\n      }\n    }\n  } else {\n    for (const [_index, item] of tableSM.entries()) {\n      if (item.item_batch_no !== \"-\") {\n        await this.display([\n          \"stock_movement.manufacturing_date\",\n          \"stock_movement.expired_date\",\n        ]);\n      }\n    }\n  }\n};\n\nconst applySplitFieldStates = (stockMovement) => {\n  for (const [index, item] of stockMovement.entries()) {\n    if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") {\n      this.disabled(\n        [\n          `stock_movement.${index}.received_quantity`,\n          `stock_movement.${index}.storage_location_id`,\n          `stock_movement.${index}.location_id`,\n          `stock_movement.${index}.select_serial_number`,\n          `stock_movement.${index}.category`,\n          `stock_movement.${index}.button_hu`,\n          `stock_movement.${index}.item_remark`,\n          `stock_movement.${index}.item_remark2`,\n          `stock_movement.${index}.item_remark3`,\n        ],\n        true,\n      );\n    } else if (item.parent_or_child === \"Split-Parent\") {\n      this.disabled([`stock_movement.${index}.button_split`], true);\n      this.disabled(\n        [\n          `stock_movement.${index}.received_quantity`,\n          `stock_movement.${index}.storage_location_id`,\n          `stock_movement.${index}.location_id`,\n          `stock_movement.${index}.batch_id`,\n          `stock_movement.${index}.manufacturing_date`,\n          `stock_movement.${index}.expired_date`,\n          `stock_movement.${index}.category`,\n          `stock_movement.${index}.item_remark`,\n          `stock_movement.${index}.item_remark2`,\n          `stock_movement.${index}.item_remark3`,\n        ],\n        false,\n      );\n      if (item.is_serialized_item === 1) {\n        this.disabled(\n          [\n            `stock_movement.${index}.select_serial_number`,\n            `stock_movement.${index}.received_quantity`,\n          ],\n          false,\n        );\n      }\n    } else if (item.parent_or_child === \"Child\") {\n      this.disabled([`stock_movement.${index}.button_split`], true);\n      this.disabled(\n        [\n          `stock_movement.${index}.batch_id`,\n          `stock_movement.${index}.manufacturing_date`,\n          `stock_movement.${index}.expired_date`,\n        ],\n        true,\n      );\n      if (item.is_serialized_item === 1) {\n        this.disabled(\n          [\n            `stock_movement.${index}.select_serial_number`,\n            `stock_movement.${index}.received_quantity`,\n          ],\n          true,\n        );\n      }\n    }\n  }\n};\n\nconst displaySelectHU = async (plantId) => {\n  if (!plantId) {\n    this.hide([\"stock_movement.select_hu\", \"stock_movement.view_hu\"]);\n    return;\n  }\n\n  const resPutAwaySetup = await db\n    .collection(\"putaway_setup\")\n    .where({ plant_id: plantId, is_deleted: 0 })\n    .get();\n\n  setTimeout(() => {\n    if (\n      resPutAwaySetup &&\n      resPutAwaySetup.data.length > 0 &&\n      resPutAwaySetup.data[0].show_hu === 1\n    ) {\n      this.display([\"stock_movement.select_hu\", \"stock_movement.view_hu\"]);\n    } else {\n      this.hide([\"stock_movement.select_hu\", \"stock_movement.view_hu\"]);\n    }\n  }, 30);\n};\n\nconst setPlant = (organizationId, pageStatus) => {\n  const currentDept = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  const isSameDept = currentDept === organizationId;\n\n  this.disabled(\"issuing_operation_faci\", !isSameDept);\n\n  if (pageStatus === \"Add\" && !isSameDept) {\n    this.setData({ issuing_operation_faci: currentDept });\n    this.disabled(\"stock_movement\", false);\n  } else if (pageStatus === \"Add\" && isSameDept) {\n    this.disabled(\"stock_movement\", true);\n  }\n  return currentDept;\n};\n\nconst setStorageLocation = async (plantID) => {\n  try {\n    if (plantID) {\n      let defaultStorageLocationID = \"\";\n\n      const resStorageLocation = await db\n        .collection(\"storage_location\")\n        .where({\n          plant_id: plantID,\n          is_deleted: 0,\n          is_default: 1,\n          storage_status: 1,\n          location_type: \"Common\",\n        })\n        .get();\n\n      if (resStorageLocation.data && resStorageLocation.data.length > 0) {\n        defaultStorageLocationID = resStorageLocation.data[0].id;\n        this.setData({\n          default_storage_location: defaultStorageLocationID,\n        });\n      }\n\n      if (defaultStorageLocationID && defaultStorageLocationID !== \"\") {\n        const resBinLocation = await db\n          .collection(\"bin_location\")\n          .where({\n            plant_id: plantID,\n            storage_location_id: defaultStorageLocationID,\n            is_deleted: 0,\n            is_default: 1,\n            bin_status: 1,\n          })\n          .get();\n\n        if (resBinLocation.data && resBinLocation.data.length > 0) {\n          this.setData({\n            default_bin: resBinLocation.data[0].id,\n          });\n        }\n      }\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\nsetTimeout(async () => {\n  try {\n    const data = this.getValues();\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    switch (pageStatus) {\n      case \"Add\":\n        const nickName = this.getVarGlobal(\"nickname\");\n        let plantID = \"\";\n        this.setData({\n          organization_id: organizationId,\n          issued_by: nickName,\n          issue_date: new Date().toISOString().split(\"T\")[0],\n          page_status: pageStatus,\n          movement_type: \"Miscellaneous Receipt\",\n        });\n\n        this.disabled([\"movement_type\"], true);\n\n        this.display([\"draft_status\", \"button_save_as_draft\"]);\n        this.hide(CONFIG.fields.hide);\n\n        const convertFrom = this.getParamsVariables(\"convert_from\");\n\n        if (convertFrom === \"MSI\") {\n          const data = this.getValues();\n          plantID = data.issuing_operation_faci;\n          this.refreshFieldOptionData(\"msi_id\");\n          this.disabled([\"msr_type\", \"reference_from\", \"msi_id\"], true);\n          await setStorageLocation(plantID);\n          await displaySelectHU(plantID);\n          await this.triggerEvent(\"onChange_msiID\", { value: data.msi_id });\n        } else {\n          this.setData({ msr_type: \"Standard\" });\n          plantID = setPlant(organizationId, pageStatus);\n          await setStorageLocation(plantID);\n          await displaySelectHU(plantID);\n        }\n\n        configureFields();\n        configureButtons(pageStatus, null);\n        hideSerialNumberRecordTab();\n\n        await initMovementReason();\n        await checkAccIntegrationType(organizationId);\n\n        break;\n\n      case \"Edit\":\n        this.setData({ page_status: pageStatus });\n        this.hide(CONFIG.fields.hide);\n        configureFields();\n        configureButtons(pageStatus, data.stock_movement_status);\n\n        const plantId = data.issuing_operation_faci;\n\n        if (\n          data.stock_movement_status === \"Completed\" ||\n          data.stock_movement_status === \"Fully Posted\"\n        ) {\n          setTimeout(() => {\n            editDisabledField();\n          }, 200);\n        }\n\n        if (data.stock_movement_status === \"Draft\") {\n          setPlant(organizationId, pageStatus);\n          await filterInvCategory(data.stock_movement);\n          await viewSerialNumber();\n          await setStorageLocation(plantId);\n          applySplitFieldStates(data.stock_movement);\n        }\n\n        showStatusHTML(data.stock_movement_status);\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        await displayManufacturingAndExpiredDate(\n          data.stock_movement_status,\n          pageStatus,\n        );\n        await displaySelectHU(plantId);\n        break;\n\n      case \"View\":\n        configureFields();\n        configureButtons(pageStatus, data.stock_movement_status);\n        this.hide(CONFIG.fields.hide);\n\n        showStatusHTML(data.stock_movement_status);\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        await displayManufacturingAndExpiredDate(\n          data.stock_movement_status,\n          pageStatus,\n        );\n        await displaySelectHU(data.issuing_operation_faci);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n}, 500);\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"stock_movement_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"stock_movement_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"stock_movement_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"stock_movement_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        stock_movement_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ stock_movement_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
         "type": "js",
         "rules": [
           {
@@ -14785,7 +14773,7 @@
       {
         "key": "llytn27o",
         "name": "onAfterUpdate_item",
-        "func": "const ALLOWED_CATEGORIES = [\"Unrestricted\", \"Blocked\"];\n\nconst handleBatchManagement = (itemData, rowIndex) => {\n  this.display(\"stock_movement.batch_id\");\n\n  if (itemData.item_batch_management === 1) {\n    switch (itemData.batch_number_genaration) {\n      case \"According To System Settings\":\n        this.setData({\n          [`stock_movement.${rowIndex}.batch_id`]:\n            \"Auto-generated batch number\",\n        });\n        this.disabled(`stock_movement.${rowIndex}.batch_id`, true);\n        break;\n\n      case \"Manual Input\":\n        this.setData({\n          [`stock_movement.${rowIndex}.batch_id`]: \"\",\n        });\n        this.disabled(`stock_movement.${rowIndex}.batch_id`, false);\n        break;\n    }\n  } else {\n    this.setData({ [`stock_movement.${rowIndex}.batch_id`]: \"-\" });\n    this.disabled(`stock_movement.${rowIndex}.batch_id`, true);\n  }\n};\n\nconst handleManufacturingAndExpiredDate = async () => {\n  const tableSM = this.getValue(\"stock_movement\");\n\n  const hasBatch = tableSM.some((item) => item.batch_id !== \"-\");\n  if (hasBatch) {\n    await this.display([\n      \"stock_movement.manufacturing_date\",\n      \"stock_movement.expired_date\",\n    ]);\n  }\n\n  for (const [index, item] of tableSM.entries()) {\n    if (item.batch_id !== \"-\") {\n      await this.disabled(\n        [\n          `stock_movement.${index}.manufacturing_date`,\n          `stock_movement.${index}.expired_date`,\n        ],\n        false,\n      );\n    } else {\n      await this.disabled(\n        [\n          `stock_movement.${index}.manufacturing_date`,\n          `stock_movement.${index}.expired_date`,\n        ],\n        true,\n      );\n    }\n\n    console.log(\"item\", item);\n    const amount =\n      parseFloat(item.received_quantity || 0) *\n      parseFloat(item.unit_price || 0);\n    console.log(amount);\n    this.setData({\n      [`stock_movement.${index}.amount`]: amount,\n    });\n  }\n};\n\nconst handleBinLocation = (defaultBin, defaultStorageLocation, rowIndex) => {\n  if (defaultBin) {\n    this.setData({\n      [`stock_movement.${rowIndex}.location_id`]: defaultBin,\n      [`stock_movement.${rowIndex}.storage_location_id`]:\n        defaultStorageLocation,\n    });\n  }\n\n  this.disabled(`stock_movement.${rowIndex}.location_id`, false);\n  this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);\n};\n\nconst handleInvCategory = async (rowIndex) => {\n  this.setData({\n    [`stock_movement.${rowIndex}.category`]: \"Unrestricted\",\n  });\n  this.disabled([`stock_movement.${rowIndex}.category`], false);\n\n  const categoryObjectResponse = await db\n    .collection(\"blade_dict\")\n    .where({ code: \"inventory_category\" })\n    .get();\n\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    ALLOWED_CATEGORIES.includes(category.dict_key),\n  );\n\n  this.setOptionData(\n    [`stock_movement.${rowIndex}.category`],\n    filteredCategories,\n  );\n};\n\nconst handleUOM = async (itemData, rowIndex) => {\n  const altUoms = itemData.table_uom_conversion.map((data) => data.alt_uom_id);\n\n  const uomPromises = altUoms.map((uomId) =>\n    db.collection(\"unit_of_measurement\").where({ id: uomId }).get(),\n  );\n  const uomResults = await Promise.all(uomPromises);\n  const uomOptions = uomResults.map((res) => res.data[0]).filter(Boolean);\n\n  this.setOptionData(\n    [`stock_movement.${rowIndex}.received_quantity_uom`],\n    uomOptions,\n  );\n\n  this.setData({\n    [`stock_movement.${rowIndex}.uom_options`]: uomOptions,\n  });\n};\n\nconst handleSerialNumberManagement = async (itemData, rowIndex) => {\n  if (itemData.serial_number_management === 1) {\n    await this.setData({\n      [`stock_movement.${rowIndex}.is_serialized_item`]: 1,\n    });\n    await this.display(`stock_movement.select_serial_number`);\n    await this.disabled(\n      `stock_movement.${rowIndex}.select_serial_number`,\n      false,\n    );\n    await this.disabled(`stock_movement.${rowIndex}.received_quantity`, true);\n  } else {\n    await this.setData({\n      [`stock_movement.${rowIndex}.is_serialized_item`]: 0,\n    });\n    await this.disabled(\n      `stock_movement.${rowIndex}.select_serial_number`,\n      true,\n    );\n    await this.disabled(`stock_movement.${rowIndex}.received_quantity`, false);\n  }\n};\n\n(async () => {\n  const rowIndex = arguments[0].rowIndex;\n\n  // Check if line has HU data - if item changed, alert and reset\n  const tempHuDataStr = this.getValue(\n    `stock_movement.${rowIndex}.temp_hu_data`,\n  );\n\n  if (tempHuDataStr && tempHuDataStr !== \"[]\") {\n    await this.$alert(\n      \"Item has been changed. The selected Handling Units have been reset.\",\n      \"Warning\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"warning\",\n      },\n    );\n\n    await this.setData({\n      [`stock_movement.${rowIndex}.temp_hu_data`]: \"[]\",\n      [`stock_movement.${rowIndex}.view_hu`]: \"\",\n    });\n  }\n\n  if (arguments[0].value) {\n    const allData = this.getValues();\n    const defaultBin = allData.default_bin;\n    const defaultStorageLocation = allData.default_storage_location;\n    const itemData = arguments[0]?.fieldModel?.item;\n    console.log(\"allData\", allData);\n    console.log(\"arguments[0]\", arguments[0]);\n    if (itemData) {\n      handleBatchManagement(itemData, rowIndex);\n      handleBinLocation(defaultBin, defaultStorageLocation, rowIndex);\n      await handleInvCategory(rowIndex);\n      await handleUOM(itemData, rowIndex);\n      await handleSerialNumberManagement(itemData, rowIndex);\n\n      await this.setData({\n        [`stock_movement.${rowIndex}.stock_summary`]: \"\",\n        [`stock_movement.${rowIndex}.received_quantity_uom`]:\n          itemData.based_uom,\n        [`stock_movement.${rowIndex}.item_name`]: itemData.material_name,\n        [`stock_movement.${rowIndex}.item_desc`]: itemData.material_desc,\n        [`stock_movement.${rowIndex}.unit_price`]: allData.stock_movement[rowIndex].unit_price ?? itemData.purchase_unit_price,\n      });\n\n      await handleManufacturingAndExpiredDate();\n    } else {\n      const tableSM = this.getValue(\"stock_movement\");\n      for (const [idx, sm] of tableSM.entries()) {\n        this.setOptionData(\n          [`stock_movement.${idx}.received_quantity_uom`],\n          sm.uom_options,\n        );\n      }\n    }\n  } else {\n    this.setData({\n      [`stock_movement.${rowIndex}.requested_qty`]: 0,\n      [`stock_movement.${rowIndex}.total_quantity`]: 0,\n      [`stock_movement.${rowIndex}.received_quantity`]: 0,\n      [`stock_movement.${rowIndex}.received_quantity_uom`]: \"\",\n      [`stock_movement.${rowIndex}.unit_price`]: 0,\n      [`stock_movement.${rowIndex}.amount`]: 0,\n      [`stock_movement.${rowIndex}.storage_location_id`]: \"\",\n      [`stock_movement.${rowIndex}.location_id`]: \"\",\n      [`stock_movement.${rowIndex}.batch_id`]: \"-\",\n      [`stock_movement.${rowIndex}.category`]: \"\",\n      [`stock_movement.${rowIndex}.stock_summary`]: \"\",\n      [`stock_movement.${rowIndex}.balance_id`]: \"\",\n      [`stock_movement.${rowIndex}.temp_qty_data`]: \"\",\n      [`stock_movement.${rowIndex}.temp_hu_data`]: \"[]\",\n      [`stock_movement.${rowIndex}.view_hu`]: \"\",\n      [`stock_movement.${rowIndex}.item_name`]: \"\",\n      [`stock_movement.${rowIndex}.item_desc`]: \"\",\n    });\n\n    this.disabled(\n      [\n        `stock_movement.${rowIndex}.category`,\n        `stock_movement.${rowIndex}.location_id`,\n        `stock_movement.${rowIndex}.storage_location_id`,\n      ],\n      true,\n    );\n  }\n})();\n",
+        "func": "const ALLOWED_CATEGORIES = [\"Unrestricted\", \"Blocked\"];\n\nconst handleBatchManagement = (itemData, rowIndex) => {\n  this.display(\"stock_movement.batch_id\");\n\n  if (itemData.item_batch_management === 1) {\n    switch (itemData.batch_number_genaration) {\n      case \"According To System Settings\":\n        this.setData({\n          [`stock_movement.${rowIndex}.batch_id`]:\n            \"Auto-generated batch number\",\n        });\n        this.disabled(`stock_movement.${rowIndex}.batch_id`, true);\n        break;\n\n      case \"Manual Input\":\n        this.setData({\n          [`stock_movement.${rowIndex}.batch_id`]: \"\",\n        });\n        this.disabled(`stock_movement.${rowIndex}.batch_id`, false);\n        break;\n    }\n  } else {\n    this.setData({ [`stock_movement.${rowIndex}.batch_id`]: \"-\" });\n    this.disabled(`stock_movement.${rowIndex}.batch_id`, true);\n  }\n};\n\nconst handleManufacturingAndExpiredDate = async () => {\n  const tableSM = this.getValue(\"stock_movement\");\n\n  const hasBatch = tableSM.some((item) => item.batch_id !== \"-\");\n  if (hasBatch) {\n    await this.display([\n      \"stock_movement.manufacturing_date\",\n      \"stock_movement.expired_date\",\n    ]);\n  }\n\n  for (const [index, item] of tableSM.entries()) {\n    if (item.batch_id !== \"-\") {\n      await this.disabled(\n        [\n          `stock_movement.${index}.manufacturing_date`,\n          `stock_movement.${index}.expired_date`,\n        ],\n        false,\n      );\n    } else {\n      await this.disabled(\n        [\n          `stock_movement.${index}.manufacturing_date`,\n          `stock_movement.${index}.expired_date`,\n        ],\n        true,\n      );\n    }\n\n    console.log(\"item\", item);\n    const amount =\n      parseFloat(item.received_quantity || 0) *\n      parseFloat(item.unit_price || 0);\n    console.log(amount);\n    this.setData({\n      [`stock_movement.${index}.amount`]: amount,\n    });\n  }\n};\n\nconst handleBinLocation = (defaultBin, defaultStorageLocation, rowIndex) => {\n  if (defaultBin) {\n    this.setData({\n      [`stock_movement.${rowIndex}.location_id`]: defaultBin,\n      [`stock_movement.${rowIndex}.storage_location_id`]:\n        defaultStorageLocation,\n    });\n  }\n\n  this.disabled(`stock_movement.${rowIndex}.location_id`, false);\n  this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);\n};\n\nconst handleInvCategory = async (rowIndex) => {\n  this.setData({\n    [`stock_movement.${rowIndex}.category`]: \"Unrestricted\",\n  });\n  this.disabled([`stock_movement.${rowIndex}.category`], false);\n\n  const categoryObjectResponse = await db\n    .collection(\"blade_dict\")\n    .where({ code: \"inventory_category\" })\n    .get();\n\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    ALLOWED_CATEGORIES.includes(category.dict_key),\n  );\n\n  this.setOptionData(\n    [`stock_movement.${rowIndex}.category`],\n    filteredCategories,\n  );\n};\n\nconst handleUOM = async (itemData, rowIndex) => {\n  const altUoms = itemData.table_uom_conversion.map((data) => data.alt_uom_id);\n\n  const uomPromises = altUoms.map((uomId) =>\n    db.collection(\"unit_of_measurement\").where({ id: uomId }).get(),\n  );\n  const uomResults = await Promise.all(uomPromises);\n  const uomOptions = uomResults.map((res) => res.data[0]).filter(Boolean);\n\n  this.setOptionData(\n    [`stock_movement.${rowIndex}.received_quantity_uom`],\n    uomOptions,\n  );\n\n  this.setData({\n    [`stock_movement.${rowIndex}.uom_options`]: uomOptions,\n  });\n};\n\nconst handleSerialNumberManagement = async (itemData, rowIndex) => {\n  if (itemData.serial_number_management === 1) {\n    await this.setData({\n      [`stock_movement.${rowIndex}.is_serialized_item`]: 1,\n    });\n    await this.display(`stock_movement.select_serial_number`);\n    await this.disabled(\n      `stock_movement.${rowIndex}.select_serial_number`,\n      false,\n    );\n    await this.disabled(`stock_movement.${rowIndex}.received_quantity`, true);\n  } else {\n    await this.setData({\n      [`stock_movement.${rowIndex}.is_serialized_item`]: 0,\n    });\n    await this.disabled(\n      `stock_movement.${rowIndex}.select_serial_number`,\n      true,\n    );\n    await this.disabled(`stock_movement.${rowIndex}.received_quantity`, false);\n  }\n};\n\n(async () => {\n  const rowIndex = arguments[0].rowIndex;\n\n  // Check if line has HU data - if item changed, alert and reset\n  const tempHuDataStr = this.getValue(\n    `stock_movement.${rowIndex}.temp_hu_data`,\n  );\n\n  if (tempHuDataStr && tempHuDataStr !== \"[]\") {\n    await this.$alert(\n      \"Item has been changed. The selected Handling Units have been reset.\",\n      \"Warning\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"warning\",\n      },\n    );\n\n    await this.setData({\n      [`stock_movement.${rowIndex}.temp_hu_data`]: \"[]\",\n      [`stock_movement.${rowIndex}.view_hu`]: \"\",\n    });\n  }\n\n  if (arguments[0].value) {\n    const allData = this.getValues();\n    const defaultBin = allData.default_bin;\n    const defaultStorageLocation = allData.default_storage_location;\n    const itemData = arguments[0]?.fieldModel?.item;\n    const itemUOM = itemData.table_uom_conversion.find(\n      (uom) => uom.alt_uom_id === itemData.based_uom,\n    );\n    console.log(\"allData\", allData);\n    console.log(\"arguments[0]\", arguments[0]);\n    if (itemData) {\n      handleBatchManagement(itemData, rowIndex);\n      handleBinLocation(defaultBin, defaultStorageLocation, rowIndex);\n      await handleInvCategory(rowIndex);\n      await handleUOM(itemData, rowIndex);\n      await handleSerialNumberManagement(itemData, rowIndex);\n\n      await this.setData({\n        [`stock_movement.${rowIndex}.stock_summary`]: \"\",\n        [`stock_movement.${rowIndex}.received_quantity_uom`]:\n          itemData.based_uom,\n        [`stock_movement.${rowIndex}.item_name`]: itemData.material_name,\n        [`stock_movement.${rowIndex}.item_desc`]: itemData.material_desc,\n        [`stock_movement.${rowIndex}.unit_price`]: itemUOM.purchase_unit_price,\n      });\n\n      await handleManufacturingAndExpiredDate();\n    } else {\n      const tableSM = this.getValue(\"stock_movement\");\n      for (const [idx, sm] of tableSM.entries()) {\n        this.setOptionData(\n          [`stock_movement.${idx}.received_quantity_uom`],\n          sm.uom_options,\n        );\n      }\n    }\n  } else {\n    this.setData({\n      [`stock_movement.${rowIndex}.requested_qty`]: 0,\n      [`stock_movement.${rowIndex}.total_quantity`]: 0,\n      [`stock_movement.${rowIndex}.received_quantity`]: 0,\n      [`stock_movement.${rowIndex}.received_quantity_uom`]: \"\",\n      [`stock_movement.${rowIndex}.unit_price`]: 0,\n      [`stock_movement.${rowIndex}.amount`]: 0,\n      [`stock_movement.${rowIndex}.storage_location_id`]: \"\",\n      [`stock_movement.${rowIndex}.location_id`]: \"\",\n      [`stock_movement.${rowIndex}.batch_id`]: \"-\",\n      [`stock_movement.${rowIndex}.category`]: \"\",\n      [`stock_movement.${rowIndex}.stock_summary`]: \"\",\n      [`stock_movement.${rowIndex}.balance_id`]: \"\",\n      [`stock_movement.${rowIndex}.temp_qty_data`]: \"\",\n      [`stock_movement.${rowIndex}.temp_hu_data`]: \"[]\",\n      [`stock_movement.${rowIndex}.view_hu`]: \"\",\n      [`stock_movement.${rowIndex}.item_name`]: \"\",\n      [`stock_movement.${rowIndex}.item_desc`]: \"\",\n    });\n\n    this.disabled(\n      [\n        `stock_movement.${rowIndex}.category`,\n        `stock_movement.${rowIndex}.location_id`,\n        `stock_movement.${rowIndex}.storage_location_id`,\n      ],\n      true,\n    );\n  }\n})();\n",
         "type": "js",
         "rules": [
           {
@@ -15039,7 +15027,7 @@
       {
         "key": "jgotfd7h",
         "name": "onConfirm_batchAddItem",
-        "func": "const ALLOWED_CATEGORIES = [\"Unrestricted\", \"Blocked\"];\n\nconst handleBatchManagement = async (\n  currentItemArray,\n  smLineItem,\n  allSMLineItem,\n) => {\n  this.display(\"stock_movement.batch_id\");\n\n  const hasBatch = allSMLineItem.some((item) => item.batch_id !== \"-\");\n  if (hasBatch) {\n    await this.display([\n      \"stock_movement.manufacturing_date\",\n      \"stock_movement.expired_date\",\n    ]);\n  }\n\n  for (const [index, item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    if (item.item_batch_management === 1) {\n      console.log('batch', item.batch_number_genaration)\n      switch (item.batch_number_genaration) {\n          \n        case \"According To System Settings\":\n          this.setData({\n            [`stock_movement.${rowIndex}.batch_id`]:\n              \"Auto-generated batch number\",\n          });\n          this.disabled(`stock_movement.${rowIndex}.batch_id`, true);\n          break;\n\n        case \"Manual Input\":\n          console.log('batch', item.batch_number_genaration)\n          this.disabled(`stock_movement.${rowIndex}.batch_id`, false);\n          break;\n      }\n    } else {\n      this.setData({ [`stock_movement.${rowIndex}.batch_id`]: \"-\" });\n    }\n  }\n\n  setTimeout(async () => {\n    for (const [index, item] of allSMLineItem.entries()) {\n      if (item.batch_id !== \"-\") {\n        await this.disabled(\n          [\n            `stock_movement.${index}.manufacturing_date`,\n            `stock_movement.${index}.expired_date`,\n          ],\n          false,\n        );\n      } else {\n        await this.disabled(\n          [\n            `stock_movement.${index}.manufacturing_date`,\n            `stock_movement.${index}.expired_date`,\n          ],\n          true,\n        );\n      }\n    }\n  }, 50);\n};\n\nconst handleBinLocation = (\n  defaultBin,\n  defaultStorageLocation,\n  currentItemArray,\n  smLineItem,\n) => {\n  for (const [index, _item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    if (defaultBin && defaultStorageLocation) {\n      this.setData({\n        [`stock_movement.${rowIndex}.location_id`]: defaultBin,\n        [`stock_movement.${rowIndex}.storage_location_id`]:\n          defaultStorageLocation,\n      });\n    }\n\n    this.disabled(`stock_movement.${rowIndex}.location_id`, false);\n    this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);\n  }\n};\n\nconst handleInvCategory = async (currentItemArray, smLineItem) => {\n  const categoryObjectResponse = await db\n    .collection(\"blade_dict\")\n    .where({ code: \"inventory_category\" })\n    .get();\n\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    ALLOWED_CATEGORIES.includes(category.dict_key),\n  );\n\n  for (const [index, _item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    this.setData({\n      [`stock_movement.${rowIndex}.category`]: \"Unrestricted\",\n    });\n\n    this.disabled([`stock_movement.${rowIndex}.category`], false);\n\n    this.setOptionData(\n      [`stock_movement.${rowIndex}.category`],\n      filteredCategories,\n    );\n  }\n};\n\nconst handleUOM = async (currentItemArray, smLineItem) => {\n  for (const [index, item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    const altUoms = item.table_uom_conversion.map((data) => data.alt_uom_id);\n\n    const uomPromises = altUoms.map((uomId) =>\n      db.collection(\"unit_of_measurement\").where({ id: uomId }).get(),\n    );\n    const uomResults = await Promise.all(uomPromises);\n    const uomOptions = uomResults.map((res) => res.data[0]).filter(Boolean);\n\n    this.setOptionData(\n      [`stock_movement.${rowIndex}.received_quantity_uom`],\n      uomOptions,\n    );\n\n    this.setData({\n      [`stock_movement.${rowIndex}.uom_options`]: uomOptions,\n    });\n  }\n};\n\nconst handleSerialNumberManagement = async (currentItemArray, smLineItem) => {\n  for (const [index, item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    if (item.serial_number_management === 1) {\n      await this.display(`stock_movement.select_serial_number`);\n      await this.disabled(\n        `stock_movement.${rowIndex}.select_serial_number`,\n        false,\n      );\n      await this.disabled(`stock_movement.${rowIndex}.received_quantity`, true);\n    } else {\n      await this.disabled(\n        `stock_movement.${rowIndex}.select_serial_number`,\n        true,\n      );\n      await this.disabled(\n        `stock_movement.${rowIndex}.received_quantity`,\n        false,\n      );\n    }\n  }\n};\n\n(async () => {\n  const currentItemArray = arguments[0].itemArray;\n  const smLineItem = this.getValue(\"stock_movement\");\n  const defaultBin = this.getValue(\"default_bin\");\n  const defaultStorageLocation = this.getValue(\"default_storage_location\");\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\"Please select at least one item.\", \"Error\", {\n      confirmButtonText: \"OK\",\n      type: \"error\",\n    });\n    return;\n  }\n\n  const itemArray = currentItemArray.map((item) => ({\n    stock_summary: \"\",\n    item_selection: item.id,\n    received_quantity_uom: item.based_uom,\n    item_name: item.material_name,\n    item_desc: item.material_desc,\n    unit_price: item.purchase_unit_price,\n    item_category: item.item_category,\n    is_serialized_item: item.serial_number_management,\n  }));\n\n  await this.setData({\n    stock_movement: [...smLineItem, ...itemArray],\n  });\n\n  this.closeDialog(\"dialog_item_selection\");\n\n  await handleBatchManagement(currentItemArray, smLineItem, [\n    ...smLineItem,\n    ...itemArray,\n  ]);\n  handleBinLocation(\n    defaultBin,\n    defaultStorageLocation,\n    currentItemArray,\n    smLineItem,\n  );\n  await handleInvCategory(currentItemArray, smLineItem);\n  await handleUOM(currentItemArray, smLineItem);\n  await handleSerialNumberManagement(currentItemArray, smLineItem);\n})();\n",
+        "func": "const ALLOWED_CATEGORIES = [\"Unrestricted\", \"Blocked\"];\n\nconst handleBatchManagement = async (\n  currentItemArray,\n  smLineItem,\n  allSMLineItem,\n) => {\n  this.display(\"stock_movement.batch_id\");\n\n  const hasBatch = allSMLineItem.some((item) => item.batch_id !== \"-\");\n  if (hasBatch) {\n    await this.display([\n      \"stock_movement.manufacturing_date\",\n      \"stock_movement.expired_date\",\n    ]);\n  }\n\n  for (const [index, item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    if (item.item_batch_management === 1) {\n      console.log(\"batch\", item.batch_number_genaration);\n      switch (item.batch_number_genaration) {\n        case \"According To System Settings\":\n          this.setData({\n            [`stock_movement.${rowIndex}.batch_id`]:\n              \"Auto-generated batch number\",\n          });\n          this.disabled(`stock_movement.${rowIndex}.batch_id`, true);\n          break;\n\n        case \"Manual Input\":\n          console.log(\"batch\", item.batch_number_genaration);\n          this.disabled(`stock_movement.${rowIndex}.batch_id`, false);\n          break;\n      }\n    } else {\n      this.setData({ [`stock_movement.${rowIndex}.batch_id`]: \"-\" });\n    }\n  }\n\n  setTimeout(async () => {\n    for (const [index, item] of allSMLineItem.entries()) {\n      if (item.batch_id !== \"-\") {\n        await this.disabled(\n          [\n            `stock_movement.${index}.manufacturing_date`,\n            `stock_movement.${index}.expired_date`,\n          ],\n          false,\n        );\n      } else {\n        await this.disabled(\n          [\n            `stock_movement.${index}.manufacturing_date`,\n            `stock_movement.${index}.expired_date`,\n          ],\n          true,\n        );\n      }\n    }\n  }, 50);\n};\n\nconst handleBinLocation = (\n  defaultBin,\n  defaultStorageLocation,\n  currentItemArray,\n  smLineItem,\n) => {\n  for (const [index, _item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    if (defaultBin && defaultStorageLocation) {\n      this.setData({\n        [`stock_movement.${rowIndex}.location_id`]: defaultBin,\n        [`stock_movement.${rowIndex}.storage_location_id`]:\n          defaultStorageLocation,\n      });\n    }\n\n    this.disabled(`stock_movement.${rowIndex}.location_id`, false);\n    this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);\n  }\n};\n\nconst handleInvCategory = async (currentItemArray, smLineItem) => {\n  const categoryObjectResponse = await db\n    .collection(\"blade_dict\")\n    .where({ code: \"inventory_category\" })\n    .get();\n\n  const filteredCategories = categoryObjectResponse.data.filter((category) =>\n    ALLOWED_CATEGORIES.includes(category.dict_key),\n  );\n\n  for (const [index, _item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    this.setData({\n      [`stock_movement.${rowIndex}.category`]: \"Unrestricted\",\n    });\n\n    this.disabled([`stock_movement.${rowIndex}.category`], false);\n\n    this.setOptionData(\n      [`stock_movement.${rowIndex}.category`],\n      filteredCategories,\n    );\n  }\n};\n\nconst handleUOM = async (currentItemArray, smLineItem) => {\n  for (const [index, item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    const altUoms = item.table_uom_conversion.map((data) => data.alt_uom_id);\n\n    const uomPromises = altUoms.map((uomId) =>\n      db.collection(\"unit_of_measurement\").where({ id: uomId }).get(),\n    );\n    const uomResults = await Promise.all(uomPromises);\n    const uomOptions = uomResults.map((res) => res.data[0]).filter(Boolean);\n\n    this.setOptionData(\n      [`stock_movement.${rowIndex}.received_quantity_uom`],\n      uomOptions,\n    );\n\n    this.setData({\n      [`stock_movement.${rowIndex}.uom_options`]: uomOptions,\n    });\n  }\n};\n\nconst handleSerialNumberManagement = async (currentItemArray, smLineItem) => {\n  for (const [index, item] of currentItemArray.entries()) {\n    const rowIndex = smLineItem.length + index;\n\n    if (item.serial_number_management === 1) {\n      await this.display(`stock_movement.select_serial_number`);\n      await this.disabled(\n        `stock_movement.${rowIndex}.select_serial_number`,\n        false,\n      );\n      await this.disabled(`stock_movement.${rowIndex}.received_quantity`, true);\n    } else {\n      await this.disabled(\n        `stock_movement.${rowIndex}.select_serial_number`,\n        true,\n      );\n      await this.disabled(\n        `stock_movement.${rowIndex}.received_quantity`,\n        false,\n      );\n    }\n  }\n};\n\n(async () => {\n  const currentItemArray = arguments[0].itemArray;\n  const smLineItem = this.getValue(\"stock_movement\");\n  const defaultBin = this.getValue(\"default_bin\");\n  const defaultStorageLocation = this.getValue(\"default_storage_location\");\n\n  if (currentItemArray.length === 0) {\n    this.$alert(\"Please select at least one item.\", \"Error\", {\n      confirmButtonText: \"OK\",\n      type: \"error\",\n    });\n    return;\n  }\n\n  const itemArray = currentItemArray.map((item) => ({\n    stock_summary: \"\",\n    item_selection: item.id,\n    received_quantity_uom: item.based_uom,\n    item_name: item.material_name,\n    item_desc: item.material_desc,\n    unit_price:\n      item.table_uom_conversion.find((uom) => uom.alt_uom_id === item.based_uom)\n        ?.purchase_unit_price || 0,\n    item_category: item.item_category,\n    is_serialized_item: item.serial_number_management,\n  }));\n\n  await this.setData({\n    stock_movement: [...smLineItem, ...itemArray],\n  });\n\n  this.closeDialog(\"dialog_item_selection\");\n\n  await handleBatchManagement(currentItemArray, smLineItem, [\n    ...smLineItem,\n    ...itemArray,\n  ]);\n  handleBinLocation(\n    defaultBin,\n    defaultStorageLocation,\n    currentItemArray,\n    smLineItem,\n  );\n  await handleInvCategory(currentItemArray, smLineItem);\n  await handleUOM(currentItemArray, smLineItem);\n  await handleSerialNumberManagement(currentItemArray, smLineItem);\n})();\n",
         "type": "js"
       },
       {
