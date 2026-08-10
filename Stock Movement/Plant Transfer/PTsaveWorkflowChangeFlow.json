@@ -10969,6 +10969,14 @@
                                       "propLabel": "Organization ID"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "is_production_order",
                                       "operator": "",
                                       "valueType": "field",
@@ -11274,6 +11282,14 @@
                                       "propLabel": "Organization ID"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "is_production_order",
                                       "operator": "",
                                       "valueType": "field",
@@ -11556,6 +11572,14 @@
                                       "value": "{{node:code_node_37LA0tgq.data.allData.organization_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Organization ID"
+                                    },
+                                    {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
                                     },
                                     {
                                       "prop": "is_production_order",
@@ -14584,6 +14608,14 @@
                                       "propLabel": "Organization ID"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "is_production_order",
                                       "operator": "",
                                       "valueType": "field",
@@ -14777,6 +14809,14 @@
                                       "value": "{{node:code_node_37LA0tgq.data.allData.organization_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Organization ID"
+                                    },
+                                    {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_37LA0tgq.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
                                     },
                                     {
                                       "prop": "is_production_order",
@@ -16907,7 +16947,7 @@
                                 "name": "Leftover Child Prep",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const ruleRows = {{node:search_node_PTcompRule.data.data}};\nconst ruleArr = Array.isArray(ruleRows) ? ruleRows : (ruleRows ? [ruleRows] : []);\nconst ptNoType = ruleArr.length > 0 ? ruleArr[0].id : \"\";\nconst child = {{node:code_node_37LA0tgq.data.allData}};\nconst leftoverLines = {{node:code_node_PTcompCompute.data.leftoverLines}} || [];\n// A leftover receiving child: another Created \"Plant Transfer (Receiving)\" under\n// the SAME issuing parent, carrying only the unreceived lines, fresh number.\nreturn {\n  stock_movement_no: \"issued\", ptNoType: ptNoType, movement_type: \"Plant Transfer (Receiving)\",\n  leftoverLines: leftoverLines, parent_id: child.parent_id,\n  issuing_operation_faci: child.issuing_operation_faci, receiving_operation_faci: child.receiving_operation_faci,\n  issue_date: child.issue_date, movement_type_id: child.movement_type_id, movement_reason: child.movement_reason,\n  issued_by: child.issued_by, organization_id: child.organization_id,\n  is_production_order: child.is_production_order, production_order_id: child.production_order_id,\n  remarks: child.remarks, remark: child.remark, remark2: child.remark2, remark3: child.remark3,\n};\n"
+                                  "code": "const ruleRows = {{node:search_node_PTcompRule.data.data}};\nconst ruleArr = Array.isArray(ruleRows) ? ruleRows : (ruleRows ? [ruleRows] : []);\nconst ptNoType = ruleArr.length > 0 ? ruleArr[0].id : \"\";\nconst child = {{node:code_node_37LA0tgq.data.allData}};\nconst leftoverLines = {{node:code_node_PTcompCompute.data.leftoverLines}} || [];\n// A leftover receiving child: another Created \"Plant Transfer (Receiving)\" under\n// the SAME issuing parent, carrying only the unreceived lines, fresh number.\nreturn {\n  stock_movement_no: \"issued\", ptNoType: ptNoType, movement_type: \"Plant Transfer (Receiving)\",\n  leftoverLines: leftoverLines, parent_id: child.parent_id,\n  issuing_operation_faci: child.issuing_operation_faci, receiving_operation_faci: child.receiving_operation_faci,\n  issue_date: child.issue_date, movement_type_id: child.movement_type_id, movement_reason: child.movement_reason,\n  issued_by: child.issued_by, organization_id: child.organization_id,\n  project_id: child.project_id ?? \"\",\n  is_production_order: child.is_production_order, production_order_id: child.production_order_id,\n  remarks: child.remarks, remark: child.remark, remark2: child.remark2, remark3: child.remark3,\n};\n"
                                 },
                                 "response_json": [
                                   {
@@ -17221,6 +17261,14 @@
                                       "value": "{{node:code_node_PTcompLeftoverPrep.data.organization_id}}",
                                       "valueLabel": "",
                                       "propLabel": "Org"
+                                    },
+                                    {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PTcompLeftoverPrep.data.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
                                     },
                                     {
                                       "prop": "is_production_order",
@@ -19612,6 +19660,14 @@
                               "propLabel": "Organization ID"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_37LA0tgq.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "is_production_order",
                               "operator": "",
                               "valueType": "field",
@@ -19805,6 +19861,14 @@
                               "value": "{{node:code_node_37LA0tgq.data.allData.organization_id}}",
                               "valueLabel": "",
                               "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_37LA0tgq.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "is_production_order",

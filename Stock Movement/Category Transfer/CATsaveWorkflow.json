@@ -1208,6 +1208,14 @@
                               "propLabel": "Organization ID"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "is_production_order",
                               "operator": "",
                               "valueType": "field",
@@ -1435,6 +1443,14 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.organization_id}}",
                               "valueLabel": "",
                               "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "is_production_order",
@@ -3129,6 +3145,14 @@
                               "propLabel": "Organization ID"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "stock_movement",
                               "operator": "",
                               "valueType": "field",
@@ -3290,6 +3314,14 @@
                               "value": "{{node:code_node_ISWz5KGY.data.allData.organization_id}}",
                               "valueLabel": "",
                               "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "is_production_order",

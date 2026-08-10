@@ -4692,6 +4692,14 @@
                                       "propLabel": "Organization ID"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_yPlLXIZW.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "is_production_order",
                                       "operator": "",
                                       "valueType": "field",
@@ -4947,6 +4955,14 @@
                                       "propLabel": "Organization ID"
                                     },
                                     {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_yPlLXIZW.data.allData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Project"
+                                    },
+                                    {
                                       "prop": "is_production_order",
                                       "operator": "",
                                       "valueType": "field",
@@ -5178,6 +5194,14 @@
                               "value": "{{node:code_node_yPlLXIZW.data.allData.organization_id}}",
                               "valueLabel": "",
                               "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_yPlLXIZW.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "is_production_order",
@@ -7624,6 +7648,14 @@
                               "propLabel": "Organization ID"
                             },
                             {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_yPlLXIZW.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
+                            },
+                            {
                               "prop": "is_production_order",
                               "operator": "",
                               "valueType": "field",
@@ -7801,6 +7833,14 @@
                               "value": "{{node:code_node_yPlLXIZW.data.allData.organization_id}}",
                               "valueLabel": "",
                               "propLabel": "Organization ID"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_yPlLXIZW.data.allData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Project"
                             },
                             {
                               "prop": "is_production_order",
