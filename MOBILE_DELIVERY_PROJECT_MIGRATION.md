@@ -3,7 +3,7 @@
 Handoff for the mobile team. Two independent desktop changes that mobile must
 mirror, or it will read and write columns the desktop no longer uses.
 
-Desktop side is complete and verified across 14 forms, 17 workflows and 11
+Desktop side is complete and verified across 20 forms, 23 workflows and 11
 converters. Nothing is deployed yet.
 
 ---
@@ -31,7 +31,8 @@ level, so a document and each of its lines can be attributed to a project.
 ## Scope
 
 **Delivery Info (6):** SQT, SO, GD, SR, Picking, PRT
-**`project_id` (13):** SQT, SO, GD, SI, SR, SRR, PREQ, PO, GR, PI, PRT, Picking, Putaway
+**`project_id` (18):** SQT, SO, GD, SI, SR, SRR, PREQ, PO, GR, PI, PRT, Picking,
+Putaway, Misc Issue, Misc Receipt, Plant Transfer, Location Transfer, Category Transfer
 
 | Module | Delivery Info | `project_id` | Line array |
 |---|---|---|---|
@@ -47,9 +48,17 @@ level, so a document and each of its lines can be attributed to a project.
 | Purchase Order (PO) | — | ✅ | `table_po` |
 | Goods Receiving (GR) | — | ✅ | `table_gr` |
 | Purchase Invoice (PI) | — | ✅ | `table_pi` |
-| **Putaway** | — | ✅ | `table_putaway_item` |
+| Putaway | — | ✅ | `table_putaway_item` |
+| Misc Issue (MSI) | — | ✅ | `stock_movement` |
+| Misc Receipt (MSR) | — | ✅ | `stock_movement` |
+| Plant Transfer (PT) | — | ✅ | `stock_movement` |
+| Location Transfer (LOT) | — | ✅ | `stock_movement` |
+| Category Transfer (CAT) | — | ✅ | `stock_movement` |
 
-Two modules are deliberately absent:
+> ⚠️ **The line array is not always `table_*`.** All five Stock Movement variants
+> use **`stock_movement`**. Bind the array name from this table, not by convention.
+
+Three modules are deliberately absent:
 
 - **SRR has no Delivery Info at all.** `SRRfullJSON.json` binds zero delivery
   fields — neither `di_*` nor the old per-method ones. It never had a delivery
@@ -57,6 +66,8 @@ Two modules are deliberately absent:
 - **Picking Plan (PP) is desktop-only.** It carries both the 13 Delivery Info
   fields *and* `project_id` (line array `table_to`), but mobile does not implement
   PP. No mobile work either way.
+- **Stock Adjustment (SA) is desktop-only.** It carries `project_id` (line array
+  `stock_adjustment`), but mobile does not implement SA.
 
 **Transition strategy: clean switch.** Mobile reads and writes `di_*` only, with no
 fallback to the old columns. See [Sequencing](#sequencing) — this makes the data
@@ -138,7 +149,7 @@ rather than merging ambiguous delivery arrangements.
 ## Change 2 — `project_id`
 
 - **FK → Project `2085600321692696577`, stores the record id.** Same on all
-  thirteen modules.
+  eighteen modules.
 - **Two bindings per form** — the header, and one inside the line-item array. The
   array name differs per module; see the [Scope](#scope) table.
 - **No cascade.** There is no `onChange` on any form — picking a header project
@@ -157,8 +168,13 @@ Both header and line-level values carry through every same-org conversion:
 ```
 SQT → SO → GD → SI          GD → Picking
 PREQ → PO → GR → PI         GR → Putaway
-                            SR, SRR, PRT (no inbound conversion)
+
+no inbound conversion: SR, SRR, PRT,
+                       MSI, MSR, PT, LOT, CAT
 ```
+
+The five Stock Movement variants are entered directly — nothing converts into them,
+so `project_id` is only ever typed on the form and saved.
 
 Two of these are worth calling out because the value is rebuilt rather than copied:
 
@@ -206,7 +222,8 @@ already `dataBind: true` on every form, so the columns exist on every collection
 ### `project_id`
 
 - Set a header project and a *different* project on one line; save and reopen —
-  both persist independently. Repeat on all thirteen modules.
+  both persist independently. Repeat on all eighteen modules — and on the five
+  Stock Movement variants confirm you bound `stock_movement`, not `table_*`.
 - Convert SQT→SO, SO→GD, GD→SI, PREQ→PO, PO→GR, GR→PI → header and per-line values
   arrive intact.
 - **GD→Picking** and **GR→Putaway** → header *and* line values arrive; these two are
