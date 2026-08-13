@@ -108,6 +108,14 @@
                       "propLabel": "Organization"
                     },
                     {
+                      "prop": "project_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.project_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Project"
+                    },
+                    {
                       "prop": "ar_invoice_no",
                       "operator": "",
                       "valueType": "field",
@@ -630,6 +638,14 @@
                       "value": "{{workflowparams:data.organization_id}}",
                       "valueLabel": "",
                       "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "project_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.project_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Project"
                     },
                     {
                       "prop": "ar_invoice_no",
