@@ -295,7 +295,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": "5of9hxh3"
+                "onChange": "b2ppkn2z"
               },
               "name": "Statement Date",
               "key": "ir9j53ng",
@@ -341,7 +341,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": "xou9q6lq"
+                "onChange": "b2ppkn2z"
               },
               "name": "Customer",
               "key": "z2zqt6cc",
@@ -387,7 +387,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": "2kowa0wr"
+                "onChange": "b2ppkn2z"
               },
               "name": "Area",
               "key": "nydvtsdb",
@@ -433,7 +433,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": "df8vs51z"
+                "onChange": "b2ppkn2z"
               },
               "name": "Project",
               "key": "bfk8gpbg",
@@ -1725,7 +1725,7 @@
             "enableVueComponentPool": true,
             "maxVuePoolSize": 20
           },
-          "ignoreFormDisabled": false,
+          "ignoreFormDisabled": 1,
           "data_field": "data",
           "pagingEnabled": 0,
           "pageWay": "Pagination",
@@ -2420,7 +2420,7 @@
           },
           "rowSelectionType": "Multiple",
           "resizable": 0,
-          "autoLoad": true,
+          "autoLoad": false,
           "multiView": false,
           "multipleView": [],
           "emptyTip": "",
@@ -2610,6 +2610,11 @@
     "nav_layout": false,
     "eventScript": [
       {
+        "key": "onFormChange",
+        "name": "onFormChange",
+        "type": "rule"
+      },
+      {
         "key": "mounted",
         "name": "mounted",
         "func": ""
@@ -2652,32 +2657,8 @@
       },
       {
         "key": "b2ppkn2z",
-        "name": "onDateRangeSwitchChange",
-        "func": "console.log(\"A\")",
-        "type": "js"
-      },
-      {
-        "key": "5of9hxh3",
-        "name": "onStatementDateSwitchChange",
-        "func": "console.log(\"A\")",
-        "type": "js"
-      },
-      {
-        "key": "xou9q6lq",
-        "name": "onCustomerSwitchChange",
-        "func": "console.log(\"A\")",
-        "type": "js"
-      },
-      {
-        "key": "2kowa0wr",
-        "name": "onAreaSwitchChange",
-        "func": "console.log(\"A\")",
-        "type": "js"
-      },
-      {
-        "key": "df8vs51z",
-        "name": "onProjectSwitchChange",
-        "func": "console.log(\"A\")",
+        "name": "onSwitchChange",
+        "func": "(async () => {\n  // [ switch model, input model, the value that means \"empty\" for that input ]\n  const FILTERS = [\n    [\"date_range_switch\", \"date_range\", \"\"],\n    [\"statement_date_switch\", \"statement_date\", \"\"],\n    [\"customer_switch\", \"customer_id\", []],\n    [\"area_switch\", \"area_id\", []],\n    [\"project_switch\", \"project_id\", []],\n  ];\n\n  const isEmpty = (v) =>\n    v === undefined || v === null || v === \"\" || (Array.isArray(v) && v.length === 0);\n  // Switches are `booleanValueMode: false`, so they carry 0/1 -- but tolerate\n  // the boolean and string forms too rather than depending on which one arrives.\n  const isOn = (v) => v === 1 || v === \"1\" || v === true;\n\n  try {\n    const updates = {};\n\n    for (const [switchModel, inputModel, emptyValue] of FILTERS) {\n      if (isOn(this.getValue(switchModel))) continue;\n      if (isEmpty(this.getValue(inputModel))) continue;\n      updates[inputModel] = emptyValue;\n    }\n\n    // Skip the write entirely when nothing is stale -- setData on every toggle\n    // would re-render the whole filter panel for no reason.\n    if (Object.keys(updates).length > 0) {\n      await this.setData(updates);\n    }\n  } catch (error) {\n    console.error(\"[CS filter switch] failed to clear disabled filters\", error);\n  }\n})();\n",
         "type": "js"
       }
     ],
