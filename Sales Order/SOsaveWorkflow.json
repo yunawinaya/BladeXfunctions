@@ -1373,7 +1373,7 @@
                                 "name": "Map Approval SO Data",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "let soData = {{node:code_node_rPqQy5CD.data.table}};\nlet needCL = soData.need_cl;\nif(needCL == 'required') {\n  const clResult = {{node:workflow_node_1IYhCFaV.data.result}};\n  if(clResult === 'failed') {\n    const isBlock = {{node:code_node_vqKDnsnD.data.isBlock}};\n    if(isBlock === 'override') {\n      soData.cl_result = 'override';\n    }\n  }\n}\n\n\nreturn { soData };"
+                                  "code": "let soData = {{node:code_node_rPqQy5CD.data.table}};\nlet needCL = soData.need_cl;\nif(needCL == 'required') {\n  const clResult = {{node:workflow_node_1IYhCFaV.data.result}};\n  if(clResult === 'failed') {\n    const isBlock = {{node:code_node_vqKDnsnD.data.isBlock}};\n    if(isBlock === 'override') {\n      soData.cl_result = 'override';\n    }\n  }\n}\n//Check line item all got unit price got pass or not\n//Fail is one got not pass the unit price\n//Return message like whick line is fail (soData, message)\n//separate max and min tasks\n\nlet message = \"\";\nconst items = soData.table_so || [];\n\nconst minFailed = items\n  .map((item, index) => ({\n    ...item,\n    lineNo: index + 1\n  }))\n  .filter(item => {\n    const unitPrice = parseFloat(item.so_item_price);\n    const minPrice = parseFloat(item.min_price);\n\n    if (\n      item.min_price == null ||\n      item.min_price === \"\" ||\n      Number.isNaN(minPrice) ||\n      minPrice === 0\n    ) {\n      return false;\n    }\n\n    return unitPrice < minPrice;\n  });\n\nconst maxFailed = items\n  .map((item, index) => ({\n    ...item,\n    lineNo: index + 1\n  }))\n  .filter(item => {\n    const unitPrice = parseFloat(item.so_item_price);\n    const maxPrice = parseFloat(item.max_price);\n\n    if (\n      item.max_price == null ||\n      item.max_price === \"\" ||\n      Number.isNaN(maxPrice) ||\n      maxPrice === 0\n    ) {\n      return false;\n    }\n    \n    return unitPrice > maxPrice;\n  });\n\nsoData.min_price_result = \n  minFailed.length > 0 ? \"failed\" : \"passed\";\n\nsoData.max_price_result = \n  maxFailed.length > 0 ? \"failed\" : \"passed\";\n\nif (minFailed.length > 0) {\n  message += minFailed\n    .map(item =>\n      `Line ${item.lineNo}: Unit Price ${item.so_item_price} is below Min Price ${item.min_price}`\n    )\n    .join(\"<br>\");\n}\n\nif (maxFailed.length > 0) {\n  if (message) {\n    message += \"<br>\";\n  }\n\n  message += maxFailed\n    .map(item =>\n      `Line ${item.lineNo}: Unit Price ${item.so_item_price} exceeds Max Price ${item.max_price}`\n    )\n    .join(\"<br>\");\n}\n\nreturn { soData, message };"
                                 },
                                 "response_json": [
                                   {
@@ -1384,6 +1384,14 @@
                                     "bsonType": "any",
                                     "isExpand": false,
                                     "children": []
+                                  },
+                                  {
+                                    "key": "lgm44xkf",
+                                    "name": "message",
+                                    "title": "Message",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
                                   }
                                 ]
                               },
@@ -1398,8 +1406,8 @@
                                 "input_params": {},
                                 "title": "Check Approval",
                                 "isValidator": true,
-                                "nodeName": "Run Workflow",
-                                "name": "Run Workflow",
+                                "nodeName": "Check Approval",
+                                "name": "Check Approval",
                                 "workflow": {
                                   "rules": {
                                     "collectionId": "2082344813454499841",
@@ -1493,41 +1501,49 @@
                                   "data": { "title": "true" },
                                   "blocks": [
                                     {
-                                      "id": "if_GVSMpjfT",
-                                      "type": "if",
+                                      "id": "condition_or_cuYcg7l3",
+                                      "type": "condition-or-node",
                                       "data": {
-                                        "title": "IF override",
-                                        "isValidator": true,
-                                        "nodeName": "IF override",
-                                        "name": "IF override",
-                                        "condition_type": "ConditionRule",
-                                        "filter": {
-                                          "list": [
-                                            {
-                                              "id": 1785310951216,
-                                              "parentId": 1785310951215,
-                                              "isTop": true,
-                                              "prop": "node.code_node_vqKDnsnD.data.isBlock",
-                                              "operator": "equal",
-                                              "valueType": "value",
-                                              "value": "override",
-                                              "type": "leaf",
-                                              "level": 1,
-                                              "propLabel": "Is Block",
-                                              "valueLabel": "",
-                                              "operatorLabel": "Equal"
-                                            }
-                                          ]
-                                        }
+                                        "title": "Condition",
+                                        "filter": { "list": [] },
+                                        "expression": { "code": "" },
+                                        "displayContent": "sdk.form.setCondition"
                                       },
                                       "blocks": [
                                         {
-                                          "id": "if_block_5xir1Ftq",
-                                          "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "id": "condition_or_node_item_rMbfYt4R",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "IF override",
+                                            "filter": {
+                                              "list": [
+                                                {
+                                                  "id": 1786429789460,
+                                                  "parentId": 1786429789459,
+                                                  "isTop": true,
+                                                  "prop": "node.code_node_vqKDnsnD.data.isBlock",
+                                                  "operator": "equal",
+                                                  "valueType": "value",
+                                                  "value": "override",
+                                                  "type": "leaf",
+                                                  "level": 1,
+                                                  "propLabel": "Is Block",
+                                                  "valueLabel": "",
+                                                  "operatorLabel": "Equal",
+                                                  "valueTypeLabel": ""
+                                                }
+                                              ]
+                                            },
+                                            "expression": { "code": "" },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "isValidator": true,
+                                            "nodeName": "IF override",
+                                            "name": "IF override",
+                                            "condition_type": "ConditionRule"
+                                          },
                                           "blocks": [
                                             {
-                                              "id": "end_Y9Pa-GpE",
+                                              "id": "end_0tw-Amdu",
                                               "type": "end-node",
                                               "data": {
                                                 "title": "结束节点",
@@ -1543,20 +1559,149 @@
                                                 "nodeName": "结束节点",
                                                 "name": "结束节点",
                                                 "back_data_type": "Default",
-                                                "code": 403,
                                                 "msg": {
                                                   "type": "javascript",
                                                   "code": "{{node:workflow_node_1IYhCFaV.data.message}}"
-                                                }
+                                                },
+                                                "code": 403
                                               },
                                               "blocks": []
                                             }
                                           ]
                                         },
                                         {
-                                          "id": "if_block_yvFjZ6RO",
-                                          "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "id": "condition_or_item_DOE1BQtB",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "Min price not pass",
+                                            "filter": {
+                                              "list": [
+                                                {
+                                                  "id": 1786435443485,
+                                                  "parentId": 1786435443484,
+                                                  "isTop": true,
+                                                  "prop": "node.code_node_NSa659R4.data.soData",
+                                                  "operator": "equal",
+                                                  "valueType": "value",
+                                                  "type": "leaf",
+                                                  "level": 1,
+                                                  "propLabel": "Approval SO Data",
+                                                  "valueLabel": "",
+                                                  "operatorLabel": "Equal",
+                                                  "valueTypeLabel": ""
+                                                }
+                                              ]
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_NSa659R4.data.soData.min_price_result}}' == 'failed'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "__index": 2,
+                                            "isDefault": false,
+                                            "isValidator": true,
+                                            "nodeName": "Min price not pass",
+                                            "name": "Min price not pass",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_pdVL0Yn8",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_NSa659R4.data.message}}"
+                                                },
+                                                "code": 402
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_item_SvSX1PdA",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "Max price not pass",
+                                            "filter": {
+                                              "list": [
+                                                {
+                                                  "id": 1786430520242,
+                                                  "parentId": 1786430520241,
+                                                  "isTop": true,
+                                                  "prop": "",
+                                                  "operator": "",
+                                                  "valueType": "value",
+                                                  "value": "",
+                                                  "type": "leaf",
+                                                  "level": 1
+                                                }
+                                              ]
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_NSa659R4.data.soData.max_price_result}}' == 'failed'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "__index": 3,
+                                            "isDefault": false,
+                                            "isValidator": true,
+                                            "nodeName": "Max price not pass",
+                                            "name": "Max price not pass",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_MZPDC3uh",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_NSa659R4.data.message}}"
+                                                },
+                                                "code": 402
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_node_item_OWpr4i5D",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "Other",
+                                            "isDefault": true,
+                                            "filter": { "list": [] },
+                                            "expression": { "code": "" },
+                                            "displayContent": "sdk.form.otherCondition"
+                                          },
                                           "blocks": []
                                         }
                                       ]
