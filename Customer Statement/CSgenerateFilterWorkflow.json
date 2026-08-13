@@ -1,0 +1,191 @@
+{
+  "request_json": [],
+  "response_json": [
+    {
+      "key": "g8j7bg0q",
+      "name": "customer_id",
+      "title": "customer_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "uwfy3ygc",
+      "name": "ar_invoice_no",
+      "title": "ar_invoice_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "6kpaq7yb",
+      "name": "invoice_date",
+      "title": "invoice_date",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "xo94dckh",
+      "name": "invoice_total_currency",
+      "title": "invoice_total_currency",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ls72y749",
+      "name": "myr_invoice_total",
+      "title": "myr_invoice_total",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_scfbcMVD",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Run SQL",
+        "isValidator": true,
+        "nodeName": "Run SQL",
+        "name": "Run SQL",
+        "script": {
+          "type": "sql",
+          "code": "select * \nfrom ar_invoice\nwhere tenant_id = '000000'"
+        },
+        "response_json": [
+          {
+            "key": "tpeygzjl",
+            "name": "customer_id",
+            "title": "customer_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "av5mcgbh",
+            "name": "ar_invoice_no",
+            "title": "ar_invoice_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "7dhwft1g",
+            "name": "invoice_date",
+            "title": "invoice_date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "vevvz5wb",
+            "name": "invoice_total_currency",
+            "title": "invoice_total_currency",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "f7b5qnis",
+            "name": "invoice_total",
+            "title": "invoice_total",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_qFbkJrqo",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "customer_id",
+              "propLabel": "customer_id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "is_negative_number": false,
+              "value": "{{node:sql_node_scfbcMVD.data.customer_id}}"
+            },
+            {
+              "prop": "ar_invoice_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:sql_node_scfbcMVD.data.ar_invoice_no}}",
+              "is_negative_number": false,
+              "valueLabel": "",
+              "propLabel": "ar_invoice_no"
+            },
+            {
+              "prop": "invoice_date",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:sql_node_scfbcMVD.data.invoice_date}}",
+              "is_negative_number": false,
+              "valueLabel": "",
+              "propLabel": "invoice_date"
+            },
+            {
+              "prop": "invoice_total_currency",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:sql_node_scfbcMVD.data.invoice_total_currency}}",
+              "is_negative_number": false,
+              "valueLabel": "",
+              "propLabel": "invoice_total_currency"
+            },
+            {
+              "prop": "myr_invoice_total",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:sql_node_scfbcMVD.data.invoice_total}}",
+              "is_negative_number": false,
+              "valueLabel": "",
+              "propLabel": "myr_invoice_total"
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
