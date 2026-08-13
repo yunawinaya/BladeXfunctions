@@ -67,14 +67,40 @@ const handleManufacturingAndExpiredDate = async () => {
   }
 };
 
-const handleBinLocation = (defaultBin, defaultStorageLocation, rowIndex) => {
-  if (defaultBin) {
-    this.setData({
-      [`stock_movement.${rowIndex}.location_id`]: defaultBin,
-      [`stock_movement.${rowIndex}.storage_location_id`]:
-        defaultStorageLocation,
-    });
-  }
+// Item master default bin for this plant. Takes priority over the plant-level
+// default; a row without a bin is treated as unconfigured so we never stamp a
+// blank bin on the line.
+const getItemDefaultBin = (tableDefaultBin, plantId) => {
+  if (!plantId || !Array.isArray(tableDefaultBin)) return null;
+
+  const matchingBin = tableDefaultBin.find(
+    (bin) => bin.plant_id === plantId && bin.bin_location,
+  );
+
+  if (!matchingBin) return null;
+
+  return {
+    binLocation: matchingBin.bin_location,
+    storageLocation: matchingBin.storage_location || null,
+  };
+};
+
+const handleBinLocation = (
+  itemData,
+  plantId,
+  defaultBin,
+  defaultStorageLocation,
+  rowIndex,
+) => {
+  const itemDefaultBin = getItemDefaultBin(itemData?.table_default_bin, plantId);
+
+  // Always overwrite: the row may still carry the previously selected item's bin.
+  this.setData({
+    [`stock_movement.${rowIndex}.location_id`]:
+      itemDefaultBin?.binLocation || defaultBin || "",
+    [`stock_movement.${rowIndex}.storage_location_id`]:
+      itemDefaultBin?.storageLocation || defaultStorageLocation || "",
+  });
 
   this.disabled(`stock_movement.${rowIndex}.location_id`, false);
   this.disabled(`stock_movement.${rowIndex}.storage_location_id`, false);
@@ -171,6 +197,7 @@ const handleSerialNumberManagement = async (itemData, rowIndex) => {
     const allData = this.getValues();
     const defaultBin = allData.default_bin;
     const defaultStorageLocation = allData.default_storage_location;
+    const plantId = allData.issuing_operation_faci;
     const itemData = arguments[0]?.fieldModel?.item;
     const itemUOM = itemData.table_uom_conversion.find(
       (uom) => uom.alt_uom_id === itemData.based_uom,
@@ -179,7 +206,13 @@ const handleSerialNumberManagement = async (itemData, rowIndex) => {
     console.log("arguments[0]", arguments[0]);
     if (itemData) {
       handleBatchManagement(itemData, rowIndex);
-      handleBinLocation(defaultBin, defaultStorageLocation, rowIndex);
+      handleBinLocation(
+        itemData,
+        plantId,
+        defaultBin,
+        defaultStorageLocation,
+        rowIndex,
+      );
       await handleInvCategory(rowIndex);
       await handleUOM(itemData, rowIndex);
       await handleSerialNumberManagement(itemData, rowIndex);

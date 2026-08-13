@@ -396,29 +396,109 @@ const setStorageLocation = async (plantID) => {
   }
 };
 
-const handleBinLocation = async (defaultBin, defaultStorageLocation) => {
+// Item master default bin for this plant. Takes priority over the plant-level
+// default; a row without a bin is treated as unconfigured so we never stamp a
+// blank bin on the line.
+const getItemDefaultBin = (tableDefaultBin, plantId) => {
+  if (!plantId || !Array.isArray(tableDefaultBin)) return null;
+
+  const matchingBin = tableDefaultBin.find(
+    (bin) => bin.plant_id === plantId && bin.bin_location,
+  );
+
+  if (!matchingBin) return null;
+
+  return {
+    binLocation: matchingBin.bin_location,
+    storageLocation: matchingBin.storage_location || null,
+  };
+};
+
+// One batched lookup of the item masters behind the rows that still need a
+// default, keyed by item id. Skipped entirely when every row already has a bin.
+const fetchItemDefaultBins = async (rows) => {
+  const itemIds = [
+    ...new Set(
+      rows
+        .filter((row) => !row.storage_location_id || !row.location_id)
+        .map((row) => row.item_selection)
+        .filter(Boolean),
+    ),
+  ];
+
+  if (itemIds.length === 0) return new Map();
+
+  const resItems = await db
+    .collection("Item")
+    .filter(new Filter().in("id", itemIds).build())
+    .get();
+
+  return new Map(
+    (resItems?.data || []).map((item) => [item.id, item.table_default_bin]),
+  );
+};
+
+const handleBinLocation = async (
+  defaultBin,
+  defaultStorageLocation,
+  plantId,
+) => {
   try {
-    if (defaultBin && defaultStorageLocation) {
-      // Default only the rows that have no bin yet. The whole-column form of
-      // this setData overwrites EVERY row, which would wipe the per-row bins a
-      // user picked when splitting a line and saved.
-      const rows = this.getValue("stock_movement") || [];
-      const updates = {};
+    // Default only the rows that have no bin yet. The whole-column form of
+    // this setData overwrites EVERY row, which would wipe the per-row bins a
+    // user picked when splitting a line and saved.
+    const rows = this.getValue("stock_movement") || [];
+    // No plant means no row can match an item default, so skip the lookup.
+    const defaultBinByItem = plantId
+      ? await fetchItemDefaultBins(rows)
+      : new Map();
+    const hasPlantDefault = !!(defaultBin && defaultStorageLocation);
+    const updates = {};
 
-      rows.forEach((row, index) => {
-        if (!row.storage_location_id) {
-          updates[`stock_movement.${index}.storage_location_id`] =
-            defaultStorageLocation;
-        }
-        if (!row.location_id) {
-          updates[`stock_movement.${index}.location_id`] = defaultBin;
-        }
-      });
+    rows.forEach((row, index) => {
+      const itemDefaultBin = getItemDefaultBin(
+        defaultBinByItem.get(row.item_selection),
+        plantId,
+      );
 
-      if (Object.keys(updates).length > 0) {
-        this.setData(updates);
+      // The item default is a storage/bin PAIR, so it only applies when the row
+      // has neither. A row holding one of the two already belongs to a storage
+      // location, and completing it from the item master could pair a bin with
+      // a storage location it does not sit under. Requiring a storage location
+      // to accompany the bin keeps this path all-or-nothing too.
+      const itemStorageLocation =
+        itemDefaultBin?.storageLocation || defaultStorageLocation;
+
+      if (
+        itemDefaultBin &&
+        itemStorageLocation &&
+        !row.storage_location_id &&
+        !row.location_id
+      ) {
+        updates[`stock_movement.${index}.storage_location_id`] =
+          itemStorageLocation;
+        updates[`stock_movement.${index}.location_id`] =
+          itemDefaultBin.binLocation;
+        return;
       }
+
+      // Unchanged plant-default path: still all-or-nothing, so a row is never
+      // left with a bin that has no storage location behind it.
+      if (!hasPlantDefault) return;
+
+      if (!row.storage_location_id) {
+        updates[`stock_movement.${index}.storage_location_id`] =
+          defaultStorageLocation;
+      }
+      if (!row.location_id) {
+        updates[`stock_movement.${index}.location_id`] = defaultBin;
+      }
+    });
+
+    if (Object.keys(updates).length > 0) {
+      this.setData(updates);
     }
+
     this.disabled(`stock_movement.storage_location_id`, false);
     this.disabled(`stock_movement.location_id`, false);
   } catch (error) {
@@ -598,6 +678,10 @@ const hideBatchAdd = () => {
             await handleBinLocation(
               this.getValue("default_bin"),
               this.getValue("default_storage_location"),
+              // On a receiving child this field carries the RECEIVING plant:
+              // the workflow writes it from the parent's
+              // receiving_operation_faci. Same value setStorageLocation uses.
+              data.issuing_operation_faci,
             );
             // Only the header add/edit links are hidden here — the row actions
             // must stay visible so the receiver can split a line.

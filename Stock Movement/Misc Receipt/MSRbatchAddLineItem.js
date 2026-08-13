@@ -62,20 +62,44 @@ const handleBatchManagement = async (
   }, 50);
 };
 
+// Item master default bin for this plant. Takes priority over the plant-level
+// default; a row without a bin is treated as unconfigured so we never stamp a
+// blank bin on the line.
+const getItemDefaultBin = (tableDefaultBin, plantId) => {
+  if (!plantId || !Array.isArray(tableDefaultBin)) return null;
+
+  const matchingBin = tableDefaultBin.find(
+    (bin) => bin.plant_id === plantId && bin.bin_location,
+  );
+
+  if (!matchingBin) return null;
+
+  return {
+    binLocation: matchingBin.bin_location,
+    storageLocation: matchingBin.storage_location || null,
+  };
+};
+
 const handleBinLocation = (
+  plantId,
   defaultBin,
   defaultStorageLocation,
   currentItemArray,
   smLineItem,
 ) => {
-  for (const [index, _item] of currentItemArray.entries()) {
+  for (const [index, item] of currentItemArray.entries()) {
     const rowIndex = smLineItem.length + index;
 
-    if (defaultBin && defaultStorageLocation) {
+    const itemDefaultBin = getItemDefaultBin(item.table_default_bin, plantId);
+
+    const binLocation = itemDefaultBin?.binLocation || defaultBin;
+    const storageLocation =
+      itemDefaultBin?.storageLocation || defaultStorageLocation;
+
+    if (binLocation && storageLocation) {
       this.setData({
-        [`stock_movement.${rowIndex}.location_id`]: defaultBin,
-        [`stock_movement.${rowIndex}.storage_location_id`]:
-          defaultStorageLocation,
+        [`stock_movement.${rowIndex}.location_id`]: binLocation,
+        [`stock_movement.${rowIndex}.storage_location_id`]: storageLocation,
       });
     }
 
@@ -162,6 +186,7 @@ const handleSerialNumberManagement = async (currentItemArray, smLineItem) => {
   const smLineItem = this.getValue("stock_movement");
   const defaultBin = this.getValue("default_bin");
   const defaultStorageLocation = this.getValue("default_storage_location");
+  const plantId = this.getValue("issuing_operation_faci");
 
   if (currentItemArray.length === 0) {
     this.$alert("Please select at least one item.", "Error", {
@@ -195,6 +220,7 @@ const handleSerialNumberManagement = async (currentItemArray, smLineItem) => {
     ...itemArray,
   ]);
   handleBinLocation(
+    plantId,
     defaultBin,
     defaultStorageLocation,
     currentItemArray,

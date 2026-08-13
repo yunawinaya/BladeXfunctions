@@ -1,12 +1,30 @@
 const fetchItemData = async (itemID) => {
   const resItem = await db
     .collection("Item")
-    .field("item_batch_management,batch_number_genaration")
+    .field("item_batch_management,batch_number_genaration,table_default_bin")
     .where({ id: itemID })
     .get();
 
   if (!resItem || resItem.data.length === 0) return;
   else return resItem.data[0];
+};
+
+// Item master default bin for this plant. Takes priority over the plant-level
+// default; a row without a bin is treated as unconfigured so we never stamp a
+// blank bin on the line.
+const getItemDefaultBin = (tableDefaultBin, plantId) => {
+  if (!plantId || !Array.isArray(tableDefaultBin)) return null;
+
+  const matchingBin = tableDefaultBin.find(
+    (bin) => bin.plant_id === plantId && bin.bin_location,
+  );
+
+  if (!matchingBin) return null;
+
+  return {
+    binLocation: matchingBin.bin_location,
+    storageLocation: matchingBin.storage_location || null,
+  };
 };
 
 const checkSerialNumber = async (tempData, index) => {
@@ -46,6 +64,7 @@ const checkSerialNumber = async (tempData, index) => {
   let existingSRR = this.getValue("table_srr");
   const previousReferenceType = this.getValue("reference_type");
   const defaultBinLocation = this.getValue("default_bin_location");
+  const plantId = this.getValue("plant_id");
 
   let tableSRR = [];
   let salesReturnNumber = [];
@@ -102,14 +121,51 @@ const checkSerialNumber = async (tempData, index) => {
   this.closeDialog("dialog_select_item");
   this.showLoading();
 
+  // "Item" reference builds its lines straight from the dialog rows without an
+  // item fetch. Reuse the subform the row already carries and resolve only the
+  // ones missing it, in ONE batched fetch.
+  const defaultBinByItem = new Map();
+
+  if (referenceType === "Item") {
+    const missingItemIds = [];
+
+    for (const srItem of currentItemArray) {
+      const itemId = srItem.item?.id;
+      if (!itemId || defaultBinByItem.has(itemId)) continue;
+
+      if (Array.isArray(srItem.item.table_default_bin)) {
+        defaultBinByItem.set(itemId, srItem.item.table_default_bin);
+      } else if (!missingItemIds.includes(itemId)) {
+        missingItemIds.push(itemId);
+      }
+    }
+
+    if (missingItemIds.length > 0) {
+      const resItems = await db
+        .collection("Item")
+        .filter(new Filter().in("id", missingItemIds).build())
+        .get();
+
+      for (const item of resItems?.data || []) {
+        defaultBinByItem.set(item.id, item.table_default_bin);
+      }
+    }
+  }
+
   switch (referenceType) {
     case "Document":
       for (const sr of currentItemArray) {
         for (const srItem of sr.table_sr) {
           let batchNo = "-";
+          let itemDefaultBin = null;
           // Fetch item data to check batch management
           if (srItem.material_id) {
             const itemData = await fetchItemData(srItem.material_id);
+
+            itemDefaultBin = getItemDefaultBin(
+              itemData?.table_default_bin,
+              plantId,
+            );
 
             if (itemData && itemData.item_batch_management === 1) {
               if (
@@ -153,7 +209,13 @@ const checkSerialNumber = async (tempData, index) => {
 
             fifo_sequence: srItem.fifo_sequence,
             costing_method: srItem.costing_method,
-            location_id: defaultBinLocation,
+            location_id: itemDefaultBin?.binLocation || defaultBinLocation,
+            // Only stamped when the item master supplies one. This line never
+            // managed storage_location_id before, and a bin taken from the item
+            // master belongs to the storage location recorded beside it.
+            ...(itemDefaultBin?.storageLocation
+              ? { storage_location_id: itemDefaultBin.storageLocation }
+              : {}),
             batch_no: batchNo,
             inventory_category: "Unrestricted",
             serial_numbers: srItem.temp_qty_data,
@@ -167,6 +229,11 @@ const checkSerialNumber = async (tempData, index) => {
 
     case "Item":
       for (const srItem of currentItemArray) {
+        const itemDefaultBin = getItemDefaultBin(
+          defaultBinByItem.get(srItem.item?.id),
+          plantId,
+        );
+
         const newtableSRRRecord = {
           material_id: srItem.item.id,
           material_name: srItem.item.material_name,
@@ -198,7 +265,13 @@ const checkSerialNumber = async (tempData, index) => {
 
           fifo_sequence: srItem.fifo_sequence,
           costing_method: srItem.costing_method,
-          location_id: defaultBinLocation,
+          location_id: itemDefaultBin?.binLocation || defaultBinLocation,
+          // Only stamped when the item master supplies one. This line never
+          // managed storage_location_id before, and a bin taken from the item
+          // master belongs to the storage location recorded beside it.
+          ...(itemDefaultBin?.storageLocation
+            ? { storage_location_id: itemDefaultBin.storageLocation }
+            : {}),
           batch_no:
             srItem.item.item_batch_management === 1
               ? srItem.item.batch_number_genaration ===
