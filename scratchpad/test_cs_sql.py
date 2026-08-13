@@ -39,7 +39,7 @@ def connect():
     db.execute("""CREATE TABLE ar_invoice (id, ar_invoice_no, invoice_date, due_date,
         customer_id, area_id, project_id, agent_id, payment_term_id, payment_status,
         invoice_total_currency, invoice_total, myr_invoice_total, outstanding_amount,
-        organization_id, is_deleted)""")
+        organization_id, plant_id, is_deleted)""")
     db.execute("CREATE TABLE customer (id, customer_id, customer_com_name)")
     db.execute("CREATE TABLE area (id, area_code)")
     db.execute("CREATE TABLE project (id, project_code)")
@@ -53,11 +53,11 @@ def connect():
     db.executemany("INSERT INTO payment_terms VALUES (?,?)", [("8001", "30 Days")])
 
     def inv(no, idate, ddate, cust, area, proj, status="Unpaid", outstanding=100.0,
-            org="7100", deleted=0, agent="7001", term="8001"):
+            org="7100", deleted=0, agent="7001", term="8001", plant="7100"):
         return (no, no, idate, ddate, cust, area, proj, agent, term, status,
-                "MYR", 100.0, 100.0, outstanding, org, deleted)
+                "MYR", 100.0, 100.0, outstanding, org, plant, deleted)
 
-    db.executemany("INSERT INTO ar_invoice VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [
+    db.executemany("INSERT INTO ar_invoice VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [
         # aging ladder for customer 1001 (due dates relative to 2026-08-13)
         inv("INV-CUR", "2026-08-01", "2026-09-30", "1001", "5001", "6001"),   # not due -> current
         inv("INV-030", "2026-07-01", "2026-08-01", "1001", "5001", "6001"),   # 12 days -> 1-30
@@ -71,6 +71,12 @@ def connect():
         inv("INV-ORG",  "2026-08-05", "2026-09-05", "1001", "5001", "6001", org="9999"),
         inv("INV-PAID", "2026-08-06", "2026-09-06", "1002", "5002", "6001",
             status="Paid", outstanding=0.0),
+        # the real trace row: organization_id NULL, plant_id carries the dept id
+        inv("INV-LEGACY", "2026-07-14", "2026-07-14", "1001", "5001", None,
+            status="Paid", outstanding=-5567.75, org=None, plant="7100"),
+        # both org columns point elsewhere -> must still be excluded
+        inv("INV-OTHERORG", "2026-07-14", "2026-07-14", "1001", "5001", None,
+            org=None, plant="9999"),
     ])
     return db
 
@@ -105,7 +111,14 @@ def check(label, got, want):
 # 1. no filters -> everything except Cancelled / deleted / other-org, sorted
 check("no filters: excludes Cancelled, is_deleted, other org",
       nos(run()),
-      ["INV-90P", "INV-090", "INV-060", "INV-030", "INV-CUR", "INV-BETA", "INV-PAID"])
+      ["INV-90P", "INV-090", "INV-060", "INV-030", "INV-LEGACY", "INV-CUR",
+       "INV-BETA", "INV-PAID"])
+
+# --- the bug the live trace exposed -------------------------------------------
+check("row with NULL organization_id is found via plant_id",
+      "INV-LEGACY" in nos(run()), True)
+check("NULL organization_id + foreign plant_id is still excluded",
+      "INV-OTHERORG" in nos(run()), False)
 
 # 2. customer filter, JSON-array form
 check("customer filter (JSON array)",
@@ -115,24 +128,25 @@ check("customer filter (JSON array)",
 # 3. same, bare comma list + two ids
 check("customer filter (bare list, 2 ids)",
       sorted(nos(run(customer_switch="1", customer_ids="1001,1002"))),
-      ["INV-030", "INV-060", "INV-090", "INV-90P", "INV-BETA", "INV-CUR", "INV-PAID"])
+      ["INV-030", "INV-060", "INV-090", "INV-90P", "INV-BETA", "INV-CUR",
+       "INV-LEGACY", "INV-PAID"])
 
 # 4. switch OFF but a stale value present -> filter must be ignored
 check("stale value behind an OFF switch is ignored",
-      len(run(customer_switch="0", customer_ids='["1002"]')), 7)
+      len(run(customer_switch="0", customer_ids='["1002"]')), 8)
 
 # 5. switch ON but empty value -> no filter (function blocks this, SQL degrades safely)
 check("switch ON with empty value degrades to no filter",
-      len(run(customer_switch="1", customer_ids="")), 7)
+      len(run(customer_switch="1", customer_ids="")), 8)
 
 # 6. unresolved placeholder substitutes as literal `null`
 check("literal 'null' param is treated as empty",
-      len(run(customer_switch="1", customer_ids="null")), 7)
+      len(run(customer_switch="1", customer_ids="null")), 8)
 
 # 7. date range, string form
 check("date range (string array)",
       sorted(nos(run(date_range_switch="1", date_range='["2026-07-01","2026-08-31"]'))),
-      ["INV-030", "INV-BETA", "INV-CUR", "INV-PAID"])
+      ["INV-030", "INV-BETA", "INV-CUR", "INV-LEGACY", "INV-PAID"])
 
 # 8. date range boundary is inclusive on the end date
 check("date range end date is inclusive",
@@ -145,7 +159,7 @@ ms = lambda d: str(int(datetime.datetime.strptime(d, "%Y-%m-%d")
 check("date range (epoch millis)",
       sorted(nos(run(date_range_switch="1",
                      date_range="[%s, %s]" % (ms("2026-07-01"), ms("2026-08-31"))))),
-      ["INV-030", "INV-BETA", "INV-CUR", "INV-PAID"])
+      ["INV-030", "INV-BETA", "INV-CUR", "INV-LEGACY", "INV-PAID"])
 
 # 10. statement date = EXACT match on invoice_date
 check("statement date is an exact invoice_date match",

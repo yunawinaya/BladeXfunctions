@@ -249,7 +249,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": ""
+                "onChange": "b2ppkn2z"
               },
               "name": "Date",
               "key": "6n27f2m1",
@@ -295,7 +295,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": ""
+                "onChange": "5of9hxh3"
               },
               "name": "Statement Date",
               "key": "ir9j53ng",
@@ -341,7 +341,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": ""
+                "onChange": "xou9q6lq"
               },
               "name": "Customer",
               "key": "z2zqt6cc",
@@ -387,7 +387,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": ""
+                "onChange": "2kowa0wr"
               },
               "name": "Area",
               "key": "nydvtsdb",
@@ -433,7 +433,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": ""
+                "onChange": "df8vs51z"
               },
               "name": "Project",
               "key": "bfk8gpbg",
@@ -1650,7 +1650,7 @@
           },
           "events": {
             "onMounted": "",
-            "onClick": ""
+            "onClick": "6dvl73vr"
           },
           "name": "Generate",
           "key": "uvmfx1kl",
@@ -2610,11 +2610,6 @@
     "nav_layout": false,
     "eventScript": [
       {
-        "key": "onFormChange",
-        "name": "onFormChange",
-        "type": "rule"
-      },
-      {
         "key": "mounted",
         "name": "mounted",
         "func": ""
@@ -2627,26 +2622,6 @@
       {
         "key": "onParamUpdate",
         "name": "onParamUpdate",
-        "func": ""
-      },
-      {
-        "key": "onBeforeAdd",
-        "name": "onBeforeAdd",
-        "func": ""
-      },
-      {
-        "key": "onAfterAdd",
-        "name": "onAfterAdd",
-        "func": ""
-      },
-      {
-        "key": "onBeforeUpdate",
-        "name": "onBeforeUpdate",
-        "func": ""
-      },
-      {
-        "key": "onAfterUpdate",
-        "name": "onAfterUpdate",
         "func": ""
       },
       {
@@ -2668,6 +2643,42 @@
         "key": "onLoad",
         "name": "onLoad",
         "func": ""
+      },
+      {
+        "key": "6dvl73vr",
+        "name": "onGenerateButtonClick",
+        "func": "// Customer Statement list page > \"Generate\" button (`generate_button`) onClick.\n//\n// This does NOT call runWorkflow. The table `custom_4457str7` is bound to the\n// CS_GENERATE_FILTER workflow and owns the call itself, reading each filter\n// through its `url_params` `{{value:...}}` bindings. So the button's whole job\n// is: validate the inputs, drop values whose switch is off, and re-trigger the\n// query with refreshChange() -- the same shape as Balance Table/BalanceOnChangeUOM.js.\n(async () => {\n  const TABLE = \"custom_4457str7\";\n\n  // [ switch model, input model, label, the value that means \"empty\" ]\n  const FILTERS = [\n    [\"date_range_switch\", \"date_range\", \"Date\", \"\"],\n    [\"statement_date_switch\", \"statement_date\", \"Statement Date\", \"\"],\n    [\"customer_switch\", \"customer_id\", \"Customer\", []],\n    [\"area_switch\", \"area_id\", \"Area\", []],\n    [\"project_switch\", \"project_id\", \"Project\", []],\n  ];\n\n  const isEmpty = (v) =>\n    v === undefined || v === null || v === \"\" || (Array.isArray(v) && v.length === 0);\n  // Switches are `booleanValueMode: false`, so they carry 0/1 -- but tolerate\n  // the boolean and string forms too rather than depending on which one arrives.\n  const isOn = (v) => v === 1 || v === \"1\" || v === true;\n\n  const missing = [];\n  const stale = {};\n\n  for (const [switchModel, inputModel, label, emptyValue] of FILTERS) {\n    const hasValue = !isEmpty(this.getValue(inputModel));\n    if (isOn(this.getValue(switchModel))) {\n      if (!hasValue) missing.push(label);\n    } else if (hasValue) {\n      // Toggling a switch off disables its input but leaves the value behind.\n      // Clear it so what the user sees and what the query filters on agree.\n      // (The SQL gates on the switch as well, so this is belt and braces.)\n      stale[inputModel] = emptyValue;\n    }\n  }\n\n  if (missing.length > 0) {\n    this.$message.error(\n      `Please select a value for: ${missing.join(\", \")} — or switch the filter off.`\n    );\n    return;\n  }\n\n  try {\n    this.showLoading(\"Generating statement...\");\n\n    if (Object.keys(stale).length > 0) {\n      await this.setData(stale);\n    }\n\n    // Let the models commit before the grid re-reads its {{value:...}} params;\n    // without this the refresh can race and re-query with the PREVIOUS filters.\n    await new Promise((resolve) => setTimeout(resolve, 100));\n\n    const grid = await this.getComponent(TABLE);\n    if (!grid) {\n      console.warn(\"[CS generate] table component not found:\", TABLE);\n      this.$message.error(\"Statement table not found on this page.\");\n      return;\n    }\n\n    // Awaited so the loading overlay covers the grid's own fetch, not just the\n    // call. Harmless if refreshChange() returns undefined rather than a promise.\n    await grid.refreshChange();\n  } catch (error) {\n    console.error(\"[CS generate] refresh failed\", error);\n    this.$message.error(\"Failed to generate the statement. Please try again.\");\n  } finally {\n    this.hideLoading();\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "b2ppkn2z",
+        "name": "onDateRangeSwitchChange",
+        "func": "console.log(\"A\")",
+        "type": "js"
+      },
+      {
+        "key": "5of9hxh3",
+        "name": "onStatementDateSwitchChange",
+        "func": "console.log(\"A\")",
+        "type": "js"
+      },
+      {
+        "key": "xou9q6lq",
+        "name": "onCustomerSwitchChange",
+        "func": "console.log(\"A\")",
+        "type": "js"
+      },
+      {
+        "key": "2kowa0wr",
+        "name": "onAreaSwitchChange",
+        "func": "console.log(\"A\")",
+        "type": "js"
+      },
+      {
+        "key": "df8vs51z",
+        "name": "onProjectSwitchChange",
+        "func": "console.log(\"A\")",
+        "type": "js"
       }
     ],
     "uniqueGroup": [],
@@ -2676,6 +2687,7 @@
     "paramsDeps": {},
     "labelPositionPc": "left",
     "labelWidthPc": 150,
-    "labelSuffix": true
+    "labelSuffix": true,
+    "watchers": []
   }
 }

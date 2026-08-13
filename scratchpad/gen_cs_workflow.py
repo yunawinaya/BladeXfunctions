@@ -99,7 +99,11 @@ FROM (
     LEFT JOIN agent         ag   ON ag.id   = ari.agent_id
     LEFT JOIN payment_terms pt   ON pt.id   = ari.payment_term_id
     WHERE ari.is_deleted = 0
-      AND ari.organization_id = '{{{{global:firstLvDeptId}}}}'
+      -- Org scope: ar_invoice rows created before organization_id was added to the
+      -- SI/SO -> AR mapping have it NULL, but plant_id is written from the SAME
+      -- source (`plant_id: record.organization_id` in both save workflows), so it
+      -- is a correct fallback. A plain organization_id = ... returned zero rows.
+      AND COALESCE(NULLIF(ari.organization_id, ''), ari.plant_id) = '{{{{global:firstLvDeptId}}}}'
       AND COALESCE(ari.payment_status, '') <> 'Cancelled'
       AND ( '{{{{workflowparams:customer_switch}}}}' <> '1'
             OR p.cust_ids = ''
