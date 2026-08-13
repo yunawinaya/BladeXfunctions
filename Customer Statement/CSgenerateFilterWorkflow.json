@@ -1,45 +1,276 @@
 {
-  "request_json": [],
+  "request_json": [
+    {
+      "key": "a1c5uk9t",
+      "name": "customer_ids",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "e4g8mz2p",
+      "name": "area_ids",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "i7j2ns6w",
+      "name": "project_ids",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "o0q6bv4x",
+      "name": "date_range",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "u3y9dh1k",
+      "name": "statement_date",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "f5r7lp3m",
+      "name": "customer_switch",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "g8t2wz6n",
+      "name": "area_switch",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "h1v4cs9b",
+      "name": "project_switch",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "k6x8qm2d",
+      "name": "date_range_switch",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "l9z3fj7r",
+      "name": "statement_date_switch",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
   "response_json": [
     {
-      "key": "g8j7bg0q",
-      "name": "customer_id",
-      "title": "customer_id",
+      "key": "y2p6tk4v",
+      "name": "data",
+      "title": "Data",
       "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "uwfy3ygc",
-      "name": "ar_invoice_no",
-      "title": "ar_invoice_no",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "6kpaq7yb",
-      "name": "invoice_date",
-      "title": "invoice_date",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "xo94dckh",
-      "name": "invoice_total_currency",
-      "title": "invoice_total_currency",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "ls72y749",
-      "name": "myr_invoice_total",
-      "title": "myr_invoice_total",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "x5n9bg1s",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "object",
+          "isExpand": true,
+          "isArrayItem": true,
+          "children": [
+            {
+              "key": "g8j7bg0q",
+              "name": "customer_id",
+              "title": "Customer Code",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "k3m8pq2w",
+              "name": "customer_name",
+              "title": "Customer Name",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "uwfy3ygc",
+              "name": "ar_invoice_no",
+              "title": "Invoice No",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "6kpaq7yb",
+              "name": "invoice_date",
+              "title": "Invoice Date",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "r7t4nv9x",
+              "name": "due_date",
+              "title": "Due Date",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "b2d6hs1z",
+              "name": "payment_status",
+              "title": "Payment Status",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "w9x5cf3k",
+              "name": "area_code",
+              "title": "Area",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "t8n2ja6v",
+              "name": "project_code",
+              "title": "Project",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "m4q7ez0p",
+              "name": "agent_name",
+              "title": "Agent",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "v6b3lu8r",
+              "name": "payment_term",
+              "title": "Payment Term",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "xo94dckh",
+              "name": "invoice_total_currency",
+              "title": "Currency",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+            },
+            {
+              "key": "h1s9do5c",
+              "name": "invoice_total",
+              "title": "Invoice Total",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "ls72y749",
+              "name": "myr_invoice_total",
+              "title": "Total (MYR)",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "z5f2wk7t",
+              "name": "outstanding_amount",
+              "title": "Outstanding",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "c8r4mp1n",
+              "name": "days_overdue",
+              "title": "Days Overdue",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "j3v7bq9d",
+              "name": "aging_current",
+              "title": "Current",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "n6k1xs4h",
+              "name": "aging_1_30",
+              "title": "1-30 Days",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "p9w5tz2m",
+              "name": "aging_31_60",
+              "title": "31-60 Days",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "d2iu8cv6",
+              "name": "aging_61_90",
+              "title": "61-90 Days",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            },
+            {
+              "key": "s7l3nr0q",
+              "name": "aging_90_plus",
+              "title": "90+ Days",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+            }
+          ]
+        }
+      ]
     }
   ],
   "config": {},
@@ -62,128 +293,52 @@
         "database_id": "",
         "sql": "",
         "params": {},
-        "title": "Run SQL",
+        "title": "Get Customer Statement",
         "isValidator": true,
-        "nodeName": "Run SQL",
-        "name": "Run SQL",
+        "nodeName": "Get Customer Statement",
+        "name": "Get Customer Statement",
         "script": {
           "type": "sql",
-          "code": "select * \nfrom ar_invoice\nwhere tenant_id = '000000'"
+          "code": "-- Customer Statement: AR invoices, enriched by lookup joins and aged.\n-- Every filter is gated on BOTH its switch and a non-empty value, so a stale\n-- value behind a switched-off toggle cannot leak in, and an unresolved\n-- placeholder degrades to \"no filter\" instead of \"no rows\".\nSELECT\n    q.customer_id,\n    q.customer_name,\n    q.ar_invoice_no,\n    q.invoice_date,\n    q.due_date,\n    q.payment_status,\n    q.area_code,\n    q.project_code,\n    q.agent_name,\n    q.payment_term,\n    q.invoice_total_currency,\n    q.invoice_total,\n    q.myr_invoice_total,\n    q.outstanding_amount,\n    q.days_overdue,\n    CASE WHEN q.days_overdue <= 0              THEN q.outstanding_amount ELSE 0 END AS aging_current,\n    CASE WHEN q.days_overdue BETWEEN  1 AND 30 THEN q.outstanding_amount ELSE 0 END AS aging_1_30,\n    CASE WHEN q.days_overdue BETWEEN 31 AND 60 THEN q.outstanding_amount ELSE 0 END AS aging_31_60,\n    CASE WHEN q.days_overdue BETWEEN 61 AND 90 THEN q.outstanding_amount ELSE 0 END AS aging_61_90,\n    CASE WHEN q.days_overdue > 90              THEN q.outstanding_amount ELSE 0 END AS aging_90_plus\nFROM (\n    SELECT\n        COALESCE(cust.customer_id, '')                AS customer_id,\n        COALESCE(cust.customer_com_name, '')          AS customer_name,\n        COALESCE(ari.ar_invoice_no, '')               AS ar_invoice_no,\n        COALESCE(DATE_FORMAT(ari.invoice_date, '%Y-%m-%d'), '') AS invoice_date,\n        COALESCE(DATE_FORMAT(ari.due_date, '%Y-%m-%d'), '')     AS due_date,\n        COALESCE(ari.payment_status, '')              AS payment_status,\n        COALESCE(ara.area_code, '')                   AS area_code,\n        COALESCE(pr.project_code, '')                 AS project_code,\n        COALESCE(ag.agent_name, '')                   AS agent_name,\n        COALESCE(pt.term_name, '')                    AS payment_term,\n        COALESCE(ari.invoice_total_currency, '')      AS invoice_total_currency,\n        ROUND(COALESCE(ari.invoice_total, 0), 2)      AS invoice_total,\n        ROUND(COALESCE(ari.myr_invoice_total, 0), 2)  AS myr_invoice_total,\n        ROUND(COALESCE(ari.outstanding_amount, 0), 2) AS outstanding_amount,\n        -- Aging is measured against the statement date when that filter is on,\n        -- otherwise against today. Gated on the switch for the same reason the\n        -- row filter below is: a stale value behind an off switch must not count.\n        GREATEST(COALESCE(DATEDIFF(\n            COALESCE(CASE WHEN '{{workflowparams:statement_date_switch}}' = '1'\n                          THEN p.stmt_date END, CURDATE()), ari.due_date), 0), 0) AS days_overdue\n    FROM ar_invoice ari\n    CROSS JOIN (\n        SELECT\n          p0.cust_ids,\n          p0.area_ids,\n          p0.proj_ids,\n          CASE\n             WHEN SUBSTRING_INDEX(p0.dr, ',', 1) = '' THEN NULL\n             WHEN SUBSTRING_INDEX(p0.dr, ',', 1) REGEXP '^[0-9]{13,}$' THEN DATE(FROM_UNIXTIME(SUBSTRING_INDEX(p0.dr, ',', 1) / 1000))\n             WHEN SUBSTRING_INDEX(p0.dr, ',', 1) REGEXP '^[0-9]{10,12}$' THEN DATE(FROM_UNIXTIME(SUBSTRING_INDEX(p0.dr, ',', 1)))\n             ELSE DATE(SUBSTRING_INDEX(p0.dr, ',', 1))\n           END AS date_from,\n          CASE\n             WHEN SUBSTRING_INDEX(p0.dr, ',', -1) = '' THEN NULL\n             WHEN SUBSTRING_INDEX(p0.dr, ',', -1) REGEXP '^[0-9]{13,}$' THEN DATE(FROM_UNIXTIME(SUBSTRING_INDEX(p0.dr, ',', -1) / 1000))\n             WHEN SUBSTRING_INDEX(p0.dr, ',', -1) REGEXP '^[0-9]{10,12}$' THEN DATE(FROM_UNIXTIME(SUBSTRING_INDEX(p0.dr, ',', -1)))\n             ELSE DATE(SUBSTRING_INDEX(p0.dr, ',', -1))\n           END   AS date_to,\n          CASE\n             WHEN p0.sd = '' THEN NULL\n             WHEN p0.sd REGEXP '^[0-9]{13,}$' THEN DATE(FROM_UNIXTIME(p0.sd / 1000))\n             WHEN p0.sd REGEXP '^[0-9]{10,12}$' THEN DATE(FROM_UNIXTIME(p0.sd))\n             ELSE DATE(p0.sd)\n           END AS stmt_date\n        FROM (\n          SELECT\n            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(NULLIF('{{workflowparams:customer_ids}}','null'),''),'[',''),']',''),'\"',''),'''',''),' ','') AS cust_ids,\n            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(NULLIF('{{workflowparams:area_ids}}','null'),''),'[',''),']',''),'\"',''),'''',''),' ','') AS area_ids,\n            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(NULLIF('{{workflowparams:project_ids}}','null'),''),'[',''),']',''),'\"',''),'''',''),' ','') AS proj_ids,\n            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(NULLIF('{{workflowparams:date_range}}','null'),''),'[',''),']',''),'\"',''),'''',''),' ','')   AS dr,\n            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(NULLIF('{{workflowparams:statement_date}}','null'),''),'[',''),']',''),'\"',''),'''',''),' ','')   AS sd\n        ) p0\n    ) p\n    LEFT JOIN customer      cust ON cust.id = ari.customer_id\n    LEFT JOIN area          ara  ON ara.id  = ari.area_id\n    LEFT JOIN project       pr   ON pr.id   = ari.project_id\n    LEFT JOIN agent         ag   ON ag.id   = ari.agent_id\n    LEFT JOIN payment_terms pt   ON pt.id   = ari.payment_term_id\n    WHERE ari.is_deleted = 0\n      AND ari.organization_id = '{{global:firstLvDeptId}}'\n      AND COALESCE(ari.payment_status, '') <> 'Cancelled'\n      AND ( '{{workflowparams:customer_switch}}' <> '1'\n            OR p.cust_ids = ''\n            OR FIND_IN_SET(CAST(ari.customer_id AS CHAR), p.cust_ids) > 0 )\n      AND ( '{{workflowparams:area_switch}}' <> '1'\n            OR p.area_ids = ''\n            OR FIND_IN_SET(CAST(ari.area_id AS CHAR), p.area_ids) > 0 )\n      AND ( '{{workflowparams:project_switch}}' <> '1'\n            OR p.proj_ids = ''\n            OR FIND_IN_SET(CAST(ari.project_id AS CHAR), p.proj_ids) > 0 )\n      AND ( '{{workflowparams:date_range_switch}}' <> '1'\n            OR p.date_from IS NULL\n            OR p.date_to IS NULL\n            OR ( ari.invoice_date >= p.date_from\n                 AND ari.invoice_date < DATE_ADD(p.date_to, INTERVAL 1 DAY) ) )\n      AND ( '{{workflowparams:statement_date_switch}}' <> '1'\n            OR p.stmt_date IS NULL\n            OR DATE(ari.invoice_date) = p.stmt_date )\n) q\nORDER BY q.customer_id, q.invoice_date, q.ar_invoice_no\nLIMIT 5000;"
         },
         "response_json": [
           {
-            "key": "tpeygzjl",
-            "name": "customer_id",
-            "title": "customer_id",
+            "key": "q7d3wm8f",
+            "name": "",
+            "title": "",
             "description": "",
-            "bsonType": "string",
-            "isExpand": false
-          },
-          {
-            "key": "av5mcgbh",
-            "name": "ar_invoice_no",
-            "title": "ar_invoice_no",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
-          },
-          {
-            "key": "7dhwft1g",
-            "name": "invoice_date",
-            "title": "invoice_date",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
-          },
-          {
-            "key": "vevvz5wb",
-            "name": "invoice_total_currency",
-            "title": "invoice_total_currency",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
-          },
-          {
-            "key": "f7b5qnis",
-            "name": "invoice_total",
-            "title": "invoice_total",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
       "blocks": []
     },
     {
-      "id": "return_node_qFbkJrqo",
-      "type": "return-node",
+      "id": "end",
+      "type": "end-node",
       "data": {
-        "return_data": {},
-        "status_code": 200,
-        "title": "Return Data",
         "isValidator": true,
-        "nodeName": "Return Data",
-        "name": "Return Data",
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
         "response_value": {
           "list": [
             {
-              "prop": "customer_id",
-              "propLabel": "customer_id",
+              "prop": "data",
+              "propLabel": "data",
               "operator": "",
               "operatorLabel": "",
               "valueType": "field",
               "valueTypeLabel": "",
               "valueLabel": "",
-              "is_negative_number": false,
-              "value": "{{node:sql_node_scfbcMVD.data.customer_id}}"
-            },
-            {
-              "prop": "ar_invoice_no",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:sql_node_scfbcMVD.data.ar_invoice_no}}",
-              "is_negative_number": false,
-              "valueLabel": "",
-              "propLabel": "ar_invoice_no"
-            },
-            {
-              "prop": "invoice_date",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:sql_node_scfbcMVD.data.invoice_date}}",
-              "is_negative_number": false,
-              "valueLabel": "",
-              "propLabel": "invoice_date"
-            },
-            {
-              "prop": "invoice_total_currency",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:sql_node_scfbcMVD.data.invoice_total_currency}}",
-              "is_negative_number": false,
-              "valueLabel": "",
-              "propLabel": "invoice_total_currency"
-            },
-            {
-              "prop": "myr_invoice_total",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:sql_node_scfbcMVD.data.invoice_total}}",
-              "is_negative_number": false,
-              "valueLabel": "",
-              "propLabel": "myr_invoice_total"
+              "value": "{{node:sql_node_scfbcMVD.data}}"
             }
           ]
-        },
-        "return_raw_data": 0
+        }
       },
-      "blocks": []
-    },
-    {
-      "id": "end",
-      "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
