@@ -1,0 +1,1035 @@
+{
+  "request_json": [
+    {
+      "key": "e3yu90q4",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "vup2lrkh",
+      "name": "page_status",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_uEU3VVrd",
+      "type": "if",
+      "data": {
+        "title": "IF add?",
+        "isValidator": true,
+        "nodeName": "IF add?",
+        "name": "IF add?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:page_status}}' == 'Add' || '{{workflowparams:page_status}}' == 'Clone'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hDOn1L3k",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "add_node_0V51yd6W",
+              "type": "add-node",
+              "data": {
+                "table_id": {
+                  "source": "AR Invoice:Table:2072512608001388545",
+                  "rules": {
+                    "collectionId": "2072512608001388545",
+                    "list": [
+                      {
+                        "id": 1782981690038,
+                        "parentId": 1782981690037,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "Add Data",
+                "isValidator": true,
+                "nodeName": "Add Data",
+                "name": "Add Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "payment_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.payment_status}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Status"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.plant_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.organization_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "ar_invoice_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.ar_invoice_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice No"
+                    },
+                    {
+                      "prop": "ar_invoice_no_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.ar_invoice_no_type}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice No Type"
+                    },
+                    {
+                      "prop": "customer_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.customer_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Customer"
+                    },
+                    {
+                      "prop": "currency_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.currency_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Currency Code"
+                    },
+                    {
+                      "prop": "description",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.description}}",
+                      "valueLabel": "",
+                      "propLabel": "Description"
+                    },
+                    {
+                      "prop": "ar_billing_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.ar_billing_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address"
+                    },
+                    {
+                      "prop": "ar_shipping_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.ar_shipping_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address"
+                    },
+                    {
+                      "prop": "invoice_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.invoice_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Date"
+                    },
+                    {
+                      "prop": "area_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.area_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Area"
+                    },
+                    {
+                      "prop": "agent_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.agent_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Agent"
+                    },
+                    {
+                      "prop": "agent_user_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.agent_user_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Agent User"
+                    },
+                    {
+                      "prop": "payment_term_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.payment_term_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Term"
+                    },
+                    {
+                      "prop": "due_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.due_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Due Date"
+                    },
+                    {
+                      "prop": "so_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.so_id}}",
+                      "valueLabel": "",
+                      "propLabel": "SO ID"
+                    },
+                    {
+                      "prop": "table_ar_invoice",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.table_ar_invoice}}",
+                      "valueLabel": "",
+                      "propLabel": "Table AR Invoice"
+                    },
+                    {
+                      "prop": "tax_total_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.tax_total_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Tax Total"
+                    },
+                    {
+                      "prop": "invoice_total_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.invoice_total_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Total"
+                    },
+                    {
+                      "prop": "outstanding_amount_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.outstanding_amount_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Amount"
+                    },
+                    {
+                      "prop": "tax_total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.tax_total}}",
+                      "valueLabel": "",
+                      "propLabel": "Tax Total (Amount)"
+                    },
+                    {
+                      "prop": "invoice_total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.invoice_total}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Total (Amount)"
+                    },
+                    {
+                      "prop": "outstanding_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.outstanding_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Amount (Amount)"
+                    },
+                    {
+                      "prop": "myr_invoice_total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.myr_invoice_total}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Total (MYR Amount)"
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Name"
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Phone"
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Line 1"
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Line 2"
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Line 3"
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Line 4"
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address City"
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Postal Code"
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address State"
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Country"
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Attention"
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Fax"
+                    },
+                    {
+                      "prop": "billing_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Code"
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Name"
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Phone"
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Line 1"
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Line 2"
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Line 3"
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Line 4"
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address City"
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Postal Code"
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address State"
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Country"
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Attention"
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Fax"
+                    },
+                    {
+                      "prop": "shipping_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Code"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_vXEaNczo",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": [
+            {
+              "id": "get_node_ghu1jjdR",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "AR Invoice:Table:2072512608001388545",
+                  "rules": {
+                    "collectionId": "2072512608001388545",
+                    "list": [
+                      {
+                        "id": 1783329308260,
+                        "parentId": 1783329308261,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1783329308264,
+                            "parentId": 1783329308260,
+                            "isTop": false,
+                            "prop": "si_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:data.si_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "SI ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1783329308262,
+                            "parentId": 1783329308260,
+                            "isTop": false,
+                            "prop": "so_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{workflowparams:data.so_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "SO ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get One",
+                "isValidator": true,
+                "nodeName": "Get One",
+                "name": "Get One"
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_TSq2mAMA",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "AR Invoice:Table:2072512608001388545",
+                  "rules": {
+                    "collectionId": "2072512608001388545",
+                    "list": [
+                      {
+                        "id": 1783329400997,
+                        "parentId": 1783329400996,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:get_node_ghu1jjdR.data.data.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Data",
+                "isValidator": true,
+                "nodeName": "Update Data",
+                "name": "Update Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:get_node_ghu1jjdR.data.data.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "payment_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.payment_status}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Status"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.plant_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Plant"
+                    },
+                    {
+                      "prop": "organization_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.organization_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "ar_invoice_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.ar_invoice_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice No"
+                    },
+                    {
+                      "prop": "ar_invoice_no_type",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.ar_invoice_no_type}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice No Type"
+                    },
+                    {
+                      "prop": "customer_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.customer_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Customer"
+                    },
+                    {
+                      "prop": "currency_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.currency_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Currency Code"
+                    },
+                    {
+                      "prop": "description",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.description}}",
+                      "valueLabel": "",
+                      "propLabel": "Description"
+                    },
+                    {
+                      "prop": "ar_billing_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.ar_billing_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address"
+                    },
+                    {
+                      "prop": "ar_shipping_address",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.ar_shipping_address}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address"
+                    },
+                    {
+                      "prop": "invoice_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.invoice_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Date"
+                    },
+                    {
+                      "prop": "area_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.area_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Area"
+                    },
+                    {
+                      "prop": "agent_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.agent_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Agent"
+                    },
+                    {
+                      "prop": "agent_user_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.agent_user_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Agent User"
+                    },
+                    {
+                      "prop": "payment_term_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.payment_term_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Payment Term"
+                    },
+                    {
+                      "prop": "due_date",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.due_date}}",
+                      "valueLabel": "",
+                      "propLabel": "Due Date"
+                    },
+                    {
+                      "prop": "so_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.so_id}}",
+                      "valueLabel": "",
+                      "propLabel": "SO ID"
+                    },
+                    {
+                      "prop": "table_ar_invoice",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.table_ar_invoice}}",
+                      "valueLabel": "",
+                      "propLabel": "Table AR Invoice"
+                    },
+                    {
+                      "prop": "tax_total_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.tax_total_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Tax Total"
+                    },
+                    {
+                      "prop": "invoice_total_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.invoice_total_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Total"
+                    },
+                    {
+                      "prop": "outstanding_amount_currency",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.outstanding_amount_currency}}",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Amount"
+                    },
+                    {
+                      "prop": "tax_total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.tax_total}}",
+                      "valueLabel": "",
+                      "propLabel": "Tax Total (Amount)"
+                    },
+                    {
+                      "prop": "invoice_total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.invoice_total}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Total (Amount)"
+                    },
+                    {
+                      "prop": "outstanding_amount",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.outstanding_amount}}",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Amount (Amount)"
+                    },
+                    {
+                      "prop": "myr_invoice_total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.myr_invoice_total}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Total (MYR Amount)"
+                    },
+                    {
+                      "prop": "billing_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Name"
+                    },
+                    {
+                      "prop": "billing_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Phone"
+                    },
+                    {
+                      "prop": "billing_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Line 1"
+                    },
+                    {
+                      "prop": "billing_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Line 2"
+                    },
+                    {
+                      "prop": "billing_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Line 3"
+                    },
+                    {
+                      "prop": "billing_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Line 4"
+                    },
+                    {
+                      "prop": "billing_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address City"
+                    },
+                    {
+                      "prop": "billing_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Postal Code"
+                    },
+                    {
+                      "prop": "billing_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address State"
+                    },
+                    {
+                      "prop": "billing_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Country"
+                    },
+                    {
+                      "prop": "billing_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Attention"
+                    },
+                    {
+                      "prop": "billing_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Fax"
+                    },
+                    {
+                      "prop": "billing_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.billing_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Billing Address Code"
+                    },
+                    {
+                      "prop": "shipping_address_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_name}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Name"
+                    },
+                    {
+                      "prop": "shipping_address_phone",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_phone}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Phone"
+                    },
+                    {
+                      "prop": "shipping_address_line_1",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_line_1}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Line 1"
+                    },
+                    {
+                      "prop": "shipping_address_line_2",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_line_2}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Line 2"
+                    },
+                    {
+                      "prop": "shipping_address_line_3",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_line_3}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Line 3"
+                    },
+                    {
+                      "prop": "shipping_address_line_4",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_line_4}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Line 4"
+                    },
+                    {
+                      "prop": "shipping_address_city",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_city}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address City"
+                    },
+                    {
+                      "prop": "shipping_postal_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_postal_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Postal Code"
+                    },
+                    {
+                      "prop": "shipping_address_state",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_state}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address State"
+                    },
+                    {
+                      "prop": "shipping_address_country",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_country}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Country"
+                    },
+                    {
+                      "prop": "shipping_attention",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_attention}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Attention"
+                    },
+                    {
+                      "prop": "shipping_address_fax",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_fax}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Fax"
+                    },
+                    {
+                      "prop": "shipping_address_code",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{workflowparams:data.shipping_address_code}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Address Code"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
