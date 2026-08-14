@@ -13,7 +13,7 @@ converters. Nothing is deployed yet.
 **1. Delivery Info consolidation.** Every document used to carry five parallel
 delivery sections — Self Pickup, Courier Service, Company Truck, Shipping Service,
 3rd Party Transporter — with the same concept named differently in each module.
-`Driver Name` alone existed under six different column names across seven forms.
+`Driver Name` alone existed under seven different column names across seven forms.
 
 Because exactly one section is ever populated per record, all five collapse into
 **one shared set of 13 `di_*` columns**. The per-method sections and the
@@ -248,7 +248,8 @@ Which legacy column each `di_*` field replaces, per module. **Mobile uses this t
 know what to delete**; the DB team uses it as the migration source map.
 
 Derived by reading the form JSONs directly (`SQTfullJSON.json`, `SOfullJSON.json`,
-`GDfullJSON.json`, `PPfullJSON.json`, `PickingFullJSON.json`, `PRTfullJSON.json`) —
+`GDfullJSON.json`, `PPfullJSON.json`, `PickingFullJSON.json`, `PRTfullJSON.json`,
+`SRfullJSON.json`) —
 component types and stored value shapes taken from each field's `el` and
 `options.props.value`, not inferred from names.
 
@@ -263,20 +264,20 @@ Each row is a `CASE` on the record's delivery method: the source column depends 
 which section was active, so a straight column copy is wrong for the nine fields
 with more than one source.
 
-| # | di_ field | SQT | SO | GD | PP | PICK | PRT |
-|---|---|---|---|---|---|---|---|
-| 1 | `di_driver_name` | SP:`cp_customer_pickup`<br>CT:`ct_driver_name` **[ID]**<br>TPT:`tpt_driver_name` | SP:`cp_driver_name`<br>CT:`ct_driver_name` **[ID]**<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`ct_driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name2` |
-| 2 | `di_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` |
-| 3 | `di_driver_contact_no` | SP:`driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`cp_driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact`<br>CT:`driver_contact_no2`<br>TPT:`tpt_driver_contact_no` |
-| 4 | `di_vehicle_number` | SP:`vehicle_number`<br>CT:`ct_vehicle_number` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`cp_vehicle_number`<br>CT:`ct_vehicle_number` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`sp_vehicle_no`<br>CT:`vehicle_no` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`vehicle_no`<br>CT:`vehicle_no`<br>TPT:`tpt_vehicle_number` | SP:`sp_vehicle_no`<br>CT:`vehicle_no` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`vehicle_no`<br>CT:`vehicle_no2`<br>TPT:`tpt_vehicle_number` |
-| 5 | `di_pickup_date` | SP:`pickup_date` | SP:`cp_pickup_date` | SP:`pickup_date` | SP:`pickup_date` | SP:`pickup_date` | SP:`pickup_date` |
-| 6 | `di_validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | — |
-| 7 | `di_shipping_company` | CS:`courier_company`<br>SS:`ss_shipping_company` | CS:`cs_courier_company`<br>SS:`ss_shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company` |
-| 8 | `di_est_delivery_date` | CS:`shipping_date`<br>CT:`ct_est_delivery_date`<br>SS:`ss_shipping_date` | CS:`cs_shipping_date`<br>CT:`ct_est_delivery_date`<br>SS:`ss_shippping_date` | CS:`shipping_date`<br>CT:`est_delivery_date`<br>SS:`shipping_date` | CS:`shipping_date`<br>CT:`est_delivery_date`<br>SS:`shipping_date` | CS:`shipping_date`<br>CT:`est_delivery_date`<br>SS:`ss_shipping_date` | CS:`shipping_date`<br>CT:`estimated_arrival2` |
-| 9 | `di_est_arrival_date` | CS:`cs_est_arrival_date`<br>SS:`est_arrival_date` | CS:`est_arrival_date`<br>SS:`ss_est_arrival_date` | CS:`est_arrival_date`<br>SS:`est_arrival_date` | CS:`est_arrival_date`<br>SS:`est_arrival_date` | CS:`est_arrival_date`<br>SS:`ss_est_arrival_date` | CS:`estimated_ariival` |
-| 10 | `di_freight_charges` | CS:`freight_charges`<br>CT:`ct_delivery_cost`<br>SS:`ss_freight_charges` | CS:`cs_freight_charges`<br>CT:`ct_delivery_cost`<br>SS:`ss_freight_charges` | CS:`freight_charges`<br>CT:`delivery_cost`<br>SS:`freight_charges` | CS:`freight_charges`<br>CT:`delivery_cost`<br>SS:`freight_charges` | CS:`freight_charges`<br>CT:`delivery_cost`<br>SS:`ss_freight_charges` | CS:`freight_charge`<br>CT:`delivery_cost` |
-| 11 | `di_tracking_number` | CS:`cs_tracking_number`<br>SS:`ss_tracking_number` | CS:`cs_tracking_number`<br>SS:`ss_tracking_number` | CS:`tracking_number`<br>SS:`tracking_number` | CS:`tracking_number`<br>SS:`tracking_number` | CS:`tracking_number`<br>SS:`ss_tracking_number` | — |
-| 12 | `di_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` |
+| # | di_ field | SQT | SO | GD | PP | PICK | PRT | SR |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `di_driver_name` | SP:`cp_customer_pickup`<br>CT:`ct_driver_name` **[ID]**<br>TPT:`tpt_driver_name` | SP:`cp_driver_name`<br>CT:`ct_driver_name` **[ID]**<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`ct_driver_name`<br>TPT:`tpt_driver_name` | SP:`driver_name`<br>CT:`driver_name2` | SP:`sr_driver_name`<br>CT:`sr_driver_name`<br>TPT:`tpt_driver_name` |
+| 2 | `di_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ic_no`<br>TPT:`tpt_ic_no` | SP:`ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` | SP:`cp_ic_no`<br>CT:`ct_ic_no`<br>TPT:`tpt_ic_no` |
+| 3 | `di_driver_contact_no` | SP:`driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`cp_driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact_no`<br>CT:`ct_driver_contact_no`<br>TPT:`tpt_driver_contact_no` | SP:`driver_contact`<br>CT:`driver_contact_no2`<br>TPT:`tpt_driver_contact_no` | SP:`sr_driver_contact_no`<br>CT:`sr_driver_contact_no`<br>TPT:`tpt_driver_contact_no` |
+| 4 | `di_vehicle_number` | SP:`vehicle_number`<br>CT:`ct_vehicle_number` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`cp_vehicle_number`<br>CT:`ct_vehicle_number` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`sp_vehicle_no`<br>CT:`vehicle_no` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`vehicle_no`<br>CT:`vehicle_no`<br>TPT:`tpt_vehicle_number` | SP:`sp_vehicle_no`<br>CT:`vehicle_no` **[ID]**<br>TPT:`tpt_vehicle_number` | SP:`vehicle_no`<br>CT:`vehicle_no2`<br>TPT:`tpt_vehicle_number` | SP:`sr_vehicle_no`<br>CT:`sr_vehicle_no`<br>TPT:`tpt_vehicle_number` |
+| 5 | `di_pickup_date` | SP:`pickup_date` | SP:`cp_pickup_date` | SP:`pickup_date` | SP:`pickup_date` | SP:`pickup_date` | SP:`pickup_date` | SP:`sr_pickup_date` |
+| 6 | `di_validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | SP:`validity_of_collection` | — | SP:`validity_of_collection` |
+| 7 | `di_shipping_company` | CS:`courier_company`<br>SS:`ss_shipping_company` | CS:`cs_courier_company`<br>SS:`ss_shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company`<br>SS:`shipping_company` | CS:`courier_company` | CS:`courier_company`<br>SS:`shipping_company` |
+| 8 | `di_est_delivery_date` | CS:`shipping_date`<br>CT:`ct_est_delivery_date`<br>SS:`ss_shipping_date` | CS:`cs_shipping_date`<br>CT:`ct_est_delivery_date`<br>SS:`ss_shippping_date` | CS:`shipping_date`<br>CT:`est_delivery_date`<br>SS:`shipping_date` | CS:`shipping_date`<br>CT:`est_delivery_date`<br>SS:`shipping_date` | CS:`shipping_date`<br>CT:`est_delivery_date`<br>SS:`ss_shipping_date` | CS:`shipping_date`<br>CT:`estimated_arrival2` | CS:`sr_shipping_date`<br>CT:`sr_est_delivery_date`<br>SS:`sr_shipping_date` |
+| 9 | `di_est_arrival_date` | CS:`cs_est_arrival_date`<br>SS:`est_arrival_date` | CS:`est_arrival_date`<br>SS:`ss_est_arrival_date` | CS:`est_arrival_date`<br>SS:`est_arrival_date` | CS:`est_arrival_date`<br>SS:`est_arrival_date` | CS:`est_arrival_date`<br>SS:`ss_est_arrival_date` | CS:`estimated_ariival` | CS:`sr_est_arrival_date`<br>SS:`sr_est_arrival_date` |
+| 10 | `di_freight_charges` | CS:`freight_charges`<br>CT:`ct_delivery_cost`<br>SS:`ss_freight_charges` | CS:`cs_freight_charges`<br>CT:`ct_delivery_cost`<br>SS:`ss_freight_charges` | CS:`freight_charges`<br>CT:`delivery_cost`<br>SS:`freight_charges` | CS:`freight_charges`<br>CT:`delivery_cost`<br>SS:`freight_charges` | CS:`freight_charges`<br>CT:`delivery_cost`<br>SS:`ss_freight_charges` | CS:`freight_charge`<br>CT:`delivery_cost` | CS:`sr_freight_charges`<br>CT:`sr_delivery_cost`<br>SS:`sr_freight_charges` |
+| 11 | `di_tracking_number` | CS:`cs_tracking_number`<br>SS:`ss_tracking_number` | CS:`cs_tracking_number`<br>SS:`ss_tracking_number` | CS:`tracking_number`<br>SS:`tracking_number` | CS:`tracking_number`<br>SS:`tracking_number` | CS:`tracking_number`<br>SS:`ss_tracking_number` | — | CS:`sr_tracking_no`<br>SS:`sr_tracking_number` |
+| 12 | `di_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` |
 
 `di_shipping_method` is not in this table — it is a standalone field, populated on
 its own rather than migrated from a legacy column.
@@ -291,6 +292,7 @@ columns are **not** carried, and their data is lost unless handled separately:
 | SQT, SO | `ss_shipping_method` |
 | GD, PP, PICK | `shipping_method` |
 | PRT | `shipping_method` (sits under Courier Service, not Shipping Service) |
+| SR | `shipping_method` |
 
 ---
 
@@ -305,8 +307,8 @@ Migrating these by name writes garbage silently.
 ### `di_driver_name` wants a Driver **id**
 
 - **Already ids:** SQT `ct_driver_name`, SO `ct_driver_name` — Company Truck only.
-- **Need a name→id lookup:** all 16 other sources store a typed name string — every
-  Self Pickup and 3rd Party column, plus GD/PP/PICK/PRT Company Truck.
+- **Need a name→id lookup:** the other 18 sources store a typed name string — every
+  Self Pickup and 3rd Party column, plus GD/PP/PICK/PRT/SR Company Truck.
 - **Unresolvable:** a typed name with no matching Driver record has no landing spot.
   Decide up front — create Driver records, leave null, or keep a text fallback.
 
@@ -320,8 +322,9 @@ already-correct sources are Company Truck.
 
 - **Already ids:** SQT `ct_vehicle_number`, SO `ct_vehicle_number`, GD `vehicle_no`,
   PICK `vehicle_no`.
-- **Need a plate→id lookup:** the other 14 sources store a free-typed plate string —
-  every Self Pickup and 3rd Party column, plus PP `vehicle_no` and PRT `vehicle_no2`.
+- **Need a plate→id lookup:** the other 17 sources store a free-typed plate string —
+  every Self Pickup and 3rd Party column, plus PP `vehicle_no`, PRT `vehicle_no2`
+  and SR `sr_vehicle_no`.
 - **Unresolvable:** a typed plate with no matching Vehicle record, same as above.
 
 ## Per-module quirks
@@ -337,6 +340,20 @@ already-correct sources are Company Truck.
   the label.
 - `freight_charge` is a plain input, not a currency component, so values may not be
   2-dp clean. Round before writing into `di_freight_charges`.
+
+### SR shares the most columns
+
+- Self Pickup and Company Truck share `sr_driver_name`, `sr_driver_contact_no`
+  and `sr_vehicle_no`.
+- Courier Service and Shipping Service share `sr_shipping_date`,
+  `sr_freight_charges` and `sr_est_arrival_date`.
+- It has **two** tracking columns: `sr_tracking_no` (Courier) and
+  `sr_tracking_number` (Shipping Service).
+- `sr_freight_charges` is a plain input, not a currency component — round to 2 dp
+  before writing into `di_freight_charges`.
+
+All safe, because only one delivery method is ever populated per record — but the
+same source column appearing under several `WHEN` branches looks wrong at a glance.
 
 **SO** — `ss_shippping_date` has a triple `p`; that really is the column name.
 
