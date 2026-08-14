@@ -78,9 +78,19 @@
 --      All three must return has_org_id = 1 AND has_is_active = 1. If
 --      shipping_method returns 0 for either, STOP: add the columns, populate
 --      them, then re-run this check.
+--
+--      has_is_deleted is informational: the lookups guard it as
+--      (m.is_deleted = 0 OR m.is_deleted IS NULL), which is safe whether or not
+--      the column is populated — but it errors if the column does not exist.
+--      If any master returns has_is_deleted = 0, drop that guard for that master.
+--
+--      RUN THIS AGAINST PRODUCTION, not dev. The masters differ: dev's
+--      shipping_method has ~1068 rows over only 2 orgs with heavy duplication
+--      and just ~63 active, so dev results say nothing about prod coverage.
 SELECT TABLE_NAME,
        MAX(COLUMN_NAME = 'organization_id') AS has_org_id,
-       MAX(COLUMN_NAME = 'is_active')       AS has_is_active
+       MAX(COLUMN_NAME = 'is_active')       AS has_is_active,
+       MAX(COLUMN_NAME = 'is_deleted')      AS has_is_deleted
   FROM INFORMATION_SCHEMA.COLUMNS
  WHERE TABLE_SCHEMA = DATABASE()
    AND TABLE_NAME IN ('driver','vehicle','shipping_method')
@@ -168,7 +178,7 @@ WHERE src.driver_name IS NOT NULL
   AND src.driver_name <> ''
   AND NOT EXISTS (
         SELECT 1 FROM driver m
-         WHERE m.driver_name     = src.driver_name
+         WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.driver_name     = src.driver_name
            AND m.is_active = 1)
 GROUP BY module, organization_id, driver_name
 ORDER BY occurrences DESC, module, driver_name;
@@ -228,7 +238,7 @@ WHERE src.vehicle_number IS NOT NULL
   AND src.vehicle_number <> ''
   AND NOT EXISTS (
         SELECT 1 FROM vehicle m
-         WHERE m.vehicle_number  = src.vehicle_number
+         WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.vehicle_number  = src.vehicle_number
            AND m.is_active = 1)
 GROUP BY module, organization_id, vehicle_number
 ORDER BY occurrences DESC, module, vehicle_number;
@@ -272,7 +282,8 @@ FROM (
 ) src
 WHERE NOT EXISTS (
         SELECT 1 FROM shipping_method m
-         WHERE (m.shipping_method_name = src.shipping_method_value
+         WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL)
+           AND (m.shipping_method_name = src.shipping_method_value
              OR m.shipping_method_code = src.shipping_method_value)
            AND m.organization_id = src.organization_id
            AND m.is_active       = 1)
@@ -596,7 +607,7 @@ SET
     CASE d.sqt_delivery_method_id
       WHEN 'Company Truck' THEN d.ct_driver_name
       ELSE (SELECT MIN(m.id) FROM driver m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND m.driver_name = CASE d.sqt_delivery_method_id
                      WHEN 'Self Pickup'           THEN d.cp_customer_pickup
                      WHEN '3rd Party Transporter' THEN d.tpt_driver_name END)
@@ -615,7 +626,7 @@ SET
     CASE d.sqt_delivery_method_id
       WHEN 'Company Truck' THEN d.ct_vehicle_number
       ELSE (SELECT MIN(m.id) FROM vehicle m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND m.vehicle_number = CASE d.sqt_delivery_method_id
                      WHEN 'Self Pickup'           THEN d.vehicle_number
                      WHEN '3rd Party Transporter' THEN d.tpt_vehicle_number END)
@@ -650,7 +661,7 @@ SET
     CASE d.sqt_delivery_method_id WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = CASE d.sqt_delivery_method_id WHEN 'Shipping Service' THEN d.ss_shipping_method END OR m.shipping_method_code = CASE d.sqt_delivery_method_id WHEN 'Shipping Service' THEN d.ss_shipping_method END)))
 WHERE d.sqt_delivery_method_id IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
@@ -666,7 +677,7 @@ SET
     CASE d.so_delivery_method
       WHEN 'Company Truck' THEN d.ct_driver_name
       ELSE (SELECT MIN(m.id) FROM driver m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND m.driver_name = CASE d.so_delivery_method
                      WHEN 'Self Pickup'           THEN d.cp_driver_name
                      WHEN '3rd Party Transporter' THEN d.tpt_driver_name END)
@@ -685,7 +696,7 @@ SET
     CASE d.so_delivery_method
       WHEN 'Company Truck' THEN d.ct_vehicle_number
       ELSE (SELECT MIN(m.id) FROM vehicle m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND m.vehicle_number = CASE d.so_delivery_method
                      WHEN 'Self Pickup'           THEN d.cp_vehicle_number
                      WHEN '3rd Party Transporter' THEN d.tpt_vehicle_number END)
@@ -720,7 +731,7 @@ SET
     CASE d.so_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = CASE d.so_delivery_method WHEN 'Shipping Service' THEN d.ss_shipping_method END OR m.shipping_method_code = CASE d.so_delivery_method WHEN 'Shipping Service' THEN d.ss_shipping_method END)))
 WHERE d.so_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
@@ -736,7 +747,7 @@ UPDATE goods_delivery d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''),
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = CASE d.gd_delivery_method
               WHEN 'Self Pickup'           THEN d.driver_name
               WHEN 'Company Truck'         THEN d.driver_name
@@ -755,7 +766,7 @@ SET
     CASE d.gd_delivery_method
       WHEN 'Company Truck' THEN d.vehicle_no
       ELSE (SELECT MIN(m.id) FROM vehicle m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND m.vehicle_number = CASE d.gd_delivery_method
                      WHEN 'Self Pickup'           THEN d.sp_vehicle_no
                      WHEN '3rd Party Transporter' THEN d.tpt_vehicle_number END)
@@ -790,7 +801,7 @@ SET
     CASE d.gd_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = CASE d.gd_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.gd_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END)))
 WHERE d.gd_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
@@ -805,7 +816,7 @@ UPDATE picking_plan d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''),
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = CASE d.to_delivery_method
               WHEN 'Self Pickup'           THEN d.driver_name
               WHEN 'Company Truck'         THEN d.driver_name
@@ -822,7 +833,7 @@ SET
       WHEN '3rd Party Transporter' THEN d.tpt_driver_contact_no END),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''),
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = CASE d.to_delivery_method
               WHEN 'Self Pickup'           THEN d.vehicle_no
               WHEN 'Company Truck'         THEN d.vehicle_no
@@ -857,7 +868,7 @@ SET
     CASE d.to_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = CASE d.to_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.to_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END)))
 WHERE d.to_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
@@ -872,7 +883,7 @@ UPDATE transfer_order d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''),
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = CASE d.delivery_method
               WHEN 'Self Pickup'           THEN d.driver_name
               WHEN 'Company Truck'         THEN d.ct_driver_name
@@ -891,7 +902,7 @@ SET
     CASE d.delivery_method
       WHEN 'Company Truck' THEN d.vehicle_no
       ELSE (SELECT MIN(m.id) FROM vehicle m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND m.vehicle_number = CASE d.delivery_method
                      WHEN 'Self Pickup'           THEN d.sp_vehicle_no
                      WHEN '3rd Party Transporter' THEN d.tpt_vehicle_number END)
@@ -926,7 +937,7 @@ SET
     CASE d.delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = CASE d.delivery_method WHEN 'Shipping Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.delivery_method WHEN 'Shipping Service' THEN d.shipping_method END)))
 WHERE d.delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
@@ -945,7 +956,7 @@ UPDATE purchase_return_head d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''),
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = CASE d.return_delivery_method
               WHEN 'Self Pickup'   THEN d.driver_name
               WHEN 'Company Truck' THEN d.driver_name2 END)),
@@ -961,7 +972,7 @@ SET
       WHEN '3rd Party Transporter' THEN d.tpt_driver_contact_no END),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''),
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = CASE d.return_delivery_method
               WHEN 'Self Pickup'           THEN d.vehicle_no
               WHEN 'Company Truck'         THEN d.vehicle_no2
@@ -984,7 +995,7 @@ SET
     CASE d.return_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = CASE d.return_delivery_method WHEN 'Courier Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.return_delivery_method WHEN 'Courier Service' THEN d.shipping_method END)))
 WHERE d.return_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
@@ -1003,7 +1014,7 @@ UPDATE sales_return d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''),
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = CASE d.sr_delivery_method
               WHEN 'Self Pickup'           THEN d.sr_driver_name
               WHEN 'Company Truck'         THEN d.sr_driver_name
@@ -1020,7 +1031,7 @@ SET
       WHEN '3rd Party Transporter' THEN d.tpt_driver_contact_no END),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''),
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = CASE d.sr_delivery_method
               WHEN 'Self Pickup'           THEN d.sr_vehicle_no
               WHEN 'Company Truck'         THEN d.sr_vehicle_no
@@ -1055,7 +1066,7 @@ SET
     CASE d.sr_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = CASE d.sr_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.sr_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END)))
 WHERE d.sr_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
@@ -1093,13 +1104,13 @@ UPDATE quotation d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), NULLIF(d.ct_driver_name,''), 
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = COALESCE(NULLIF(d.cp_customer_pickup,''), NULLIF(d.tpt_driver_name,'')))),
   d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.cp_ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
   d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact_no,''), NULLIF(d.ct_driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), NULLIF(d.ct_vehicle_number,''), 
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = COALESCE(NULLIF(d.vehicle_number,''), NULLIF(d.tpt_vehicle_number,'')))),
   d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
   d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
@@ -1111,7 +1122,7 @@ SET
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = NULLIF(d.ss_shipping_method,'') OR m.shipping_method_code = NULLIF(d.ss_shipping_method,''))))
 WHERE d.sqt_delivery_method_id IS NULL OR d.sqt_delivery_method_id = '';
 
@@ -1120,13 +1131,13 @@ UPDATE sales_order d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), NULLIF(d.ct_driver_name,''), 
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = COALESCE(NULLIF(d.cp_driver_name,''), NULLIF(d.tpt_driver_name,'')))),
   d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.cp_ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
   d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.cp_driver_contact_no,''), NULLIF(d.ct_driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), NULLIF(d.ct_vehicle_number,''), 
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = COALESCE(NULLIF(d.cp_vehicle_number,''), NULLIF(d.tpt_vehicle_number,'')))),
   d.di_pickup_date = COALESCE(d.di_pickup_date, d.cp_pickup_date),
   d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
@@ -1138,7 +1149,7 @@ SET
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = NULLIF(d.ss_shipping_method,'') OR m.shipping_method_code = NULLIF(d.ss_shipping_method,''))))
 WHERE d.so_delivery_method IS NULL OR d.so_delivery_method = '';
 
@@ -1147,13 +1158,13 @@ UPDATE goods_delivery d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = COALESCE(NULLIF(d.driver_name,''), NULLIF(d.tpt_driver_name,'')))),
   d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.ic_no,''), NULLIF(d.tpt_ic_no,'')),
   d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), NULLIF(d.vehicle_no,''), 
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = COALESCE(NULLIF(d.sp_vehicle_no,''), NULLIF(d.tpt_vehicle_number,'')))),
   d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
   d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
@@ -1165,7 +1176,7 @@ SET
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.gd_delivery_method IS NULL OR d.gd_delivery_method = '';
 
@@ -1174,13 +1185,13 @@ UPDATE picking_plan d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = COALESCE(NULLIF(d.driver_name,''), NULLIF(d.tpt_driver_name,'')))),
   d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.ic_no,''), NULLIF(d.tpt_ic_no,'')),
   d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), 
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = COALESCE(NULLIF(d.vehicle_no,''), NULLIF(d.tpt_vehicle_number,'')))),
   d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
   d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
@@ -1192,7 +1203,7 @@ SET
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.to_delivery_method IS NULL OR d.to_delivery_method = '';
 
@@ -1201,13 +1212,13 @@ UPDATE transfer_order d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = COALESCE(NULLIF(d.driver_name,''), NULLIF(d.ct_driver_name,''), NULLIF(d.tpt_driver_name,'')))),
   d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
   d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact_no,''), NULLIF(d.ct_driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), NULLIF(d.vehicle_no,''), 
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = COALESCE(NULLIF(d.sp_vehicle_no,''), NULLIF(d.tpt_vehicle_number,'')))),
   d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
   d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
@@ -1219,7 +1230,7 @@ SET
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.delivery_method IS NULL OR d.delivery_method = '';
 
@@ -1228,13 +1239,13 @@ UPDATE purchase_return_head d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = COALESCE(NULLIF(d.driver_name,''), NULLIF(d.driver_name2,'')))),
   d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.cp_ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
   d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact,''), NULLIF(d.driver_contact_no2,''), NULLIF(d.tpt_driver_contact_no,'')),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), 
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = COALESCE(NULLIF(d.vehicle_no,''), NULLIF(d.vehicle_no2,''), NULLIF(d.tpt_vehicle_number,'')))),
   d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
   d.di_shipping_company = COALESCE(NULLIF(d.di_shipping_company,''), NULLIF(d.courier_company,'')),
@@ -1244,7 +1255,7 @@ SET
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.return_delivery_method IS NULL OR d.return_delivery_method = '';
 
@@ -1253,13 +1264,13 @@ UPDATE sales_return d
 SET
   d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
     (SELECT MIN(m.id) FROM driver m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.driver_name = COALESCE(NULLIF(d.sr_driver_name,''), NULLIF(d.tpt_driver_name,'')))),
   d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.cp_ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
   d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.sr_driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
   d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), 
     (SELECT MIN(m.id) FROM vehicle m
-      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+      WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
         AND m.vehicle_number = COALESCE(NULLIF(d.sr_vehicle_no,''), NULLIF(d.tpt_vehicle_number,'')))),
   d.di_pickup_date = COALESCE(d.di_pickup_date, d.sr_pickup_date),
   d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
@@ -1271,7 +1282,7 @@ SET
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
   d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
     (SELECT MIN(m.id) FROM shipping_method m
-             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+             WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.organization_id = d.organization_id AND m.is_active = 1
                AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.sr_delivery_method IS NULL OR d.sr_delivery_method = '';
 
