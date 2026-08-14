@@ -481,7 +481,8 @@ ORDER BY conflict_rows DESC, module, di_field;
 
 
 -- 0.5  RESIDUAL CONFLICTS — list the actual rows
---      Run only for any module/field still non-zero in 0.4 after the zero-aware fix.
+--      NOT NEEDED as of the last production run (0.4 was clean across all 55).
+--      Kept for re-runs: use it for any module/field that comes back non-zero.
 --      Example: Sales Return freight (both columns hold a real, non-zero value).
 --      Decide per row, set di_freight_charges by hand, then run STEP 1B — it only
 --      fills columns that are still empty, so your manual values are preserved.
@@ -962,6 +963,12 @@ WHERE d.sr_delivery_method IN
 -- per row, which is what STEP 0.4 proves.
 --
 --   >>> DO NOT RUN THIS UNTIL STEP 0.4 RETURNS ALL ZEROS <<<
+--
+-- GATE STATUS: PASSED against production — all 55 checks returned 0.
+--   The first run flagged di_freight_charges in 6 modules; that was an artifact
+--   of the currency inputs defaulting to 0 (so every freight column reads as
+--   "populated"). Once the check was made zero-aware, all 55 came back clean.
+--   Re-run 0.4 if the data has moved on materially since.
 --
 -- Candidate order follows the section order in STEP 1 (Self Pickup → Courier →
 -- Company Truck → Shipping Service → 3rd Party). With 0.4 clean the order is
