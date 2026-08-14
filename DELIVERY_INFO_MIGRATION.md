@@ -140,7 +140,7 @@ The legacy Shipping-Service sub-choice **is** carried. It holds free text while
 by matching against both `shipping_method_name` and `shipping_method_code` — the
 column was originally a select storing the name, and was later degraded to a plain
 text input, so both forms occur in the data. Unmatched values land NULL and are
-listed by STEP 0.6 of the migration script.
+listed by STEP 0.4 of the migration script.
 
 | Module | Legacy source column |
 |---|---|

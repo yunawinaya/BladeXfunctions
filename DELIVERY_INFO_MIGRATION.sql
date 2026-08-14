@@ -20,7 +20,7 @@
 --   * shipping_method  — the legacy free-text sub-choice IS migrated into
 --                        di_shipping_method via a name/code lookup against the
 --                        Shipping Method master. Unmatched values land NULL and
---                        are listed by STEP 0.6.
+--                        are listed by STEP 0.4.
 --
 -- SHIPPING METHOD MASTER — must be org-scoped before you run this
 --   All three master lookups (driver, vehicle, shipping_method) are scoped by
@@ -244,7 +244,7 @@ GROUP BY module, organization_id, vehicle_number
 ORDER BY occurrences DESC, module, vehicle_number;
 
 
--- 0.6  SHIPPING METHODS WITH NO MASTER MATCH
+-- 0.4  SHIPPING METHODS WITH NO MASTER MATCH
 --      The legacy shipping_method columns hold a free-text value; di_shipping_method
 --      stores a Shipping Method id. Anything unmatched here lands NULL.
 --      Matching is tried against BOTH shipping_method_name and shipping_method_code,
@@ -291,7 +291,7 @@ GROUP BY module, organization_id, shipping_method_value
 ORDER BY occurrences DESC, module, shipping_method_value;
 
 
--- 0.4  COLLISION GATE for NULL-delivery-method rows
+-- 0.5  COLLISION GATE for NULL-delivery-method rows
 --      STEP 1B can only be trusted if NO row has two candidate source columns
 --      populated at once. Every conflict_rows value must be 0.
 --      A non-zero row means that module/field genuinely cannot be resolved
@@ -573,8 +573,8 @@ SELECT 'Sales Return' AS module, 'di_tracking_number' AS di_field, COUNT(*) AS c
 ORDER BY conflict_rows DESC, module, di_field;
 
 
--- 0.5  RESIDUAL CONFLICTS — list the actual rows
---      NOT NEEDED as of the last production run (0.4 was clean across all 55).
+-- 0.6  RESIDUAL CONFLICTS — list the actual rows
+--      NOT NEEDED as of the last production run (0.5 was clean across all 55).
 --      Kept for re-runs: use it for any module/field that comes back non-zero.
 --      Example: Sales Return freight (both columns hold a real, non-zero value).
 --      Decide per row, set di_freight_charges by hand, then run STEP 1B — it only
@@ -1081,18 +1081,18 @@ WHERE d.sr_delivery_method IN
 --
 -- This pass drops the method entirely and COALESCEs across every candidate
 -- column instead. That is only sound when at most ONE candidate is populated
--- per row, which is what STEP 0.4 proves.
+-- per row, which is what STEP 0.5 proves.
 --
---   >>> DO NOT RUN THIS UNTIL STEP 0.4 RETURNS ALL ZEROS <<<
+--   >>> DO NOT RUN THIS UNTIL STEP 0.5 RETURNS ALL ZEROS <<<
 --
 -- GATE STATUS: PASSED against production — all 55 checks returned 0.
 --   The first run flagged di_freight_charges in 6 modules; that was an artifact
 --   of the currency inputs defaulting to 0 (so every freight column reads as
 --   "populated"). Once the check was made zero-aware, all 55 came back clean.
---   Re-run 0.4 if the data has moved on materially since.
+--   Re-run 0.5 if the data has moved on materially since.
 --
 -- Candidate order follows the section order in STEP 1 (Self Pickup → Courier →
--- Company Truck → Shipping Service → 3rd Party). With 0.4 clean the order is
+-- Company Truck → Shipping Service → 3rd Party). With 0.5 clean the order is
 -- irrelevant; it only matters if a conflict slipped through.
 --
 -- Same guarantees as STEP 1: re-runnable, legacy columns untouched, unmatched
