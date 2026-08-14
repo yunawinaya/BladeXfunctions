@@ -22,6 +22,15 @@
 --                        Shipping Method master. Unmatched values land NULL and
 --                        are listed by STEP 0.6.
 --
+-- SHIPPING METHOD MASTER — must be org-scoped before you run this
+--   All three master lookups (driver, vehicle, shipping_method) are scoped by
+--   organization_id, so a legacy value can only ever resolve to a Shipping Method
+--   belonging to the same organization as the document.
+--
+--   shipping_method did NOT have organization_id or is_active in production when
+--   this was written. Add both columns and populate them first — STEP 0.0 checks.
+--   Without the scope a value could silently resolve to another tenant's row.
+--
 -- RUN ORDER:  STEP 0 (read-only reports)  →  STEP 1 (updates)  →  STEP 2 (verify)
 -- =============================================================================
 
@@ -42,6 +51,10 @@
 --   vehicle               Vehicle master    (id, vehicle_number, is_active, organization_id)
 --   shipping_method       Shipping Method   (id, shipping_method_name, shipping_method_code, is_active, organization_id)
 --
+--   >>> PREREQUISITE: shipping_method must have organization_id AND is_active
+--   >>> before running. They did not exist in production at the time of writing;
+--   >>> STEP 0.0 verifies they are there now.
+--
 -- All nine table names confirmed. Two are not what you would guess:
 --   Picking          ->  transfer_order        (NOT `picking`)
 --   Purchase Return  ->  purchase_return_head  (NOT `purchase_return`)
@@ -51,6 +64,28 @@
 -- #############################################################################
 -- STEP 0 — PRE-FLIGHT REPORTS (read-only, run these first)
 -- #############################################################################
+
+-- 0.0  MASTER TABLE COLUMN CHECK — run this FIRST
+--      The driver / vehicle lookups assume an organization_id column; the
+--      shipping_method lookup assumes there is NOT one (it is a global master).
+--      If this returns a row whose has_org_id does not match what the script
+--      expects, the corresponding lookups need adjusting before STEP 1.
+--
+--        driver          expects has_org_id = 1
+--        vehicle         expects has_org_id = 1
+--        shipping_method expects has_org_id = 1   <-- must be added first
+--
+--      All three must return has_org_id = 1 AND has_is_active = 1. If
+--      shipping_method returns 0 for either, STOP: add the columns, populate
+--      them, then re-run this check.
+SELECT TABLE_NAME,
+       MAX(COLUMN_NAME = 'organization_id') AS has_org_id,
+       MAX(COLUMN_NAME = 'is_active')       AS has_is_active
+  FROM INFORMATION_SCHEMA.COLUMNS
+ WHERE TABLE_SCHEMA = DATABASE()
+   AND TABLE_NAME IN ('driver','vehicle','shipping_method')
+ GROUP BY TABLE_NAME;
+
 
 -- 0.1  How many rows will each module migrate, and how many are unmigratable?
 --      Rows with a NULL/blank delivery method cannot be mapped — there is no way
@@ -134,8 +169,7 @@ WHERE src.driver_name IS NOT NULL
   AND NOT EXISTS (
         SELECT 1 FROM driver m
          WHERE m.driver_name     = src.driver_name
-           AND m.organization_id = src.organization_id
-           AND m.is_active       = 1)
+           AND m.is_active = 1)
 GROUP BY module, organization_id, driver_name
 ORDER BY occurrences DESC, module, driver_name;
 
@@ -195,8 +229,7 @@ WHERE src.vehicle_number IS NOT NULL
   AND NOT EXISTS (
         SELECT 1 FROM vehicle m
          WHERE m.vehicle_number  = src.vehicle_number
-           AND m.organization_id = src.organization_id
-           AND m.is_active       = 1)
+           AND m.is_active = 1)
 GROUP BY module, organization_id, vehicle_number
 ORDER BY occurrences DESC, module, vehicle_number;
 
