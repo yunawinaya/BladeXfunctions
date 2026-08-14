@@ -32,6 +32,12 @@ SQL = """-- Customer Statement: AR invoices, enriched by lookup joins and aged.
 -- Every filter is gated on BOTH its switch and a non-empty value, so a stale
 -- value behind a switched-off toggle cannot leak in, and an unresolved
 -- placeholder degrades to "no filter" instead of "no rows".
+--
+-- NOTE: `statement_date` / `statement_date_switch` are deliberately NOT read by
+-- this query. They stay declared in request_json and bound in the table's
+-- url_params, but the statement date is a report-header value only -- it neither
+-- filters rows nor sets the aging reference. Aging is always measured against
+-- CURDATE(). Do not "restore" a statement_date predicate here without asking.
 SELECT
     q.customer_id,
     q.customer_name,
@@ -69,12 +75,10 @@ FROM (
         ROUND(COALESCE(ari.invoice_total, 0), 2)      AS invoice_total,
         ROUND(COALESCE(ari.myr_invoice_total, 0), 2)  AS myr_invoice_total,
         ROUND(COALESCE(ari.outstanding_amount, 0), 2) AS outstanding_amount,
-        -- Aging is measured against the statement date when that filter is on,
-        -- otherwise against today. Gated on the switch for the same reason the
-        -- row filter below is: a stale value behind an off switch must not count.
-        GREATEST(COALESCE(DATEDIFF(
-            COALESCE(CASE WHEN '{{{{workflowparams:statement_date_switch}}}}' = '1'
-                          THEN p.stmt_date END, CURDATE()), ari.due_date), 0), 0) AS days_overdue
+        -- Aging is always measured against today. The statement date is a
+        -- report-header value and has no say in the buckets (see the note at
+        -- the top of this query).
+        GREATEST(COALESCE(DATEDIFF(CURDATE(), ari.due_date), 0), 0) AS days_overdue
     FROM ar_invoice ari
     CROSS JOIN (
         SELECT
@@ -82,15 +86,13 @@ FROM (
           p0.area_ids,
           p0.proj_ids,
           {date_from} AS date_from,
-          {date_to}   AS date_to,
-          {stmt_date} AS stmt_date
+          {date_to}   AS date_to
         FROM (
           SELECT
             {n_cust} AS cust_ids,
             {n_area} AS area_ids,
             {n_proj} AS proj_ids,
-            {n_dr}   AS dr,
-            {n_sd}   AS sd
+            {n_dr}   AS dr
         ) p0
     ) p
     LEFT JOIN customer      cust ON cust.id = ari.customer_id
@@ -119,9 +121,6 @@ FROM (
             OR p.date_to IS NULL
             OR ( ari.invoice_date >= p.date_from
                  AND ari.invoice_date < DATE_ADD(p.date_to, INTERVAL 1 DAY) ) )
-      AND ( '{{{{workflowparams:statement_date_switch}}}}' <> '1'
-            OR p.stmt_date IS NULL
-            OR DATE(ari.invoice_date) = p.stmt_date )
 ) q
 ORDER BY q.customer_id, q.invoice_date, q.ar_invoice_no
 LIMIT 5000;""".format(
@@ -129,13 +128,14 @@ LIMIT 5000;""".format(
     n_area=norm("area_ids"),
     n_proj=norm("project_ids"),
     n_dr=norm("date_range"),
-    n_sd=norm("statement_date"),
     date_from=dparse("SUBSTRING_INDEX(p0.dr, ',', 1)"),
     date_to=dparse("SUBSTRING_INDEX(p0.dr, ',', -1)"),
-    stmt_date=dparse("p0.sd"),
 )
 
 # ---- schema -----------------------------------------------------------------
+# `statement_date` / `statement_date_switch` are kept here on purpose even though
+# the SQL never reads them: the list page still binds both through url_params, and
+# an undeclared param would break that binding. See the note at the top of SQL.
 REQUEST = [
     ("a1c5uk9t", "customer_ids"),
     ("e4g8mz2p", "area_ids"),

@@ -9,9 +9,15 @@
   const TABLE = "custom_4457str7";
 
   // [ switch model, input model, label, the value that means "empty" ]
+  //
+  // statement_date is deliberately NOT in this list. The SQL ignores both it and
+  // its switch entirely -- the statement date is a report-header value, not a
+  // filter: it selects no rows and no longer sets the aging reference. So it
+  // must not gate the query or be cleared like a filter. Both models are still
+  // bound in the table's url_params and still reach the workflow, just unread.
+  // See the note at the top of the SQL in CSgenerateFilterWorkflow.json.
   const FILTERS = [
     ["date_range_switch", "date_range", "Date", ""],
-    ["statement_date_switch", "statement_date", "Statement Date", ""],
     ["customer_switch", "customer_id", "Customer", []],
     ["area_switch", "area_id", "Area", []],
     ["project_switch", "project_id", "Project", []],
@@ -42,6 +48,17 @@
     this.$message.error(
       `Please select a value for: ${missing.join(", ")} — or switch the filter off.`
     );
+    return;
+  }
+
+  // The statement date selects no rows, but it is stamped on the report, so a
+  // blank one is still worth catching. It gets its own message on purpose: the
+  // filter wording above ("or switch the filter off") is wrong for it, because
+  // statement_date_switch is `disabled: true` on the form and CANNOT be turned
+  // off -- telling the user to do so would be a dead end. The field defaults to
+  // fx.date.today(), so this only fires if they clear it by hand.
+  if (isEmpty(this.getValue("statement_date"))) {
+    this.$message.error("Please select a Statement Date.");
     return;
   }
 

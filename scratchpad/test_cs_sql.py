@@ -10,7 +10,10 @@ import json, re, sqlite3, sqlglot, datetime
 WF = "Customer Statement/CSgenerateFilterWorkflow.json"
 MYSQL = json.load(open(WF))["nodes"][1]["data"]["script"]["code"]
 
-TODAY = datetime.date(2026, 8, 13)
+# The SQL ages against CURDATE(), which SQLite resolves to the real today, so any
+# expected day-count has to be derived rather than hard-coded -- a literal drifts
+# by one every midnight.
+TODAY = datetime.date.today()
 
 
 def substitute(params):
@@ -99,8 +102,10 @@ def nos(rows):
 
 
 FAIL = []
+RAN = []
 def check(label, got, want):
     ok = got == want
+    RAN.append(label)
     print(("PASS  " if ok else "FAIL  ") + label)
     if not ok:
         print("        got  =", got)
@@ -161,10 +166,15 @@ check("date range (epoch millis)",
                      date_range="[%s, %s]" % (ms("2026-07-01"), ms("2026-08-31"))))),
       ["INV-030", "INV-BETA", "INV-CUR", "INV-LEGACY", "INV-PAID"])
 
-# 10. statement date = EXACT match on invoice_date
-check("statement date is an exact invoice_date match",
+# 10. statement_date is display-only: it must NOT filter rows. Its param and
+#     switch are still declared and still bound by the list page, so the values
+#     do arrive -- the query simply has to ignore them.
+check("statement_date does NOT filter rows (switch on, value set)",
       nos(run(statement_date_switch="1", statement_date="2026-08-05")),
-      ["INV-BETA"])
+      nos(run()))
+check("statement_date does NOT filter rows (value matching no invoice)",
+      nos(run(statement_date_switch="1", statement_date="1999-01-01")),
+      nos(run()))
 
 # 11. area + project filters
 check("area filter", sorted(nos(run(area_switch="1", area_ids='["5002"]'))),
@@ -193,24 +203,29 @@ check("buckets sum to outstanding_amount",
 check("a fully-paid invoice contributes 0 to every bucket",
       [rows["INV-PAID"][b] for b in BUCKETS], [0, 0, 0, 0, 0])
 
-# 14. the statement date moves the aging reference date -- but only when its
-#     switch is on, matching how the row filter treats the same param.
-off = {r["ar_invoice_no"]: r["days_overdue"] for r in
-       run(statement_date_switch="0", statement_date="2026-10-01")}
-check("statement_date does NOT age rows while its switch is off",
-      off["INV-030"], rows["INV-030"]["days_overdue"])
-# INV-030 is dated 2026-07-01 and due 2026-08-01. Aged against today it is 12
-# days overdue; aged against a 2026-07-01 statement date it is not yet due.
-on = {r["ar_invoice_no"]: r["days_overdue"] for r in
-      run(statement_date_switch="1", statement_date="2026-07-01")}
-check("statement_date DOES set the aging reference when its switch is on",
-      (rows["INV-030"]["days_overdue"], on["INV-030"]), (12, 0))
+# 14. aging is anchored to CURDATE() and nothing else. statement_date must not
+#     move the reference date in either switch position -- back-dating it used to
+#     re-age every row, and that is exactly the behaviour being removed.
+DUE_030 = datetime.date(2026, 8, 1)          # INV-030 is dated 2026-07-01, due 2026-08-01
+check("aging is measured from today, not from any param",
+      rows["INV-030"]["days_overdue"], max((TODAY - DUE_030).days, 0))
+for label, over in [
+    ("switch off", dict(statement_date_switch="0", statement_date="2026-10-01")),
+    ("switch on, back-dated", dict(statement_date_switch="1", statement_date="2026-07-01")),
+    ("switch on, future-dated", dict(statement_date_switch="1", statement_date="2027-01-01")),
+]:
+    got = {r["ar_invoice_no"]: r["days_overdue"] for r in run(**over)}
+    # .get() rather than [] on purpose: if a statement_date predicate ever comes
+    # back, these rows vanish instead of re-aging, and the check must report a
+    # clean FAIL (None != n) rather than dying on a KeyError.
+    check("statement_date does NOT move the aging reference (%s)" % label,
+          {n: got.get(n) for n in rows}, {n: rows[n]["days_overdue"] for n in rows})
 
 # 15. missing lookups become '' rather than dropping the row (LEFT JOIN)
 check("null area/project become empty strings, row survives",
       [rows["INV-90P"]["area_code"], rows["INV-90P"]["project_code"],
        rows["INV-90P"]["customer_id"]], ["", "", "C-001"])
 
-print("\n%d/%d passed" % (15 + 3 - len(FAIL), 18) if False else "")
+print("\n%d/%d passed" % (len(RAN) - len(FAIL), len(RAN)))
 print("FAILURES:", FAIL if FAIL else "none")
 raise SystemExit(1 if FAIL else 0)
