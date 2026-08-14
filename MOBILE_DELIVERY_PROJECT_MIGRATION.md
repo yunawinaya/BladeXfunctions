@@ -279,19 +279,22 @@ with more than one source.
 | 11 | `di_tracking_number` | CS:`cs_tracking_number`<br>SS:`ss_tracking_number` | CS:`cs_tracking_number`<br>SS:`ss_tracking_number` | CS:`tracking_number`<br>SS:`tracking_number` | CS:`tracking_number`<br>SS:`tracking_number` | CS:`tracking_number`<br>SS:`ss_tracking_number` | — | CS:`sr_tracking_no`<br>SS:`sr_tracking_number` |
 | 12 | `di_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` | TPT:`tpt_transport_name` |
 
-`di_shipping_method` is not in this table — it is a standalone field, populated on
-its own rather than migrated from a legacy column.
+`di_shipping_method` is not in the table above because its source is a single
+column per module rather than a per-method set — see below.
 
-### Dropped columns
+### `di_shipping_method` — migrated via lookup
 
-Because `di_shipping_method` is standalone, the old Shipping-Service sub-choice
-columns are **not** carried, and their data is lost unless handled separately:
+The legacy Shipping-Service sub-choice **is** carried. It stores free text while
+`di_shipping_method` stores a Shipping Method **id**, so the migration resolves it
+by matching against both `shipping_method_name` and `shipping_method_code`
+(the column was originally a select storing the name, later degraded to a plain
+text input). Unmatched values land NULL and are reported.
 
-| Module | Dropped |
+| Module | Legacy source column |
 |---|---|
 | SQT, SO | `ss_shipping_method` |
 | GD, PP, PICK | `shipping_method` |
-| PRT | `shipping_method` (sits under Courier Service, not Shipping Service) |
+| PRT | `shipping_method` (sits under **Courier Service**, not Shipping Service) |
 | SR | `shipping_method` |
 
 ---

@@ -17,8 +17,10 @@
 --   * Unmatched → NULL — di_driver_name and di_vehicle_number store master-record
 --                        ids. A typed name/plate with no master match is left
 --                        NULL and listed by the STEP 0 reports.
---   * shipping_method  — the old Shipping-Service sub-choice is NOT migrated.
---                        di_shipping_method is a standalone Shipping Method FK.
+--   * shipping_method  — the legacy free-text sub-choice IS migrated into
+--                        di_shipping_method via a name/code lookup against the
+--                        Shipping Method master. Unmatched values land NULL and
+--                        are listed by STEP 0.6.
 --
 -- RUN ORDER:  STEP 0 (read-only reports)  →  STEP 1 (updates)  →  STEP 2 (verify)
 -- =============================================================================
@@ -38,6 +40,7 @@
 --
 --   driver                Driver master     (id, driver_name, is_active, organization_id)
 --   vehicle               Vehicle master    (id, vehicle_number, is_active, organization_id)
+--   shipping_method       Shipping Method   (id, shipping_method_name, shipping_method_code, is_active, organization_id)
 --
 -- All nine table names confirmed. Two are not what you would guess:
 --   Picking          ->  transfer_order        (NOT `picking`)
@@ -196,6 +199,52 @@ WHERE src.vehicle_number IS NOT NULL
            AND m.is_active       = 1)
 GROUP BY module, organization_id, vehicle_number
 ORDER BY occurrences DESC, module, vehicle_number;
+
+
+-- 0.6  SHIPPING METHODS WITH NO MASTER MATCH
+--      The legacy shipping_method columns hold a free-text value; di_shipping_method
+--      stores a Shipping Method id. Anything unmatched here lands NULL.
+--      Matching is tried against BOTH shipping_method_name and shipping_method_code,
+--      because the column was originally a select storing the NAME and was later
+--      degraded to a plain text input.
+SELECT module, organization_id, shipping_method_value, COUNT(*) AS occurrences
+FROM (
+  SELECT 'quotation' AS module, organization_id, ss_shipping_method AS shipping_method_value
+    FROM quotation
+   WHERE NULLIF(CAST(ss_shipping_method AS CHAR),'') IS NOT NULL
+  UNION ALL
+  SELECT 'sales_order' AS module, organization_id, ss_shipping_method AS shipping_method_value
+    FROM sales_order
+   WHERE NULLIF(CAST(ss_shipping_method AS CHAR),'') IS NOT NULL
+  UNION ALL
+  SELECT 'goods_delivery' AS module, organization_id, shipping_method AS shipping_method_value
+    FROM goods_delivery
+   WHERE NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL
+  UNION ALL
+  SELECT 'picking_plan' AS module, organization_id, shipping_method AS shipping_method_value
+    FROM picking_plan
+   WHERE NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL
+  UNION ALL
+  SELECT 'transfer_order' AS module, organization_id, shipping_method AS shipping_method_value
+    FROM transfer_order
+   WHERE NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL
+  UNION ALL
+  SELECT 'purchase_return_head' AS module, organization_id, shipping_method AS shipping_method_value
+    FROM purchase_return_head
+   WHERE NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL
+  UNION ALL
+  SELECT 'sales_return' AS module, organization_id, shipping_method AS shipping_method_value
+    FROM sales_return
+   WHERE NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL
+) src
+WHERE NOT EXISTS (
+        SELECT 1 FROM shipping_method m
+         WHERE (m.shipping_method_name = src.shipping_method_value
+             OR m.shipping_method_code = src.shipping_method_value)
+           AND m.organization_id = src.organization_id
+           AND m.is_active       = 1)
+GROUP BY module, organization_id, shipping_method_value
+ORDER BY occurrences DESC, module, shipping_method_value;
 
 
 -- 0.4  COLLISION GATE for NULL-delivery-method rows
@@ -565,7 +614,11 @@ SET
       WHEN 'Courier Service'  THEN d.cs_tracking_number
       WHEN 'Shipping Service' THEN d.ss_tracking_number END),
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''),
-    CASE d.sqt_delivery_method_id WHEN '3rd Party Transporter' THEN d.tpt_transport_name END)
+    CASE d.sqt_delivery_method_id WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = CASE d.sqt_delivery_method_id WHEN 'Shipping Service' THEN d.ss_shipping_method END OR m.shipping_method_code = CASE d.sqt_delivery_method_id WHEN 'Shipping Service' THEN d.ss_shipping_method END)))
 WHERE d.sqt_delivery_method_id IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
 
@@ -631,7 +684,11 @@ SET
       WHEN 'Courier Service'  THEN d.cs_tracking_number
       WHEN 'Shipping Service' THEN d.ss_tracking_number END),
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''),
-    CASE d.so_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END)
+    CASE d.so_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = CASE d.so_delivery_method WHEN 'Shipping Service' THEN d.ss_shipping_method END OR m.shipping_method_code = CASE d.so_delivery_method WHEN 'Shipping Service' THEN d.ss_shipping_method END)))
 WHERE d.so_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
 
@@ -697,7 +754,11 @@ SET
       WHEN 'Courier Service'  THEN d.tracking_number
       WHEN 'Shipping Service' THEN d.tracking_number END),
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''),
-    CASE d.gd_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END)
+    CASE d.gd_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = CASE d.gd_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.gd_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END)))
 WHERE d.gd_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
 
@@ -760,7 +821,11 @@ SET
       WHEN 'Courier Service'  THEN d.tracking_number
       WHEN 'Shipping Service' THEN d.tracking_number END),
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''),
-    CASE d.to_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END)
+    CASE d.to_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = CASE d.to_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.to_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END)))
 WHERE d.to_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
 
@@ -825,7 +890,11 @@ SET
       WHEN 'Courier Service'  THEN d.tracking_number
       WHEN 'Shipping Service' THEN d.ss_tracking_number END),
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''),
-    CASE d.delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END)
+    CASE d.delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = CASE d.delivery_method WHEN 'Shipping Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.delivery_method WHEN 'Shipping Service' THEN d.shipping_method END)))
 WHERE d.delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
 
@@ -879,7 +948,11 @@ SET
       WHEN 'Courier Service' THEN d.freight_charge
       WHEN 'Company Truck'   THEN d.delivery_cost END, 2)),
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''),
-    CASE d.return_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END)
+    CASE d.return_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = CASE d.return_delivery_method WHEN 'Courier Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.return_delivery_method WHEN 'Courier Service' THEN d.shipping_method END)))
 WHERE d.return_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
 
@@ -946,7 +1019,11 @@ SET
       WHEN 'Courier Service'  THEN d.sr_tracking_no
       WHEN 'Shipping Service' THEN d.sr_tracking_number END),
   d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''),
-    CASE d.sr_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END)
+    CASE d.sr_delivery_method WHEN '3rd Party Transporter' THEN d.tpt_transport_name END),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = CASE d.sr_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END OR m.shipping_method_code = CASE d.sr_delivery_method WHEN 'Shipping Service' THEN d.shipping_method END)))
 WHERE d.sr_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
 
@@ -998,7 +1075,11 @@ SET
   d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.cs_est_arrival_date, d.est_arrival_date),
   d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ct_delivery_cost,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ss_freight_charges,0) AS DECIMAL(18,4)),0)),
   d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.cs_tracking_number,''), NULLIF(d.ss_tracking_number,'')),
-  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = NULLIF(d.ss_shipping_method,'') OR m.shipping_method_code = NULLIF(d.ss_shipping_method,''))))
 WHERE d.sqt_delivery_method_id IS NULL OR d.sqt_delivery_method_id = '';
 
 -- Sales Order
@@ -1021,7 +1102,11 @@ SET
   d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.est_arrival_date, d.ss_est_arrival_date),
   d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.cs_freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ct_delivery_cost,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ss_freight_charges,0) AS DECIMAL(18,4)),0)),
   d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.cs_tracking_number,''), NULLIF(d.ss_tracking_number,'')),
-  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = NULLIF(d.ss_shipping_method,'') OR m.shipping_method_code = NULLIF(d.ss_shipping_method,''))))
 WHERE d.so_delivery_method IS NULL OR d.so_delivery_method = '';
 
 -- Goods Delivery
@@ -1044,7 +1129,11 @@ SET
   d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.est_arrival_date),
   d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.delivery_cost,0) AS DECIMAL(18,4)),0)),
   d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.tracking_number,'')),
-  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.gd_delivery_method IS NULL OR d.gd_delivery_method = '';
 
 -- Picking Plan
@@ -1067,7 +1156,11 @@ SET
   d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.est_arrival_date),
   d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.delivery_cost,0) AS DECIMAL(18,4)),0)),
   d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.tracking_number,'')),
-  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.to_delivery_method IS NULL OR d.to_delivery_method = '';
 
 -- Picking
@@ -1090,7 +1183,11 @@ SET
   d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.est_arrival_date, d.ss_est_arrival_date),
   d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.delivery_cost,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ss_freight_charges,0) AS DECIMAL(18,4)),0)),
   d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.tracking_number,''), NULLIF(d.ss_tracking_number,'')),
-  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.delivery_method IS NULL OR d.delivery_method = '';
 
 -- Purchase Return
@@ -1111,7 +1208,11 @@ SET
   d.di_est_delivery_date = COALESCE(d.di_est_delivery_date, d.shipping_date, d.estimated_arrival2),
   d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.estimated_ariival),
   d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charge,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.delivery_cost,0) AS DECIMAL(18,4)),0)),
-  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.return_delivery_method IS NULL OR d.return_delivery_method = '';
 
 -- Sales Return
@@ -1134,7 +1235,11 @@ SET
   d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.sr_est_arrival_date),
   d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.sr_freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.sr_delivery_cost,0) AS DECIMAL(18,4)),0)),
   d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.sr_tracking_no,''), NULLIF(d.sr_tracking_number,'')),
-  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,'')),
+  d.di_shipping_method = COALESCE(NULLIF(d.di_shipping_method,''),
+    (SELECT MIN(m.id) FROM shipping_method m
+             WHERE m.organization_id = d.organization_id AND m.is_active = 1
+               AND (m.shipping_method_name = NULLIF(d.shipping_method,'') OR m.shipping_method_code = NULLIF(d.shipping_method,''))))
 WHERE d.sr_delivery_method IS NULL OR d.sr_delivery_method = '';
 
 -- #############################################################################

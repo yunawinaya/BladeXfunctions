@@ -133,19 +133,23 @@ id-backed pickers whose only already-correct sources are Company Truck.
 
 ---
 
-## Dropped columns
+## `di_shipping_method` — migrated via lookup
 
-`di_shipping_method` is standalone, so the existing Shipping-Service sub-choice
-columns are **not** carried and their data is lost unless separately handled:
+The legacy Shipping-Service sub-choice **is** carried. It holds free text while
+`di_shipping_method` stores a Shipping Method **id**, so the migration resolves it
+by matching against both `shipping_method_name` and `shipping_method_code` — the
+column was originally a select storing the name, and was later degraded to a plain
+text input, so both forms occur in the data. Unmatched values land NULL and are
+listed by STEP 0.6 of the migration script.
 
-| Module | Dropped column |
+| Module | Legacy source column |
 |---|---|
 | SQT | `ss_shipping_method` |
 | SO | `ss_shipping_method` |
 | GD | `shipping_method` |
 | PP | `shipping_method` |
 | PICK | `shipping_method` |
-| PRT | `shipping_method` (sits under Courier Service, not Shipping Service) |
+| PRT | `shipping_method` (sits under **Courier Service**, not Shipping Service) |
 | SR | `shipping_method` |
 
 ---

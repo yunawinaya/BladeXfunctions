@@ -449,6 +449,41 @@ SELECT 'Sales Return' AS module, 'di_transport_name' AS di_field, COUNT(*) AS wo
   FROM sales_return
  WHERE (NULLIF(CAST(di_transport_name AS CHAR),'') IS NULL)
    AND (NULLIF(CAST(tpt_transport_name AS CHAR),'') IS NOT NULL)
+UNION ALL
+SELECT 'Quotation' AS module, 'di_shipping_method' AS di_field, COUNT(*) AS would_lose_data
+  FROM quotation
+ WHERE (NULLIF(CAST(di_shipping_method AS CHAR),'') IS NULL)
+   AND (NULLIF(CAST(ss_shipping_method AS CHAR),'') IS NOT NULL)
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_shipping_method' AS di_field, COUNT(*) AS would_lose_data
+  FROM sales_order
+ WHERE (NULLIF(CAST(di_shipping_method AS CHAR),'') IS NULL)
+   AND (NULLIF(CAST(ss_shipping_method AS CHAR),'') IS NOT NULL)
+UNION ALL
+SELECT 'Goods Delivery' AS module, 'di_shipping_method' AS di_field, COUNT(*) AS would_lose_data
+  FROM goods_delivery
+ WHERE (NULLIF(CAST(di_shipping_method AS CHAR),'') IS NULL)
+   AND (NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL)
+UNION ALL
+SELECT 'Picking Plan' AS module, 'di_shipping_method' AS di_field, COUNT(*) AS would_lose_data
+  FROM picking_plan
+ WHERE (NULLIF(CAST(di_shipping_method AS CHAR),'') IS NULL)
+   AND (NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL)
+UNION ALL
+SELECT 'Picking' AS module, 'di_shipping_method' AS di_field, COUNT(*) AS would_lose_data
+  FROM transfer_order
+ WHERE (NULLIF(CAST(di_shipping_method AS CHAR),'') IS NULL)
+   AND (NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL)
+UNION ALL
+SELECT 'Purchase Return' AS module, 'di_shipping_method' AS di_field, COUNT(*) AS would_lose_data
+  FROM purchase_return_head
+ WHERE (NULLIF(CAST(di_shipping_method AS CHAR),'') IS NULL)
+   AND (NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL)
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_shipping_method' AS di_field, COUNT(*) AS would_lose_data
+  FROM sales_return
+ WHERE (NULLIF(CAST(di_shipping_method AS CHAR),'') IS NULL)
+   AND (NULLIF(CAST(shipping_method AS CHAR),'') IS NOT NULL)
 ORDER BY would_lose_data DESC, module, di_field;
 
 
@@ -461,9 +496,9 @@ ORDER BY would_lose_data DESC, module, di_field;
 --
 -- Only run with C0 all zero.
 --
--- Includes the dropped Shipping-Service sub-choice column (ss_shipping_method /
--- shipping_method), which was deliberately never migrated — clearing it discards
--- that data permanently.
+-- Includes the legacy Shipping-Service sub-choice column (ss_shipping_method /
+-- shipping_method). It IS migrated into di_shipping_method by STEP 1/1B of the
+-- migration, and C0 now gates it like every other field.
 --
 -- NOTE ON THE MERGE: the discriminator is the only thing that lets you re-derive
 -- which delivery section a historical row used. Clearing it in the same pass as
