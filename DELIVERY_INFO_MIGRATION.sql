@@ -198,6 +198,300 @@ GROUP BY module, organization_id, vehicle_number
 ORDER BY occurrences DESC, module, vehicle_number;
 
 
+-- 0.4  COLLISION GATE for NULL-delivery-method rows
+--      STEP 1B can only be trusted if NO row has two candidate source columns
+--      populated at once. Every conflict_rows value must be 0.
+--      A non-zero row means that module/field genuinely cannot be resolved
+--      without the delivery method — exclude it from 1B and handle by hand.
+SELECT 'Quotation' AS module, 'di_driver_name' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((NULLIF(CAST(ct_driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(cp_customer_pickup AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_name AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Quotation' AS module, 'di_ic_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((NULLIF(CAST(cp_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_ic_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Quotation' AS module, 'di_driver_contact_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((NULLIF(CAST(driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_contact_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Quotation' AS module, 'di_vehicle_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((NULLIF(CAST(ct_vehicle_number AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(vehicle_number AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_vehicle_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Quotation' AS module, 'di_shipping_company' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((NULLIF(CAST(courier_company AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_shipping_company AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Quotation' AS module, 'di_est_delivery_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((NULLIF(CAST(shipping_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_est_delivery_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_shipping_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Quotation' AS module, 'di_est_arrival_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((NULLIF(CAST(cs_est_arrival_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(est_arrival_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Quotation' AS module, 'di_freight_charges' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((CAST(COALESCE(freight_charges,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(ct_delivery_cost,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(ss_freight_charges,0) AS DECIMAL(18,4)) <> 0)) > 1
+UNION ALL
+SELECT 'Quotation' AS module, 'di_tracking_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM quotation
+ WHERE (sqt_delivery_method_id IS NULL OR sqt_delivery_method_id = '')
+   AND ((NULLIF(CAST(cs_tracking_number AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_tracking_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_driver_name' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((NULLIF(CAST(ct_driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(cp_driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_name AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_ic_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((NULLIF(CAST(cp_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_ic_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_driver_contact_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((NULLIF(CAST(cp_driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_contact_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_vehicle_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((NULLIF(CAST(ct_vehicle_number AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(cp_vehicle_number AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_vehicle_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_shipping_company' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((NULLIF(CAST(cs_courier_company AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_shipping_company AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_est_delivery_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((NULLIF(CAST(cs_shipping_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_est_delivery_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_shippping_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_est_arrival_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((NULLIF(CAST(est_arrival_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_est_arrival_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_freight_charges' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((CAST(COALESCE(cs_freight_charges,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(ct_delivery_cost,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(ss_freight_charges,0) AS DECIMAL(18,4)) <> 0)) > 1
+UNION ALL
+SELECT 'Sales Order' AS module, 'di_tracking_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_order
+ WHERE (so_delivery_method IS NULL OR so_delivery_method = '')
+   AND ((NULLIF(CAST(cs_tracking_number AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_tracking_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Goods Delivery' AS module, 'di_driver_name' AS di_field, COUNT(*) AS conflict_rows
+  FROM goods_delivery
+ WHERE (gd_delivery_method IS NULL OR gd_delivery_method = '')
+   AND ((NULLIF(CAST(driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_name AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Goods Delivery' AS module, 'di_ic_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM goods_delivery
+ WHERE (gd_delivery_method IS NULL OR gd_delivery_method = '')
+   AND ((NULLIF(CAST(ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_ic_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Goods Delivery' AS module, 'di_driver_contact_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM goods_delivery
+ WHERE (gd_delivery_method IS NULL OR gd_delivery_method = '')
+   AND ((NULLIF(CAST(driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_contact_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Goods Delivery' AS module, 'di_vehicle_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM goods_delivery
+ WHERE (gd_delivery_method IS NULL OR gd_delivery_method = '')
+   AND ((NULLIF(CAST(vehicle_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(sp_vehicle_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_vehicle_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Goods Delivery' AS module, 'di_shipping_company' AS di_field, COUNT(*) AS conflict_rows
+  FROM goods_delivery
+ WHERE (gd_delivery_method IS NULL OR gd_delivery_method = '')
+   AND ((NULLIF(CAST(courier_company AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(shipping_company AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Goods Delivery' AS module, 'di_est_delivery_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM goods_delivery
+ WHERE (gd_delivery_method IS NULL OR gd_delivery_method = '')
+   AND ((NULLIF(CAST(shipping_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(est_delivery_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Goods Delivery' AS module, 'di_freight_charges' AS di_field, COUNT(*) AS conflict_rows
+  FROM goods_delivery
+ WHERE (gd_delivery_method IS NULL OR gd_delivery_method = '')
+   AND ((CAST(COALESCE(freight_charges,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(delivery_cost,0) AS DECIMAL(18,4)) <> 0)) > 1
+UNION ALL
+SELECT 'Picking Plan' AS module, 'di_driver_name' AS di_field, COUNT(*) AS conflict_rows
+  FROM picking_plan
+ WHERE (to_delivery_method IS NULL OR to_delivery_method = '')
+   AND ((NULLIF(CAST(driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_name AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking Plan' AS module, 'di_ic_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM picking_plan
+ WHERE (to_delivery_method IS NULL OR to_delivery_method = '')
+   AND ((NULLIF(CAST(ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_ic_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking Plan' AS module, 'di_driver_contact_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM picking_plan
+ WHERE (to_delivery_method IS NULL OR to_delivery_method = '')
+   AND ((NULLIF(CAST(driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_contact_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking Plan' AS module, 'di_vehicle_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM picking_plan
+ WHERE (to_delivery_method IS NULL OR to_delivery_method = '')
+   AND ((NULLIF(CAST(vehicle_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_vehicle_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking Plan' AS module, 'di_shipping_company' AS di_field, COUNT(*) AS conflict_rows
+  FROM picking_plan
+ WHERE (to_delivery_method IS NULL OR to_delivery_method = '')
+   AND ((NULLIF(CAST(courier_company AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(shipping_company AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking Plan' AS module, 'di_est_delivery_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM picking_plan
+ WHERE (to_delivery_method IS NULL OR to_delivery_method = '')
+   AND ((NULLIF(CAST(shipping_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(est_delivery_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking Plan' AS module, 'di_freight_charges' AS di_field, COUNT(*) AS conflict_rows
+  FROM picking_plan
+ WHERE (to_delivery_method IS NULL OR to_delivery_method = '')
+   AND ((CAST(COALESCE(freight_charges,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(delivery_cost,0) AS DECIMAL(18,4)) <> 0)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_driver_name' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((NULLIF(CAST(driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_name AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_ic_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((NULLIF(CAST(ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_ic_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_driver_contact_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((NULLIF(CAST(driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_contact_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_vehicle_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((NULLIF(CAST(vehicle_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(sp_vehicle_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_vehicle_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_shipping_company' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((NULLIF(CAST(courier_company AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(shipping_company AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_est_delivery_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((NULLIF(CAST(shipping_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(est_delivery_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_shipping_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_est_arrival_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((NULLIF(CAST(est_arrival_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_est_arrival_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_freight_charges' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((CAST(COALESCE(freight_charges,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(delivery_cost,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(ss_freight_charges,0) AS DECIMAL(18,4)) <> 0)) > 1
+UNION ALL
+SELECT 'Picking' AS module, 'di_tracking_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM transfer_order
+ WHERE (delivery_method IS NULL OR delivery_method = '')
+   AND ((NULLIF(CAST(tracking_number AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ss_tracking_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Purchase Return' AS module, 'di_driver_name' AS di_field, COUNT(*) AS conflict_rows
+  FROM purchase_return_head
+ WHERE (return_delivery_method IS NULL OR return_delivery_method = '')
+   AND ((NULLIF(CAST(driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(driver_name2 AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Purchase Return' AS module, 'di_ic_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM purchase_return_head
+ WHERE (return_delivery_method IS NULL OR return_delivery_method = '')
+   AND ((NULLIF(CAST(cp_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_ic_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Purchase Return' AS module, 'di_driver_contact_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM purchase_return_head
+ WHERE (return_delivery_method IS NULL OR return_delivery_method = '')
+   AND ((NULLIF(CAST(driver_contact AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(driver_contact_no2 AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_contact_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Purchase Return' AS module, 'di_vehicle_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM purchase_return_head
+ WHERE (return_delivery_method IS NULL OR return_delivery_method = '')
+   AND ((NULLIF(CAST(vehicle_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(vehicle_no2 AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_vehicle_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Purchase Return' AS module, 'di_est_delivery_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM purchase_return_head
+ WHERE (return_delivery_method IS NULL OR return_delivery_method = '')
+   AND ((NULLIF(CAST(shipping_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(estimated_arrival2 AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Purchase Return' AS module, 'di_freight_charges' AS di_field, COUNT(*) AS conflict_rows
+  FROM purchase_return_head
+ WHERE (return_delivery_method IS NULL OR return_delivery_method = '')
+   AND ((CAST(COALESCE(freight_charge,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(delivery_cost,0) AS DECIMAL(18,4)) <> 0)) > 1
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_driver_name' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND ((NULLIF(CAST(sr_driver_name AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_name AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_ic_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND ((NULLIF(CAST(cp_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(ct_ic_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_ic_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_driver_contact_no' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND ((NULLIF(CAST(sr_driver_contact_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_driver_contact_no AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_vehicle_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND ((NULLIF(CAST(sr_vehicle_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(tpt_vehicle_number AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_shipping_company' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND ((NULLIF(CAST(courier_company AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(shipping_company AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_est_delivery_date' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND ((NULLIF(CAST(sr_shipping_date AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(sr_est_delivery_date AS CHAR),'') IS NOT NULL)) > 1
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_freight_charges' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND ((CAST(COALESCE(sr_freight_charges,0) AS DECIMAL(18,4)) <> 0) + (CAST(COALESCE(sr_delivery_cost,0) AS DECIMAL(18,4)) <> 0)) > 1
+UNION ALL
+SELECT 'Sales Return' AS module, 'di_tracking_number' AS di_field, COUNT(*) AS conflict_rows
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND ((NULLIF(CAST(sr_tracking_no AS CHAR),'') IS NOT NULL) + (NULLIF(CAST(sr_tracking_number AS CHAR),'') IS NOT NULL)) > 1
+ORDER BY conflict_rows DESC, module, di_field;
+
+
+-- 0.5  RESIDUAL CONFLICTS — list the actual rows
+--      Run only for any module/field still non-zero in 0.4 after the zero-aware fix.
+--      Example: Sales Return freight (both columns hold a real, non-zero value).
+--      Decide per row, set di_freight_charges by hand, then run STEP 1B — it only
+--      fills columns that are still empty, so your manual values are preserved.
+SELECT id, sr_delivery_method, sr_freight_charges, sr_delivery_cost
+  FROM sales_return
+ WHERE (sr_delivery_method IS NULL OR sr_delivery_method = '')
+   AND (CAST(COALESCE(sr_freight_charges,0) AS DECIMAL(18,4)) <> 0)
+   AND (CAST(COALESCE(sr_delivery_cost,0)  AS DECIMAL(18,4)) <> 0);
+
+
 -- #############################################################################
 -- STEP 1 — MIGRATION
 --
@@ -655,6 +949,186 @@ SET
 WHERE d.sr_delivery_method IN
       ('Self Pickup','Courier Service','Company Truck','Shipping Service','3rd Party Transporter');
 
+
+-- #############################################################################
+-- STEP 1B — FALLBACK for rows with NO delivery method
+--
+-- Rows whose delivery method is NULL/blank are skipped by STEP 1, because the
+-- CASE has no branch to take. Their legacy values are still present — the only
+-- thing missing is which section they came from.
+--
+-- This pass drops the method entirely and COALESCEs across every candidate
+-- column instead. That is only sound when at most ONE candidate is populated
+-- per row, which is what STEP 0.4 proves.
+--
+--   >>> DO NOT RUN THIS UNTIL STEP 0.4 RETURNS ALL ZEROS <<<
+--
+-- Candidate order follows the section order in STEP 1 (Self Pickup → Courier →
+-- Company Truck → Shipping Service → 3rd Party). With 0.4 clean the order is
+-- irrelevant; it only matters if a conflict slipped through.
+--
+-- Same guarantees as STEP 1: re-runnable, legacy columns untouched, unmatched
+-- driver/vehicle lookups left NULL.
+-- #############################################################################
+
+-- Quotation
+UPDATE quotation d
+SET
+  d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), NULLIF(d.ct_driver_name,''), 
+    (SELECT MIN(m.id) FROM driver m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.driver_name = COALESCE(NULLIF(d.cp_customer_pickup,''), NULLIF(d.tpt_driver_name,'')))),
+  d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.cp_ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
+  d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact_no,''), NULLIF(d.ct_driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
+  d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), NULLIF(d.ct_vehicle_number,''), 
+    (SELECT MIN(m.id) FROM vehicle m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.vehicle_number = COALESCE(NULLIF(d.vehicle_number,''), NULLIF(d.tpt_vehicle_number,'')))),
+  d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
+  d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
+  d.di_shipping_company = COALESCE(NULLIF(d.di_shipping_company,''), NULLIF(d.courier_company,''), NULLIF(d.ss_shipping_company,'')),
+  d.di_est_delivery_date = COALESCE(d.di_est_delivery_date, d.shipping_date, d.ct_est_delivery_date, d.ss_shipping_date),
+  d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.cs_est_arrival_date, d.est_arrival_date),
+  d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ct_delivery_cost,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ss_freight_charges,0) AS DECIMAL(18,4)),0)),
+  d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.cs_tracking_number,''), NULLIF(d.ss_tracking_number,'')),
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+WHERE d.sqt_delivery_method_id IS NULL OR d.sqt_delivery_method_id = '';
+
+-- Sales Order
+UPDATE sales_order d
+SET
+  d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), NULLIF(d.ct_driver_name,''), 
+    (SELECT MIN(m.id) FROM driver m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.driver_name = COALESCE(NULLIF(d.cp_driver_name,''), NULLIF(d.tpt_driver_name,'')))),
+  d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.cp_ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
+  d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.cp_driver_contact_no,''), NULLIF(d.ct_driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
+  d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), NULLIF(d.ct_vehicle_number,''), 
+    (SELECT MIN(m.id) FROM vehicle m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.vehicle_number = COALESCE(NULLIF(d.cp_vehicle_number,''), NULLIF(d.tpt_vehicle_number,'')))),
+  d.di_pickup_date = COALESCE(d.di_pickup_date, d.cp_pickup_date),
+  d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
+  d.di_shipping_company = COALESCE(NULLIF(d.di_shipping_company,''), NULLIF(d.cs_courier_company,''), NULLIF(d.ss_shipping_company,'')),
+  d.di_est_delivery_date = COALESCE(d.di_est_delivery_date, d.cs_shipping_date, d.ct_est_delivery_date, d.ss_shippping_date),
+  d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.est_arrival_date, d.ss_est_arrival_date),
+  d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.cs_freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ct_delivery_cost,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ss_freight_charges,0) AS DECIMAL(18,4)),0)),
+  d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.cs_tracking_number,''), NULLIF(d.ss_tracking_number,'')),
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+WHERE d.so_delivery_method IS NULL OR d.so_delivery_method = '';
+
+-- Goods Delivery
+UPDATE goods_delivery d
+SET
+  d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
+    (SELECT MIN(m.id) FROM driver m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.driver_name = COALESCE(NULLIF(d.driver_name,''), NULLIF(d.tpt_driver_name,'')))),
+  d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.ic_no,''), NULLIF(d.tpt_ic_no,'')),
+  d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
+  d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), NULLIF(d.vehicle_no,''), 
+    (SELECT MIN(m.id) FROM vehicle m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.vehicle_number = COALESCE(NULLIF(d.sp_vehicle_no,''), NULLIF(d.tpt_vehicle_number,'')))),
+  d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
+  d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
+  d.di_shipping_company = COALESCE(NULLIF(d.di_shipping_company,''), NULLIF(d.courier_company,''), NULLIF(d.shipping_company,'')),
+  d.di_est_delivery_date = COALESCE(d.di_est_delivery_date, d.shipping_date, d.est_delivery_date),
+  d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.est_arrival_date),
+  d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.delivery_cost,0) AS DECIMAL(18,4)),0)),
+  d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.tracking_number,'')),
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+WHERE d.gd_delivery_method IS NULL OR d.gd_delivery_method = '';
+
+-- Picking Plan
+UPDATE picking_plan d
+SET
+  d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
+    (SELECT MIN(m.id) FROM driver m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.driver_name = COALESCE(NULLIF(d.driver_name,''), NULLIF(d.tpt_driver_name,'')))),
+  d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.ic_no,''), NULLIF(d.tpt_ic_no,'')),
+  d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
+  d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), 
+    (SELECT MIN(m.id) FROM vehicle m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.vehicle_number = COALESCE(NULLIF(d.vehicle_no,''), NULLIF(d.tpt_vehicle_number,'')))),
+  d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
+  d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
+  d.di_shipping_company = COALESCE(NULLIF(d.di_shipping_company,''), NULLIF(d.courier_company,''), NULLIF(d.shipping_company,'')),
+  d.di_est_delivery_date = COALESCE(d.di_est_delivery_date, d.shipping_date, d.est_delivery_date),
+  d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.est_arrival_date),
+  d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.delivery_cost,0) AS DECIMAL(18,4)),0)),
+  d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.tracking_number,'')),
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+WHERE d.to_delivery_method IS NULL OR d.to_delivery_method = '';
+
+-- Picking
+UPDATE transfer_order d
+SET
+  d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
+    (SELECT MIN(m.id) FROM driver m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.driver_name = COALESCE(NULLIF(d.driver_name,''), NULLIF(d.ct_driver_name,''), NULLIF(d.tpt_driver_name,'')))),
+  d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
+  d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact_no,''), NULLIF(d.ct_driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
+  d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), NULLIF(d.vehicle_no,''), 
+    (SELECT MIN(m.id) FROM vehicle m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.vehicle_number = COALESCE(NULLIF(d.sp_vehicle_no,''), NULLIF(d.tpt_vehicle_number,'')))),
+  d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
+  d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
+  d.di_shipping_company = COALESCE(NULLIF(d.di_shipping_company,''), NULLIF(d.courier_company,''), NULLIF(d.shipping_company,'')),
+  d.di_est_delivery_date = COALESCE(d.di_est_delivery_date, d.shipping_date, d.est_delivery_date, d.ss_shipping_date),
+  d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.est_arrival_date, d.ss_est_arrival_date),
+  d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.delivery_cost,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.ss_freight_charges,0) AS DECIMAL(18,4)),0)),
+  d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.tracking_number,''), NULLIF(d.ss_tracking_number,'')),
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+WHERE d.delivery_method IS NULL OR d.delivery_method = '';
+
+-- Purchase Return
+UPDATE purchase_return_head d
+SET
+  d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
+    (SELECT MIN(m.id) FROM driver m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.driver_name = COALESCE(NULLIF(d.driver_name,''), NULLIF(d.driver_name2,'')))),
+  d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.cp_ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
+  d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.driver_contact,''), NULLIF(d.driver_contact_no2,''), NULLIF(d.tpt_driver_contact_no,'')),
+  d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), 
+    (SELECT MIN(m.id) FROM vehicle m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.vehicle_number = COALESCE(NULLIF(d.vehicle_no,''), NULLIF(d.vehicle_no2,''), NULLIF(d.tpt_vehicle_number,'')))),
+  d.di_pickup_date = COALESCE(d.di_pickup_date, d.pickup_date),
+  d.di_shipping_company = COALESCE(NULLIF(d.di_shipping_company,''), NULLIF(d.courier_company,'')),
+  d.di_est_delivery_date = COALESCE(d.di_est_delivery_date, d.shipping_date, d.estimated_arrival2),
+  d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.estimated_ariival),
+  d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.freight_charge,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.delivery_cost,0) AS DECIMAL(18,4)),0)),
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+WHERE d.return_delivery_method IS NULL OR d.return_delivery_method = '';
+
+-- Sales Return
+UPDATE sales_return d
+SET
+  d.di_driver_name = COALESCE(NULLIF(d.di_driver_name,''), 
+    (SELECT MIN(m.id) FROM driver m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.driver_name = COALESCE(NULLIF(d.sr_driver_name,''), NULLIF(d.tpt_driver_name,'')))),
+  d.di_ic_no = COALESCE(NULLIF(d.di_ic_no,''), NULLIF(d.cp_ic_no,''), NULLIF(d.ct_ic_no,''), NULLIF(d.tpt_ic_no,'')),
+  d.di_driver_contact_no = COALESCE(NULLIF(d.di_driver_contact_no,''), NULLIF(d.sr_driver_contact_no,''), NULLIF(d.tpt_driver_contact_no,'')),
+  d.di_vehicle_number = COALESCE(NULLIF(d.di_vehicle_number,''), 
+    (SELECT MIN(m.id) FROM vehicle m
+      WHERE m.organization_id = d.organization_id AND m.is_active = 1
+        AND m.vehicle_number = COALESCE(NULLIF(d.sr_vehicle_no,''), NULLIF(d.tpt_vehicle_number,'')))),
+  d.di_pickup_date = COALESCE(d.di_pickup_date, d.sr_pickup_date),
+  d.di_validity_of_collection = COALESCE(d.di_validity_of_collection, d.validity_of_collection),
+  d.di_shipping_company = COALESCE(NULLIF(d.di_shipping_company,''), NULLIF(d.courier_company,''), NULLIF(d.shipping_company,'')),
+  d.di_est_delivery_date = COALESCE(d.di_est_delivery_date, d.sr_shipping_date, d.sr_est_delivery_date),
+  d.di_est_arrival_date = COALESCE(d.di_est_arrival_date, d.sr_est_arrival_date),
+  d.di_freight_charges = COALESCE(d.di_freight_charges, NULLIF(CAST(COALESCE(d.sr_freight_charges,0) AS DECIMAL(18,4)),0), NULLIF(CAST(COALESCE(d.sr_delivery_cost,0) AS DECIMAL(18,4)),0)),
+  d.di_tracking_number = COALESCE(NULLIF(d.di_tracking_number,''), NULLIF(d.sr_tracking_no,''), NULLIF(d.sr_tracking_number,'')),
+  d.di_transport_name = COALESCE(NULLIF(d.di_transport_name,''), NULLIF(d.tpt_transport_name,''))
+WHERE d.sr_delivery_method IS NULL OR d.sr_delivery_method = '';
 
 -- #############################################################################
 -- STEP 2 — POST-MIGRATION VERIFICATION
