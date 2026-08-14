@@ -266,12 +266,12 @@
               "groupSort": 8,
               "enableScopes": ["Component", "Table", "Page"],
               "options": {
-                "defaultValue": 0,
+                "defaultValue": 1,
                 "required": false,
                 "requiredMessage": "",
                 "validatorCheck": false,
                 "validator": "",
-                "disabled": false,
+                "disabled": true,
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
@@ -655,7 +655,10 @@
                 "pad": "*",
                 "desensitization_pattern": "",
                 "desensitization_replace": "",
-                "hideLabel": true
+                "hideLabel": true,
+                "dynamicValueFx": "fx.date.today()",
+                "dynamicValueType": "fx",
+                "isDynamicValue": true
               },
               "events": {
                 "onChange": "",
