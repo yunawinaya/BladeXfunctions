@@ -178,8 +178,10 @@ WHERE src.driver_name IS NOT NULL
   AND src.driver_name <> ''
   AND NOT EXISTS (
         SELECT 1 FROM driver m
-         WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.driver_name     = src.driver_name
-           AND m.is_active = 1)
+         WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL)
+           AND m.driver_name     = src.driver_name
+           AND m.organization_id = src.organization_id
+           AND m.is_active       = 1)
 GROUP BY module, organization_id, driver_name
 ORDER BY occurrences DESC, module, driver_name;
 
@@ -238,8 +240,10 @@ WHERE src.vehicle_number IS NOT NULL
   AND src.vehicle_number <> ''
   AND NOT EXISTS (
         SELECT 1 FROM vehicle m
-         WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL) AND m.vehicle_number  = src.vehicle_number
-           AND m.is_active = 1)
+         WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL)
+           AND m.vehicle_number  = src.vehicle_number
+           AND m.organization_id = src.organization_id
+           AND m.is_active       = 1)
 GROUP BY module, organization_id, vehicle_number
 ORDER BY occurrences DESC, module, vehicle_number;
 
