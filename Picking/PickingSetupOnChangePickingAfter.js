@@ -10,6 +10,14 @@
         "convert_gd_created",
       ]);
       this.disabled(["picking_required"], false);
+
+      // display() above re-enables auto_completed_gd — re-apply the Loading Bay
+      // lock so switching picking_after can't resurrect the invalid combination
+      // (see PickingSetupOnChangeLoadingBay.js).
+      if ((await this.getValue("is_loading_bay")) === 1) {
+        await this.setData({ auto_completed_gd: 0 });
+        this.disabled(["auto_completed_gd"], true);
+      }
     } else if (pickingAfter === "Sales Order") {
       await this.hide([
         "auto_trigger_to",

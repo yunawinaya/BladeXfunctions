@@ -22,7 +22,6 @@
         picking_after: "",
         auto_trigger_to: 0,
         is_loading_bay: 0,
-        is_loading_bay: 0,
         allow_full_picking: 0,
         picking_mode: "",
         default_strategy_id: "",
@@ -63,6 +62,14 @@
       full_cl_check: resPickingSetup.data[0].full_cl_check || 0,
       convert_gd_created: resPickingSetup.data[0].convert_gd_created || 0,
     });
+
+    // Loading Bay staging needs the GD to pass through "Created" so the
+    // Reserved allocation can be shuttled to the bay bin — Auto Complete GD
+    // skips that state. Keep the two mutually exclusive on load as well as
+    // onChange (see PickingSetupOnChangeLoadingBay.js).
+    if (resPickingSetup.data[0].is_loading_bay === 1) {
+      this.disabled(["auto_completed_gd"], true);
+    }
   } catch (error) {
     console.error(error);
     this.$message.error(error.message || "An error occurred");

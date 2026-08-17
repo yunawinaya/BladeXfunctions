@@ -33,6 +33,18 @@ const closeDialog = () => {
       convert_gd_created,
     } = data;
 
+    // Loading Bay staging requires the GD to pass through "Created" so the
+    // Reserved allocation can be shuttled from the source bin to the bay bin.
+    // Auto Complete GD skips that state entirely, leaving the reservation
+    // stranded at the source while the delivery reads from the bay.
+    if (is_loading_bay === 1 && auto_completed_gd === 1) {
+      this.$message.error(
+        "Loading Bay cannot be used together with Auto Complete GD. " +
+          "Turn off Auto Complete GD so the Goods Delivery passes through Created.",
+      );
+      return;
+    }
+
     const entry = {
       movement_type,
       picking_required,
