@@ -4704,7 +4704,7 @@
                 "name": "TableGD Data",
                 "script": {
                   "type": "javascript",
-                  "code": "const allData = {{node:code_node_IyJHrBst.data.allData}}\nconst tableGD = allData.table_gd;\n\nreturn {\n  tableGD: tableGD\n};"
+                  "code": "const allData = {{node:code_node_IyJHrBst.data.allData}}\nconst tableGD = allData.table_gd;\n\n// Distinct SO line ids, for the single batch fetch that replaced the per-row\n// get_node_YMto3jtl inside the old loop.\nconst soLineIds = [];\nfor (const row of (tableGD || [])) {\n  const lineId = row.so_line_item_id;\n  if (lineId && soLineIds.indexOf(lineId) === -1) {\n    soLineIds.push(lineId);\n  }\n}\n\nreturn {\n  tableGD: tableGD,\n  soLineIds: soLineIds\n};"
                 },
                 "response_json": [
                   {
@@ -4726,24 +4726,28 @@
                         "children": []
                       }
                     ]
+                  },
+                  {
+                    "key": "hb1solid",
+                    "name": "soLineIds",
+                    "title": "soLineIds",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "hb2items",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
                   }
                 ]
-              },
-              "blocks": []
-            },
-            {
-              "id": "set_cache_node_SEuO26Sj",
-              "type": "set-cache-node",
-              "data": {
-                "cache_key": "",
-                "cache_value": "",
-                "expire_time": 3600,
-                "title": "Set initial quantityCheckIndex",
-                "isValidator": true,
-                "nodeName": "Set initial quantityCheckIndex",
-                "name": "Set initial quantityCheckIndex",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
-                "redis_key": "quantityCheckIndex_{{node:code_node_eOO3RTkR.data.unique}}"
               },
               "blocks": []
             },
@@ -4764,566 +4768,338 @@
               "blocks": []
             },
             {
-              "id": "loop_ZVa7Cxf6",
-              "type": "loop",
+              "id": "search_node_SOLine8kQ2",
+              "type": "search-node",
               "data": {
-                "title": "Loop TableGD",
-                "isValidator": true,
-                "nodeName": "Loop TableGD",
-                "name": "Loop TableGD",
-                "loopType": "Var",
-                "loopSeletSource": {
-                  "datasource": {
-                    "rules": {
-                      "collectionId": "",
-                      "list": [
-                        {
-                          "id": 1723795236686,
-                          "parentId": 1723795236685,
-                          "isTop": true,
-                          "prop": "",
-                          "operator": "",
-                          "valueType": "",
-                          "value": "",
-                          "type": "leaf",
-                          "level": 1
-                        }
-                      ]
-                    }
-                  },
-                  "auto_refresh": 1,
-                  "auto_refresh_debounce": 100,
-                  "options": [],
-                  "props": {
-                    "value": "",
-                    "label": "",
-                    "image": "",
-                    "icon": "",
-                    "explain": ""
-                  },
-                  "remote": false,
-                  "remoteType": "datasource"
+                "table_id": {
+                  "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+                  "rules": {
+                    "collectionId": "1939903359943024642",
+                    "list": [
+                      {
+                        "id": 1786100000011,
+                        "parentId": 1786100000010,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_hb8ZWe9c.data.soLineIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
                 },
-                "loopSeletVar": {
-                  "type": "markdown",
-                  "code": "{{node:code_node_hb8ZWe9c.data.tableGD}}"
+                "condition": {},
+                "limit": 500,
+                "title": "Get SO Lines (batch)",
+                "isValidator": true,
+                "nodeName": "Get SO Lines (batch)",
+                "name": "Get SO Lines (batch)"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_QtyCheckBatch",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Validate Quantity & Update SO Table (batch)",
+                "isValidator": true,
+                "nodeName": "Validate Quantity & Update SO Table (batch)",
+                "name": "Validate Quantity & Update SO Table (batch)",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Validate Quantity & Update SO Table - BATCH\n// Replaces the old per-row loop (loop_ZVa7Cxf6): code_node_SOBNriDH + get_node_DDcDRdMe\n// + get_node_YMto3jtl + code_node_muzjP26e, one iteration per table_gd row.\n// Item master and SO lines are now read from two batch fetches instead of 2 fetches\n// per row. Control flow is identical to the loop it replaces.\n\nconst tableGD = {{node:code_node_hb8ZWe9c.data.tableGD}} || [];\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}};\nconst saveAs = {{workflowparams:saveAs}};\nconst isGDPP = {{workflowparams:allData.is_select_picking}} || 0;\nconst splitPolicy = {{node:code_picking_defaults.data.splitPolicy}} || \"ALLOW_SPLIT\";\n\n// ID SHAPE: a get-node serialises bigint ids as quoted strings, a search-node as\n// raw numbers (Java Long under GraalJS, so String() is exact). The rows this node\n// replaced came from get-nodes, and the surrounding code compares ids with ===.\n// Everything below therefore normalises ids through String() so the comparisons\n// and the pushed SO rows keep the exact shape the old per-row get-nodes produced.\nconst asId = (v) => (v === null || v === undefined ? v : String(v));\n\n// Item master: already batch-fetched once by search_node_w1NxF9TX (cond_all_gd_fetch).\nconst itemDataRaw = {{node:search_node_w1NxF9TX.data.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\nconst itemMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemMap[asId(it.id)] = it;\n  }\n}\n\n// SO lines: batch-fetched once by search_node_SOLine8kQ2.\nconst soLineRaw = {{node:search_node_SOLine8kQ2.data.data}} || [];\nconst soLineArray = Array.isArray(soLineRaw) ? soLineRaw : [soLineRaw];\nconst soLineMap = {};\nfor (const sl of soLineArray) {\n  if (sl && sl.id) {\n    soLineMap[asId(sl.id)] = sl;\n  }\n}\n\n// Original GD lines. Only referenced when the GD is already Created, which is\n// exactly when get_node_xTRvHWB8 ran.\nlet originalTableGD = [];\nif (gd_status === \"Created\") {\n  originalTableGD = {{node:get_node_xTRvHWB8.data.data.table_gd}};\n}\n\n// Returns number for calculations/validation\nconst roundQty = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  const num = parseFloat(value);\n  return Math.round(num * 1000) / 1000;\n};\n\n// Returns string for database updates\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst updatedSOTable = [];\nlet validationMessage = null;\nlet itemNotFound = 0;\n\nfor (let index = 0; index < tableGD.length; index++) {\n  const gdItem = tableGD[index];\n  const rowIndex = index + 1;\n  const material_id = gdItem.material_id || \"\";\n\n  // Mirrors if_9DC5Lah8: material_id is set but the Item row is gone -> hard stop.\n  if (material_id !== \"\" && !itemMap[asId(material_id)]) {\n    itemNotFound = 1;\n    break;\n  }\n\n  const itemData = itemMap[asId(material_id)] || {};\n\n  let originalGdItem = null;\n  if (gd_status === \"Created\") {\n    originalGdItem = originalTableGD.find(item => item.so_line_item_id === gdItem.so_line_item_id) || null;\n  }\n\n  // Pristine SO line. Never mutated, so every row reads the same original\n  // delivered_qty/planned_qty the old per-row refetch returned.\n  const soItem = soLineMap[asId(gdItem.so_line_item_id)];\n  if (!soItem) {\n    throw new Error(\"Row \" + rowIndex + \": sales order line \" + gdItem.so_line_item_id + \" was not found.\");\n  }\n\n  // Descriptive (no-stock) line label for error messages\n  const itemLabel = itemData.material_code || gdItem.material_name || gdItem.gd_material_desc || \"(descriptive)\";\n\n  // Description-only and non-stock-non-shown items: no over-delivery tolerance (treat like a descriptive line)\n  const isDescriptiveLike = !gdItem.material_id || gdItem.material_id === \"\" || (itemData.stock_control === 0 && itemData.show_delivery === 0);\n  // asId on both sides: table_uom_conversion now arrives from a search-node, so\n  // alt_uom_id is a number where the old get-node gave a string. A bare === would\n  // silently miss and drop over_delivery_tolerance to 0.\n  const overDeliveryTolerance = isDescriptiveLike ? 0 : (((itemData.table_uom_conversion || []).find((c) => asId(c.alt_uom_id) === asId(gdItem.gd_order_uom_id)) || {}).over_delivery_tolerance || 0);\n  const orderLimit = (gdItem.gd_order_quantity * (100 + overDeliveryTolerance)) / 100;\n  const deliveredQty = soItem.delivered_qty || 0;\n  const plannedQty = soItem.planned_qty || 0;\n\n  const currentGdQty = parseFloat(gdItem.gd_qty) || 0;\n  const origQty = parseFloat(originalGdItem?.gd_qty) || 0;\n\n  let gdQtyChange = currentGdQty;\n  if (originalGdItem) {\n    gdQtyChange = roundQty(currentGdQty - origQty);\n  }\n\n  let totalCommitted;\n  if (isGDPP === 1) {\n    totalCommitted = roundQty(deliveredQty + currentGdQty);\n  } else {\n    totalCommitted = roundQty(deliveredQty + plannedQty + gdQtyChange);\n  }\n\n  let rowMessage = null;\n\n  // Validate order limit (skip for FULL_HU_PICK only - NO_SPLIT enforces tolerance)\n  if (splitPolicy !== \"FULL_HU_PICK\" && totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n    rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: quantity is exceeding the maximum deliverable quantity.`;\n  }\n\n  // Validate planned_qty won't go negative\n  if (!rowMessage) {\n    let projectedPlannedQty = plannedQty;\n\n    if (isGDPP === 1 && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty + currentGdQty);\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    }\n\n    if (projectedPlannedQty < 0) {\n      rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: planned quantity would become negative (${projectedPlannedQty}). Please contact support.`;\n    }\n  }\n\n  // Old behaviour: a failed row is never pushed to updatedSOTable. The save only\n  // aborts when saveAs !== \"Cancelled\" (the old if_ACsN1GZD gate); under\n  // Cancelled the row is silently skipped and the walk continues.\n  if (rowMessage) {\n    if (saveAs !== \"Cancelled\") {\n      validationMessage = rowMessage;\n      break;\n    }\n    continue;\n  }\n\n  // Fresh object to mutate and push, so soLineMap stays pristine for later rows.\n  // Shallow copy on purpose: a JSON round-trip would re-parse the bigint ids as\n  // doubles and silently corrupt updatedSOItem.id, which is the update key of\n  // update_node_wEJC3qKB. Only top-level scalars are written below.\n  const updatedSOItem = Object.assign({}, soItem);\n  // Restore the get-node string shape for the two id fields anything downstream\n  // reads (update_node_wEJC3qKB keys on id; code_node_lwB2FVe0 reads both).\n  updatedSOItem.id = asId(soItem.id);\n  updatedSOItem.sales_order_id = asId(soItem.sales_order_id);\n\n  if (isGDPP === 1) {\n    if (saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n    }\n\n  } else {\n    if (gd_status === \"Draft\" && saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Draft\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty + currentGdQty);\n\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty);\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty + currentGdQty);\n\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n    }\n  }\n\n  if (saveAs === \"Completed\") {\n    if (parseFloat(updatedSOItem.outstanding_quantity) > 0) {\n      updatedSOItem.line_status = \"Processing\";\n    } else {\n      updatedSOItem.line_status = \"Completed\";\n    }\n  }\n\n  updatedSOTable.push(updatedSOItem);\n}\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable,\n  itemNotFound: itemNotFound\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "vq1msgav",
+                    "name": "validationMessage",
+                    "title": "validationMessage",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "vq2sotbl",
+                    "name": "updatedSOTable",
+                    "title": "updatedSOTable",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "vq3items",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "vq4itmnf",
+                    "name": "itemNotFound",
+                    "title": "itemNotFound",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_9DC5Lah8",
+              "type": "if",
+              "data": {
+                "title": "IF Item not found",
+                "isValidator": true,
+                "nodeName": "IF Item not found",
+                "name": "IF Item not found",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1786100000001,
+                      "parentId": 1786100000000,
+                      "isTop": true,
+                      "prop": "node.code_node_QtyCheckBatch.data.itemNotFound",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "itemNotFound",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
                 }
               },
               "blocks": [
                 {
-                  "id": "get_cache_node_XGS5aKAa",
-                  "type": "get-cache-node",
+                  "id": "if_block_l2C6brGB",
+                  "type": "ifBlock",
                   "data": {
-                    "cache_key": "",
-                    "title": "Get quantityCheckIndex",
-                    "isValidator": true,
-                    "nodeName": "Get quantityCheckIndex",
-                    "name": "Get quantityCheckIndex",
-                    "redis_key": "quantityCheckIndex_{{node:code_node_eOO3RTkR.data.unique}}"
-                  },
-                  "blocks": []
-                },
-                {
-                  "id": "get_cache_node_pLyxuBie",
-                  "type": "get-cache-node",
-                  "data": {
-                    "cache_key": "",
-                    "title": "Get updatedSOTable",
-                    "isValidator": true,
-                    "nodeName": "Get updatedSOTable",
-                    "name": "Get updatedSOTable",
-                    "redis_key": "updatedSOTable_{{node:code_node_eOO3RTkR.data.unique}}"
-                  },
-                  "blocks": []
-                },
-                {
-                  "id": "code_node_SOBNriDH",
-                  "type": "code-node",
-                  "data": {
-                    "language": "javascript",
-                    "code": "",
-                    "timeout": 30000,
-                    "title": "gdItem Preparation",
-                    "isValidator": true,
-                    "nodeName": "gdItem Preparation",
-                    "name": "gdItem Preparation",
-                    "script": {
-                      "type": "javascript",
-                      "code": "// Helper function to safely parse JSON\nconst parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    console.error(\"JSON parse error:\", error);\n    return defaultValue;\n  }\n};\n\nconst tableGD = {{node:code_node_hb8ZWe9c.data.tableGD}}\nconst currentIndexRaw = {{node:get_cache_node_XGS5aKAa.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\n\nconst gdItem = tableGD[index];\nconst material_id = gdItem.material_id || '';\nconst parentLineId = gdItem.so_line_item_id;\nconst gdQty = gdItem.gd_qty;\nconst tempData = parseJsonSafely(gdItem.temp_qty_data);\n\nlet originalGdItem = null\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}}\n\nif (gd_status === \"Created\") {\n  const originalTableGD = {{node:get_node_xTRvHWB8.data.data.table_gd}}\n  originalGdItem = originalTableGD.find(item => item.so_line_item_id === gdItem.so_line_item_id) || null;\n}\n\nreturn {\n  gdItem: gdItem,\n  material_id: material_id,\n  parentLineId: parentLineId,\n  gdQty: gdQty,\n  index: index,\n  nextIndex: index + 1,\n  tempData: tempData,\n  originalGdItem: originalGdItem\n}"
-                    },
-                    "response_json": [
-                      {
-                        "key": "guhu7o35",
-                        "name": "gdItem",
-                        "title": "gdItem",
-                        "description": "",
-                        "bsonType": "any",
-                        "isExpand": false,
-                        "children": []
-                      },
-                      {
-                        "key": "nuu3d4uw",
-                        "name": "parentLineId",
-                        "title": "parentLineId",
-                        "description": "",
-                        "bsonType": "string",
-                        "isExpand": false
-                      },
-                      {
-                        "key": "qm2a7ols",
-                        "name": "gdQty",
-                        "title": "gdQty",
-                        "description": "",
-                        "bsonType": "decimal",
-                        "isExpand": false,
-                        "children": []
-                      },
-                      {
-                        "key": "uc2cid65",
-                        "name": "material_id",
-                        "title": "material_id",
-                        "description": "",
-                        "bsonType": "string",
-                        "isExpand": false
-                      },
-                      {
-                        "key": "5rhu1d0e",
-                        "name": "index",
-                        "title": "index",
-                        "description": "",
-                        "bsonType": "int",
-                        "isExpand": false,
-                        "children": []
-                      },
-                      {
-                        "key": "1hwquppy",
-                        "name": "nextIndex",
-                        "title": "nextIndex",
-                        "description": "",
-                        "bsonType": "int",
-                        "isExpand": false,
-                        "children": []
-                      },
-                      {
-                        "key": "19seodv8",
-                        "name": "tempData",
-                        "title": "tempData",
-                        "description": "",
-                        "bsonType": "array",
-                        "isExpand": true,
-                        "children": [
-                          {
-                            "key": "4k8b1qvq",
-                            "name": "items",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "any",
-                            "isExpand": false,
-                            "isArrayItem": true,
-                            "children": []
-                          }
-                        ]
-                      },
-                      {
-                        "key": "w979iur4",
-                        "name": "originalGdItem",
-                        "title": "originalGdItem",
-                        "description": "",
-                        "bsonType": "any",
-                        "isExpand": false,
-                        "children": []
-                      }
-                    ]
-                  },
-                  "blocks": []
-                },
-                {
-                  "id": "get_node_DDcDRdMe",
-                  "type": "get-node",
-                  "data": {
-                    "table_id": {
-                      "source": "Item:Table:1901546842240438273",
-                      "rules": {
-                        "collectionId": "1901546842240438273",
-                        "list": [
-                          {
-                            "id": 1769765118391,
-                            "parentId": 1769765118390,
-                            "isTop": true,
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_SOBNriDH.data.material_id}}",
-                            "type": "leaf",
-                            "level": 1,
-                            "propLabel": "主键ID",
-                            "valueLabel": "",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    },
-                    "condition": {},
-                    "title": "Get Item",
-                    "isValidator": true,
-                    "nodeName": "Get Item",
-                    "name": "Get Item"
-                  },
-                  "blocks": []
-                },
-                {
-                  "id": "if_9DC5Lah8",
-                  "type": "if",
-                  "data": {
-                    "title": "IF Item not found",
-                    "isValidator": true,
-                    "nodeName": "IF Item not found",
-                    "name": "IF Item not found",
-                    "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
-                    "filter": {
-                      "list": [
-                        {
-                          "id": 1777867591668,
-                          "parentId": 1777867591669,
-                          "isTop": true,
-                          "prop": "",
-                          "operator": "all",
-                          "valueType": "",
-                          "value": "",
-                          "type": "branch",
-                          "level": 1,
-                          "children": [
-                            {
-                              "id": 1736695973613,
-                              "parentId": 1777867591668,
-                              "isTop": false,
-                              "prop": "node.get_node_DDcDRdMe.data.count",
-                              "operator": "numberEqual",
-                              "valueType": "value",
-                              "value": 0,
-                              "type": "leaf",
-                              "level": 2,
-                              "propLabel": "结果条数",
-                              "valueLabel": "",
-                              "operatorLabel": "Equal"
-                            },
-                            {
-                              "id": 1777867591670,
-                              "parentId": 1777867591668,
-                              "isTop": false,
-                              "prop": "node.code_node_SOBNriDH.data.material_id",
-                              "operator": "notEqual",
-                              "valueType": "value",
-                              "value": "",
-                              "type": "leaf",
-                              "level": 2,
-                              "propLabel": "material_id",
-                              "valueLabel": "",
-                              "operatorLabel": "Not Equal"
-                            }
-                          ]
-                        }
-                      ]
-                    }
+                    "title": "true"
                   },
                   "blocks": [
                     {
-                      "id": "if_block_l2C6brGB",
-                      "type": "ifBlock",
-                      "data": { "title": "true" },
-                      "blocks": [
-                        {
-                          "id": "return_node_78ucW0dY",
-                          "type": "return-node",
-                          "data": {
-                            "return_data": {},
-                            "status_code": 200,
-                            "title": "Return Data",
-                            "isValidator": true,
-                            "nodeName": "Return Data",
-                            "name": "Return Data",
-                            "response_value": {
-                              "list": [
-                                {
-                                  "prop": "code",
-                                  "propLabel": "code",
-                                  "operator": "",
-                                  "operatorLabel": "",
-                                  "valueType": "value",
-                                  "valueTypeLabel": "",
-                                  "value": "400",
-                                  "valueLabel": ""
-                                },
-                                {
-                                  "prop": "message",
-                                  "operator": "",
-                                  "valueType": "value",
-                                  "value": "Material not found or has been deleted",
-                                  "valueLabel": "",
-                                  "propLabel": "message"
-                                }
-                              ]
+                      "id": "return_node_78ucW0dY",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
                             },
-                            "return_raw_data": 0
-                          },
-                          "blocks": []
-                        }
-                      ]
-                    },
-                    {
-                      "id": "if_block_Zs_tyyuy",
-                      "type": "ifBlock",
-                      "data": { "title": "false" },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "value",
+                              "value": "Material not found or has been deleted",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
                       "blocks": []
                     }
                   ]
                 },
                 {
-                  "id": "get_node_YMto3jtl",
-                  "type": "get-node",
+                  "id": "if_block_Zs_tyyuy",
+                  "type": "ifBlock",
                   "data": {
-                    "table_id": {
-                      "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
-                      "rules": {
-                        "collectionId": "1939903359943024642",
-                        "list": [
-                          {
-                            "id": 1769763740641,
-                            "parentId": 1769763740640,
-                            "isTop": true,
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_SOBNriDH.data.parentLineId}}",
-                            "type": "leaf",
-                            "level": 1,
-                            "propLabel": "主键ID",
-                            "valueLabel": "",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    },
-                    "condition": {},
-                    "title": "Get SO Line",
-                    "isValidator": true,
-                    "nodeName": "Get SO Line",
-                    "name": "Get SO Line"
-                  },
-                  "blocks": []
-                },
-                {
-                  "id": "code_node_muzjP26e",
-                  "type": "code-node",
-                  "data": {
-                    "language": "javascript",
-                    "code": "",
-                    "timeout": 30000,
-                    "title": "Validate Quantity & Update SO Table",
-                    "isValidator": true,
-                    "nodeName": "Validate Quantity & Update SO Table",
-                    "name": "Validate Quantity & Update SO Table",
-                    "script": {
-                      "type": "javascript",
-                      "code": "// Validate Quantity & Update SO Table (code_node_muzjP26e)\n// Updated to skip order limit validation for FULL_HU_PICK/NO_SPLIT policies.\n// Copy this into the platform's code node editor.\n\nconst gdItem = {{node:code_node_SOBNriDH.data.gdItem}};\nconst originalGdItem = {{node:code_node_SOBNriDH.data.originalGdItem}};\nconst itemData = {{node:get_node_DDcDRdMe.data.data}} || {};\nconst soItem = {{node:get_node_YMto3jtl.data.data}};\nconst rowIndex = {{node:code_node_SOBNriDH.data.nextIndex}};\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}};\nconst saveAs = {{workflowparams:saveAs}};\nconst isGDPP = {{workflowparams:allData.is_select_picking}} || 0;\nconst splitPolicy = {{node:code_picking_defaults.data.splitPolicy}} || \"ALLOW_SPLIT\";\n\n// Descriptive (no-stock) line label for error messages\nconst itemLabel = itemData.material_code || gdItem.material_name || gdItem.gd_material_desc || \"(descriptive)\";\n\n// Description-only and non-stock-non-shown items: no over-delivery tolerance (treat like a descriptive line)\nconst isDescriptiveLike = !gdItem.material_id || gdItem.material_id === \"\" || (itemData.stock_control === 0 && itemData.show_delivery === 0);\nconst overDeliveryTolerance = isDescriptiveLike ? 0 : (((itemData.table_uom_conversion || []).find((c) => c.alt_uom_id === gdItem.gd_order_uom_id) || {}).over_delivery_tolerance || 0);\nconst orderLimit = (gdItem.gd_order_quantity * (100 + overDeliveryTolerance)) / 100;\nconst deliveredQty = soItem.delivered_qty || 0;\nconst plannedQty = soItem.planned_qty || 0;\n\n// Returns number for calculations/validation\nconst roundQty = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  const num = parseFloat(value);\n  return Math.round(num * 1000) / 1000;\n};\n\n// Returns string for database updates\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// FIX: Parse gd_qty as number to avoid string concatenation\nconst currentGdQty = parseFloat(gdItem.gd_qty) || 0;\nconst origQty = parseFloat(originalGdItem?.gd_qty) || 0;\n\nlet gdQtyChange = currentGdQty;\nif (originalGdItem) {\n  gdQtyChange = roundQty(currentGdQty - origQty);\n}\n\nlet totalCommitted;\nif (isGDPP === 1) {\n  totalCommitted = roundQty(deliveredQty + currentGdQty);\n} else {\n  totalCommitted = roundQty(deliveredQty + plannedQty + gdQtyChange);\n}\n\nlet validationMessage = null;\n\n// Validate order limit (skip for FULL_HU_PICK only — NO_SPLIT enforces tolerance)\nif (splitPolicy !== \"FULL_HU_PICK\" && totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n  validationMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: quantity is exceeding the maximum deliverable quantity.`;\n}\n\n// Validate planned_qty won't go negative\nif (!validationMessage) {\n  let projectedPlannedQty = plannedQty;\n\n  if (isGDPP === 1 && saveAs === \"Completed\") {\n    projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n  } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n    projectedPlannedQty = roundQty(plannedQty - origQty);\n  } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n    projectedPlannedQty = roundQty(plannedQty - origQty + currentGdQty);\n  } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n    projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n  }\n\n  if (projectedPlannedQty < 0) {\n    validationMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: planned quantity would become negative (${projectedPlannedQty}). Please contact support.`;\n  }\n}\n\n// If validation failed, return early\nif (validationMessage) {\n  let updatedSOTable = {{node:get_cache_node_pLyxuBie.data}};\n  if (typeof updatedSOTable === 'string') {\n    try {\n      updatedSOTable = JSON.parse(updatedSOTable);\n    } catch (e) {\n      updatedSOTable = [];\n    }\n  }\n  if (!Array.isArray(updatedSOTable)) {\n    updatedSOTable = [];\n  }\n\n  return {\n    validationMessage: validationMessage,\n    updatedSOTable: updatedSOTable\n  };\n}\n\nlet updatedSOTable = {{node:get_cache_node_pLyxuBie.data}};\nif (typeof updatedSOTable === 'string') {\n  try {\n    updatedSOTable = JSON.parse(updatedSOTable);\n  } catch (e) {\n    updatedSOTable = [];\n  }\n}\nif (!Array.isArray(updatedSOTable)) {\n  updatedSOTable = [];\n}\nlet updatedSOItem = {{node:get_node_YMto3jtl.data.data}};\n\nif (isGDPP === 1) {\n  if (saveAs === \"Completed\") {\n    updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n    updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n    updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n  }\n\n} else {\n  if (gd_status === \"Draft\" && saveAs === \"Completed\") {\n    updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n    updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n  } else if (gd_status === \"Draft\" && saveAs === \"Created\") {\n    updatedSOItem.planned_qty = formatNumber(plannedQty + currentGdQty);\n\n  } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n    updatedSOItem.planned_qty = formatNumber(plannedQty - origQty);\n    updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n    updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n  } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n    updatedSOItem.planned_qty = formatNumber(plannedQty - origQty + currentGdQty);\n\n  } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n    updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n  }\n}\n\nif (saveAs === \"Completed\") {\n  if (parseFloat(updatedSOItem.outstanding_quantity) > 0) {\n    updatedSOItem.line_status = \"Processing\";\n  } else {\n    updatedSOItem.line_status = \"Completed\";\n  }\n}\n\nupdatedSOTable.push(updatedSOItem);\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable\n};\n"
-                    },
-                    "response_json": [
-                      {
-                        "key": "4wzdkotv",
-                        "name": "validationMessage",
-                        "title": "validationMessage",
-                        "description": "",
-                        "bsonType": "string",
-                        "isExpand": false
-                      },
-                      {
-                        "key": "3i2jv4sy",
-                        "name": "updatedSOTable",
-                        "title": "updatedSOTable",
-                        "description": "",
-                        "bsonType": "array",
-                        "isExpand": true,
-                        "children": [
-                          {
-                            "key": "bnk32pwu",
-                            "name": "items",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "any",
-                            "isExpand": false,
-                            "isArrayItem": true,
-                            "children": []
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  "blocks": []
-                },
-                {
-                  "id": "if_ACsN1GZD",
-                  "type": "if",
-                  "data": {
-                    "title": "IF !Cancelled",
-                    "isValidator": true,
-                    "nodeName": "IF !Cancelled",
-                    "name": "IF !Cancelled",
-                    "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
-                    "filter": {
-                      "list": [
-                        {
-                          "id": 1736695973613,
-                          "parentId": 1736695973612,
-                          "isTop": true,
-                          "prop": "workflowparams.saveAs",
-                          "operator": "notEqual",
-                          "valueType": "value",
-                          "value": "Cancelled",
-                          "type": "leaf",
-                          "level": 1,
-                          "propLabel": "saveAs",
-                          "valueLabel": "",
-                          "operatorLabel": "Not Equal"
-                        }
-                      ]
-                    }
-                  },
-                  "blocks": [
-                    {
-                      "id": "if_block_bgumb9Zv",
-                      "type": "ifBlock",
-                      "data": { "title": "true" },
-                      "blocks": [
-                        {
-                          "id": "if_I5UTovzN",
-                          "type": "if",
-                          "data": {
-                            "title": "IF validationMessage",
-                            "isValidator": true,
-                            "nodeName": "IF validationMessage",
-                            "name": "IF validationMessage",
-                            "condition_type": "ConditionRule",
-                            "filter": {
-                              "list": [
-                                {
-                                  "id": 1736695973613,
-                                  "parentId": 1736695973612,
-                                  "isTop": true,
-                                  "prop": "node.code_node_muzjP26e.data.validationMessage",
-                                  "operator": "isNotNull",
-                                  "valueType": "value",
-                                  "type": "leaf",
-                                  "level": 1,
-                                  "propLabel": "validationMessage",
-                                  "valueLabel": "",
-                                  "operatorLabel": "Is Not Null"
-                                }
-                              ]
-                            }
-                          },
-                          "blocks": [
-                            {
-                              "id": "if_block_h538x1JS",
-                              "type": "ifBlock",
-                              "data": { "title": "true" },
-                              "blocks": [
-                                {
-                                  "id": "return_node_SlczsqHg",
-                                  "type": "return-node",
-                                  "data": {
-                                    "return_data": {},
-                                    "status_code": 200,
-                                    "title": "Return Data",
-                                    "isValidator": true,
-                                    "nodeName": "Return Data",
-                                    "name": "Return Data",
-                                    "response_value": {
-                                      "list": [
-                                        {
-                                          "prop": "code",
-                                          "propLabel": "code",
-                                          "operator": "",
-                                          "operatorLabel": "",
-                                          "valueType": "value",
-                                          "valueTypeLabel": "",
-                                          "value": "400",
-                                          "valueLabel": ""
-                                        },
-                                        {
-                                          "prop": "message",
-                                          "operator": "",
-                                          "valueType": "field",
-                                          "value": "{{node:code_node_muzjP26e.data.validationMessage}}",
-                                          "valueLabel": "",
-                                          "propLabel": "message"
-                                        }
-                                      ]
-                                    },
-                                    "return_raw_data": 0
-                                  },
-                                  "blocks": []
-                                }
-                              ]
-                            },
-                            {
-                              "id": "if_block_HCFVgb1r",
-                              "type": "ifBlock",
-                              "data": { "title": "false" },
-                              "blocks": []
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "id": "if_block_jXE0qV2S",
-                      "type": "ifBlock",
-                      "data": { "title": "false" },
-                      "blocks": []
-                    }
-                  ]
-                },
-                {
-                  "id": "set_cache_node_ywRRM7OG",
-                  "type": "set-cache-node",
-                  "data": {
-                    "cache_key": "",
-                    "cache_value": "",
-                    "expire_time": 3600,
-                    "title": "Set quantityCheckIndex",
-                    "isValidator": true,
-                    "nodeName": "Set quantityCheckIndex",
-                    "name": "Set quantityCheckIndex",
-                    "custom_wkbocgni": {
-                      "type": "javascript",
-                      "code": "{{node:code_node_SOBNriDH.data.nextIndex}}"
-                    },
-                    "redis_key": "quantityCheckIndex_{{node:code_node_eOO3RTkR.data.unique}}"
-                  },
-                  "blocks": []
-                },
-                {
-                  "id": "set_cache_node_Kij5KaiV",
-                  "type": "set-cache-node",
-                  "data": {
-                    "cache_key": "",
-                    "cache_value": "",
-                    "expire_time": 3600,
-                    "title": "Set updatedSOTable",
-                    "isValidator": true,
-                    "nodeName": "Set updatedSOTable",
-                    "name": "Set updatedSOTable",
-                    "custom_wkbocgni": {
-                      "type": "javascript",
-                      "code": "{{node:code_node_muzjP26e.data.updatedSOTable}}"
-                    },
-                    "redis_key": "updatedSOTable_{{node:code_node_eOO3RTkR.data.unique}}"
+                    "title": "false"
                   },
                   "blocks": []
                 }
               ]
+            },
+            {
+              "id": "if_ACsN1GZD",
+              "type": "if",
+              "data": {
+                "title": "IF !Cancelled",
+                "isValidator": true,
+                "nodeName": "IF !Cancelled",
+                "name": "IF !Cancelled",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "workflowparams.saveAs",
+                      "operator": "notEqual",
+                      "valueType": "value",
+                      "value": "Cancelled",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "saveAs",
+                      "valueLabel": "",
+                      "operatorLabel": "Not Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_bgumb9Zv",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_I5UTovzN",
+                      "type": "if",
+                      "data": {
+                        "title": "IF validationMessage",
+                        "isValidator": true,
+                        "nodeName": "IF validationMessage",
+                        "name": "IF validationMessage",
+                        "condition_type": "ConditionRule",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1736695973613,
+                              "parentId": 1736695973612,
+                              "isTop": true,
+                              "prop": "node.code_node_QtyCheckBatch.data.validationMessage",
+                              "operator": "isNotNull",
+                              "valueType": "value",
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "validationMessage",
+                              "valueLabel": "",
+                              "operatorLabel": "Is Not Null"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_h538x1JS",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "return_node_SlczsqHg",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return Data",
+                                "isValidator": true,
+                                "nodeName": "Return Data",
+                                "name": "Return Data",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "propLabel": "code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "400",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_QtyCheckBatch.data.validationMessage}}",
+                                      "valueLabel": "",
+                                      "propLabel": "message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_HCFVgb1r",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_jXE0qV2S",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "set_cache_node_Kij5KaiV",
+              "type": "set-cache-node",
+              "data": {
+                "cache_key": "",
+                "cache_value": "",
+                "expire_time": 3600,
+                "title": "Set updatedSOTable",
+                "isValidator": true,
+                "nodeName": "Set updatedSOTable",
+                "name": "Set updatedSOTable",
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_QtyCheckBatch.data.updatedSOTable}}"
+                },
+                "redis_key": "updatedSOTable_{{node:code_node_eOO3RTkR.data.unique}}"
+              },
+              "blocks": []
             }
           ]
         },
