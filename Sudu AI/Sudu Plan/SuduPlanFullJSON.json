@@ -1,0 +1,2133 @@
+{
+  "list": [
+    {
+      "version": "1.0.0",
+      "type": "flex",
+      "el": "su-fm-flex",
+      "mainIcon": "自动布局",
+      "typeIcon": "自动布局",
+      "icon": "icon-zhediemianban",
+      "group": "Design",
+      "groupSort": 1,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "dataBind": false,
+        "pagingEnabled": true,
+        "customClass": "",
+        "hidden": false,
+        "isVirtual": false,
+        "loopRender": true,
+        "auto_refresh": 1,
+        "auto_refresh_debounce": 100,
+        "recursive": false,
+        "recursiveStyleFx": "",
+        "slotTarget": "",
+        "defaultValue": "",
+        "flexDirection": "column",
+        "flexWrap": "",
+        "alignItems": "",
+        "justifyContent": "",
+        "hGap": "",
+        "vGap": "",
+        "grid": {
+          "row": {
+            "value": "",
+            "visible": true
+          },
+          "col": {
+            "value": "",
+            "visible": true
+          },
+          "use": false
+        },
+        "padding": ["", "", "", ""],
+        "margin": ["", "", "", ""],
+        "boxSizing": "border-box",
+        "width": "720px",
+        "height": "",
+        "radius": ["", "", "", ""],
+        "position": "relative",
+        "positions": ["", "", "", ""],
+        "zIndex": "",
+        "flex": "",
+        "flexGrow": "",
+        "flexShrink": "",
+        "fills": [],
+        "borders": [],
+        "effects": [],
+        "states": [],
+        "hoverClass": "",
+        "overflow": "",
+        "styleFx": "",
+        "behave": "",
+        "gridTable": {
+          "rows": 6,
+          "cols": 8,
+          "borderWidth": 1,
+          "borderColor": "#333333",
+          "cellBackground": "#ffffff",
+          "headerBackground": "#f5f7fa",
+          "cellMinHeight": "40px"
+        },
+        "remoteFunc": "func_mp6uicbq",
+        "remoteOption": "option_mp6uicbq",
+        "tableColumn": false,
+        "subform": false,
+        "datasource": {
+          "rules": {
+            "collectionId": "",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "options": [],
+        "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+        },
+        "paging_way": "Pagination",
+        "page_size": 10,
+        "remote": false,
+        "remoteType": "datasource"
+      },
+      "list": [
+        {
+          "name": "自动布局",
+          "type": "flex",
+          "el": "su-fm-flex",
+          "mainIcon": "自动布局",
+          "typeIcon": "自动布局",
+          "icon": "icon-zhediemianban",
+          "group": "Design",
+          "groupSort": 6,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "title": "布局",
+            "customClass": "",
+            "hidden": false,
+            "recursive": false,
+            "recursiveStyleFx": "",
+            "slotTarget": "",
+            "defaultValue": "",
+            "flexDirection": "row",
+            "flexWrap": "nowrap",
+            "alignItems": "",
+            "justifyContent": "",
+            "hGap": "",
+            "vGap": "",
+            "grid": {
+              "row": {
+                "value": "",
+                "visible": true
+              },
+              "col": {
+                "value": "",
+                "visible": true
+              },
+              "use": false
+            },
+            "padding": ["", "", "", ""],
+            "margin": ["", "", "", ""],
+            "boxSizing": "border-box",
+            "width": "",
+            "height": "",
+            "radius": ["", "", "", ""],
+            "position": "",
+            "positions": ["", "", "", ""],
+            "zIndex": "",
+            "flex": "",
+            "flexGrow": "",
+            "flexShrink": "",
+            "fills": [],
+            "borders": [],
+            "effects": [],
+            "states": [],
+            "hoverClass": "",
+            "overflow": "",
+            "styleFx": "",
+            "behave": "",
+            "remoteFunc": "func_b17kd1r8",
+            "remoteOption": "option_b17kd1r8",
+            "tableColumn": false,
+            "subform": false,
+            "props": {
+              "value": "",
+              "label": "",
+              "image": "",
+              "icon": "",
+              "explain": ""
+            },
+            "datasource": {
+              "rules": {
+                "collectionId": "",
+                "list": [
+                  {
+                    "id": 1723795236686,
+                    "parentId": 1723795236685,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                  }
+                ]
+              }
+            },
+            "remote": false,
+            "remoteType": "datasource",
+            "url_params": {
+              "list": [
+                {
+                  "prop": "",
+                  "propLabel": "",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "value",
+                  "valueTypeLabel": "",
+                  "valueLabel": ""
+                }
+              ]
+            },
+            "auto_refresh": 0,
+            "auto_refresh_debounce": 100,
+            "options": []
+          },
+          "list": [
+            {
+              "name": "",
+              "type": "utext",
+              "el": "su-fm-text",
+              "mainIcon": "文字",
+              "typeIcon": "文字",
+              "icon": "icon-wenzishezhi-",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "Product Plan",
+                "customClass": "marginright",
+                "hidden": false,
+                "isRich": false,
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "maxWidth": "",
+                "lineHeight": "",
+                "color": "#333333",
+                "fontSize": "24px",
+                "fontWeight": "700",
+                "textAlign": "left",
+                "fontStyle": "",
+                "textOverflow": "",
+                "whiteSpace": "",
+                "lines": 0,
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "styleFx": "",
+                "remoteFunc": "func_v1v2auhw",
+                "remoteOption": "option_v1v2auhw",
+                "tableColumn": false,
+                "subform": false,
+                "dynamicValueFx": "",
+                "dynamicValueType": "fx",
+                "isDynamicValue": false,
+                "select-card_n7ge7fmb": ["dataBind"],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "dataBind": false
+              },
+              "events": {
+                "onClick": ""
+              },
+              "key": "cb9p547m",
+              "model": "product_plan_tittle",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "name": "Active Status",
+              "type": "html",
+              "icon": "icon-html",
+              "mainIcon": "HTML",
+              "typeIcon": "HTML",
+              "group": "View",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Active Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .active-button {\n            padding: 0 20px;\n            border: 2px solid #00AE00;\n            background-color: #C5F5C5;\n            color: #016701;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"active-button\">Active</div>\n</body>\n</html>",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "dataBind": false,
+                "required": false,
+                "width": "",
+                "tip": "",
+                "remoteFunc": "func_qkx2w02f",
+                "remoteOption": "option_qkx2w02f",
+                "tableColumn": false,
+                "subform": false,
+                "customClass": "",
+                "hideLabel": true,
+                "dynamicValueType": "fx",
+                "isDynamicValue": false,
+                "select-card_n7ge7fmb": ["dataBind"],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": ""
+              },
+              "key": "78qbl148",
+              "model": "active_status",
+              "rules": []
+            },
+            {
+              "name": "Inactive Status",
+              "type": "html",
+              "icon": "icon-html",
+              "mainIcon": "HTML",
+              "typeIcon": "HTML",
+              "group": "View",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Inactive Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .inactive-button {\n            padding: 0 20px;\n            border: 2px solid #F90A0A;\n            background-color: #FDC4C4;\n            color: #A30505;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"inactive-button\">Inactive</div>\n</body>\n</html>",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "dataBind": false,
+                "required": false,
+                "width": "",
+                "tip": "",
+                "remoteFunc": "func_qkx2w02f",
+                "remoteOption": "option_qkx2w02f",
+                "tableColumn": false,
+                "subform": false,
+                "customClass": "",
+                "hideLabel": true,
+                "select-card_n7ge7fmb": ["dataBind"],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": ""
+              },
+              "key": "yf4728oi",
+              "model": "inactive_status",
+              "rules": []
+            }
+          ],
+          "events": {
+            "onClick": ""
+          },
+          "key": "xhkh3dge",
+          "model": "flex_b17kd1r8",
+          "rules": []
+        },
+        {
+          "name": "Page Status",
+          "type": "input",
+          "mainIcon": "单行文本",
+          "typeIcon": "多行文本",
+          "icon": "icon-input",
+          "group": "Text",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "el": "fm-input",
+          "options": {
+            "width": "",
+            "defaultValue": "",
+            "required": false,
+            "requiredMessage": "",
+            "dataType": "",
+            "dataTypeCheck": false,
+            "dataTypeMessage": "",
+            "pattern": "",
+            "patternCheck": false,
+            "patternMessage": "",
+            "validatorCheck": false,
+            "validator": "",
+            "placeholder": "",
+            "customClass": "",
+            "disabled": false,
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": true,
+            "dataBind": false,
+            "showPassword": false,
+            "clearable": false,
+            "maxlength": "",
+            "showWordLimit": false,
+            "customProps": {},
+            "tip": "",
+            "remoteFunc": "func_lhtr3h5u",
+            "remoteOption": "option_lhtr3h5u",
+            "tableColumn": false,
+            "subform": false,
+            "select-card_n7ge7fmb": ["dataBind"],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": "",
+            "highFrequencyInput": false,
+            "highFrequencyTimeField": "",
+            "highFrequencyDuration": 30,
+            "highFrequencyMinCount": 20,
+            "highFrequencyMaxItems": 5,
+            "highFrequencySortRule": 1
+          },
+          "events": {
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "key": "tl7oz1pf",
+          "model": "page_status",
+          "rules": []
+        },
+        {
+          "version": "1.0.0",
+          "type": "flex",
+          "el": "su-fm-flex",
+          "mainIcon": "自动布局",
+          "typeIcon": "自动布局",
+          "icon": "icon-zhediemianban",
+          "group": "Design",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "dataBind": false,
+            "pagingEnabled": true,
+            "customClass": "",
+            "hidden": false,
+            "isVirtual": false,
+            "loopRender": true,
+            "auto_refresh": 1,
+            "auto_refresh_debounce": 100,
+            "recursive": false,
+            "recursiveStyleFx": "",
+            "slotTarget": "",
+            "defaultValue": "",
+            "flexDirection": "column",
+            "flexWrap": "",
+            "alignItems": "",
+            "justifyContent": "",
+            "hGap": "",
+            "vGap": "",
+            "grid": {
+              "row": {
+                "value": "",
+                "visible": true
+              },
+              "col": {
+                "value": "",
+                "visible": true
+              },
+              "use": false
+            },
+            "padding": ["20px", "", "", ""],
+            "margin": ["", "", "", ""],
+            "boxSizing": "border-box",
+            "width": "",
+            "height": "",
+            "radius": ["", "", "", ""],
+            "position": "relative",
+            "positions": ["", "", "", ""],
+            "zIndex": "",
+            "flex": "",
+            "flexGrow": "",
+            "flexShrink": "",
+            "fills": [],
+            "borders": [],
+            "effects": [],
+            "states": [],
+            "hoverClass": "",
+            "overflow": "",
+            "styleFx": "",
+            "behave": "",
+            "gridTable": {
+              "rows": 6,
+              "cols": 8,
+              "borderWidth": 1,
+              "borderColor": "#333333",
+              "cellBackground": "#ffffff",
+              "headerBackground": "#f5f7fa",
+              "cellMinHeight": "40px"
+            },
+            "remoteFunc": "func_txkonsmo",
+            "remoteOption": "option_txkonsmo",
+            "tableColumn": false,
+            "subform": false,
+            "datasource": {
+              "rules": {
+                "collectionId": "",
+                "list": [
+                  {
+                    "id": 1723795236686,
+                    "parentId": 1723795236685,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                  }
+                ]
+              }
+            },
+            "options": [],
+            "props": {
+              "value": "",
+              "label": "",
+              "image": "",
+              "icon": "",
+              "explain": ""
+            },
+            "paging_way": "Pagination",
+            "page_size": 10,
+            "remote": false,
+            "remoteType": "datasource"
+          },
+          "list": [
+            {
+              "type": "collapse",
+              "mainIcon": "折叠面板",
+              "typeIcon": "折叠面板",
+              "icon": "icon-zhediemianban",
+              "group": "Layout",
+              "groupSort": 3,
+              "enableScopes": ["Component", "Table", "Page"],
+              "tabs": [
+                {
+                  "title": "Basic Info",
+                  "name": "basic_info",
+                  "list": [
+                    {
+                      "version": "1.0.0",
+                      "type": "flex",
+                      "el": "su-fm-flex",
+                      "mainIcon": "自动布局",
+                      "typeIcon": "自动布局",
+                      "icon": "icon-zhediemianban",
+                      "group": "Design",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "dataBind": false,
+                        "pagingEnabled": true,
+                        "customClass": "",
+                        "hidden": false,
+                        "isVirtual": false,
+                        "loopRender": true,
+                        "auto_refresh": 1,
+                        "auto_refresh_debounce": 100,
+                        "recursive": false,
+                        "recursiveStyleFx": "",
+                        "slotTarget": "",
+                        "defaultValue": "",
+                        "flexDirection": "column",
+                        "flexWrap": "",
+                        "alignItems": "",
+                        "justifyContent": "",
+                        "hGap": "",
+                        "vGap": "",
+                        "grid": {
+                          "row": {
+                            "value": "",
+                            "visible": true
+                          },
+                          "col": {
+                            "value": "",
+                            "visible": true
+                          },
+                          "use": false
+                        },
+                        "padding": ["", "", "", ""],
+                        "margin": ["", "", "", ""],
+                        "boxSizing": "border-box",
+                        "width": "",
+                        "height": "",
+                        "radius": ["", "", "", ""],
+                        "position": "relative",
+                        "positions": ["", "", "", ""],
+                        "zIndex": "",
+                        "flex": "",
+                        "flexGrow": "",
+                        "flexShrink": "",
+                        "fills": [],
+                        "borders": [],
+                        "effects": [],
+                        "states": [],
+                        "hoverClass": "",
+                        "overflow": "",
+                        "styleFx": "",
+                        "behave": "",
+                        "gridTable": {
+                          "rows": 6,
+                          "cols": 8,
+                          "borderWidth": 1,
+                          "borderColor": "#333333",
+                          "cellBackground": "#ffffff",
+                          "headerBackground": "#f5f7fa",
+                          "cellMinHeight": "40px"
+                        },
+                        "remoteFunc": "func_04phf2fx",
+                        "remoteOption": "option_04phf2fx",
+                        "tableColumn": false,
+                        "subform": false,
+                        "datasource": {
+                          "rules": {
+                            "collectionId": "",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "options": [],
+                        "props": {
+                          "value": "",
+                          "label": "",
+                          "image": "",
+                          "icon": "",
+                          "explain": ""
+                        },
+                        "paging_way": "Pagination",
+                        "page_size": 10,
+                        "remote": false,
+                        "remoteType": "datasource"
+                      },
+                      "list": [
+                        {
+                          "name": "Active",
+                          "type": "switch",
+                          "mainIcon": "开关",
+                          "typeIcon": "开关",
+                          "icon": "icon-switch",
+                          "group": "Select",
+                          "groupSort": 8,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": 0,
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "disabled": false,
+                            "customClass": "",
+                            "labelWidth": 60,
+                            "isLabelWidth": true,
+                            "hidden": false,
+                            "dataBind": true,
+                            "width": "",
+                            "customProps": {},
+                            "tip": "",
+                            "booleanValueMode": false,
+                            "alignright": false,
+                            "checkboxMode": false,
+                            "remoteFunc": "func_mg4pz82c",
+                            "remoteOption": "option_mg4pz82c",
+                            "tableColumn": false,
+                            "subform": false,
+                            "labelWrap": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": ""
+                          },
+                          "novalid": {},
+                          "key": "3ae17fkf",
+                          "model": "is_active",
+                          "rules": []
+                        },
+                        {
+                          "name": "Plan Code",
+                          "type": "input",
+                          "mainIcon": "单行文本",
+                          "typeIcon": "多行文本",
+                          "icon": "icon-input",
+                          "group": "Text",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-input",
+                          "options": {
+                            "width": "",
+                            "defaultValue": "",
+                            "required": true,
+                            "requiredMessage": "",
+                            "dataType": "",
+                            "dataTypeCheck": false,
+                            "dataTypeMessage": "",
+                            "pattern": "",
+                            "patternCheck": false,
+                            "patternMessage": "",
+                            "validatorCheck": true,
+                            "validator": "const page_status = this.getValue(\"page_status\");\n\nif (page_status === \"View\" || !value) {\n  callback();\n  return;\n}\n\nlet organizationId = this.getVarGlobal('deptParentId');\nif(organizationId === '0'){\n    organizationId = this.getVarSystem('deptIds').split(',')[0];\n}\n\n\ndb.collection(\"Item\")\n  .where({ material_code: value, organization_id: organizationId })\n  .get()\n  .then((response) => {\n    const matchingItems = response.data || [];\n\n    if (matchingItems.length === 0) {\n      callback();\n      return;\n    }\n\n    if (page_status === \"Edit\") {\n      const currentItemId = this.getValue(\"id\");\n      const isSameItem = matchingItems.some(\n        (item) => item.id === currentItemId\n      );\n      callback(isSameItem ? undefined : \"Item code already exists.\");\n    } else {\n      callback(\"Item code already exists.\");\n    }\n  })\n  .catch((error) => {\n    console.error(\"Error checking item:\", error);\n    callback(\"Error validating item code.\");\n  });\n",
+                            "placeholder": "",
+                            "customClass": "",
+                            "disabled": false,
+                            "labelWidth": 130,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "showPassword": false,
+                            "clearable": false,
+                            "maxlength": "",
+                            "showWordLimit": false,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_2lx6vnxk",
+                            "remoteOption": "option_2lx6vnxk",
+                            "tableColumn": false,
+                            "subform": false,
+                            "dynamicValueType": "fx",
+                            "isDynamicValue": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "highFrequencyInput": false,
+                            "highFrequencyTimeField": "",
+                            "highFrequencyDuration": 30,
+                            "highFrequencyMinCount": 20,
+                            "highFrequencyMaxItems": 5,
+                            "highFrequencySortRule": 1,
+                            "select-card_4c8m22dh": []
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "novalid": {},
+                          "key": "83jpkm1a",
+                          "model": "plan_code",
+                          "rules": [
+                            {
+                              "required": true,
+                              "message": ""
+                            },
+                            {
+                              "func": "const page_status = this.getValue(\"page_status\");\n\nif (page_status === \"View\" || !value) {\n  callback();\n  return;\n}\n\nlet organizationId = this.getVarGlobal('deptParentId');\nif(organizationId === '0'){\n    organizationId = this.getVarSystem('deptIds').split(',')[0];\n}\n\n\ndb.collection(\"Item\")\n  .where({ material_code: value, organization_id: organizationId })\n  .get()\n  .then((response) => {\n    const matchingItems = response.data || [];\n\n    if (matchingItems.length === 0) {\n      callback();\n      return;\n    }\n\n    if (page_status === \"Edit\") {\n      const currentItemId = this.getValue(\"id\");\n      const isSameItem = matchingItems.some(\n        (item) => item.id === currentItemId\n      );\n      callback(isSameItem ? undefined : \"Item code already exists.\");\n    } else {\n      callback(\"Item code already exists.\");\n    }\n  })\n  .catch((error) => {\n    console.error(\"Error checking item:\", error);\n    callback(\"Error validating item code.\");\n  });\n"
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Plan Name",
+                          "type": "input",
+                          "mainIcon": "单行文本",
+                          "typeIcon": "多行文本",
+                          "icon": "icon-input",
+                          "group": "Text",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-input",
+                          "options": {
+                            "width": "",
+                            "defaultValue": "",
+                            "required": true,
+                            "requiredMessage": "",
+                            "dataType": "",
+                            "dataTypeCheck": false,
+                            "dataTypeMessage": "",
+                            "pattern": "",
+                            "patternCheck": false,
+                            "patternMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "placeholder": "",
+                            "customClass": "",
+                            "disabled": false,
+                            "labelWidth": 110,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "showPassword": false,
+                            "clearable": false,
+                            "maxlength": "",
+                            "showWordLimit": false,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_fol922c5",
+                            "remoteOption": "option_fol922c5",
+                            "tableColumn": false,
+                            "subform": false,
+                            "dynamicValueType": "fx",
+                            "isDynamicValue": false,
+                            "highFrequencyInput": false,
+                            "highFrequencyTimeField": "",
+                            "highFrequencyDuration": 30,
+                            "highFrequencyMinCount": 20,
+                            "highFrequencyMaxItems": 5,
+                            "highFrequencySortRule": 1,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "select-card_4c8m22dh": []
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "novalid": {},
+                          "key": "1pnsryy4",
+                          "model": "plan_name",
+                          "rules": [
+                            {
+                              "required": true,
+                              "message": ""
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Description",
+                          "type": "textarea",
+                          "mainIcon": "多行文本",
+                          "typeIcon": "多行文本(1)",
+                          "icon": "icon-diy-com-textarea",
+                          "group": "Text",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "width": "",
+                            "defaultValue": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "disabled": false,
+                            "pattern": "",
+                            "patternMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "placeholder": "",
+                            "customClass": "",
+                            "labelWidth": 110,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "clearable": false,
+                            "maxlength": "",
+                            "showWordLimit": false,
+                            "rows": 1,
+                            "autosize": false,
+                            "customProps": {},
+                            "tip": "",
+                            "remoteFunc": "func_cf1weeib",
+                            "remoteOption": "option_cf1weeib",
+                            "tableColumn": false,
+                            "subform": false,
+                            "highFrequencyInput": false,
+                            "highFrequencyTimeField": "",
+                            "highFrequencyDuration": 30,
+                            "highFrequencyMinCount": 20,
+                            "highFrequencyMaxItems": 5,
+                            "highFrequencySortRule": 1,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "select-card_4c8m22dh": []
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "novalid": {},
+                          "key": "h238bknd",
+                          "model": "plan_desc",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.1.0",
+                          "name": "Display Order",
+                          "el": "su-fm-enhanced-number-input",
+                          "mainIcon": "数字",
+                          "typeIcon": "数字",
+                          "group": "Number",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "width": "",
+                            "defaultValue": null,
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "disabled": false,
+                            "dataBind": true,
+                            "required": false,
+                            "validator": "",
+                            "hideLabel": false,
+                            "placeholder": "",
+                            "min": 0,
+                            "max": null,
+                            "controls": false,
+                            "step": 1,
+                            "precision": 0,
+                            "clearable": true,
+                            "readonly": false,
+                            "highFrequencyInput": false,
+                            "highFrequencyTimeField": "",
+                            "highFrequencyDuration": 30,
+                            "highFrequencyMinCount": 20,
+                            "highFrequencyMaxItems": 5,
+                            "highFrequencySortRule": 1,
+                            "customProps": {
+                              "number_rule": "",
+                              "precision_rule": 1,
+                              "valueType": "int",
+                              "numberType": "number",
+                              "showPrefix": false,
+                              "prefixText": "",
+                              "showSuffix": false,
+                              "suffixText": "",
+                              "percentageType": "percent",
+                              "showPercentSymbol": true,
+                              "currency": "CNY",
+                              "customCurrencySymbol": "",
+                              "showThousandSeparator": true,
+                              "showCurrencySymbol": true,
+                              "showThousandSeparatorForNumber": false,
+                              "allowNegative": true,
+                              "autoFormat": true
+                            },
+                            "remoteFunc": "func_poqqugqc",
+                            "remoteOption": "option_poqqugqc",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {},
+                          "source": "system",
+                          "type": "custom",
+                          "novalid": {},
+                          "key": "poqqugqc",
+                          "model": "display_order",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": "",
+                            "multiple": false,
+                            "disabled": false,
+                            "clearable": false,
+                            "placeholder": "",
+                            "required": true,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_zr29vh6a",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "isShowExpandButton": false,
+                            "buttonText": "新增",
+                            "buttonPosition": "bottom",
+                            "buttonAlign": "right",
+                            "buttonSize": "default",
+                            "buttonEvent": [],
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "plan_name",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": "",
+                              "children": "children"
+                            },
+                            "remoteFunc": "func_zr29vh6a",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "2086068952784371713",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "is_active",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "Active",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              },
+                              "source": "ERP Plan:Table:2086068952784371713"
+                            },
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "paging_way": "Pagination",
+                            "page_size": 10,
+                            "paging_enabled": 1,
+                            "sorts": []
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "ERP Plan",
+                          "novalid": {},
+                          "key": "zr29vh6a",
+                          "model": "erp_plan_id",
+                          "rules": [
+                            {
+                              "required": true,
+                              "message": ""
+                            }
+                          ]
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": "",
+                            "multiple": false,
+                            "disabled": false,
+                            "clearable": true,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_zr29vh6a",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "isShowExpandButton": false,
+                            "buttonText": "新增",
+                            "buttonPosition": "bottom",
+                            "buttonAlign": "right",
+                            "buttonSize": "default",
+                            "buttonEvent": [],
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "plan_name",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": ""
+                            },
+                            "remoteFunc": "func_zr29vh6a",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "2086422976536707073",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "is_active",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "Active",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              },
+                              "source": "Ai Service Plan:Table:2086422976536707073"
+                            },
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "paging_way": "Pagination",
+                            "page_size": 10,
+                            "paging_enabled": 1,
+                            "sorts": []
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "AI Service Plan",
+                          "novalid": {},
+                          "key": "i0zlg5m7",
+                          "model": "ai_service_plan_id",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": "",
+                            "multiple": false,
+                            "disabled": false,
+                            "clearable": true,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_zr29vh6a",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "isShowExpandButton": false,
+                            "buttonText": "新增",
+                            "buttonPosition": "bottom",
+                            "buttonAlign": "right",
+                            "buttonSize": "default",
+                            "buttonEvent": [],
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "plan_name",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": ""
+                            },
+                            "remoteFunc": "func_zr29vh6a",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "2086424808302510082",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "is_active",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 1,
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "Active",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              },
+                              "source": "AI Credit Plan:Table:2086424808302510082"
+                            },
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "paging_way": "Pagination",
+                            "page_size": 10,
+                            "paging_enabled": 1,
+                            "sorts": []
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "AI Credit Plan",
+                          "novalid": {},
+                          "key": "frmn5yks",
+                          "model": "ai_credit_plan_id",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": "",
+                            "multiple": false,
+                            "disabled": false,
+                            "clearable": true,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_zr29vh6a",
+                            "filterable": false,
+                            "pagingEnabled": true,
+                            "isShowExpandButton": false,
+                            "buttonText": "新增",
+                            "buttonPosition": "bottom",
+                            "buttonAlign": "right",
+                            "buttonSize": "default",
+                            "buttonEvent": [],
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "package_name",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": ""
+                            },
+                            "remoteFunc": "func_zr29vh6a",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "2087485119936929797",
+                                "list": [
+                                  {
+                                    "id": 1723795236686,
+                                    "parentId": 1723795236685,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              },
+                              "source": "租户产品包(勿删勿改):Table:2087485119936929797"
+                            },
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "paging_way": "Pagination",
+                            "page_size": 10,
+                            "paging_enabled": 1,
+                            "sorts": []
+                          },
+                          "events": {
+                            "onReady": "",
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Tenant Package",
+                          "novalid": {},
+                          "key": "d9m283yc",
+                          "model": "tenant_package_id",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "treeselect",
+                          "mainIcon": "树形选择",
+                          "typeIcon": "树形选择",
+                          "icon": "icon-shuxuanzeqi",
+                          "group": "Select",
+                          "groupSort": 4,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": [],
+                            "width": "",
+                            "placeholder": "",
+                            "disabled": false,
+                            "clearable": false,
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1",
+                                "children": [
+                                  {
+                                    "value": "Option 1 - children",
+                                    "label": "Option 1 - children"
+                                  }
+                                ]
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2",
+                                "children": [
+                                  {
+                                    "value": "Option 2 - children",
+                                    "label": "Option 2 - children"
+                                  }
+                                ]
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_8deyj0gl",
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "value",
+                              "label": "title",
+                              "children": "",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": ""
+                            },
+                            "remoteFunc": "func_8deyj0gl",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "required": false,
+                            "validatorCheck": false,
+                            "validator": "",
+                            "multiple": true,
+                            "filterable": true,
+                            "is_search_children": true,
+                            "checkStrictly": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "2087824808216698881",
+                                "list": [
+                                  {
+                                    "id": 1786616327428,
+                                    "parentId": 1786616327427,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              },
+                              "source": "菜单树形接口:Api:2087824808216698881"
+                            },
+                            "auto_refresh": 0,
+                            "auto_refresh_debounce": 100,
+                            "sorts": [],
+                            "showCheckbox": true,
+                            "data_field": "",
+                            "tree_field": "children",
+                            "url_params": {
+                              "list": [
+                                {
+                                  "prop": "",
+                                  "propLabel": "",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "formula",
+                                  "valueTypeLabel": "",
+                                  "valueLabel": "",
+                                  "is_negative_number": false
+                                }
+                              ]
+                            }
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "Default Permission",
+                          "key": "6ovo9j54",
+                          "model": "default_permission_id",
+                          "rules": []
+                        },
+                        {
+                          "version": "1.1.0",
+                          "name": "User Limit",
+                          "el": "su-fm-enhanced-number-input",
+                          "mainIcon": "数字",
+                          "typeIcon": "数字",
+                          "group": "Number",
+                          "groupSort": 1,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "width": "",
+                            "defaultValue": null,
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": true,
+                            "disabled": true,
+                            "dataBind": true,
+                            "required": false,
+                            "validator": "",
+                            "hideLabel": false,
+                            "placeholder": "",
+                            "min": 0,
+                            "max": null,
+                            "controls": false,
+                            "step": 1,
+                            "precision": 0,
+                            "clearable": true,
+                            "readonly": false,
+                            "highFrequencyInput": false,
+                            "highFrequencyTimeField": "",
+                            "highFrequencyDuration": 30,
+                            "highFrequencyMinCount": 20,
+                            "highFrequencyMaxItems": 5,
+                            "highFrequencySortRule": 1,
+                            "customProps": {
+                              "number_rule": "",
+                              "precision_rule": 1,
+                              "valueType": "int",
+                              "numberType": "number",
+                              "showPrefix": false,
+                              "prefixText": "",
+                              "showSuffix": false,
+                              "suffixText": "",
+                              "percentageType": "percent",
+                              "showPercentSymbol": true,
+                              "currency": "CNY",
+                              "customCurrencySymbol": "",
+                              "showThousandSeparator": true,
+                              "showCurrencySymbol": true,
+                              "showThousandSeparatorForNumber": false,
+                              "allowNegative": false,
+                              "autoFormat": true
+                            },
+                            "remoteFunc": "func_3op88dzh",
+                            "remoteOption": "option_3op88dzh",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {},
+                          "source": "system",
+                          "type": "custom",
+                          "key": "kol1mdoc",
+                          "model": "tenant_user_limit",
+                          "rules": []
+                        }
+                      ],
+                      "events": {
+                        "onClick": "",
+                        "onDataLoaded": ""
+                      },
+                      "name": "Flex",
+                      "key": "04phf2fx",
+                      "model": "flex_04phf2fx",
+                      "rules": []
+                    }
+                  ],
+                  "key": "v57lw7sy"
+                }
+              ],
+              "options": {
+                "type": "",
+                "accordion": false,
+                "defaultCollapsed": false,
+                "expandIconPosition": "left",
+                "customClass": "collapse-overflow",
+                "hidden": false,
+                "remoteFunc": "func_bmn2yus5",
+                "remoteOption": "option_bmn2yus5",
+                "tableColumn": false,
+                "subform": false
+              },
+              "events": {
+                "onChange": ""
+              },
+              "name": "Collapse",
+              "key": "jjkh09ik",
+              "model": "collapse_basic_info",
+              "rules": []
+            }
+          ],
+          "events": {
+            "onClick": "",
+            "onDataLoaded": ""
+          },
+          "name": "Flex",
+          "key": "txkonsmo",
+          "model": "flex_txkonsmo",
+          "rules": []
+        }
+      ],
+      "events": {
+        "onClick": "",
+        "onDataLoaded": ""
+      },
+      "name": "Flex",
+      "key": "mp6uicbq",
+      "model": "flex_mp6uicbq",
+      "rules": []
+    }
+  ],
+  "config": {
+    "labelWidth": 190,
+    "labelPosition": "left",
+    "size": "small",
+    "customClass": "padding",
+    "ui": "element",
+    "layout": "horizontal",
+    "width": "100%",
+    "hideLabel": false,
+    "hideErrorMessage": false,
+    "eventScript": [
+      {
+        "key": "mounted",
+        "name": "mounted",
+        "func": "",
+        "type": "js"
+      },
+      {
+        "key": "refresh",
+        "name": "refresh",
+        "func": ""
+      },
+      {
+        "key": "onParamUpdate",
+        "name": "onParamUpdate",
+        "func": ""
+      },
+      {
+        "key": "onBeforeAdd",
+        "name": "onBeforeAdd",
+        "func": ""
+      },
+      {
+        "key": "onAfterAdd",
+        "name": "onAfterAdd",
+        "func": ""
+      },
+      {
+        "key": "onBeforeUpdate",
+        "name": "onBeforeUpdate",
+        "func": ""
+      },
+      {
+        "key": "onAfterUpdate",
+        "name": "onAfterUpdate",
+        "func": ""
+      },
+      {
+        "key": "onCommentPublish",
+        "name": "onCommentPublish",
+        "func": ""
+      },
+      {
+        "key": "onCommentDelete",
+        "name": "onCommentDelete",
+        "func": ""
+      },
+      {
+        "key": "onMention",
+        "name": "onMention",
+        "func": ""
+      },
+      {
+        "key": "onLoad",
+        "name": "onLoad",
+        "func": ""
+      },
+      {
+        "key": "onFormChange",
+        "name": "onFormChange",
+        "type": "rule"
+      },
+      {
+        "key": "dmlh3fm6",
+        "name": "func_based_uom",
+        "func": "const data = this.getValues();\n\ndata.table_uom_conversion.forEach((uom, index) => {\n    this.setData({\n        [`table_uom_conversion.${index}.base_uom_id`]: data.based_uom,\n    })\n});",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "71krpel7",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "table_uom_conversion.alt_uom_id",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          },
+          {
+            "key": "fdqwas5f",
+            "action": "js",
+            "options": {
+              "func": "(async () => {\n  try {\n    const data = this.getValues();\n    const based_uom = data.based_uom;\n\n    if (based_uom !== data.previous_based_uom) {\n      const tableSupplierPrice = data.table_supplier_price;\n      const hasSupplierPriceUOM = tableSupplierPrice.some(\n        (item) => item.sup_price_uom === data.previous_based_uom\n      );\n\n      const tableCustomerPrice = data.table_customer_price;\n      const hasCustomerPriceUOM = tableCustomerPrice.some(\n        (item) => item.cust_price_uom === data.previous_based_uom\n      );\n\n      if (\n        (data.purchase_default_uom === data.previous_based_uom ||\n          data.sales_default_uom === data.previous_based_uom ||\n          hasCustomerPriceUOM ||\n          hasSupplierPriceUOM) &&\n        data.previous_based_uom &&\n        based_uom !== data.previous_based_uom\n      ) {\n        await this.$confirm(\n          \"The base UOM has been changed. It will reset the UOM in purchase and sales information. Are you sure you want to continue?\",\n          \"Confirmation\",\n          {\n            confirmButtonText: \"Yes\",\n            cancelButtonText: \"No\",\n            type: \"warning\",\n          }\n        ).catch(() => {\n          this.setData({\n            based_uom: data.previous_based_uom,\n          });\n          throw new Error(\"Base UOM not changed\");\n        });\n      }\n\n      await this.disabled(\n        [\n          \"table_uom_conversion\",\n          \"table_supplier_price\",\n          \"table_customer_price\",\n          \"purchase_default_uom\",\n          \"sales_default_uom\",\n        ],\n        false\n      );\n\n      const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n      this.setData({\n        table_uom_conversion: [\n          {\n            alt_qty: 1,\n            alt_uom_id: based_uom,\n            base_qty: 1,\n            base_uom_id: based_uom,\n          },\n          ...tableUOMConversion.slice(1),\n        ],\n        previous_based_uom: based_uom,\n        ...(data.previous_based_uom === data.purchase_default_uom\n          ? { purchase_default_uom: \"\" }\n          : {}),\n        ...(data.previous_based_uom === data.sales_default_uom\n          ? { sales_default_uom: \"\" }\n          : {}),\n        table_supplier_price: [\n          ...tableSupplierPrice.map((item) => ({\n            ...item,\n            sup_price_uom:\n              item.sup_price_uom === data.previous_based_uom\n                ? based_uom\n                : item.sup_price_uom,\n          })),\n        ],\n        table_customer_price: [\n          ...tableCustomerPrice.map((item) => ({\n            ...item,\n            cust_price_uom:\n              item.cust_price_uom === data.previous_based_uom\n                ? based_uom\n                : item.cust_price_uom,\n          })),\n        ],\n      }).then(() => {\n        setTimeout(() => {\n          this.disabled(\n            [\n              `table_uom_conversion.0.alt_qty`,\n              `table_uom_conversion.0.alt_uom_id`,\n            ],\n            true\n          );\n        }, 50);\n      });\n\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: based_uom,\n        });\n      });\n    } else if (based_uom === data.previous_based_uom) {\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: based_uom,\n        });\n      });\n    } else if (!based_uom) {\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: \"\",\n        });\n      });\n      this.disabled(\n        [\n          \"table_uom_conversion\",\n          \"table_supplier_price\",\n          \"table_customer_price\",\n          \"sales_default_uom\",\n          \"purchase_default_uom\",\n        ],\n        true\n      );\n    }\n  } catch (error) {\n    console.error(\"Error in UOM processing:\", error);\n  }\n})();\n"
+            }
+          }
+        ]
+      },
+      {
+        "key": "ssoqjp49",
+        "name": "onChange_purchase_tax_rate",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "vv64vwjk",
+            "action": "js",
+            "options": {
+              "func": "this.setData({'purchase_tax_percent': \"\"})\nif(arguments[0].value){\n  this.disabled(['purchase_tax_percent'],false)\n}\n  "
+            }
+          },
+          {
+            "key": "rkxnn6w5",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "purchase_tax_percent",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "8jiah866",
+        "name": "onChange_sales_tax_rate",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "l2eqcur8",
+            "action": "js",
+            "options": {
+              "func": "this.setData({'sales_tax_percent': \"\"})\nif(arguments[0].value){\n  this.disabled(['sales_tax_percent'],false)\n}"
+            }
+          },
+          {
+            "key": "34hnox9n",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "sales_tax_percent",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "m52vcpap",
+        "name": "onClick_save",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (typeof value === \"number\") return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst getPrefixData = async (organizationId) => {\n  const prefixEntry = await db\n    .collection(\"prefix_configuration\")\n    .where({\n      document_types: \"Items\",\n      is_deleted: 0,\n      organization_id: organizationId,\n    })\n    .get();\n\n  const prefixData = await prefixEntry.data[0];\n\n  return prefixData;\n};\n\nconst updatePrefix = async (organizationId, runningNumber) => {\n  try {\n    await db\n      .collection(\"prefix_configuration\")\n      .where({\n        document_types: \"Items\",\n        is_deleted: 0,\n        organization_id: organizationId,\n        is_active: 1,\n      })\n      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst generatePrefix = (runNumber, now, prefixData) => {\n  let generated = prefixData.current_prefix_config;\n  generated = generated.replace(\"prefix\", prefixData.prefix_value);\n  generated = generated.replace(\"suffix\", prefixData.suffix_value);\n  generated = generated.replace(\n    \"month\",\n    String(now.getMonth() + 1).padStart(2, \"0\")\n  );\n  generated = generated.replace(\"day\", String(now.getDate()).padStart(2, \"0\"));\n  generated = generated.replace(\"year\", now.getFullYear());\n  generated = generated.replace(\n    \"running_number\",\n    String(runNumber).padStart(prefixData.padding_zeroes, \"0\")\n  );\n  return generated;\n};\n\nconst checkUniqueness = async (generatedPrefix) => {\n  const existingDoc = await db\n    .collection(\"Item\")\n    .where({ material_code: generatedPrefix })\n    .get();\n  return existingDoc.data[0] ? false : true;\n};\n\nconst findUniquePrefix = async (prefixData) => {\n  const now = new Date();\n  let prefixToShow;\n  let runningNumber = prefixData.running_number;\n  let isUnique = false;\n  let maxAttempts = 10;\n  let attempts = 0;\n\n  while (!isUnique && attempts < maxAttempts) {\n    attempts++;\n    prefixToShow = await generatePrefix(runningNumber, now, prefixData);\n    isUnique = await checkUniqueness(prefixToShow);\n    if (!isUnique) {\n      runningNumber++;\n    }\n  }\n\n  if (!isUnique) {\n    this.$message.error(\n      \"Could not generate a unique Item number after maximum attempts\"\n    );\n  }\n\n  return { prefixToShow, runningNumber };\n};\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    // Check array elements\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    // Check all object properties\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\nconst validateFormula = async (entry) => {\n  const successFormula = await this.getValue(\"success_formula\");\n  const formula = entry.formula;\n\n  if (formula) {\n    if (!successFormula || (successFormula && formula !== successFormula)) {\n      if (formula !== successFormula) {\n        await this.$alert(\n          `The entered formula is not validate yet. Please validate or clear the formula.`,\n          \"Unvalidated Formula Detected\",\n          {\n            confirmButtonText: \"Ok\",\n            type: \"error\",\n          }\n        );\n\n        throw new Error(\"Error processing formula.\");\n      }\n    }\n  }\n};\n\nconst validateUOMConversion = async (entry) => {\n  const uomConversion = entry.table_uom_conversion;\n\n  const latestConversion = uomConversion.filter(\n    (item) => item.alt_uom_id && item.alt_uom_id !== \"\"\n  );\n\n  console.log(\"latestConversion\", latestConversion);\n\n  const hasInvalidAltQty = latestConversion.filter(\n    (item, index) => (item.alt_qty === 1 || item.alt_qty === 0) && index !== 0\n  );\n\n  if (hasInvalidAltQty.length > 0) {\n    await this.$alert(\n      \"Invalid Alt Qty. Alt Qty must be not equal to 0 or 1.\",\n      \"Invalid Alt Qty\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      }\n    );\n    throw new Error(\"Invalid UOM Conversion\");\n  }\n\n  entry.table_uom_conversion = latestConversion;\n\n  return entry;\n};\n\nconst findMissingPriceLine = async (table, name) => {\n  console.log(\"table\", table);\n  const lineData = table.filter(\n    (item) =>\n      (!item[`${name.tableName}_id`] || item[`${name.tableName}_id`] === \"\") &&\n      (!item[`${name.fieldName}_price_tag_id`] ||\n        item[`${name.fieldName}_price_tag_id`] === \"\")\n  );\n\n  return lineData;\n};\n\nconst findDuplicatePriceLine = async (table, name) => {\n  return table.filter(\n    (item) =>\n      item[`${name.tableName}_id`] &&\n      item[`${name.tableName}_id`] !== \"\" &&\n      item[`${name.fieldName}_price_tag_id`] &&\n      item[`${name.fieldName}_price_tag_id`] !== \"\"\n  );\n};\n\nconst checkValidDateInput = async (table, name) => {\n  const invalidDateLine = table.filter((item) => {\n    const dateFrom = item[`${name.fieldName}_price_date_from`];\n    const dateTo = item[`${name.fieldName}_price_date_to`];\n\n    // If both dates have values, check if to > from\n    if (dateFrom && dateTo) {\n      return new Date(dateFrom) >= new Date(dateTo);\n    }\n\n    // If either one is missing, ignore (return false to exclude from invalidDateLine)\n    return false;\n  });\n\n  return invalidDateLine;\n};\nconst validatePricingDetail = async (groupedPriceLine, name) => {\n  let errors = [];\n  Object.values(groupedPriceLine).forEach((group) => {\n    for (let i = 0; i < group.length; i++) {\n      // checking quantity\n      const currentItem = group[i];\n      console.log(\"currentItem\", currentItem);\n      for (let j = i + 1; j < group.length; j++) {\n        const comparedItem = j !== i ? group[j] : null;\n\n        if (!comparedItem) {\n          continue;\n        }\n\n        const currentFrom = currentItem[`${name.fieldName}_price_date_from`];\n        const currentTo = currentItem[`${name.fieldName}_price_date_to`];\n        const comparedFrom = comparedItem[`${name.fieldName}_price_date_from`];\n        const comparedTo = comparedItem[`${name.fieldName}_price_date_to`];\n\n        // If any date is null, treat it as infinity (no boundary)\n        const from1 = !currentFrom ? -Infinity : new Date(currentFrom);\n        const to1 = !currentTo ? Infinity : new Date(currentTo);\n        const from2 = !comparedFrom ? -Infinity : new Date(comparedFrom);\n        const to2 = !comparedTo ? Infinity : new Date(comparedTo);\n\n        const datesOverlap = from1 <= to2 && to1 >= from2;\n\n        if (datesOverlap) {\n          const currentMinQty =\n            currentItem[`${name.fieldName}_min_order_qty`] || 0;\n          const currentMaxQty =\n            currentItem[`${name.fieldName}_max_order_qty`] || 0;\n          const comparedMinQty =\n            comparedItem[`${name.fieldName}_min_order_qty`] || 0;\n          const comparedMaxQty =\n            comparedItem[`${name.fieldName}_max_order_qty`] || 0;\n\n          const min1 =\n            !currentMinQty || currentMinQty === 0 ? -Infinity : currentMinQty;\n          const max1 =\n            !currentMaxQty || currentMaxQty === 0 ? Infinity : currentMaxQty;\n          const min2 =\n            !comparedMinQty || comparedMinQty === 0\n              ? -Infinity\n              : comparedMinQty;\n          const max2 =\n            !comparedMaxQty || comparedMaxQty === 0 ? Infinity : comparedMaxQty;\n\n          const quantityOverlap = min1 <= max2 && max1 >= min2;\n\n          if (quantityOverlap) {\n            errors.push({\n              type: \"Quantity Range Overlap\",\n              message: `Overlapping quantity ranges within the same date found for table ${\n                name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n              } Line ${i + 1} and Line ${j + 1}`,\n              details: `[Min: ${currentMinQty}, Max: ${currentMaxQty}] vs [Min: ${comparedMinQty}, Max: ${comparedMaxQty}]`,\n            });\n          }\n        }\n      }\n\n      // checking unit price\n      const unitPrice = currentItem[`${name.fieldName}_price_unit_price`];\n      const minPrice = currentItem[`${name.fieldName}_price_min_price`];\n      const maxPrice = currentItem[`${name.fieldName}_price_max_price`];\n\n      if (minPrice && minPrice > 0 && unitPrice < minPrice) {\n        errors.push({\n          type: \"Unit Price Less Than Min Price\",\n          message: `Unit price is less than minimum price for table ${\n            name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n          } Line ${i + 1}`,\n          details: `[Unit Price: ${unitPrice}, Min Price: ${minPrice}]`,\n        });\n      }\n\n      if (maxPrice && maxPrice > 0 && unitPrice > maxPrice) {\n        errors.push({\n          type: \"Unit Price Greater Than Max Price\",\n          message: `Unit price is greater than maximum price for table ${\n            name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n          } Line ${i + 1}`,\n          details: `[Unit Price: ${unitPrice}, Max Price: ${maxPrice}]`,\n        });\n      }\n    }\n  });\n\n  return errors;\n};\n\nconst validatePurchaseAndSalesInformation = async (entry) => {\n  const fieldNameList = [\n    {\n      tableName: \"supplier\",\n      fieldName: \"sup\",\n    },\n    {\n      tableName: \"customer\",\n      fieldName: \"cust\",\n    },\n  ];\n\n  for (const name of fieldNameList) {\n    const priceTable = entry[`table_${name.tableName}_price`];\n    const accessTable = entry[`table_${name.fieldName}_item_access`];\n\n    console.log(\"priceTable\", priceTable);\n    console.log(\"accessTable\", accessTable);\n\n    // checking valid line data\n    const missingPriceLine = await findMissingPriceLine(priceTable, name);\n\n    const missingAccessLine = await findMissingPriceLine(accessTable, name);\n\n    if (missingPriceLine.length > 0 || missingAccessLine.length > 0) {\n      await this.$alert(\n        `Please fill in all ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } price lines.`,\n        `Missing ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`,\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n        }\n      );\n      throw new Error(\n        `Missing ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`\n      );\n    }\n\n    const duplicatePriceAccess = await findDuplicatePriceLine(\n      accessTable,\n      name\n    );\n\n    const duplicatePriceLine = await findDuplicatePriceLine(priceTable, name);\n\n    if (duplicatePriceAccess.length > 0 || duplicatePriceLine.length > 0) {\n      await this.$alert(\n        `Please fill in either <em>${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Code</em> or <em>${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Tag</em> <strong>ONLY</strong>.`,\n        \"Duplicate Input\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        }\n      );\n      throw new Error(\"Duplicate Input\");\n    }\n\n    const invalidDateLine = await checkValidDateInput(priceTable, name);\n\n    if (invalidDateLine.length > 0) {\n      await this.$alert(\n        `Please fill in valid date range for ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } price lines.`,\n        \"Invalid Date Input\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n        }\n      );\n      console.log(\"invalidDateLine\", invalidDateLine);\n      throw new Error(\"Invalid Date Input\");\n    }\n\n    // checking quantity\n    const groupedPriceLine = priceTable.reduce((acc, item) => {\n      const hasID =\n        item[`${name.tableName}_id`] && item[`${name.tableName}_id`] !== \"\";\n      const hasPriceTagID =\n        item[`${name.fieldName}_price_tag_id`] &&\n        item[`${name.fieldName}_price_tag_id`] !== \"\";\n\n      let key;\n\n      if (hasID) {\n        key = `${name.tableName}_${item[`${name.tableName}_id`]}`;\n      } else if (hasPriceTagID) {\n        key = `${name.fieldName}_price_tag_${\n          item[`${name.fieldName}_price_tag_id`]\n        }`;\n      } else {\n        key = \"no_id\"; // Handle items with no ID\n      }\n\n      if (!acc[key]) {\n        acc[key] = [];\n      }\n      acc[key].push(item);\n\n      return acc;\n    }, {});\n\n    console.log(\"groupedPriceLine\", groupedPriceLine);\n\n    const errors = await validatePricingDetail(groupedPriceLine, name);\n    console.log(\"errors\", errors);\n    if (errors.length > 0) {\n      await this.$alert(\n        `<strong>Error in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line:</strong><br> ${errors\n          .map((e) => e.message)\n          .join(\"<br>\")}<br><br><strong>Details:</strong><br>${errors\n          .map((e) => e.details)\n          .join(\"<br>\")}`,\n        `Invalid Data in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`,\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        }\n      );\n      throw new Error(\n        `Invalid Data in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`\n      );\n    }\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading();\n\n    const data = this.getValues();\n\n    const page_status = data.page_status;\n    const item_no = data.id;\n\n    // Define required fields\n    const requiredFields = [\n      { name: \"material_type\", label: \"Item Type\" },\n      { name: \"material_name\", label: \"Item Name\" },\n      { name: \"material_code\", label: \"Item Code\" },\n      { name: \"item_category\", label: \"Item Category\" },\n      { name: \"based_uom\", label: \"Based UOM\" },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    await this.validate(\"plan_code\");\n\n    if (missingFields.length === 0) {\n      // Get organization ID\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n\n      // Prepare entry data\n      let entry = {\n        is_active: data.is_active,\n        item_image: data.item_image,\n        material_type: data.material_type,\n        organization_id: organizationId,\n        material_code: data.material_code,\n        material_name: data.material_name,\n        item_category: data.item_category,\n        material_sub_category: data.material_sub_category,\n        material_desc: data.material_desc,\n        material_costing_method: data.material_costing_method,\n        stock_control: data.stock_control,\n        show_delivery: data.show_delivery,\n        show_receiving: data.show_receiving,\n        based_uom: data.based_uom,\n        table_uom_conversion: data.table_uom_conversion,\n        purchase_tariff_id: data.purchase_tariff_id,\n        mat_purchase_currency_id: data.mat_purchase_currency_id,\n        mat_purchase_tax_id: data.mat_purchase_tax_id,\n        purchase_tax_percent: data.purchase_tax_percent,\n        purchase_unit_price: data.purchase_unit_price,\n        sales_tariff_id: data.sales_tariff_id,\n        mat_sales_tax_id: data.mat_sales_tax_id,\n        sales_tax_percent: data.sales_tax_percent,\n        mat_sales_currency_id: data.mat_sales_currency_id,\n        sales_unit_price: data.sales_unit_price,\n        item_batch_management: data.item_batch_management,\n        batch_number_genaration:\n          data.batch_number_genaration || \"According To System Settings\",\n        serial_number_management: data.serial_number_management,\n        is_single_unit_serial: data.is_single_unit_serial,\n        serial_no_generate_rule: data.serial_no_generate_rule,\n        brand_id: data.brand_id,\n        brand_artwork_id: data.brand_artwork_id,\n        subform_packaging_remark: data.subform_packaging_remark,\n        reorder_level: data.reorder_level,\n        lead_time: data.lead_time,\n        assembly_cost: data.assembly_cost,\n        bom_related: data.bom_related,\n        reorder_quantity: data.reorder_quantity,\n        irbm_id: data.irbm_id,\n        production_time: data.production_time,\n        additional_remark: data.additional_remark,\n        over_receive_tolerance: data.over_receive_tolerance,\n        under_receive_tolerance: data.under_receive_tolerance,\n        over_delivery_tolerance: data.over_delivery_tolerance,\n        under_delivery_tolerance: data.under_delivery_tolerance,\n        posted_status: \"\",\n        barcode_number: data.barcode_number,\n        purchase_default_uom: data.purchase_default_uom,\n        sales_default_uom: data.sales_default_uom,\n        receiving_inspection: data.receiving_inspection,\n        table_default_bin: data.table_default_bin,\n        is_base: data.is_base,\n        last_transaction_date: data.last_transaction_date,\n        min_sales_qty: data.min_sales_qty,\n        min_purchase_qty: data.min_purchase_qty,\n        formula: data.formula,\n        table_sup_item_access: data.table_sup_item_access,\n        table_supplier_price: data.table_supplier_price,\n        table_cust_item_access: data.table_cust_item_access,\n        table_customer_price: data.table_customer_price,\n      };\n\n      console.log(\"JN\", entry);\n\n      await validateFormula(entry);\n      entry = await validateUOMConversion(entry);\n      await validatePurchaseAndSalesInformation(entry);\n      console.log(\"entry\", entry);\n\n      // Add or update based on page status\n      if (page_status === \"Add\" || page_status === \"Clone\") {\n        try {\n          if (entry.material_code === data.item_current_prefix) {\n            const prefixData = await getPrefixData(organizationId);\n\n            if (prefixData.length !== 0) {\n              const { prefixToShow, runningNumber } = await findUniquePrefix(\n                prefixData\n              );\n\n              await updatePrefix(organizationId, runningNumber);\n\n              entry.material_code = prefixToShow;\n            }\n          }\n\n          await db.collection(\"Item\").add(entry);\n          this.$message.success(\"Add successfully.\");\n          await closeDialog();\n        } catch (error) {\n          console.error(\"Error adding item:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message || \"An error occurred while adding the item.\"\n          );\n        }\n      } else if (page_status === \"Edit\") {\n        try {\n          // Update the existing item\n          if (!item_no) {\n            throw new Error(\"Item ID not found\");\n          }\n\n          await db.collection(\"Item\").doc(item_no).update(entry);\n          this.$message.success(\"Update successfully.\");\n          // Close dialog after successful operation\n          closeDialog();\n        } catch (error) {\n          console.error(\"Error updating item:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message || \"An error occurred while updating the item.\"\n          );\n        }\n      } else {\n        this.hideLoading();\n        this.$message.error(\"Invalid page status\");\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Validation errors: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n\n    // Try to get message from standard locations first\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "768q6c25",
+        "name": "onClick_cancel",
+        "func": "const self = this;\nif (self.parentGenerateForm) {\n    self.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    self.parentGenerateForm.refresh();\n}",
+        "type": "js"
+      },
+      {
+        "key": "r05utkbz",
+        "name": "onChange_stockControl",
+        "func": "if (arguments[0].value === 0) {\n  this.display(\"show_delivery\");\n  this.display(\"show_receiving\");\n} else {\n  this.hide(\"show_delivery\");\n  this.hide(\"show_receiving\");\n  this.setData({\n    show_delivery: 0,\n    show_receiving: 0,\n  });\n}\n",
+        "type": "js"
+      },
+      {
+        "key": "ea3pgorq",
+        "name": "onChange_item_category",
+        "func": "db.collection('costing_method').where({id: arguments[0].fieldModel.item.mat_costing_method }).get().then((resCostingMethod) => {\n    this.setData({'material_costing_method' : resCostingMethod.data[0].method_name})\n  })",
+        "type": "js"
+      },
+      {
+        "key": "n6fb3w6s",
+        "name": "onClick_default_uom",
+        "func": "(async () => {\n  try {\n    const default_uom_id = [];\n\n    const based_uom = this.getValue(\"based_uom\");\n    const table_uom_conversion = this.getValue(\"table_uom_conversion\");\n\n    console.log(\"Based UOM:\", based_uom);\n    console.log(\"UOM Conversion Table:\", table_uom_conversion);\n\n    if (based_uom) {\n      default_uom_id.push(based_uom);\n    }\n\n    if (table_uom_conversion && Array.isArray(table_uom_conversion)) {\n      for (const item of table_uom_conversion) {\n        if (item && item.alt_uom_id) {\n          default_uom_id.push(item.alt_uom_id);\n        }\n      }\n    } else {\n      console.warn(\"table_uom_conversion is not an array or is undefined\");\n    }\n\n    const uniqueUomIds = [...new Set(default_uom_id)];\n    console.log(\"Unique UOM IDs to fetch:\", uniqueUomIds);\n\n    if (uniqueUomIds.length === 0) {\n      console.warn(\"No UOM IDs found to fetch\");\n      await this.setOptionData([\"purchase_default_uom\"], []);\n      await this.setOptionData([\"sales_default_uom\"], []);\n      return;\n    }\n\n    const uomPromises = uniqueUomIds.map((uom_id) =>\n      db\n        .collection(\"unit_of_measurement\")\n        .where({ id: uom_id })\n        .get()\n        .then((result) => {\n          if (result && result.data && result.data.length > 0) {\n            return result.data[0];\n          }\n          console.warn(`UOM with ID ${uom_id} not found`);\n          return null;\n        })\n        .catch((error) => {\n          console.error(`Error fetching UOM with ID ${uom_id}:`, error);\n          return null;\n        })\n    );\n\n    const uomResults = await Promise.all(uomPromises);\n\n    const validUomData = uomResults.filter(Boolean);\n\n    console.log(\"Fetched UOM data:\", validUomData);\n\n    setTimeout(async () => {\n      await this.setOptionData([\"purchase_default_uom\"], validUomData);\n      await this.setOptionData([\"sales_default_uom\"], validUomData);\n    }, 50);\n\n    console.log(\"Successfully set UOM options\");\n  } catch (error) {\n    console.error(\"Error in UOM processing:\", error);\n    await this.setOptionData([\"purchase_default_uom\"], []);\n    await this.setOptionData([\"sales_default_uom\"], []);\n  }\n})();\n",
+        "type": "js",
+        "rules": []
+      },
+      {
+        "key": "i3ypiu92",
+        "name": "onChange_batch_management",
+        "func": "(async () => {\n    const itemBatchManagement = this.getValue('item_batch_management');\n\n    if(itemBatchManagement) {\n        await this.display(['batch_number_genaration'])\n        //this.setData({ batch_number_genaration: 'According To System Settings' })\n    } else {\n        this.hide(['batch_number_genaration'])\n    }\n})();",
+        "type": "js"
+      },
+      {
+        "key": "oq9hji9a",
+        "name": "onClick_save_post",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (typeof value === \"number\") return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst getPrefixData = async (organizationId) => {\n  const prefixEntry = await db\n    .collection(\"prefix_configuration\")\n    .where({\n      document_types: \"Items\",\n      is_deleted: 0,\n      organization_id: organizationId,\n    })\n    .get();\n\n  const prefixData = await prefixEntry.data[0];\n\n  return prefixData;\n};\n\nconst updatePrefix = async (organizationId, runningNumber) => {\n  try {\n    await db\n      .collection(\"prefix_configuration\")\n      .where({\n        document_types: \"Items\",\n        is_deleted: 0,\n        organization_id: organizationId,\n        is_active: 1,\n      })\n      .update({ running_number: parseInt(runningNumber) + 1, has_record: 1 });\n  } catch (error) {\n    this.$message.error(error);\n  }\n};\n\nconst generatePrefix = (runNumber, now, prefixData) => {\n  let generated = prefixData.current_prefix_config;\n  generated = generated.replace(\"prefix\", prefixData.prefix_value);\n  generated = generated.replace(\"suffix\", prefixData.suffix_value);\n  generated = generated.replace(\n    \"month\",\n    String(now.getMonth() + 1).padStart(2, \"0\")\n  );\n  generated = generated.replace(\"day\", String(now.getDate()).padStart(2, \"0\"));\n  generated = generated.replace(\"year\", now.getFullYear());\n  generated = generated.replace(\n    \"running_number\",\n    String(runNumber).padStart(prefixData.padding_zeroes, \"0\")\n  );\n  return generated;\n};\n\nconst checkUniqueness = async (generatedPrefix) => {\n  const existingDoc = await db\n    .collection(\"Item\")\n    .where({ material_code: generatedPrefix })\n    .get();\n  return existingDoc.data[0] ? false : true;\n};\n\nconst findUniquePrefix = async (prefixData) => {\n  const now = new Date();\n  let prefixToShow;\n  let runningNumber = prefixData.running_number;\n  let isUnique = false;\n  let maxAttempts = 10;\n  let attempts = 0;\n\n  while (!isUnique && attempts < maxAttempts) {\n    attempts++;\n    prefixToShow = await generatePrefix(runningNumber, now, prefixData);\n    isUnique = await checkUniqueness(prefixToShow);\n    if (!isUnique) {\n      runningNumber++;\n    }\n  }\n\n  if (!isUnique) {\n    this.$message.error(\n      \"Could not generate a unique Item number after maximum attempts\"\n    );\n  }\n\n  return { prefixToShow, runningNumber };\n};\n\nconst findFieldMessage = (obj) => {\n  // Base case: if current object has the structure we want\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    // Check array elements\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    // Check all object properties\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\nconst validateFormula = async (entry) => {\n  const successFormula = await this.getValue(\"success_formula\");\n  const formula = entry.formula;\n\n  if (formula) {\n    if (!successFormula || (successFormula && formula !== successFormula)) {\n      if (formula !== successFormula) {\n        await this.$alert(\n          `The entered formula is not validate yet. Please validate or clear the formula.`,\n          \"Unvalidated Formula Detected\",\n          {\n            confirmButtonText: \"Ok\",\n            type: \"error\",\n          }\n        );\n\n        throw new Error(\"Error processing formula.\");\n      }\n    }\n  }\n};\n\nconst validateUOMConversion = async (entry) => {\n  const uomConversion = entry.table_uom_conversion;\n\n  const latestConversion = uomConversion.filter(\n    (item) => item.alt_uom_id !== \"\"\n  );\n\n  console.log(\"latestConversion\", latestConversion);\n\n  const hasInvalidAltQty = latestConversion.filter(\n    (item, index) => (item.alt_qty === 1 || item.alt_qty === 0) && index !== 0\n  );\n\n  if (hasInvalidAltQty.length > 0) {\n    await this.$alert(\n      \"Invalid Alt Qty. Alt Qty must be not equal to 0 or 1.\",\n      \"Invalid Alt Qty\",\n      {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      }\n    );\n    throw new Error(\"Invalid UOM Conversion\");\n  }\n\n  entry.table_uom_conversion = latestConversion;\n\n  return entry;\n};\n\nconst findMissingPriceLine = async (table, name) => {\n  console.log(\"table\", table);\n  const lineData = table.filter(\n    (item) =>\n      (!item[`${name.tableName}_id`] || item[`${name.tableName}_id`] === \"\") &&\n      (!item[`${name.fieldName}_price_tag_id`] ||\n        item[`${name.fieldName}_price_tag_id`] === \"\")\n  );\n\n  return lineData;\n};\n\nconst findDuplicatePriceLine = async (table, name) => {\n  return table.filter(\n    (item) =>\n      item[`${name.tableName}_id`] &&\n      item[`${name.tableName}_id`] !== \"\" &&\n      item[`${name.fieldName}_price_tag_id`] &&\n      item[`${name.fieldName}_price_tag_id`] !== \"\"\n  );\n};\n\nconst checkValidDateInput = async (table, name) => {\n  const invalidDateLine = table.filter((item) => {\n    const dateFrom = item[`${name.fieldName}_price_date_from`];\n    const dateTo = item[`${name.fieldName}_price_date_to`];\n\n    // If both dates have values, check if to > from\n    if (dateFrom && dateTo) {\n      return new Date(dateFrom) >= new Date(dateTo);\n    }\n\n    // If either one is missing, ignore (return false to exclude from invalidDateLine)\n    return false;\n  });\n\n  return invalidDateLine;\n};\nconst validatePricingDetail = async (groupedPriceLine, name) => {\n  let errors = [];\n  Object.values(groupedPriceLine).forEach((group) => {\n    for (let i = 0; i < group.length; i++) {\n      // checking quantity\n      const currentItem = group[i];\n      console.log(\"currentItem\", currentItem);\n      for (let j = i + 1; j < group.length; j++) {\n        const comparedItem = j !== i ? group[j] : null;\n\n        if (!comparedItem) {\n          continue;\n        }\n\n        const currentFrom = currentItem[`${name.fieldName}_price_date_from`];\n        const currentTo = currentItem[`${name.fieldName}_price_date_to`];\n        const comparedFrom = comparedItem[`${name.fieldName}_price_date_from`];\n        const comparedTo = comparedItem[`${name.fieldName}_price_date_to`];\n\n        // If any date is null, treat it as infinity (no boundary)\n        const from1 = !currentFrom ? -Infinity : new Date(currentFrom);\n        const to1 = !currentTo ? Infinity : new Date(currentTo);\n        const from2 = !comparedFrom ? -Infinity : new Date(comparedFrom);\n        const to2 = !comparedTo ? Infinity : new Date(comparedTo);\n\n        const datesOverlap = from1 <= to2 && to1 >= from2;\n\n        if (datesOverlap) {\n          const currentMinQty =\n            currentItem[`${name.fieldName}_min_order_qty`] || 0;\n          const currentMaxQty =\n            currentItem[`${name.fieldName}_max_order_qty`] || 0;\n          const comparedMinQty =\n            comparedItem[`${name.fieldName}_min_order_qty`] || 0;\n          const comparedMaxQty =\n            comparedItem[`${name.fieldName}_max_order_qty`] || 0;\n\n          const min1 =\n            !currentMinQty || currentMinQty === 0 ? -Infinity : currentMinQty;\n          const max1 =\n            !currentMaxQty || currentMaxQty === 0 ? Infinity : currentMaxQty;\n          const min2 =\n            !comparedMinQty || comparedMinQty === 0\n              ? -Infinity\n              : comparedMinQty;\n          const max2 =\n            !comparedMaxQty || comparedMaxQty === 0 ? Infinity : comparedMaxQty;\n\n          const quantityOverlap = min1 <= max2 && max1 >= min2;\n\n          if (quantityOverlap) {\n            errors.push({\n              type: \"Quantity Range Overlap\",\n              message: `Overlapping quantity ranges within the same date found for table ${\n                name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n              } Line ${i + 1} and Line ${j + 1}`,\n              details: `[Min: ${currentMinQty}, Max: ${currentMaxQty}] vs [Min: ${comparedMinQty}, Max: ${comparedMaxQty}]`,\n            });\n          }\n        }\n      }\n\n      // checking unit price\n      const unitPrice = currentItem[`${name.fieldName}_price_unit_price`];\n      const minPrice = currentItem[`${name.fieldName}_price_min_price`];\n      const maxPrice = currentItem[`${name.fieldName}_price_max_price`];\n\n      if (minPrice && minPrice > 0 && unitPrice < minPrice) {\n        errors.push({\n          type: \"Unit Price Less Than Min Price\",\n          message: `Unit price is less than minimum price for table ${\n            name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n          } Line ${i + 1}`,\n          details: `[Unit Price: ${unitPrice}, Min Price: ${minPrice}]`,\n        });\n      }\n\n      if (maxPrice && maxPrice > 0 && unitPrice > maxPrice) {\n        errors.push({\n          type: \"Unit Price Greater Than Max Price\",\n          message: `Unit price is greater than maximum price for table ${\n            name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n          } Line ${i + 1}`,\n          details: `[Unit Price: ${unitPrice}, Max Price: ${maxPrice}]`,\n        });\n      }\n    }\n  });\n\n  return errors;\n};\n\nconst validatePurchaseAndSalesInformation = async (entry) => {\n  const fieldNameList = [\n    {\n      tableName: \"supplier\",\n      fieldName: \"sup\",\n    },\n    {\n      tableName: \"customer\",\n      fieldName: \"cust\",\n    },\n  ];\n\n  for (const name of fieldNameList) {\n    const priceTable = entry[`table_${name.tableName}_price`];\n    const accessTable = entry[`table_${name.fieldName}_item_access`];\n\n    console.log(\"priceTable\", priceTable);\n    console.log(\"accessTable\", accessTable);\n\n    // checking valid line data\n    const missingPriceLine = await findMissingPriceLine(priceTable, name);\n\n    const missingAccessLine = await findMissingPriceLine(accessTable, name);\n\n    if (missingPriceLine.length > 0 || missingAccessLine.length > 0) {\n      await this.$alert(\n        `Please fill in all ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } price lines.`,\n        `Missing ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`,\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n        }\n      );\n      throw new Error(\n        `Missing ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`\n      );\n    }\n\n    const duplicatePriceAccess = await findDuplicatePriceLine(\n      accessTable,\n      name\n    );\n\n    const duplicatePriceLine = await findDuplicatePriceLine(priceTable, name);\n\n    if (duplicatePriceAccess.length > 0 || duplicatePriceLine.length > 0) {\n      await this.$alert(\n        `Please fill in either <em>${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Code</em> or <em>${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Tag</em> <strong>ONLY</strong>.`,\n        \"Duplicate Input\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        }\n      );\n      throw new Error(\"Duplicate Input\");\n    }\n\n    const invalidDateLine = await checkValidDateInput(priceTable, name);\n\n    if (invalidDateLine.length > 0) {\n      await this.$alert(\n        `Please fill in valid date range for ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } price lines.`,\n        \"Invalid Date Input\",\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n        }\n      );\n      console.log(\"invalidDateLine\", invalidDateLine);\n      throw new Error(\"Invalid Date Input\");\n    }\n\n    // checking quantity\n    const groupedPriceLine = priceTable.reduce((acc, item) => {\n      const hasID =\n        item[`${name.tableName}_id`] && item[`${name.tableName}_id`] !== \"\";\n      const hasPriceTagID =\n        item[`${name.fieldName}_price_tag_id`] &&\n        item[`${name.fieldName}_price_tag_id`] !== \"\";\n\n      let key;\n\n      if (hasID) {\n        key = `${name.tableName}_${item[`${name.tableName}_id`]}`;\n      } else if (hasPriceTagID) {\n        key = `${name.fieldName}_price_tag_${\n          item[`${name.fieldName}_price_tag_id`]\n        }`;\n      } else {\n        key = \"no_id\"; // Handle items with no ID\n      }\n\n      if (!acc[key]) {\n        acc[key] = [];\n      }\n      acc[key].push(item);\n\n      return acc;\n    }, {});\n\n    console.log(\"groupedPriceLine\", groupedPriceLine);\n\n    const errors = await validatePricingDetail(groupedPriceLine, name);\n    console.log(\"errors\", errors);\n    if (errors.length > 0) {\n      await this.$alert(\n        `<strong>Error in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line:</strong><br> ${errors\n          .map((e) => e.message)\n          .join(\"<br>\")}<br><br><strong>Details:</strong><br>${errors\n          .map((e) => e.details)\n          .join(\"<br>\")}`,\n        `Invalid Data in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`,\n        {\n          confirmButtonText: \"OK\",\n          type: \"error\",\n          dangerouslyUseHTMLString: true,\n        }\n      );\n      throw new Error(\n        `Invalid Data in ${\n          name.tableName.charAt(0).toUpperCase() + name.tableName.slice(1)\n        } Price Line`\n      );\n    }\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading();\n\n    const data = this.getValues();\n\n    const page_status = data.page_status;\n    const item_no = data.id;\n\n    // Define required fields\n    const requiredFields = [\n      { name: \"material_type\", label: \"Item Type\" },\n      { name: \"material_name\", label: \"Item Name\" },\n      { name: \"material_code\", label: \"Item Code\" },\n      { name: \"item_category\", label: \"Item Category\" },\n      { name: \"based_uom\", label: \"Based UOM\" },\n    ];\n\n    const missingFields = await validateForm(data, requiredFields);\n\n    await this.validate(\"plan_code\");\n\n    if (missingFields.length === 0) {\n      // Get organization ID\n      let organizationId = this.getVarGlobal(\"deptParentId\");\n      if (organizationId === \"0\") {\n        organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n      }\n\n      // Prepare entry data\n      let entry = {\n        is_active: data.is_active,\n        item_image: data.item_image,\n        material_type: data.material_type,\n        organization_id: organizationId,\n        material_code: data.material_code,\n        material_name: data.material_name,\n        item_category: data.item_category,\n        material_sub_category: data.material_sub_category,\n        material_desc: data.material_desc,\n        material_costing_method: data.material_costing_method,\n        stock_control: data.stock_control,\n        show_delivery: data.show_delivery,\n        show_receiving: data.show_receiving,\n        based_uom: data.based_uom,\n        table_uom_conversion: data.table_uom_conversion,\n        purchase_tariff_id: data.purchase_tariff_id,\n        mat_purchase_currency_id: data.mat_purchase_currency_id,\n        mat_purchase_tax_id: data.mat_purchase_tax_id,\n        purchase_tax_percent: data.purchase_tax_percent,\n        purchase_unit_price: data.purchase_unit_price,\n        sales_tariff_id: data.sales_tariff_id,\n        mat_sales_tax_id: data.mat_sales_tax_id,\n        sales_tax_percent: data.sales_tax_percent,\n        mat_sales_currency_id: data.mat_sales_currency_id,\n        sales_unit_price: data.sales_unit_price,\n        item_batch_management: data.item_batch_management,\n        batch_number_genaration:\n          data.batch_number_genaration || \"According To System Settings\",\n        serial_number_management: data.serial_number_management,\n        is_single_unit_serial: data.is_single_unit_serial,\n        serial_no_generate_rule: data.serial_no_generate_rule,\n        brand_id: data.brand_id,\n        brand_artwork_id: data.brand_artwork_id,\n        subform_packaging_remark: data.subform_packaging_remark,\n        reorder_level: data.reorder_level,\n        lead_time: data.lead_time,\n        assembly_cost: data.assembly_cost,\n        bom_related: data.bom_related,\n        reorder_quantity: data.reorder_quantity,\n        irbm_id: data.irbm_id,\n        production_time: data.production_time,\n        additional_remark: data.additional_remark,\n        over_receive_tolerance: data.over_receive_tolerance,\n        under_receive_tolerance: data.under_receive_tolerance,\n        over_delivery_tolerance: data.over_delivery_tolerance,\n        under_delivery_tolerance: data.under_delivery_tolerance,\n        posted_status: \"Pending Post\",\n        barcode_number: data.barcode_number,\n        purchase_default_uom: data.purchase_default_uom,\n        sales_default_uom: data.sales_default_uom,\n        receiving_inspection: data.receiving_inspection,\n        table_default_bin: data.table_default_bin,\n        is_base: data.is_base,\n        last_transaction_date: data.last_transaction_date,\n        min_sales_qty: data.min_sales_qty,\n        min_purchase_qty: data.min_purchase_qty,\n        formula: data.formula,\n        table_sup_item_access: data.table_sup_item_access,\n        table_supplier_price: data.table_supplier_price,\n        table_cust_item_access: data.table_cust_item_access,\n        table_customer_price: data.table_customer_price,\n      };\n\n      await validateFormula(entry);\n      entry = await validateUOMConversion(entry);\n      await validatePurchaseAndSalesInformation(entry);\n      console.log(\"entry\", entry);\n\n      // Add or update based on page status\n      if (page_status === \"Add\" || page_status === \"Clone\") {\n        try {\n          if (entry.material_code === data.item_current_prefix) {\n            const prefixData = await getPrefixData(organizationId);\n\n            if (prefixData.length !== 0) {\n              const { prefixToShow, runningNumber } = await findUniquePrefix(\n                prefixData\n              );\n\n              await updatePrefix(organizationId, runningNumber);\n\n              entry.material_code = prefixToShow;\n            }\n          }\n\n          await db.collection(\"Item\").add(entry);\n        } catch (error) {\n          console.error(\"Error adding item:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message || \"An error occurred while adding the item.\"\n          );\n        }\n      } else if (page_status === \"Edit\") {\n        try {\n          // Update the existing item\n          if (!item_no) {\n            throw new Error(\"Item ID not found\");\n          }\n\n          await db.collection(\"Item\").doc(item_no).update(entry);\n        } catch (error) {\n          console.error(\"Error updating item:\", error);\n          this.hideLoading();\n          this.$message.error(\n            error.message || \"An error occurred while updating the item.\"\n          );\n        }\n      } else {\n        this.hideLoading();\n        this.$message.error(\"Invalid page status\");\n      }\n\n      if (organizationId) {\n        const resAI = await db\n          .collection(\"accounting_integration\")\n          .where({ organization_id: organizationId })\n          .get();\n\n        if (resAI && resAI.data.length > 0) {\n          const aiData = resAI.data[0];\n\n          if (aiData.acc_integration_type === \"SQL Accounting\") {\n            // Run SQL workflow\n            console.log(\"Calling SQL Accounting workflow\");\n            // Run health check\n            await this.runWorkflow(\n              \"1958732352162164738\",\n              { key: \"value\" },\n              async (res) => {\n                console.log(\"成功结果：\", res);\n                if (res.data.status === \"running\") {\n                  // Run workflow\n                  await this.runWorkflow(\n                    \"1906666085143818241\",\n                    { key: \"value\" },\n                    (res) => {\n                      console.log(\"成功结果：\", res);\n                      this.$message.success(\"Save item successfully.\");\n                      closeDialog();\n                    },\n                    (err) => {\n                      console.error(\"失败结果：\", err);\n                      this.hideLoading();\n                      throw new Error(\n                        \"Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\"\n                      );\n                    }\n                  );\n                }\n              },\n              (err) => {\n                console.log(\"失败结果：\", err);\n\n                this.hideLoading();\n                throw new Error(\n                  \"Your SQL accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\"\n                );\n              }\n            );\n          } else if (aiData.acc_integration_type === \"AutoCount Accounting\") {\n            await this.runWorkflow(\n              \"1970722955815616514\",\n              { key: \"value\" },\n              (res) => {\n                console.log(\"成功结果：\", res);\n                this.$message.success(\"Save item successfully.\");\n                closeDialog();\n              },\n              (err) => {\n                console.error(\"失败结果：\", err);\n                this.hideLoading();\n                throw new Error(\n                  \"Your AutoCount accounting software isn't connected. Check your network or ensure you're logged into your PC after a restart. Contact SuDu AI support if the issue persists.\"\n                );\n              }\n            );\n            console.log(\"Calling AutoCount workflow\");\n          } else if (\n            aiData.acc_integration_type === \"No Accounting Integration\"\n          ) {\n            await closeDialog();\n            console.log(\"Not calling workflow\");\n          } else {\n            await closeDialog();\n          }\n        }\n      }\n    } else {\n      this.hideLoading();\n      this.$message.error(`Validation errors: ${missingFields.join(\", \")}`);\n    }\n  } catch (error) {\n    this.hideLoading();\n\n    console.error(error);\n    // Try to get message from standard locations first\n    let errorMessage = \"\";\n\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n    console.error(errorMessage);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "kbcwv6zd",
+        "name": "onChange_plantid_bin",
+        "func": "(async () => {\n    const plantId = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n  if(plantId){\n   const resBinLocation = await db.collection('bin_location').where({plant_id: plantId, is_deleted: 0, bin_status: 1}).get();\n\n    await this.disabled([`table_default_bin.${rowIndex}.bin_location`], false);\n    await this.setOptionData(`table_default_bin.${rowIndex}.bin_location`, resBinLocation.data); \n  }\n})();",
+        "type": "js",
+        "rules": []
+      },
+      {
+        "key": "e1fu0gy4",
+        "name": "onChange_e1fu0gy4",
+        "func": "",
+        "type": "rule"
+      },
+      {
+        "key": "n2t1vzwo",
+        "name": "onChange_n2t1vzwo",
+        "func": "",
+        "type": "rule"
+      },
+      {
+        "key": "iqo5jgyk",
+        "name": "onChange_variable",
+        "func": "(async () => {\n  try {\n    const variables = this.getValue(\"formula_variables\");\n    const operators = this.getValue(\"formula_operator\");\n\n    const filteredVariables = variables.filter(item => item.variable !== '')\n\n    let variableArray = [];\n\n    for (const v of filteredVariables) {\n      if (/^[a-zA-Z]+$/.test(v.variable)) {\n        variableArray.push(`{${v.variable}}`);\n      } else if (/^-?\\d*\\.?\\d+$/.test(v.variable)) {\n        variableArray.push(v.variable);\n      } else if (/^[a-zA-Z0-9]+$/.test(v.variable)) {\n        throw new Error(\n          \"The string contains alphanumeric characters (letters and numbers).\"\n        );\n      } else {\n        throw new Error(\n          \"The string contains special characters or a mix of types.\"\n        );\n      }\n    }\n\n    let formulaPreview = \"\";\n\n    if (filteredVariables.length <= operators.length) {\n      operators.splice(filteredVariables.length);\n    } else if (filteredVariables.length > operators.length) {\n      while (operators.length < filteredVariables.length - 1) {\n        operators.push({ operator_option: \"+\" });\n      }\n    }\n\n    for (const [index, item] of filteredVariables.entries()) {\n      if (formulaPreview === \"\") {\n        formulaPreview = variableArray[index];\n      } else {\n        formulaPreview += operators[index - 1].operator_option;\n        formulaPreview += variableArray[index];\n      }\n    }\n\n    this.setData({\n      formula_variables: filteredVariables,\n      formula_operator: operators,\n      formula_preview: formulaPreview,\n    });\n  } catch (error) {\n    this.$message.error(error.toString());\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "1dtcpc78",
+        "name": "onChange_operator_option",
+        "func": "(async () => {\n  try {\n    const variables = this.getValue(\"formula_variables\");\n    const operators = this.getValue(\"formula_operator\");\n\n    const filteredVariables = variables.filter((item) => item.variable !== \"\");\n\n    let variableArray = [];\n\n    for (const v of filteredVariables) {\n      if (/^[a-zA-Z]+$/.test(v.variable)) {\n        variableArray.push(`{${v.variable}}`);\n      } else if (/^-?\\d*\\.?\\d+$/.test(v.variable)) {\n        variableArray.push(v.variable);\n      } else if (/^[a-zA-Z0-9]+$/.test(v.variable)) {\n        throw new Error(\n          \"The string contains alphanumeric characters (letters and numbers).\"\n        );\n      } else {\n        throw new Error(\n          \"The string contains special characters or a mix of types.\"\n        );\n      }\n    }\n\n    let formulaPreview = \"\";\n\n    for (const [index, item] of filteredVariables.entries()) {\n      if (formulaPreview === \"\") {\n        formulaPreview = variableArray[index];\n      } else {\n        formulaPreview += operators[index - 1].operator_option;\n        formulaPreview += variableArray[index];\n      }\n    }\n\n    this.setData({\n      formula_variables: filteredVariables,\n      formula_operator: operators,\n      formula_preview: formulaPreview,\n    });\n  } catch (error) {\n    this.$message.error(error.toString());\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "6jvey8ph",
+        "name": "onChange_serial_number_management",
+        "func": "(async () => {\n    const itemBatchManagement = this.getValue('serial_number_management');\n\n    if(itemBatchManagement) {\n        await this.display(['is_single_unit_serial','serial_no_generate_rule'])\n        await this.setData({ is_single_unit_serial: 1 })\n    } else {\n        this.hide(['is_single_unit_serial','serial_no_generate_rule'])\n    }\n})();",
+        "type": "js"
+      },
+      {
+        "key": "ggu2ceev",
+        "name": "onClick_validateFormula",
+        "func": "const validateFormulaStructure = async (formula) => {\n  // Check if formula starts or ends with an operator\n  const operatorPattern = /(\\+|-|\\*|\\/|\\^2|\\^3)/;\n\n  if (operatorPattern.test(formula[0])) {\n    return {\n      isValid: false,\n      message: \"Formula cannot start with an operator\",\n    };\n  }\n\n  if (operatorPattern.test(formula[formula.length - 1])) {\n    return {\n      isValid: false,\n      message: \"Formula cannot end with an operator\",\n    };\n  }\n\n  // Check for balanced parentheses\n  let parenStack = [];\n  for (let i = 0; i < formula.length; i++) {\n    if (formula[i] === \"(\") {\n      parenStack.push(\"(\");\n    } else if (formula[i] === \")\") {\n      if (parenStack.length === 0) {\n        return {\n          isValid: false,\n          message:\n            \"Unbalanced parentheses: closing parenthesis without opening one\",\n        };\n      }\n      parenStack.pop();\n    }\n  }\n\n  if (parenStack.length > 0) {\n    return {\n      isValid: false,\n      message: \"Unbalanced parentheses: missing closing parenthesis\",\n    };\n  }\n\n  // Remove parentheses for further validation (they're allowed for grouping)\n  const withoutParens = formula.replace(/\\(|\\)/g, \"\");\n\n  // Check if all variables/constants are enclosed in braces\n  const bracePattern = /{([^}]+)}/g;\n  let match;\n  const braceMatches = [];\n\n  while ((match = bracePattern.exec(formula)) !== null) {\n    braceMatches.push(match[0]);\n  }\n\n  // Count the number of elements that should be in braces\n  const elements = withoutParens\n    .split(operatorPattern)\n    .filter((item) => item.trim() !== \"\");\n\n  console.log(\"elements\", elements);\n\n  const nonOperatorElements = elements.filter(\n    (item) => !operatorPattern.test(item)\n  );\n\n  // Check for balanced parentheses\n  let braceStack = [];\n  for (let i = 0; i < nonOperatorElements.length; i++) {\n    const splitNonOperatorElements = nonOperatorElements[i].trim();\n    for (let j = 0; j < splitNonOperatorElements.length; j++) {\n      if (splitNonOperatorElements[j] === \"{\") {\n        braceStack.push(\"{\");\n      } else if (splitNonOperatorElements[j] === \"}\") {\n        if (braceStack.length === 0) {\n          return {\n            isValid: false,\n            message: \"Unbalanced braces: closing brace without opening one\",\n          };\n        }\n        braceStack.pop();\n      }\n    }\n  }\n\n  if (braceStack.length > 0) {\n    return {\n      isValid: false,\n      message: \"Unbalanced braces: missing closing brace\",\n    };\n  }\n\n  const nonBraceElements = nonOperatorElements.filter(\n    (item) => !item.startsWith(\"{\") || !item.endsWith(\"}\")\n  );\n\n  if (nonBraceElements.length > 0) {\n    return {\n      isValid: false,\n      message: `Variables and constants must be enclosed in braces: ${nonBraceElements[0]}`,\n    };\n  }\n\n  // Check if elements are properly connected with operators\n  // Create a simplified version for operator validation\n  const simplified = formula.replace(/{[^}]+}/g, \"VAR\").replace(/\\(|\\)/g, \"\");\n\n  // Check for consecutive VARs (missing operators)\n  if (/(VAR\\s*){2,}/.test(simplified)) {\n    return {\n      isValid: false,\n      message: \"Variables must be connected with operators\",\n    };\n  }\n\n  // Check for consecutive operators\n  const operatorRegex = /(\\+|-|\\*|\\/|\\^2|\\^3)/;\n  const singleCharOperatorPattern = /(\\+|-|\\*|\\/)/;\n  const powerOperatorPattern = /(\\^2|\\^3)/;\n  const parts = simplified\n    .split(operatorRegex)\n    .filter((item) => item.trim() !== \"\");\n\n  console.log(\"parts\", parts);\n\n  for (let i = 0; i < parts.length; i++) {\n    if (parts[i] !== \"VAR\") {\n      if (powerOperatorPattern.test(parts[i])) {\n        if (i !== parts.length - 1) {\n          if (parts[i + 1] === \"VAR\") {\n            return {\n              isValid: false,\n              message: \"Power operator must followed by operator\",\n            };\n          }\n        }\n      } else if (singleCharOperatorPattern.test(parts[i])) {\n        if (parts[i + 1] !== \"VAR\") {\n          return {\n            isValid: false,\n            message: \"Operator must followed by variable / constant\",\n          };\n        }\n\n        if (parts[i - 1] !== \"VAR\") {\n          if (!powerOperatorPattern.test(parts[i - 1]))\n            return {\n              isValid: false,\n              message: \"Variables must be connected with operators\",\n            };\n        }\n      }\n    }\n  }\n\n  return {\n    isValid: true,\n    message: \"Formula is valid!\",\n  };\n};\n\n(async () => {\n  const formula = this.getValue(\"formula\");\n  await this.hide([\"failed_msg\", \"success_msg\", \"error_msg\"]);\n\n  if (formula && formula !== \"\") {\n    const validationResult = await validateFormulaStructure(formula.trim());\n\n    if (validationResult.isValid) {\n      await this.display(\"success_msg\");\n      this.setData({ success_formula: formula });\n    } else {\n      await this.display([\"failed_msg\", \"error_msg\"]);\n      await this.setData({ error_msg: validationResult.message });\n    }\n  } else {\n    await this.display([\"failed_msg\", \"error_msg\"]);\n    await this.setData({ error_msg: \"Please enter a formula\" });\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "f0dwxbs8",
+        "name": "onChange_altUOM",
+        "func": "(async () => {\n  try {\n    const basedUOM = this.getValue(\"based_uom\");\n    const selectedUOM = arguments[0].value;\n    const rowIndex = arguments[0].rowIndex;\n\n    const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n    const tableSupplierPrice = this.getValue(\"table_supplier_price\");\n    const tableCustomerPrice = this.getValue(\"table_customer_price\");\n\n    const purchaseDefaultUOM = this.getValue(\"purchase_default_uom\");\n    const salesDefaultUOM = this.getValue(\"sales_default_uom\");\n\n    if (basedUOM === selectedUOM && rowIndex !== 0) {\n      await this.$alert(\"Based UOM and Selected UOM cannot be same\", \"Error\", {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      });\n      this.setData({\n        [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n      });\n      return;\n    }\n\n    if (\n      tableUOMConversion.filter((item) => item.alt_uom_id === selectedUOM)\n        .length > 1\n    ) {\n      console.log(\n        tableUOMConversion.filter((item) => item.alt_uom_id === selectedUOM)\n      );\n      await this.$alert(\"Alt UOM already been selected\", \"Error\", {\n        confirmButtonText: \"OK\",\n        type: \"error\",\n      });\n      this.setData({\n        [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n      });\n    }\n\n    const conversionUOMs = new Set(\n      tableUOMConversion.map((item) => item.alt_uom_id)\n    );\n    const supplierUOMs = tableSupplierPrice.map((item) => item.sup_price_uom);\n    const customerUOMs = tableCustomerPrice.map((item) => item.cust_price_uom);\n\n    const missingSupplierUOMs = supplierUOMs.filter(\n      (uom) => !conversionUOMs.has(uom)\n    );\n    const missingCustomerUOMs = customerUOMs.filter(\n      (uom) => !conversionUOMs.has(uom)\n    );\n    const missingPurchaseUOM =\n      purchaseDefaultUOM && !conversionUOMs.has(purchaseDefaultUOM);\n    const missingSalesUOM =\n      salesDefaultUOM && !conversionUOMs.has(salesDefaultUOM);\n\n    if (\n      selectedUOM &&\n      (missingSupplierUOMs.length > 0 ||\n        missingCustomerUOMs.length > 0 ||\n        missingPurchaseUOM ||\n        missingSalesUOM)\n    ) {\n      await this.$confirm(\n        \"The alt UOM has been changed. It will reset the UOM in purchase and sales information. Are you sure you want to continue?\",\n        \"Confirmation\",\n        {\n          confirmButtonText: \"Yes\",\n          cancelButtonText: \"No\",\n          type: \"warning\",\n        }\n      )\n        .then(() => {\n          this.setData({\n            ...(missingPurchaseUOM ? { purchase_default_uom: \"\" } : {}),\n            ...(missingSalesUOM ? { sales_default_uom: \"\" } : {}),\n            ...(missingSupplierUOMs.length > 0\n              ? {\n                  table_supplier_price: [\n                    ...tableSupplierPrice.map((item) => ({\n                      ...item,\n                      sup_price_uom: !conversionUOMs.has(item.sup_price_uom)\n                        ? \"\"\n                        : item.sup_price_uom,\n                    })),\n                  ],\n                }\n              : {}),\n            ...(missingCustomerUOMs.length > 0\n              ? {\n                  table_customer_price: [\n                    ...tableCustomerPrice.map((item) => ({\n                      ...item,\n                      cust_price_uom: !conversionUOMs.has(item.cust_price_uom)\n                        ? \"\"\n                        : item.cust_price_uom,\n                    })),\n                  ],\n                }\n              : {}),\n          });\n        })\n        .catch(() => {\n          this.setData({\n            [`table_uom_conversion.${rowIndex}.alt_uom_id`]: \"\",\n          });\n          throw new Error(\"Alt UOM clear\");\n        });\n    }\n  } catch (error) {\n    console.error(error);\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "cn3t2tq7",
+        "name": "onFocus_supPriceUOM",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "f2r0plfk",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "table_supplier_price.sup_price_uom",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "8gu6y1dd",
+        "name": "onFocus_custPriceUOM",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "v04rl40p",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "table_customer_price.cust_price_uom",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "8p4ngq0u",
+        "name": "onChange_supPriceTax",
+        "func": "(async () => {\n  if (arguments[0].value) {\n    this.disabled(\n      [\"table_supplier_price.\" + arguments[0].rowIndex + \".sup_price_tax_percent\"],\n      false\n    );\n\n    if (arguments[0].fieldModel) {\n      this.setData({ [\"table_supplier_price.\" + arguments[0].rowIndex + \".sup_price_tax_percent\"]: ''})\n    }\n  } else {\n    this.disabled(\n      [\"table_supplier_price.\" + arguments[0].rowIndex + \".sup_price_tax_percent\"],\n      true\n    );\n\n    this.setData({ [\"table_supplier_price.\" + arguments[0].rowIndex + \".sup_price_tax_percent\"]: ''})\n  }\n})();",
+        "type": "js"
+      },
+      {
+        "key": "1cwdfune",
+        "name": "onChange_custPriceTax",
+        "func": "(async () => {\n  if (arguments[0].value) {\n    this.disabled(\n      [\"table_customer_price.\" + arguments[0].rowIndex + \".cust_price_tax_percent\"],\n      false\n    );\n\n    if (arguments[0].fieldModel) {\n      this.setData({ [\"table_customer_price.\" + arguments[0].rowIndex + \".cust_price_tax_percent\"]: ''})\n    }\n  } else {\n    this.disabled(\n      [\"table_customer_price.\" + arguments[0].rowIndex + \".cust_price_tax_percent\"],\n      true\n    );\n\n    this.setData({ [\"table_customer_price.\" + arguments[0].rowIndex + \".cust_price_tax_percent\"]: ''})\n  }\n})();",
+        "type": "js"
+      },
+      {
+        "key": "7xtaktav",
+        "name": "onFocus_supPriceTaxPercent",
+        "func": "// (async () => {\n//     const taxCode = this.getValue(`table_supplier_price.${arguments[0].rowIndex}.sup_price_tax_percent`)\n\n//     const resTax = await db.collection(\"tax_rate_percent\").where({\"tax_code\":taxCode}).get();\n\n//     if(resTax.data.length > 0){\n//         await this.setOptionData(\"table_supplier_price.\" +arguments[0].rowIndex+\".sup_price_tax_percent\",resTax.data);\n//     }\n\n// })();",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "7al1recl",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "table_supplier_price.sup_price_tax_percent",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "vbpy8p2t",
+        "name": "onFocus_custPriceTaxPercent",
+        "func": "// (async () => {\n//     const taxCode = this.getValue(`table_customer_price.${arguments[0].rowIndex}.cust_price_tax_percent`)\n\n//     const resTax = await db.collection(\"tax_rate_percent\").where({\"tax_code\":taxCode}).get();\n\n//     if(resTax.data.length > 0){\n//         await this.setOptionData(\"table_customer_price.\" +arguments[0].rowIndex+\".cust_price_tax_percent\",resTax.data);\n//     }\n\n// })();",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "eibc3qsk",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "table_customer_price.cust_price_tax_percent",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "3b4mncol",
+        "name": "onFocus_purchaseDefaultUOM",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "5aq7lwlx",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "purchase_default_uom",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "yms78ojc",
+        "name": "onFocus_salesDefaultUOM",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "fxim5mbh",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "sales_default_uom",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "02rdos6w",
+        "name": "onRowAdd_priceTable",
+        "func": "(async () => {\n  const basedUOM = this.getValue(\"based_uom\");\n  const rowIndex = arguments[0].rowIndex;\n\n\n  if(arguments[0].field === 'table_supplier_price') {\n    this.setData({\n      [`table_supplier_price.${rowIndex}.sup_price_uom`]: basedUOM,\n    });\n  } else {\n    this.setData({\n      [`table_customer_price.${rowIndex}.cust_price_uom`]: basedUOM,\n    });\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "gxgvnze8",
+        "name": "onChange_fillbackSuppOrCustName",
+        "func": "(async () => {\n  const rowIndex = arguments[0].rowIndex;\n  const field = arguments[0].fieldNode.split(\".\")[0];\n  console.log(\"arugments[0]\", arguments[0]);\n\n  switch (field) {\n    case \"table_supplier_price\":\n      this.setData({\n        [`table_supplier_price.${rowIndex}.supplier_name`]:\n          arguments[0].fieldModel?.item?.supplier_com_name ?? \"\",\n      });\n      break;\n\n    case \"table_sup_item_access\":\n      this.setData({\n        [`table_sup_item_access.${rowIndex}.supplier_name`]:\n          arguments[0].fieldModel?.item?.supplier_com_name ?? \"\",\n      });\n      break;\n\n    case \"table_customer_price\":\n      this.setData({\n        [`table_customer_price.${rowIndex}.customer_name`]:\n          arguments[0].fieldModel?.item?.customer_com_name ?? \"\",\n      });\n      break;\n\n    case \"table_cust_item_access\":\n      this.setData({\n        [`table_cust_item_access.${rowIndex}.customer_name`]:\n          arguments[0].fieldModel?.item?.customer_com_name ?? \"\",\n      });\n      break;\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "zhdak7dr",
+        "name": "onChange_zhdak7dr",
+        "func": "const data = this.getValues();\n\ndata.table_uom_conversion.forEach((uom, index) => {\n    this.setData({\n        [`table_uom_conversion.${index}.base_uom_id`]: data.based_uom,\n    })\n});",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "71krpel7",
+            "action": "refreshFieldOptionData",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "table_uom_conversion.alt_uom_id",
+              "valueTypes": {},
+              "dataSource": {
+                "args": {}
+              }
+            }
+          },
+          {
+            "key": "fdqwas5f",
+            "action": "js",
+            "options": {
+              "func": "(async () => {\n  try {\n    const data = this.getValues();\n    const based_uom = data.based_uom;\n\n    if (based_uom !== data.previous_based_uom) {\n      const tableSupplierPrice = data.table_supplier_price;\n      const hasSupplierPriceUOM = tableSupplierPrice.some(\n        (item) => item.sup_price_uom === data.previous_based_uom\n      );\n\n      const tableCustomerPrice = data.table_customer_price;\n      const hasCustomerPriceUOM = tableCustomerPrice.some(\n        (item) => item.cust_price_uom === data.previous_based_uom\n      );\n\n      if (\n        (data.purchase_default_uom === data.previous_based_uom ||\n          data.sales_default_uom === data.previous_based_uom ||\n          hasCustomerPriceUOM ||\n          hasSupplierPriceUOM) &&\n        data.previous_based_uom &&\n        based_uom !== data.previous_based_uom\n      ) {\n        await this.$confirm(\n          \"The base UOM has been changed. It will reset the UOM in purchase and sales information. Are you sure you want to continue?\",\n          \"Confirmation\",\n          {\n            confirmButtonText: \"Yes\",\n            cancelButtonText: \"No\",\n            type: \"warning\",\n          }\n        ).catch(() => {\n          this.setData({\n            based_uom: data.previous_based_uom,\n          });\n          throw new Error(\"Base UOM not changed\");\n        });\n      }\n\n      await this.disabled(\n        [\n          \"table_uom_conversion\",\n          \"table_supplier_price\",\n          \"table_customer_price\",\n          \"purchase_default_uom\",\n          \"sales_default_uom\",\n        ],\n        false\n      );\n\n      const tableUOMConversion = this.getValue(\"table_uom_conversion\");\n      this.setData({\n        table_uom_conversion: [\n          {\n            alt_qty: 1,\n            alt_uom_id: based_uom,\n            base_qty: 1,\n            base_uom_id: based_uom,\n          },\n          ...tableUOMConversion.slice(1),\n        ],\n        previous_based_uom: based_uom,\n        ...(data.previous_based_uom === data.purchase_default_uom\n          ? { purchase_default_uom: \"\" }\n          : {}),\n        ...(data.previous_based_uom === data.sales_default_uom\n          ? { sales_default_uom: \"\" }\n          : {}),\n        table_supplier_price: [\n          ...tableSupplierPrice.map((item) => ({\n            ...item,\n            sup_price_uom:\n              item.sup_price_uom === data.previous_based_uom\n                ? based_uom\n                : item.sup_price_uom,\n          })),\n        ],\n        table_customer_price: [\n          ...tableCustomerPrice.map((item) => ({\n            ...item,\n            cust_price_uom:\n              item.cust_price_uom === data.previous_based_uom\n                ? based_uom\n                : item.cust_price_uom,\n          })),\n        ],\n      }).then(() => {\n        setTimeout(() => {\n          this.disabled(\n            [\n              `table_uom_conversion.0.alt_qty`,\n              `table_uom_conversion.0.alt_uom_id`,\n            ],\n            true\n          );\n        }, 50);\n      });\n\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: based_uom,\n        });\n      });\n    } else if (based_uom === data.previous_based_uom) {\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: based_uom,\n        });\n      });\n    } else if (!based_uom) {\n      data.table_uom_conversion.forEach((uom, index) => {\n        this.setData({\n          [`table_uom_conversion.${index}.base_uom_id`]: \"\",\n        });\n      });\n      this.disabled(\n        [\n          \"table_uom_conversion\",\n          \"table_supplier_price\",\n          \"table_customer_price\",\n          \"sales_default_uom\",\n          \"purchase_default_uom\",\n        ],\n        true\n      );\n    }\n  } catch (error) {\n    console.error(\"Error in UOM processing:\", error);\n  }\n})();\n"
+            }
+          }
+        ]
+      }
+    ],
+    "uniqueGroup": [],
+    "params": [
+      {
+        "key": "qv27kpoq",
+        "name": "item_no",
+        "title": "",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+      },
+      {
+        "key": "ai2ly8g5",
+        "name": "page_status",
+        "title": "",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+      }
+    ],
+    "deps": {},
+    "paramsDeps": {},
+    "styleSheets": ".padding{\n  padding:20px\n}\n\n.margin{\n  margin-left: 15px\n}\n\n.marginright{\n  margin-right: 20px;\n  margin-top : 3px;\n}\n\n.fixbutton{\n  position: fixed;\n  bottom: 0;\n  right: 0;\n  z-index: 9999;\n}\n\n.primary-button .el-form-item__content .el-button.el-button--default {\n  --el-button-bg-color: #f0f5f4;\n  --el-button-border-color: #f0f5f4;\n  --el-button-hover-bg-color: #335b57;\n  --el-button-hover-border-color: #335b57;\n  --el-button-hover-text-color: #ffffff;\n  --el-button-text-color: #335b57;\n}\n\n.error-msg{\n  color: #ff3333;\n  font-weight: 600;\n  font-size: 14px;\n}\n\n.error-msg .el-form-item__content{\n  line-height: 14px !important;\n}\n\n.msg{\n  margin: 0 !important;\n}\n\n.collapse-overflow .el-collapse-item__content {\n  overflow-x: scroll;\n}",
+    "dataSource": [],
+    "labelSuffix": true,
+    "indexs": [],
+    "watchers": []
+  }
+}
