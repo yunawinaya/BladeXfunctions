@@ -1298,7 +1298,7 @@
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": "{{{{value:reload_type}} === ''}}",
+                "hidden": "{{{{value:reload_type}} !== 'Monthly Subscription'}}",
                 "dataBind": true,
                 "customProps": {},
                 "tip": "",
