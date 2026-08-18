@@ -670,9 +670,7 @@
         {
           "id": "if_block_J_RphoHJ",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "search_node_LOTitOpenCancel",
@@ -972,10 +970,7 @@
                 "isValidator": true,
                 "nodeName": "Set Movement Index",
                 "name": "Set Movement Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "{{node:code_node_LOTcancelKey.data.cacheKey}}"
               },
               "blocks": []
@@ -1362,9 +1357,7 @@
                     {
                       "id": "if_LOTcancelSubErr_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "return_node_LOTcancelSubErr",
@@ -1405,9 +1398,7 @@
                     {
                       "id": "if_LOTcancelSubErr_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -1628,9 +1619,7 @@
                     {
                       "id": "if_LOTcancelAddErr_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "return_node_LOTcancelAddErr",
@@ -1671,9 +1660,7 @@
                     {
                       "id": "if_LOTcancelAddErr_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -1731,9 +1718,7 @@
                 {
                   "id": "if_LOTcancelClose_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "update_node_LOTcancelClose",
@@ -1804,9 +1789,7 @@
                 {
                   "id": "if_LOTcancelClose_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -1908,9 +1891,7 @@
         {
           "id": "if_block_h9hzxIZx",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -1998,9 +1979,7 @@
         {
           "id": "if_block_2g3GCmTD",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "code_node_LOTprecheckAgg",
@@ -2109,10 +2088,7 @@
                 "isValidator": true,
                 "nodeName": "Set Check Index",
                 "name": "Set Check Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "{{node:code_node_LOTprecheckKey.data.cacheKey}}"
               },
               "blocks": []
@@ -2373,9 +2349,7 @@
                     {
                       "id": "if_LOTprecheckFail_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "return_node_LOTprecheckFail",
@@ -2416,9 +2390,7 @@
                     {
                       "id": "if_LOTprecheckFail_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -2449,9 +2421,7 @@
         {
           "id": "if_block_Xb1lFEvB",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -3054,9 +3024,7 @@
                                 {
                                   "id": "if_LOTreconShort_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "return_node_LOTreconShort",
@@ -3097,9 +3065,7 @@
                                 {
                                   "id": "if_LOTreconShort_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -3622,9 +3588,7 @@
                                     {
                                       "id": "if_LOTreconSubErr_t",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "true"
-                                      },
+                                      "data": { "title": "true" },
                                       "blocks": [
                                         {
                                           "id": "return_node_LOTreconSubErr",
@@ -3665,9 +3629,7 @@
                                     {
                                       "id": "if_LOTreconSubErr_f",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "false"
-                                      },
+                                      "data": { "title": "false" },
                                       "blocks": []
                                     }
                                   ]
@@ -3888,9 +3850,7 @@
                                     {
                                       "id": "if_LOTreconAddErr_t",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "true"
-                                      },
+                                      "data": { "title": "true" },
                                       "blocks": [
                                         {
                                           "id": "return_node_LOTreconAddErr",
@@ -3931,9 +3891,7 @@
                                     {
                                       "id": "if_LOTreconAddErr_f",
                                       "type": "ifBlock",
-                                      "data": {
-                                        "title": "false"
-                                      },
+                                      "data": { "title": "false" },
                                       "blocks": []
                                     }
                                   ]
@@ -3964,12 +3922,8 @@
                               "type": "condition-all-node",
                               "data": {
                                 "title": "Parallel Branch",
-                                "filter": {
-                                  "list": []
-                                },
-                                "expression": {
-                                  "code": ""
-                                },
+                                "filter": { "list": [] },
+                                "expression": { "code": "" },
                                 "displayContent": "sdk.form.setCondition"
                               },
                               "blocks": [
@@ -4036,9 +3990,7 @@
                                         {
                                           "id": "if_LOTreconCreate_t",
                                           "type": "ifBlock",
-                                          "data": {
-                                            "title": "true"
-                                          },
+                                          "data": { "title": "true" },
                                           "blocks": [
                                             {
                                               "id": "add_node_LOTreconCreate",
@@ -4369,9 +4321,7 @@
                                         {
                                           "id": "if_LOTreconCreate_f",
                                           "type": "ifBlock",
-                                          "data": {
-                                            "title": "false"
-                                          },
+                                          "data": { "title": "false" },
                                           "blocks": []
                                         }
                                       ]
@@ -4441,9 +4391,7 @@
                                         {
                                           "id": "if_LOTreconAdjust_t",
                                           "type": "ifBlock",
-                                          "data": {
-                                            "title": "true"
-                                          },
+                                          "data": { "title": "true" },
                                           "blocks": [
                                             {
                                               "id": "update_node_LOTreconAdjust",
@@ -4522,9 +4470,7 @@
                                         {
                                           "id": "if_LOTreconAdjust_f",
                                           "type": "ifBlock",
-                                          "data": {
-                                            "title": "false"
-                                          },
+                                          "data": { "title": "false" },
                                           "blocks": []
                                         }
                                       ]
@@ -5342,6 +5288,9 @@
               "id": "code_node_LOTmainDocId",
               "type": "code-node",
               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
                 "title": "Resolve Persisted Doc ID",
                 "isValidator": true,
                 "nodeName": "Resolve Persisted Doc ID",
@@ -5631,9 +5580,7 @@
                 {
                   "id": "if_LOTmainShort_t",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "return_node_LOTmainShort",
@@ -5674,9 +5621,7 @@
                 {
                   "id": "if_LOTmainShort_f",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -5809,10 +5754,7 @@
                 "isValidator": true,
                 "nodeName": "Set Movement Index",
                 "name": "Set Movement Index",
-                "custom_wkbocgni": {
-                  "type": "javascript",
-                  "code": "0"
-                },
+                "custom_wkbocgni": { "type": "javascript", "code": "0" },
                 "redis_key": "{{node:code_node_LOTmainKey.data.cacheKey}}"
               },
               "blocks": []
@@ -6199,9 +6141,7 @@
                     {
                       "id": "if_LOTmainSubErr_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "return_node_LOTmainSubErr",
@@ -6242,9 +6182,7 @@
                     {
                       "id": "if_LOTmainSubErr_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -6465,9 +6403,7 @@
                     {
                       "id": "if_LOTmainAddErr_t",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "return_node_LOTmainAddErr",
@@ -6508,9 +6444,7 @@
                     {
                       "id": "if_LOTmainAddErr_f",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -6541,12 +6475,8 @@
               "type": "condition-all-node",
               "data": {
                 "title": "Parallel Branch",
-                "filter": {
-                  "list": []
-                },
-                "expression": {
-                  "code": ""
-                },
+                "filter": { "list": [] },
+                "expression": { "code": "" },
                 "displayContent": "sdk.form.setCondition"
               },
               "blocks": [
@@ -6570,10 +6500,7 @@
                         }
                       ]
                     },
-                    "expression": {
-                      "code": "1 == 1",
-                      "type": "javascript"
-                    },
+                    "expression": { "code": "1 == 1", "type": "javascript" },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Branch 1",
@@ -6613,9 +6540,7 @@
                         {
                           "id": "if_LOTmainCreate_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "add_node_LOTmainCreate",
@@ -6946,9 +6871,7 @@
                         {
                           "id": "if_LOTmainCreate_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -6975,10 +6898,7 @@
                         }
                       ]
                     },
-                    "expression": {
-                      "code": "1 == 1",
-                      "type": "javascript"
-                    },
+                    "expression": { "code": "1 == 1", "type": "javascript" },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Branch 2",
@@ -7018,9 +6938,7 @@
                         {
                           "id": "if_LOTmainClose_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "update_node_LOTmainClose",
@@ -7107,9 +7025,7 @@
                         {
                           "id": "if_LOTmainClose_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]

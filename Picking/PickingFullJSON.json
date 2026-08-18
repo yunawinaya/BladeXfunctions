@@ -3828,7 +3828,14 @@
                     "sorts": [],
                     "paging_enabled": 0,
                     "auto_refresh": 0,
-                    "auto_refresh_debounce": 100
+                    "auto_refresh_debounce": 100,
+                    "isShowExpandButton": true,
+                    "buttonEvent": [
+                      {
+                        "key": "7fr37x9k",
+                        "name": "onDiDriverNamefunc_7fr37x9k"
+                      }
+                    ]
                   },
                   "events": {
                     "onChange": "qhk88i59"
@@ -4379,7 +4386,14 @@
                     "sorts": [],
                     "paging_enabled": 0,
                     "auto_refresh": 0,
-                    "auto_refresh_debounce": 100
+                    "auto_refresh_debounce": 100,
+                    "isShowExpandButton": true,
+                    "buttonEvent": [
+                      {
+                        "key": "chta688e",
+                        "name": "onDiVehicleNumberfunc"
+                      }
+                    ]
                   },
                   "events": {
                     "onReady": "",
@@ -13516,6 +13530,18 @@
         "key": "qhk88i59",
         "name": "onChangeDIDriverName",
         "func": "this.setData({'di_ic_no' : arguments[0].fieldModel.item.driver_ic})\nthis.setData({'di_driver_contact_no' : arguments[0].fieldModel.item.driver_contact})",
+        "type": "js"
+      },
+      {
+        "key": "chta688e",
+        "name": "onDiVehicleNumberfunc",
+        "func": "this.toView({\n  target: '1983800272178065410',       // 目标页面或数据表ID\n  targetType: 'Table', // 'Page' | 'Table'\n  mode: 'dialog',      // 'dialog' | 'newTab' | 'newPage'\n  type: 'add',        // 'view' | 'add' | 'edit' | 'copy'\n  title: 'Add',       // 页面标题\n      button: [\"Confirm\", \"cancel\"],\n    onSuccess: async (result) => {\n      console.log(\"修改完成：\", result);\n      this.setData({\n  di_vehicle_number:result?.row?.id||''\n});\n    },\n    onCancel: () => {\n      console.log(\"已关闭\");\n    },\n});",
+        "type": "js"
+      },
+      {
+        "key": "7fr37x9k",
+        "name": "onDiDriverNamefunc_7fr37x9k",
+        "func": "this.toView({\n  target: '1983820088528023553',       // 目标页面或数据表ID\n  targetType: 'Table', // 'Page' | 'Table'\n  mode: 'dialog',      // 'dialog' | 'newTab' | 'newPage'\n  type: 'add',        // 'view' | 'add' | 'edit' | 'copy'\n  title: 'Add',       // 页面标题\n      button: [\"Confirm\", \"cancel\"],\n    onSuccess: async (result) => {\n      console.log(\"修改完成：\", result);\n      this.setData({\n  di_driver_name:result?.row?.id||''\n});\n    },\n    onCancel: () => {\n      console.log(\"已关闭\");\n    },\n});",
         "type": "js"
       }
     ],
