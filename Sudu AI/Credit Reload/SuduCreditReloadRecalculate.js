@@ -1,5 +1,6 @@
 // Single source of truth for every computed amount on this form.
-// Pricing is hardcoded for now - BASE_AMOUNT of document currency buys BASE_CREDIT credits.
+// Add On is priced off Flex Topup Rate; BASE_AMOUNT/BASE_CREDIT are the legacy
+// Monthly Subscription package, still hardcoded until AI Credit Plan is wired up.
 const BASE_AMOUNT = 45;
 const BASE_CREDIT = 10000;
 const TAX_RATE = 0.08;
@@ -26,7 +27,32 @@ const reloadBefore = parseFloat(data.flex_remain_before) || 0;
 // on purpose - a discount is a price concession, not a smaller top-up (same as
 // SO, where so_discount never touches so_quantity). ai_credit_reload_amount is
 // an int column (precision 0), and a part-credit is never granted.
-const credits = roundDown((reloadAmount / BASE_AMOUNT) * BASE_CREDIT, 0);
+//
+// flex_topup_rate is MYR per credit, so an Add On crosses the exchange rate
+// before dividing - a USD 45 reload must not buy the same credits as MYR 45.
+// Monthly Subscription still prices off the raw document amount; that whole
+// branch is replaced when AI Credit Plan lands.
+// Parked in _data by onChange_reload_type, which probes the save workflow for it
+// - sudu_flex_topup is in a different database and the form cannot read it. Read
+// here, never fetched: this function runs on every keystroke in the amount field.
+const flexRate = parseFloat(this.models?.['_data']?.flex_topup_rate) || 0;
+const amountMyr = roundDown(reloadAmount * exchangeRate, 2);
+
+// Named branches, not a default - an unrecognised type must grant nothing rather
+// than quietly price as one of the two known ones.
+let credits = 0;
+
+if (reloadType === 'Add On') {
+  // A missing rate previews as zero. The save workflow refuses the document
+  // outright, so this can never be written as a real credit grant.
+  if (flexRate > 0) {
+    credits = roundDown(amountMyr / flexRate, 0);
+  } else {
+    console.warn('Credit Reload: Add On priced without a Flex Topup Rate');
+  }
+} else if (reloadType === 'Monthly Subscription') {
+  credits = roundDown((reloadAmount / BASE_AMOUNT) * BASE_CREDIT, 0);
+}
 
 const totalGross = roundDown(reloadAmount, 2);
 

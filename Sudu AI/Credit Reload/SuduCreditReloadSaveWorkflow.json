@@ -12,6 +12,15 @@
   ],
   "response_json": [
     {
+      "key": "crresp03",
+      "name": "flex_topup_rate",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
       "key": "crresp01",
       "name": "id",
       "title": "",
@@ -56,7 +65,7 @@
         "name": "Determine Params",
         "script": {
           "type": "javascript",
-          "code": "const input = {{workflowparams:data}} || {};\n\nconst pageStatus = input.page_status || '';\n\n// tenant_2 is the tenant being topped up - it fetches the Sudu Customer.\n// input.tenant_id is the acting/context tenant, a DIFFERENT value; not used here.\nconst custTenant = input.tenant_2 || '';\n\n// A form call declares mode 'form' AND carries page_status (set in onMounted).\n// A headless caller sends neither, so anything lacking both markers is headless.\nconst isForm = input.mode === 'form' || pageStatus !== '';\nconst isHeadless = isForm ? 'N' : 'Y';\nconst isEdit = (isForm && pageStatus === 'Edit') ? 'Y' : 'N';\n\n// The form's Discount (Type) select is constrained to '%' / 'Amount', but a\n// headless caller sends free text. Canonicalise the obvious spellings here - both\n// normalizers read this same input, so downstream only ever sees '', '%' or\n// 'Amount'. Anything unrecognised is rejected rather than guessed: silently\n// pricing 'percent' as an Amount is a money error the caller never sees.\nconst rawUom = input.reload_discount_uom;\nlet discountUom = '';\nlet badUom = false;\n\nif (rawUom !== null && rawUom !== undefined && String(rawUom).trim() !== '') {\n  const normalised = String(rawUom).trim().toLowerCase();\n\n  if (normalised === '%' || normalised === 'percent' || normalised === 'percentage') {\n    discountUom = '%';\n  } else if (normalised === 'amount') {\n    discountUom = 'Amount';\n  } else {\n    badUom = true;\n  }\n}\n\ninput.reload_discount_uom = discountUom;\n\nlet errorCode = '';\nif (isHeadless === 'Y') {\n  const amount = parseFloat(input.reload_amount);\n  if (!custTenant || !input.reload_type || !amount || amount <= 0 || badUom) {\n    errorCode = '400';\n  }\n} else if (isEdit === 'N') {\n  const amount = parseFloat(input.reload_amount);\n  if (!custTenant || !input.reload_type || !amount || amount <= 0 || badUom) {\n    errorCode = '406';\n  }\n}\n\nreturn { input, mode: isHeadless === 'Y' ? 'headless' : 'form', isEdit, isHeadless, errorCode, custTenant };"
+          "code": "const input = {{workflowparams:data}} || {};\n\nconst pageStatus = input.page_status || '';\n\n// tenant_2 is the tenant being topped up - it fetches the Sudu Customer.\n// input.tenant_id is the acting/context tenant, a DIFFERENT value; not used here.\nconst custTenant = input.tenant_2 || '';\n\n// A form call declares mode 'form' AND carries page_status (set in onMounted).\n// A headless caller sends neither, so anything lacking both markers is headless.\nconst isForm = input.mode === 'form' || pageStatus !== '';\nconst isHeadless = isForm ? 'N' : 'Y';\nconst isEdit = (isForm && pageStatus === 'Edit') ? 'Y' : 'N';\n\n// A rate probe. The form cannot read sudu_flex_topup directly - different\n// database - so it calls this workflow purely to resolve the Add On price. It\n// carries none of the document fields and writes nothing, so it must bypass the\n// validation below and leave at the probe branch.\nconst isRateOnly = String(input.action || '').trim().toLowerCase() === 'rate' ? 'Y' : 'N';\n\n// The form's Discount (Type) select is constrained to '%' / 'Amount', but a\n// headless caller sends free text. Canonicalise the obvious spellings here - both\n// normalizers read this same input, so downstream only ever sees '', '%' or\n// 'Amount'. Anything unrecognised is rejected rather than guessed: silently\n// pricing 'percent' as an Amount is a money error the caller never sees.\nconst rawUom = input.reload_discount_uom;\nlet discountUom = '';\nlet badUom = false;\n\nif (rawUom !== null && rawUom !== undefined && String(rawUom).trim() !== '') {\n  const normalised = String(rawUom).trim().toLowerCase();\n\n  if (normalised === '%' || normalised === 'percent' || normalised === 'percentage') {\n    discountUom = '%';\n  } else if (normalised === 'amount') {\n    discountUom = 'Amount';\n  } else {\n    badUom = true;\n  }\n}\n\ninput.reload_discount_uom = discountUom;\n\nlet errorCode = '';\n\n// A probe has no document to validate - it would otherwise fail as a headless\n// caller missing every required field.\nif (isRateOnly === 'N') {\n  if (isHeadless === 'Y') {\n    const amount = parseFloat(input.reload_amount);\n    if (!custTenant || !input.reload_type || !amount || amount <= 0 || badUom) {\n      errorCode = '400';\n    }\n  } else if (isEdit === 'N') {\n    const amount = parseFloat(input.reload_amount);\n    if (!custTenant || !input.reload_type || !amount || amount <= 0 || badUom) {\n      errorCode = '406';\n    }\n  }\n}\n\nreturn { input, mode: isHeadless === 'Y' ? 'headless' : 'form', isEdit, isHeadless, isRateOnly, errorCode, custTenant };"
         },
         "response_json": [
           {
@@ -110,6 +119,15 @@
             "title": "",
             "description": "",
             "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kdeterm6",
+            "name": "isRateOnly",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
             "isExpand": false,
             "children": []
           }
@@ -213,6 +231,130 @@
         },
         {
           "id": "ifBlock_if_cr_bad_form_false",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "search_node_flex_rate",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Flex Topup Rate:Table:2088077969538068482",
+          "rules": {
+            "collectionId": "2088077969538068482",
+            "list": [
+              {
+                "id": 1700001000002,
+                "parentId": 1700001000001,
+                "isTop": true,
+                "prop": "is_deleted",
+                "operator": "numberEqual",
+                "valueType": "value",
+                "value": 0,
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Is Deleted",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 1,
+        "title": "Fetch Flex Topup Rate",
+        "isValidator": true,
+        "nodeName": "Fetch Flex Topup Rate",
+        "name": "Fetch Flex Topup Rate"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_cr_rate_only",
+      "type": "if",
+      "data": {
+        "title": "Rate Probe ?",
+        "isValidator": true,
+        "nodeName": "Rate Probe ?",
+        "name": "Rate Probe ?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_cr_determine.data.isRateOnly}}' == 'Y'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_if_cr_rate_only_true",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_cr_rate_out",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Map Flex Topup Rate",
+                "isValidator": true,
+                "nodeName": "Map Flex Topup Rate",
+                "name": "Map Flex Topup Rate",
+                "script": {
+                  "type": "javascript",
+                  "code": "// The form cannot read sudu_flex_topup - it lives in a different database - so it\n// calls this workflow purely to resolve the Add On price, before any validation\n// and long before anything is written.\nconst rows = {{node:search_node_flex_rate.data.data}} || [];\nconst raw = rows[0] ? rows[0].flex_topup_rate : null;\n\n// Handed back as the raw string. The column is a 6dp decimal and a float\n// round-trip would fuzz the last digit; the caller parseFloats it.\nreturn { flex_topup_rate: (parseFloat(raw) || 0) > 0 ? String(raw) : '0' };"
+                },
+                "response_json": [
+                  {
+                    "key": "krate0",
+                    "name": "flex_topup_rate",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "end_cr_rate",
+              "type": "end-node",
+              "data": {
+                "isValidator": true,
+                "title": "End Node",
+                "nodeName": "End Node",
+                "name": "End Node",
+                "back_data_type": "OutputParams",
+                "msg": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "flex_topup_rate",
+                      "propLabel": "flex_topup_rate",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "valueLabel": "",
+                      "value": "{{node:code_cr_rate_out.data.flex_topup_rate}}"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_if_cr_rate_only_false",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -806,7 +948,7 @@
                 "name": "Calculate Amounts",
                 "script": {
                   "type": "javascript",
-                  "code": "// Single source of truth for Credit Reload pricing. Runs for BOTH modes so the\n// form and the headless caller can never drift apart.\nconst BASE_AMOUNT = 45;\nconst BASE_CREDIT = 10000;\nconst TAX_RATE = 0.08;\n\nlet entry = {{node:code_cr_headless_norm.data.entry}} || {{node:code_cr_form_norm.data.entry}};\n\n// Every amount rounds DOWN, never up - 1.77779 lands on 1.7777, not 1.7778.\n// Flooring the scaled value alone is not enough: 8.2 * 100 is 819.9999999999999\n// in binary float and would truncate 8.20 down to 8.19. toPrecision(12) rubs out\n// that representation noise while leaving a genuine 8.1999 untouched.\nconst roundDown = (value, dp) => {\n  const factor = Math.pow(10, dp);\n  const scaled = parseFloat(((parseFloat(value) || 0) * factor).toPrecision(12));\n  return Math.floor(scaled) / factor;\n};\n\nconst reloadAmount = parseFloat(entry.reload_amount) || 0;\nconst exchangeRate = parseFloat(entry.exchange_rate) || 1;\nconst reloadType = entry.reload_type;\nconst subBefore = parseFloat(entry.monthly_remain_before) || 0;\nconst reloadBefore = parseFloat(entry.flex_remain_before) || 0;\n\n// Read off the GROSS amount on purpose - a discount is a price concession, not a\n// smaller top-up (same as SO, where so_discount never touches so_quantity).\n// A part-credit is never granted - ai_credit_reload_amount truncates like every\n// other figure here.\nconst credits = roundDown((reloadAmount / BASE_AMOUNT) * BASE_CREDIT, 0);\n\nconst totalGross = roundDown(reloadAmount, 2);\n\n// Discount mirrors SOcalculation.js: a bare value defaults to Amount, and a value\n// the gross cannot absorb is reset to zero rather than raising an error. The\n// negative reset is an addition - total_discount is a positive-money column, so a\n// negative would both inflate total_amount and be rejected on write.\nlet discount = parseFloat(entry.reload_discount) || 0;\nlet discountUom = entry.reload_discount_uom;\nlet discountAmount = 0;\n\nif (discount < 0) {\n  discount = 0;\n}\n\n// reload_discount is written to 4 dp below - truncate before pricing off it, so\n// the discount that is charged is the discount that is stored.\ndiscount = roundDown(discount, 4);\n\nif (discount > 0 && !discountUom) {\n  discountUom = 'Amount';\n}\n\n// Named branches, not a ternary with an Amount fallback - an unexpected type must\n// price as nothing rather than quietly as an Amount. Determine Params already\n// rejects those, so this is the second line of defence.\nif (discount > 0) {\n  if (discountUom === '%') {\n    discountAmount = roundDown((totalGross * discount) / 100, 2);\n  } else if (discountUom === 'Amount') {\n    discountAmount = roundDown(discount, 2);\n  }\n}\n\nif (discountAmount > totalGross) {\n  discount = 0;\n  discountAmount = 0;\n}\n\n// Tax is exclusive - added on top of the amount left after the discount.\nconst afterDiscount = roundDown(totalGross - discountAmount, 2);\nconst totalTax = roundDown(afterDiscount * TAX_RATE, 2);\nconst totalAmount = roundDown(afterDiscount + totalTax, 2);\nconst totalAmountMyr = roundDown(totalAmount * exchangeRate, 2);\n\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  reloadAfter = reloadBefore + credits;\n}\n\n// Format allow-list. Every decimal column MUST appear here as a toFixed STRING -\n// an unformatted float is rejected by the column's multipleOf constraint.\nentry.reload_amount = totalGross.toFixed(2);\nentry.reload_discount = discount.toFixed(4);\nentry.total_gross = totalGross.toFixed(2);\nentry.total_discount = discountAmount.toFixed(2);\nentry.total_tax_amount = totalTax.toFixed(2);\nentry.total_amount = totalAmount.toFixed(2);\nentry.total_amount_myr = totalAmountMyr.toFixed(2);\nentry.exchange_rate = exchangeRate.toFixed(6);\n\n// Not a decimal, but the auto-default and the reset above can both change it.\nentry.reload_discount_uom = discountUom || '';\n\n// Credit balances are integer columns, written as STRINGS. A consumed-past-zero\n// bucket is a legitimate state (ConsumeCreditWorkflow overdraws deliberately -\n// there is no sufficiency check), but these four columns carry a minimum:0\n// constraint. A numeric -328 is rejected outright; the string form is not a JSON\n// number, so the numeric keyword does not apply to it. Value and sign are\n// preserved exactly - nothing is clamped, because clamping would falsify the\n// snapshot while Grant Credit still posts the real negative to the customer.\nentry.ai_credit_reload_amount = credits;\nentry.monthly_remain_before = String(Math.round(subBefore));\nentry.flex_remain_before = String(Math.round(reloadBefore));\nentry.monthly_remain_after = String(Math.round(subAfter));\nentry.flex_remain_after = String(Math.round(reloadAfter));\n\nreturn { entry };"
+                  "code": "// Single source of truth for Credit Reload pricing. Runs for BOTH modes so the\n// form and the headless caller can never drift apart.\n// Add On is priced off Flex Topup Rate; BASE_AMOUNT/BASE_CREDIT are the legacy\n// Monthly Subscription package, still hardcoded until AI Credit Plan is wired up.\nconst BASE_AMOUNT = 45;\nconst BASE_CREDIT = 10000;\nconst TAX_RATE = 0.08;\n\nlet entry = {{node:code_cr_headless_norm.data.entry}} || {{node:code_cr_form_norm.data.entry}};\nconst rateRow = ({{node:search_node_flex_rate.data.data}} || [])[0] || {};\n\n// Every amount rounds DOWN, never up - 1.77779 lands on 1.7777, not 1.7778.\n// Flooring the scaled value alone is not enough: 8.2 * 100 is 819.9999999999999\n// in binary float and would truncate 8.20 down to 8.19. toPrecision(12) rubs out\n// that representation noise while leaving a genuine 8.1999 untouched.\nconst roundDown = (value, dp) => {\n  const factor = Math.pow(10, dp);\n  const scaled = parseFloat(((parseFloat(value) || 0) * factor).toPrecision(12));\n  return Math.floor(scaled) / factor;\n};\n\nconst reloadAmount = parseFloat(entry.reload_amount) || 0;\nconst exchangeRate = parseFloat(entry.exchange_rate) || 1;\nconst reloadType = entry.reload_type;\nconst subBefore = parseFloat(entry.monthly_remain_before) || 0;\nconst reloadBefore = parseFloat(entry.flex_remain_before) || 0;\n\n// Read off the GROSS amount on purpose - a discount is a price concession, not a\n// smaller top-up (same as SO, where so_discount never touches so_quantity).\n// A part-credit is never granted - ai_credit_reload_amount truncates like every\n// other figure here.\n//\n// flex_topup_rate is MYR per credit, so an Add On crosses the exchange rate\n// before dividing - a USD 45 reload must not buy the same credits as MYR 45.\n// Monthly Subscription still prices off the raw document amount; that whole\n// branch is replaced when AI Credit Plan lands.\nconst flexRate = parseFloat(rateRow.flex_topup_rate) || 0;\nconst amountMyr = roundDown(reloadAmount * exchangeRate, 2);\n\n// Named branches, not a default - an unrecognised type must grant nothing rather\n// than quietly price as one of the two known ones.\nlet credits = 0;\nlet errorCode = '';\n\nif (reloadType === 'Add On') {\n  if (flexRate > 0) {\n    credits = roundDown(amountMyr / flexRate, 0);\n  } else {\n    // Refuse the document rather than write a zero-credit grant against money the\n    // customer has already been invoiced for - a silent zero surfaces only as a\n    // support ticket, long after the credits were paid for.\n    errorCode = '409';\n  }\n} else if (reloadType === 'Monthly Subscription') {\n  credits = roundDown((reloadAmount / BASE_AMOUNT) * BASE_CREDIT, 0);\n}\n\nconst totalGross = roundDown(reloadAmount, 2);\n\n// Discount mirrors SOcalculation.js: a bare value defaults to Amount, and a value\n// the gross cannot absorb is reset to zero rather than raising an error. The\n// negative reset is an addition - total_discount is a positive-money column, so a\n// negative would both inflate total_amount and be rejected on write.\nlet discount = parseFloat(entry.reload_discount) || 0;\nlet discountUom = entry.reload_discount_uom;\nlet discountAmount = 0;\n\nif (discount < 0) {\n  discount = 0;\n}\n\n// reload_discount is written to 4 dp below - truncate before pricing off it, so\n// the discount that is charged is the discount that is stored.\ndiscount = roundDown(discount, 4);\n\nif (discount > 0 && !discountUom) {\n  discountUom = 'Amount';\n}\n\n// Named branches, not a ternary with an Amount fallback - an unexpected type must\n// price as nothing rather than quietly as an Amount. Determine Params already\n// rejects those, so this is the second line of defence.\nif (discount > 0) {\n  if (discountUom === '%') {\n    discountAmount = roundDown((totalGross * discount) / 100, 2);\n  } else if (discountUom === 'Amount') {\n    discountAmount = roundDown(discount, 2);\n  }\n}\n\nif (discountAmount > totalGross) {\n  discount = 0;\n  discountAmount = 0;\n}\n\n// Tax is exclusive - added on top of the amount left after the discount.\nconst afterDiscount = roundDown(totalGross - discountAmount, 2);\nconst totalTax = roundDown(afterDiscount * TAX_RATE, 2);\nconst totalAmount = roundDown(afterDiscount + totalTax, 2);\nconst totalAmountMyr = roundDown(totalAmount * exchangeRate, 2);\n\nlet subAfter = subBefore;\nlet reloadAfter = reloadBefore;\n\nif (reloadType === 'Monthly Subscription') {\n  subAfter = credits;\n} else if (reloadType === 'Add On') {\n  reloadAfter = reloadBefore + credits;\n}\n\n// Format allow-list. Every decimal column MUST appear here as a toFixed STRING -\n// an unformatted float is rejected by the column's multipleOf constraint.\nentry.reload_amount = totalGross.toFixed(2);\nentry.reload_discount = discount.toFixed(4);\nentry.total_gross = totalGross.toFixed(2);\nentry.total_discount = discountAmount.toFixed(2);\nentry.total_tax_amount = totalTax.toFixed(2);\nentry.total_amount = totalAmount.toFixed(2);\nentry.total_amount_myr = totalAmountMyr.toFixed(2);\nentry.exchange_rate = exchangeRate.toFixed(6);\n\n// Not a decimal, but the auto-default and the reset above can both change it.\nentry.reload_discount_uom = discountUom || '';\n\n// Credit balances are integer columns, written as STRINGS. A consumed-past-zero\n// bucket is a legitimate state (ConsumeCreditWorkflow overdraws deliberately -\n// there is no sufficiency check), but these four columns carry a minimum:0\n// constraint. A numeric -328 is rejected outright; the string form is not a JSON\n// number, so the numeric keyword does not apply to it. Value and sign are\n// preserved exactly - nothing is clamped, because clamping would falsify the\n// snapshot while Grant Credit still posts the real negative to the customer.\nentry.ai_credit_reload_amount = credits;\nentry.monthly_remain_before = String(Math.round(subBefore));\nentry.flex_remain_before = String(Math.round(reloadBefore));\nentry.monthly_remain_after = String(Math.round(subAfter));\nentry.flex_remain_after = String(Math.round(reloadAfter));\n\nreturn { entry, errorCode };"
                 },
                 "response_json": [
                   {
@@ -817,10 +959,70 @@
                     "bsonType": "any",
                     "isExpand": false,
                     "children": []
+                  },
+                  {
+                    "key": "kr_calc1",
+                    "name": "errorCode",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
                   }
                 ]
               },
               "blocks": []
+            },
+            {
+              "id": "if_cr_no_rate",
+              "type": "if",
+              "data": {
+                "title": "No Flex Topup Rate ?",
+                "isValidator": true,
+                "nodeName": "No Flex Topup Rate ?",
+                "name": "No Flex Topup Rate ?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_cr_calc.data.errorCode}}' == '409'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_if_cr_no_rate_true",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "end_cr_no_rate",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": { "result": { "type": "string" } }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 409,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "No Flex Topup Rate is configured - Add On credits cannot be priced."
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_if_cr_no_rate_false",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
             },
             {
               "id": "add_node_cr",
