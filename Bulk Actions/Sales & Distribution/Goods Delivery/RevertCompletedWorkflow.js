@@ -20,6 +20,23 @@ const runRevertWorkflow = async (data) => {
   });
 };
 
+// A Goods Delivery carries si_status = "" / null (not invoiced), "Partially
+// Invoiced", "Fully Invoiced" or "Cancelled". Anything other than empty or
+// "Cancelled" means a live Sales Invoice exists against this GD, so the
+// delivery cannot be rolled back until that invoice is cancelled.
+const isInvoiced = (record) => {
+  const status = String((record && record.si_status) || "").trim();
+  return status !== "" && status.toLowerCase() !== "cancelled";
+};
+
+const describeInvoiced = (records) =>
+  records
+    .map((item) => `${item.delivery_no} (${item.si_status})`)
+    .join("<br>");
+
+const invoicedError = (siStatus) =>
+  `Already invoiced (${siStatus}). Please cancel the sales invoice first.`;
+
 const handleWorkflowResult = (workflowResult, gdItem) => {
   if (!workflowResult || !workflowResult.data) {
     return {
@@ -93,11 +110,11 @@ const handleWorkflowResult = (workflowResult, gdItem) => {
       return;
     }
 
-    const goodsDeliveryData = selectedRecords.filter(
+    const completedGoodsDelivery = selectedRecords.filter(
       (item) => item.gd_status === "Completed",
     );
 
-    if (goodsDeliveryData.length === 0) {
+    if (completedGoodsDelivery.length === 0) {
       this.hideLoading();
       this.$message.error(
         "Please select at least one completed goods delivery to revert.",
@@ -105,16 +122,44 @@ const handleWorkflowResult = (workflowResult, gdItem) => {
       return;
     }
 
+    // Invoiced goods deliveries cannot be reverted - the sales invoice has to
+    // be cancelled first, which resets si_status back to empty.
+    const invoicedGoodsDelivery = completedGoodsDelivery.filter(isInvoiced);
+    const goodsDeliveryData = completedGoodsDelivery.filter(
+      (item) => !isInvoiced(item),
+    );
+
+    if (goodsDeliveryData.length === 0) {
+      this.hideLoading();
+      this.$message({
+        type: "error",
+        message: `The selected goods delivery(s) have already been invoiced and cannot be reverted. Please cancel the sales invoice first.<br>${describeInvoiced(
+          invoicedGoodsDelivery,
+        )}`,
+        dangerouslyUseHTMLString: true,
+      });
+      return;
+    }
+
     const goodsDeliveryNumbers = goodsDeliveryData.map(
       (item) => item.delivery_no,
     );
+
+    const skippedNote =
+      invoicedGoodsDelivery.length > 0
+        ? `<br><br><strong>${
+            invoicedGoodsDelivery.length
+          } invoiced goods delivery(s) will be skipped:</strong> <br>${describeInvoiced(
+            invoicedGoodsDelivery,
+          )}<br>Please cancel the sales invoice first to revert them.`
+        : "";
 
     await this.$confirm(
       `You've selected ${
         goodsDeliveryNumbers.length
       } goods delivery(s) to revert to Created. This will undo inventory delivery, stock movements, handling unit deductions, and Sales Order updates. <br> <strong>Goods Delivery Numbers:</strong> <br>${goodsDeliveryNumbers.join(
         ", ",
-      )} <br>Do you want to proceed?`,
+      )}${skippedNote} <br>Do you want to proceed?`,
       "Revert Goods Delivery to Created",
       {
         confirmButtonText: "Revert",
@@ -127,7 +172,11 @@ const handleWorkflowResult = (workflowResult, gdItem) => {
       throw new Error();
     });
 
-    const results = [];
+    const results = invoicedGoodsDelivery.map((item) => ({
+      delivery_no: item.delivery_no,
+      success: false,
+      error: invoicedError(item.si_status),
+    }));
 
     for (const gdItem of goodsDeliveryData) {
       const id = gdItem.id;
@@ -145,6 +194,19 @@ const handleWorkflowResult = (workflowResult, gdItem) => {
 
       try {
         const gdData = data.data[0];
+
+        // The selected row can be stale if the goods delivery was invoiced
+        // elsewhere after the list was loaded. The record is already fetched,
+        // so re-checking here costs nothing.
+        if (isInvoiced(gdData)) {
+          results.push({
+            delivery_no: gdItem.delivery_no,
+            success: false,
+            error: invoicedError(gdData.si_status),
+          });
+          continue;
+        }
+
         const workflowResult = await runRevertWorkflow(gdData);
         const result = handleWorkflowResult(workflowResult, gdItem);
         results.push(result);
@@ -166,9 +228,11 @@ const handleWorkflowResult = (workflowResult, gdItem) => {
         .filter((r) => !r.success)
         .map((r) => `${r.delivery_no}: ${r.error}`)
         .join("<br>");
-      this.$message.error(
-        `${successCount} reverted, ${failCount} failed:<br>${failedItems}`,
-      );
+      this.$message({
+        type: "error",
+        message: `${successCount} reverted, ${failCount} failed:<br>${failedItems}`,
+        dangerouslyUseHTMLString: true,
+      });
     } else {
       this.$message.success(
         `All ${successCount} Goods Delivery reverted to Created successfully`,
