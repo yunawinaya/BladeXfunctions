@@ -12,15 +12,6 @@
   ],
   "response_json": [
     {
-      "key": "crresp03",
-      "name": "flex_topup_rate",
-      "title": "",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "children": []
-    },
-    {
       "key": "crresp01",
       "name": "id",
       "title": "",
@@ -65,7 +56,7 @@
         "name": "Determine Params",
         "script": {
           "type": "javascript",
-          "code": "const input = {{workflowparams:data}} || {};\n\nconst pageStatus = input.page_status || '';\n\n// tenant_2 is the tenant being topped up - it fetches the Sudu Customer.\n// input.tenant_id is the acting/context tenant, a DIFFERENT value; not used here.\nconst custTenant = input.tenant_2 || '';\n\n// A form call declares mode 'form' AND carries page_status (set in onMounted).\n// A headless caller sends neither, so anything lacking both markers is headless.\nconst isForm = input.mode === 'form' || pageStatus !== '';\nconst isHeadless = isForm ? 'N' : 'Y';\nconst isEdit = (isForm && pageStatus === 'Edit') ? 'Y' : 'N';\n\n// A rate probe. The form cannot read sudu_flex_topup directly - different\n// database - so it calls this workflow purely to resolve the Add On price. It\n// carries none of the document fields and writes nothing, so it must bypass the\n// validation below and leave at the probe branch.\nconst isRateOnly = String(input.action || '').trim().toLowerCase() === 'rate' ? 'Y' : 'N';\n\n// The form's Discount (Type) select is constrained to '%' / 'Amount', but a\n// headless caller sends free text. Canonicalise the obvious spellings here - both\n// normalizers read this same input, so downstream only ever sees '', '%' or\n// 'Amount'. Anything unrecognised is rejected rather than guessed: silently\n// pricing 'percent' as an Amount is a money error the caller never sees.\nconst rawUom = input.reload_discount_uom;\nlet discountUom = '';\nlet badUom = false;\n\nif (rawUom !== null && rawUom !== undefined && String(rawUom).trim() !== '') {\n  const normalised = String(rawUom).trim().toLowerCase();\n\n  if (normalised === '%' || normalised === 'percent' || normalised === 'percentage') {\n    discountUom = '%';\n  } else if (normalised === 'amount') {\n    discountUom = 'Amount';\n  } else {\n    badUom = true;\n  }\n}\n\ninput.reload_discount_uom = discountUom;\n\n// The two types are priced from opposite ends. Monthly Subscription comes from\n// the chosen AI Credit Plan - the caller sends a plan id and reload_amount is\n// derived from monthly_price_rm, so demanding an amount would reject every valid\n// subscription call. Add On is the mirror image: the amount IS the input and\n// there is no plan.\nconst isMonthly = String(input.reload_type || '').trim() === 'Monthly Subscription';\nconst missingPrice = isMonthly\n  ? !input.ai_credit_plan\n  : !(parseFloat(input.reload_amount) > 0);\nconst badInput = !custTenant || !input.reload_type || missingPrice || badUom;\n\nlet errorCode = '';\n\n// A probe has no document to validate - it would otherwise fail as a headless\n// caller missing every required field.\nif (isRateOnly === 'N') {\n  if (isHeadless === 'Y' && badInput) {\n    errorCode = '400';\n  } else if (isHeadless === 'N' && isEdit === 'N' && badInput) {\n    errorCode = '406';\n  }\n}\n\nreturn { input, mode: isHeadless === 'Y' ? 'headless' : 'form', isEdit, isHeadless, isRateOnly, errorCode, custTenant };"
+          "code": "const input = {{workflowparams:data}} || {};\n\nconst pageStatus = input.page_status || '';\n\n// tenant_2 is the tenant being topped up - it fetches the Sudu Customer.\n// input.tenant_id is the acting/context tenant, a DIFFERENT value; not used here.\nconst custTenant = input.tenant_2 || '';\n\n// A form call declares mode 'form' AND carries page_status (set in onMounted).\n// A headless caller sends neither, so anything lacking both markers is headless.\nconst isForm = input.mode === 'form' || pageStatus !== '';\nconst isHeadless = isForm ? 'N' : 'Y';\nconst isEdit = (isForm && pageStatus === 'Edit') ? 'Y' : 'N';\n\n\n// The form's Discount (Type) select is constrained to '%' / 'Amount', but a\n// headless caller sends free text. Canonicalise the obvious spellings here - both\n// normalizers read this same input, so downstream only ever sees '', '%' or\n// 'Amount'. Anything unrecognised is rejected rather than guessed: silently\n// pricing 'percent' as an Amount is a money error the caller never sees.\nconst rawUom = input.reload_discount_uom;\nlet discountUom = '';\nlet badUom = false;\n\nif (rawUom !== null && rawUom !== undefined && String(rawUom).trim() !== '') {\n  const normalised = String(rawUom).trim().toLowerCase();\n\n  if (normalised === '%' || normalised === 'percent' || normalised === 'percentage') {\n    discountUom = '%';\n  } else if (normalised === 'amount') {\n    discountUom = 'Amount';\n  } else {\n    badUom = true;\n  }\n}\n\ninput.reload_discount_uom = discountUom;\n\n// The two types are priced from opposite ends. Monthly Subscription comes from\n// the chosen AI Credit Plan - the caller sends a plan id and reload_amount is\n// derived from monthly_price_rm, so demanding an amount would reject every valid\n// subscription call. Add On is the mirror image: the amount IS the input and\n// there is no plan.\nconst isMonthly = String(input.reload_type || '').trim() === 'Monthly Subscription';\nconst missingPrice = isMonthly\n  ? !input.ai_credit_plan\n  : !(parseFloat(input.reload_amount) > 0);\nconst badInput = !custTenant || !input.reload_type || missingPrice || badUom;\n\nlet errorCode = '';\n\nif (isHeadless === 'Y' && badInput) {\n  errorCode = '400';\n} else if (isHeadless === 'N' && isEdit === 'N' && badInput) {\n  errorCode = '406';\n}\n\nreturn { input, mode: isHeadless === 'Y' ? 'headless' : 'form', isEdit, isHeadless, errorCode, custTenant };"
         },
         "response_json": [
           {
@@ -121,15 +112,6 @@
             "bsonType": "any",
             "isExpand": false,
             "children": []
-          },
-          {
-            "key": "kdeterm6",
-            "name": "isRateOnly",
-            "title": "",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
           }
         ]
       },
@@ -153,7 +135,9 @@
         {
           "id": "ifBlock_if_cr_bad_headless_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_cr_bad_headless",
@@ -162,7 +146,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -181,7 +169,9 @@
         {
           "id": "ifBlock_if_cr_bad_headless_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -204,7 +194,9 @@
         {
           "id": "ifBlock_if_cr_bad_form_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_cr_bad_form",
@@ -213,7 +205,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -232,7 +228,9 @@
         {
           "id": "ifBlock_if_cr_bad_form_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -242,8 +240,12 @@
       "type": "condition-all-node",
       "data": {
         "title": "Parallel Branch",
-        "filter": { "list": [] },
-        "expression": { "code": "" },
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -392,95 +394,6 @@
       ]
     },
     {
-      "id": "if_cr_rate_only",
-      "type": "if",
-      "data": {
-        "title": "Rate Probe ?",
-        "isValidator": true,
-        "nodeName": "Rate Probe ?",
-        "name": "Rate Probe ?",
-        "condition_type": "Expression",
-        "expression": {
-          "type": "javascript",
-          "code": "'{{node:code_cr_determine.data.isRateOnly}}' == 'Y'"
-        }
-      },
-      "blocks": [
-        {
-          "id": "ifBlock_if_cr_rate_only_true",
-          "type": "ifBlock",
-          "data": { "title": "true" },
-          "blocks": [
-            {
-              "id": "code_cr_rate_out",
-              "type": "code-node",
-              "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Map Flex Topup Rate",
-                "isValidator": true,
-                "nodeName": "Map Flex Topup Rate",
-                "name": "Map Flex Topup Rate",
-                "script": {
-                  "type": "javascript",
-                  "code": "// The form cannot read sudu_flex_topup - it lives in a different database - so it\n// calls this workflow purely to resolve the Add On price, before any validation\n// and long before anything is written.\nconst rows = {{node:search_node_flex_rate.data.data}} || [];\nconst raw = rows[0] ? rows[0].flex_topup_rate : null;\n\n// Handed back as the raw string. The column is a 6dp decimal and a float\n// round-trip would fuzz the last digit; the caller parseFloats it.\nreturn { flex_topup_rate: (parseFloat(raw) || 0) > 0 ? String(raw) : '0' };"
-                },
-                "response_json": [
-                  {
-                    "key": "krate0",
-                    "name": "flex_topup_rate",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "string",
-                    "isExpand": false,
-                    "children": []
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
-              "id": "end_cr_rate",
-              "type": "end-node",
-              "data": {
-                "isValidator": true,
-                "title": "End Node",
-                "nodeName": "End Node",
-                "name": "End Node",
-                "back_data_type": "OutputParams",
-                "msg": {
-                  "type": "javascript",
-                  "code": ""
-                },
-                "response_value": {
-                  "list": [
-                    {
-                      "prop": "flex_topup_rate",
-                      "propLabel": "flex_topup_rate",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "field",
-                      "valueTypeLabel": "",
-                      "valueLabel": "",
-                      "value": "{{node:code_cr_rate_out.data.flex_topup_rate}}"
-                    }
-                  ]
-                }
-              },
-              "blocks": []
-            }
-          ]
-        },
-        {
-          "id": "ifBlock_if_cr_rate_only_false",
-          "type": "ifBlock",
-          "data": { "title": "false" },
-          "blocks": []
-        }
-      ]
-    },
-    {
       "id": "if_cr_edit",
       "type": "if",
       "data": {
@@ -498,7 +411,9 @@
         {
           "id": "ifBlock_if_cr_edit_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_node_cr_before",
@@ -682,7 +597,9 @@
         {
           "id": "ifBlock_if_cr_edit_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "if_cr_headless",
@@ -702,15 +619,21 @@
                 {
                   "id": "ifBlock_if_cr_headless_true",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "cond_all_cr_lookup",
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Branch",
-                        "filter": { "list": [] },
-                        "expression": { "code": "" },
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -916,7 +839,9 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_true",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "end_cr_no_customer",
@@ -926,7 +851,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -946,7 +873,9 @@
                         {
                           "id": "ifBlock_if_cr_no_customer_false",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -1019,7 +948,9 @@
                 {
                   "id": "ifBlock_if_cr_headless_false",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "code_cr_form_norm",
@@ -1110,7 +1041,9 @@
                 {
                   "id": "ifBlock_if_cr_no_rate_true",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_cr_no_rate",
@@ -1119,7 +1052,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -1138,7 +1075,9 @@
                 {
                   "id": "ifBlock_if_cr_no_rate_false",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1161,7 +1100,9 @@
                 {
                   "id": "ifBlock_if_cr_no_plan_true",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_cr_no_plan",
@@ -1170,7 +1111,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -1189,7 +1134,9 @@
                 {
                   "id": "ifBlock_if_cr_no_plan_false",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1731,7 +1678,9 @@
         {
           "id": "ifBlock_if_cr_ar_change_true",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_node_cr_customer_ar",
@@ -1866,7 +1815,9 @@
         {
           "id": "ifBlock_if_cr_ar_change_false",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1918,7 +1869,10 @@
         "nodeName": "End Node",
         "name": "End Node",
         "back_data_type": "OutputParams",
-        "msg": { "type": "javascript", "code": "" },
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
         "response_value": {
           "list": [
             {

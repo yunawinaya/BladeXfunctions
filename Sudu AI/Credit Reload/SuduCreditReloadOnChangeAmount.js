@@ -1,1 +1,1 @@
-this.triggerEvent('func_recalc');
+this.triggerEvent("func_recalc");
