@@ -24,7 +24,7 @@ const reloadBefore = parseFloat(data.flex_remain_before) || 0;
 // so_quantity). ai_credit_reload_amount is an int column, no part-credits.
 let credits = 0;
 
-if (reloadType === "Add On") {
+if (reloadType === "Flex") {
   const flexRate = parseFloat(this.models?.["_data"]?.flex_topup_rate) || 0;
   const amountMyr = roundDown(reloadAmount * exchangeRate, 2);
 
@@ -85,13 +85,13 @@ const totalAmount = roundDown(afterDiscount + totalTax, 2);
 const totalAmountMyr = roundDown(totalAmount * exchangeRate, 2);
 
 // Monthly Subscription RESETS the subscription balance to the purchased credits,
-// ignoring whatever was left. Add On accumulates onto the reload balance.
+// ignoring whatever was left. Flex accumulates onto the reload balance.
 let subAfter = subBefore;
 let reloadAfter = reloadBefore;
 
 if (reloadType === "Monthly Subscription") {
   subAfter = credits;
-} else if (reloadType === "Add On") {
+} else if (reloadType === "Flex") {
   reloadAfter = reloadBefore + credits;
 }
 

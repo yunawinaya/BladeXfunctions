@@ -1,0 +1,103 @@
+CREDIT RELOAD - HEADLESS API
+Workflow id: 2079099954205609985
+Creates only. Editing is form-only.
+
+
+CALL
+  await this.runWorkflow(
+    "2079099954205609985",
+    { data: { ...payload } },
+    (result) => { result.data.id; result.data.reload_invoice_no; },
+    (error)  => { error; },
+  );
+
+  Headless is inferred: send NEITHER mode:"form" NOR page_status.
+  Sending either makes it a form submission with different validation.
+
+
+PAYLOAD
+  tenant_2             string   required   Tenant being topped up. Resolves the Sudu
+                                           Customer via tenant_id2. NOT tenant_id -
+                                           that is the acting tenant and is ignored.
+
+  reload_type          string   required   "Monthly Subscription" | "Flex"
+                                           Any other value prices as 0 credits.
+
+  ai_credit_plan       string   Monthly    AI Credit Plan row id. Sets price AND credits.
+
+  reload_amount        number   Flex       Must be > 0.
+                                           IGNORED for Monthly - the plan price wins.
+
+  reload_discount      number   optional   Default 0. Negative -> 0. Larger than gross
+                                           -> 0 (no error). Truncated to 4 dp.
+
+  reload_discount_uom  string   optional   "%" | "Amount". Also accepts percent /
+                                           percentage (case-insensitive). Anything
+                                           else -> 400. Defaults to "Amount" if a
+                                           discount is sent without one.
+
+  Flex example:
+    { data: { tenant_2: "1123598813738675201",
+              reload_type: "Flex",
+              reload_amount: 45 } }
+
+  Monthly example:
+    { data: { tenant_2: "1123598813738675201",
+              reload_type: "Monthly Subscription",
+              ai_credit_plan: "2087740086152003586" } }
+
+
+PRICING
+  Flex      credits = floor(reload_amount * exchange_rate / flex_topup_rate)
+            reload_amount = as sent
+            balance: accumulates onto flex
+
+  Monthly   credits = plan.monthly_credit_amount
+            reload_amount = plan.monthly_price_rm / exchange_rate
+            balance: RESETS monthly
+
+  - Credits come off the GROSS amount. A discount lowers the invoice, not the credits.
+  - Tax is 8% exclusive, applied after the discount.
+  - Everything rounds DOWN.
+  - monthly_price_rm and flex_topup_rate are MYR, so the exchange rate is applied
+    before pricing. USD 45 does not buy the same credits as MYR 45.
+
+
+FILLED IN FOR YOU - do not send
+  reload_date                today, server-side
+  reload_invoice_no          generated on insert from the default "Reload Invoice" rule
+  currency_id, exchange_rate customer's currency; buying rate, or 1 for MYR / "----"
+  payment_status             always "Unpaid"
+  payment_term               customer's payment term
+  customer_name / _reg_no / _tax_no    snapshot of the Sudu Customer
+  monthly_remain_before, flex_remain_before   balances read before the grant
+
+  Address fields stay empty on this path - the form populates those.
+
+
+RETURNS
+  {
+    id:                "2091...",     // new Sudu Credit Reload row
+    reload_invoice_no: "INV-000123"   // from the serial rule
+  }
+
+  Read as result.data.id / result.data.reload_invoice_no.
+
+  Side effects on success:
+    - Sudu Credit Reload record created with priced totals + before/after snapshot
+    - ProduceCredit runs, granting credits (accumulate for Flex, reset for Monthly)
+    - customer.outstanding_balance += total_amount (created unpaid)
+
+
+ERRORS - all checks run before any write, so a failure leaves no partial record
+  400  missing tenant_2 or reload_type; no plan id on Monthly; no positive amount
+       on Flex; unrecognised discount type
+  404  no Sudu Customer matches tenant_2
+  409  Flex reload but no Flex Topup Rate configured
+  410  Monthly but the plan is missing, inactive, or has no price / credit amount
+
+
+NOTES
+  - No rate is snapshotted onto the record. If flex_topup_rate or a plan price
+    changes later, historical rows cannot be re-derived from themselves.
+  - Credit balances may legitimately go negative - consumption overdraws on purpose.

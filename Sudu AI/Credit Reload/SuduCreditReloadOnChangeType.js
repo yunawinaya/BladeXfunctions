@@ -22,7 +22,7 @@
   this.disabled(["reload_amount"], false);
   await this.setData({ reload_amount: "", ai_credit_reload_amount: 0 });
 
-  if (reloadType !== "Add On") {
+  if (reloadType !== "Flex") {
     this.triggerEvent("func_recalc");
     return;
   }
@@ -45,7 +45,7 @@
 
     if (!rate) {
       this.$message.error(
-        "Could not load the Flex Topup Rate - Add On credits cannot be priced.",
+        "Could not load the Flex Topup Rate - Flex reloads cannot be priced.",
       );
     }
 

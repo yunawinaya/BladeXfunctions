@@ -12,7 +12,7 @@
       monthly_remain_before: item.monthly_remain_credit || 0,
       flex_remain_before: item.flex_remain_credit || 0,
       // Carried across so a Monthly Subscription defaults to the plan this
-      // customer is already on. Harmless for Add On, where the field is hidden
+      // customer is already on. Harmless for Flex, where the field is hidden
       // and the save workflow clears it.
       ai_credit_plan: item.ai_credit_plan || null,
     });
