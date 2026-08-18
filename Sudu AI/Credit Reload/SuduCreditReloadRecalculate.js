@@ -1,8 +1,6 @@
-// Single source of truth for every computed amount on this form.
-// Add On is priced off Flex Topup Rate; BASE_AMOUNT/BASE_CREDIT are the legacy
-// Monthly Subscription package, still hardcoded until AI Credit Plan is wired up.
-const BASE_AMOUNT = 45;
-const BASE_CREDIT = 10000;
+// Single source of truth for every computed amount on this form. Neither type is
+// hardcoded: Add On is priced off Flex Topup Rate, Monthly Subscription off the
+// chosen AI Credit Plan. Both arrive through _data - see the note below.
 const TAX_RATE = 0.08;
 
 // Every amount rounds DOWN, never up - 1.77779 lands on 1.7777, not 1.7778.
@@ -17,7 +15,7 @@ const roundDown = (value, dp) => {
 
 const data = this.getValues();
 
-const reloadAmount = parseFloat(data.reload_amount) || 0;
+let reloadAmount = parseFloat(data.reload_amount) || 0;
 const exchangeRate = parseFloat(data.exchange_rate) || 1;
 const reloadType = data.reload_type;
 const subBefore = parseFloat(data.monthly_remain_before) || 0;
@@ -28,30 +26,46 @@ const reloadBefore = parseFloat(data.flex_remain_before) || 0;
 // SO, where so_discount never touches so_quantity). ai_credit_reload_amount is
 // an int column (precision 0), and a part-credit is never granted.
 //
-// flex_topup_rate is MYR per credit, so an Add On crosses the exchange rate
-// before dividing - a USD 45 reload must not buy the same credits as MYR 45.
-// Monthly Subscription still prices off the raw document amount; that whole
-// branch is replaced when AI Credit Plan lands.
-// Parked in _data by onChange_reload_type, which probes the save workflow for it
-// - sudu_flex_topup is in a different database and the form cannot read it. Read
-// here, never fetched: this function runs on every keystroke in the amount field.
-const flexRate = parseFloat(this.models?.['_data']?.flex_topup_rate) || 0;
-const amountMyr = roundDown(reloadAmount * exchangeRate, 2);
-
+// Both prices live in _data, never fetched here: this function runs on every
+// keystroke in the amount field, and neither source table is readable from the
+// form anyway - they sit in a different database. onChange_reload_type probes the
+// save workflow for the Flex rate; onChange_ai_credit_plan takes the plan figures
+// straight off its own event.
+//
 // Named branches, not a default - an unrecognised type must grant nothing rather
-// than quietly price as one of the two known ones.
+// than quietly price as one of the two known ones. A missing price previews as
+// zero credits; the save workflow refuses the document outright, so nothing here
+// can become a real credit grant.
 let credits = 0;
+let amountDerived = false;
 
 if (reloadType === 'Add On') {
-  // A missing rate previews as zero. The save workflow refuses the document
-  // outright, so this can never be written as a real credit grant.
+  // flex_topup_rate is MYR per credit, so the amount crosses the exchange rate
+  // before dividing - a USD 45 reload must not buy the same credits as MYR 45.
+  const flexRate = parseFloat(this.models?.['_data']?.flex_topup_rate) || 0;
+  const amountMyr = roundDown(reloadAmount * exchangeRate, 2);
+
   if (flexRate > 0) {
     credits = roundDown(amountMyr / flexRate, 0);
   } else {
     console.warn('Credit Reload: Add On priced without a Flex Topup Rate');
   }
 } else if (reloadType === 'Monthly Subscription') {
-  credits = roundDown((reloadAmount / BASE_AMOUNT) * BASE_CREDIT, 0);
+  // The plan is the only authority on what a subscription costs and grants, so
+  // the amount is derived here rather than typed. Deriving it in this function
+  // rather than in the plan's own handler means a currency change re-prices too.
+  const planPrice = parseFloat(this.models?.['_data']?.ai_plan_price_myr) || 0;
+  const planCredits = parseFloat(this.models?.['_data']?.ai_plan_credits) || 0;
+
+  if (planPrice > 0 && planCredits > 0) {
+    // monthly_price_rm is MYR by definition, so it divides back into document
+    // currency and total_amount_myr lands on the plan price again.
+    reloadAmount = roundDown(planPrice / exchangeRate, 2);
+    credits = planCredits;
+    amountDerived = true;
+  } else {
+    console.warn('Credit Reload: Monthly Subscription priced without a plan');
+  }
 }
 
 const totalGross = roundDown(reloadAmount, 2);
@@ -133,6 +147,12 @@ if (uomDefaulted) {
 
 if (discountReset) {
   updates.reload_discount = 0;
+}
+
+// Only Monthly Subscription derives the amount, and its field is disabled, so
+// this never fights a caret the way echoing a typed Add On amount would.
+if (amountDerived) {
+  updates.reload_amount = reloadAmount;
 }
 
 this.setData(updates);

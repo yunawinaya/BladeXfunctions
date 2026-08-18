@@ -8,6 +8,7 @@ const LOCKED_ON_EDIT = [
   'reload_date',
   'tenant_2',
   'reload_type',
+  'ai_credit_plan',
   'currency_id',
   'exchange_rate',
   'reload_amount',

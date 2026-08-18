@@ -9356,7 +9356,7 @@
       {
         "key": "ruj9d164",
         "name": "onChange_ruj9d164",
-        "func": "const credit = arguments[0].fieldModel.item.reload_credit;\n\nthis.setData({\n  monthly_max_credit: credit,\n  monthly_remain_credit: credit,\n});",
+        "func": "// AI Credit Plan rows carry monthly_credit_amount. reload_credit is a Sudu Item\n// field and is undefined here - reading it wrote undefined into both columns.\nconst credit = parseFloat(arguments[0]?.fieldModel?.item?.monthly_credit_amount) || 0;\n\nthis.setData({\n  monthly_max_credit: credit,\n  monthly_remain_credit: credit,\n});",
         "type": "js"
       }
     ],
