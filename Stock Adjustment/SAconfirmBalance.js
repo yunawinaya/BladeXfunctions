@@ -3,7 +3,47 @@
     console.log("Starting stock adjustment process"); // Log function start
     const allData = this.getValues();
     console.log("allData:", allData); // Log allData to inspect structure
-    const temporaryData = allData.sa_item_balance.table_item_balance;
+    const visibleBalanceRows = allData.sa_item_balance.table_item_balance || [];
+
+    // The table only shows what survived the zero-qty filter and any active batch
+    // search, so build from the full set (table_item_balance_raw) when it exists.
+    const resolveTemporaryData = () => {
+      const rawString = this.getValue("sa_item_balance.table_item_balance_raw");
+      if (!rawString) return visibleBalanceRows;
+
+      try {
+        const rawData = JSON.parse(rawString);
+        if (!Array.isArray(rawData) || rawData.length === 0)
+          return visibleBalanceRows;
+
+        const rowKey = (row) =>
+          `${row.location_id || "no_location"}-${
+            row.serial_number || "no_serial"
+          }-${row.batch_id || "no_batch"}`;
+
+        const visibleMap = new Map(
+          visibleBalanceRows.map((row) => [rowKey(row), row]),
+        );
+
+        return rawData.map((row) => {
+          const visibleRow = visibleMap.get(rowKey(row));
+          return visibleRow
+            ? {
+                ...row,
+                category: visibleRow.category,
+                sa_quantity: visibleRow.sa_quantity,
+                movement_type: visibleRow.movement_type,
+                remarks: visibleRow.remarks,
+              }
+            : row;
+        });
+      } catch (error) {
+        console.error("Error reading table_item_balance_raw:", error);
+        return visibleBalanceRows;
+      }
+    };
+
+    const temporaryData = resolveTemporaryData();
     const rowIndex = allData.sa_item_balance.row_index;
     const page_status = allData.page_status;
     const quantityUOM = allData.sa_item_balance.uom_id;

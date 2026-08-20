@@ -50,6 +50,9 @@
             record.serial_number && record.serial_number.trim() !== "";
           if (!hasValidSerial) return false;
         }
+        // Keep a zero-stock row the user already adjusted (revealed through the
+        // batch search), otherwise its saved quantity is lost on reopen.
+        if (record.sa_quantity && record.sa_quantity !== 0) return true;
         return (
           (record.block_qty && record.block_qty > 0) ||
           (record.reserved_qty && record.reserved_qty > 0) ||
@@ -161,6 +164,12 @@
             item.sa_quantity = -item.sa_quantity;
           }
         });
+      } else if (adjustment_type === "Write Off") {
+        // Stamped on the row, not just on the column, so rows revealed later by
+        // the batch search carry it too.
+        filteredData.forEach((item) => {
+          item.movement_type = "OUT";
+        });
       } else if (isSerial) {
         filteredData.forEach((item) => {
           item.movement_type = "OUT";
@@ -197,6 +206,7 @@
     // ============= MAIN =============
 
     this.hide("sa_item_balance.table_item_balance.serial_number");
+    this.models["sa_batch_no_map"] = undefined;
 
     let itemData;
     try {
@@ -217,11 +227,14 @@
     const uomOptions = await fetchUomData(altUoms);
     await this.setOptionData([`sa_item_balance.material_uom`], uomOptions);
 
+    // The dialog is reused across line items — drop the previous item's leftovers.
     this.setData({
       [`sa_item_balance.material_id`]: itemData.material_code,
       [`sa_item_balance.material_name`]: itemData.material_name,
       [`sa_item_balance.row_index`]: rowIndex,
       [`sa_item_balance.material_uom`]: uomId,
+      [`sa_item_balance.table_item_balance_raw`]: "",
+      [`sa_item_balance.search_batch`]: "",
     });
 
     const previousBalanceData = parseJSON(lineItemData.balance_index);
@@ -229,9 +242,9 @@
     const isBatch = itemData.item_batch_management === 1;
 
     if (isSerial) {
-      this.display([
-        "sa_item_balance.table_item_balance.serial_number",
-        "sa_item_balance.search_serial_number",
+      this.display(["sa_item_balance.table_item_balance.serial_number"]);
+      this.hide([
+        "sa_item_balance.search_batch",
         "sa_item_balance.confirm_search",
         "sa_item_balance.reset_search",
       ]);
@@ -282,13 +295,11 @@
         "sa_item_balance.table_item_balance.batch_id",
         "sa_item_balance.table_item_balance.expired_date",
         "sa_item_balance.table_item_balance.manufacturing_date",
-      ]);
-      this.hide([
-        "sa_item_balance.table_item_balance.serial_number",
-        "sa_item_balance.search_serial_number",
+        "sa_item_balance.search_batch",
         "sa_item_balance.confirm_search",
         "sa_item_balance.reset_search",
       ]);
+      this.hide(["sa_item_balance.table_item_balance.serial_number"]);
       this.setData({ [`sa_item_balance.is_serialized`]: 0 });
 
       try {
@@ -302,11 +313,12 @@
           previousBalanceData,
           itemData,
         );
+        applyAdjustmentTypeBehavior(finalData, false);
         const filteredData = filterZeroQuantityRecords(finalData, itemData);
-        applyAdjustmentTypeBehavior(filteredData, false);
 
         this.setData({
           [`sa_item_balance.table_item_balance`]: filteredData,
+          [`sa_item_balance.table_item_balance_raw`]: JSON.stringify(finalData),
         });
 
         applyMovementTypeUI(false);
@@ -319,7 +331,7 @@
         "sa_item_balance.table_item_balance.expired_date",
         "sa_item_balance.table_item_balance.manufacturing_date",
         "sa_item_balance.table_item_balance.serial_number",
-        "sa_item_balance.search_serial_number",
+        "sa_item_balance.search_batch",
         "sa_item_balance.confirm_search",
         "sa_item_balance.reset_search",
       ]);

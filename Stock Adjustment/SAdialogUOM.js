@@ -113,10 +113,61 @@
 
     console.log("Final updatedTableItemBalance:", updatedTableItemBalance);
 
-    await this.setData({
+    // table_item_balance_raw backs the batch search, so it has to stay in the
+    // same UOM as the table — otherwise a revealed row shows base-UOM numbers.
+    const dataToSet = {
       [`sa_item_balance.table_item_balance`]: updatedTableItemBalance,
       [`sa_item_balance.current_table_uom`]: selectedUOM,
-    });
+    };
+
+    const rawString = this.getValue("sa_item_balance.table_item_balance_raw");
+    if (rawString) {
+      try {
+        const rowKey = (row) =>
+          `${row.location_id || "no_location"}-${
+            row.serial_number || "no_serial"
+          }-${row.batch_id || "no_batch"}`;
+
+        const rawData = JSON.parse(rawString);
+        const visibleMap = new Map(
+          (tableItemBalance || []).map((row) => [rowKey(row), row]),
+        );
+
+        const updatedRawData = rawData.map((row) => {
+          const visibleRow = visibleMap.get(rowKey(row));
+          const updatedRow = visibleRow
+            ? {
+                ...row,
+                category: visibleRow.category,
+                sa_quantity: visibleRow.sa_quantity,
+                movement_type: visibleRow.movement_type,
+                remarks: visibleRow.remarks,
+              }
+            : { ...row };
+
+          quantityFields.forEach((field) => {
+            if (updatedRow[field]) {
+              updatedRow[field] = convertQuantityFromTo(
+                updatedRow[field],
+                tableUOMConversion,
+                currentTableUOM,
+                selectedUOM,
+                itemData.based_uom,
+              );
+            }
+          });
+
+          return updatedRow;
+        });
+
+        dataToSet[`sa_item_balance.table_item_balance_raw`] =
+          JSON.stringify(updatedRawData);
+      } catch (error) {
+        console.error("Error converting table_item_balance_raw:", error);
+      }
+    }
+
+    await this.setData(dataToSet);
 
     console.log(
       `Updated table_item_balance quantities from ${currentTableUOM} to ${selectedUOM}`,
