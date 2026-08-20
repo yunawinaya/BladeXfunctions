@@ -1,3 +1,28 @@
+// A subform row is identified by its fm_key, not by where it sits: the platform
+// resolves `table_to.<fm_key>.<field>` to that row. Positions are the wrong
+// handle for a row -- and a bundle's items have no position of their own at
+// all, being rows of the tree rather than of table_to -- so every row below is
+// addressed by key. The position is kept only as a fallback for a row that has
+// not been given a key yet.
+const rowPathOf = (row, fallback) =>
+  row && row.fm_key ? `table_to.${row.fm_key}` : fallback;
+
+// Every row of the document -- top-level rows and the items under a bundle --
+// each with the path that addresses it.
+const rowsWithPaths = (rows) =>
+  (rows || []).flatMap((row, index) => {
+    const path = rowPathOf(row, `table_to.${index}`);
+    const bundleChildren = Array.isArray(row.children) ? row.children : [];
+
+    return [
+      { row, path },
+      ...bundleChildren.map((child, childIndex) => ({
+        row: child,
+        path: rowPathOf(child, `${path}.children.${childIndex}`),
+      })),
+    ];
+  });
+
 // Helper functions
 const showStatusHTML = (status) => {
   switch (status) {
@@ -96,16 +121,15 @@ const disabledField = async (status, pickingStatus) => {
 const disableTableRows = () => {
   setTimeout(() => {
     const data = this.getValues();
-    const rows = data.table_to || [];
 
-    rows.forEach((row, index) => {
+    // Walks a bundle's items in alongside the top-level rows; without them they
+    // stay editable on a document that is meant to be read-only.
+    rowsWithPaths(data.table_to).forEach(({ row, path }) => {
       const fieldNames = Object.keys(row).filter(
         (key) => key !== "to_delivery_qty",
       );
 
-      const fieldsToDisable = fieldNames.map(
-        (field) => `table_to.${index}.${field}`,
-      );
+      const fieldsToDisable = fieldNames.map((field) => `${path}.${field}`);
 
       this.disabled(fieldsToDisable, true);
     });
@@ -211,7 +235,9 @@ const checkAccIntegrationType = async (organizationId) => {
 };
 
 const disabledSelectStock = async (data) => {
-  data.table_to.forEach(async (item, index) => {
+  // A bundle row has no material of its own, so the guard below already steps
+  // over it. Its items take the same treatment as any other row.
+  rowsWithPaths(data.table_to).forEach(async ({ row: item, path: index }) => {
     if (item.material_id && item.material_id !== "") {
       const resItem = await db
         .collection("Item")
@@ -222,8 +248,8 @@ const disabledSelectStock = async (data) => {
         const itemData = resItem.data[0];
 
         if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
-          this.disabled([`table_to.${index}.to_delivery_qty`], true);
-          this.disabled([`table_to.${index}.to_qty`], false);
+          this.disabled([`${index}.to_delivery_qty`], true);
+          this.disabled([`${index}.to_qty`], false);
         }
 
         if (itemData.item_batch_management === 0) {
@@ -242,11 +268,11 @@ const disabledSelectStock = async (data) => {
                 data.picking_status === "Completed" ||
                 data.picking_status === "In Progress"
               ) {
-                this.disabled([`table_to.${index}.to_delivery_qty`], true);
-                this.disabled([`table_to.${index}.to_qty`], false);
+                this.disabled([`${index}.to_delivery_qty`], true);
+                this.disabled([`${index}.to_qty`], false);
               } else {
-                this.disabled([`table_to.${index}.to_delivery_qty`], true);
-                this.disabled([`table_to.${index}.to_qty`], false);
+                this.disabled([`${index}.to_delivery_qty`], true);
+                this.disabled([`${index}.to_qty`], false);
               }
             }
           }
@@ -261,11 +287,11 @@ const disabledSelectStock = async (data) => {
               data.picking_status === "Completed" ||
               data.picking_status === "In Progress"
             ) {
-              this.disabled([`table_to.${index}.to_delivery_qty`], true);
-              this.disabled([`table_to.${index}.to_qty`], false);
+              this.disabled([`${index}.to_delivery_qty`], true);
+              this.disabled([`${index}.to_qty`], false);
             } else {
-              this.disabled([`table_to.${index}.to_delivery_qty`], true);
-              this.disabled([`table_to.${index}.to_qty`], false);
+              this.disabled([`${index}.to_delivery_qty`], true);
+              this.disabled([`${index}.to_qty`], false);
             }
           }
         } else {
@@ -273,6 +299,43 @@ const disabledSelectStock = async (data) => {
         }
       }
     }
+  });
+};
+
+// A bundle row is not an item: its quantity is the number of bundles and stays
+// editable -- changing it spreads across the items by ratio, which is why their
+// own quantity fields are locked in turn. This runs after disabledSelectStock
+// so it has the last word on the rows it owns.
+//
+// "Select Plan Qty" is not locked here. It is a link column and does not take a
+// row index, so an imperative call cannot single out the bundle row -- it is
+// disabled by the column's own per-row expression instead.
+const disabledBundleRows = async (data) => {
+  const rows = data.table_to || [];
+
+  rows.forEach((row, index) => {
+    const bundleChildren = Array.isArray(row.children) ? row.children : [];
+    const isBundleParentRow = Boolean(row.item_bundle_id) && !row.material_id;
+
+    if (!isBundleParentRow) return;
+
+    const path = rowPathOf(row, `table_to.${index}`);
+
+    this.disabled([`${path}.to_qty`], false);
+
+    bundleChildren.forEach((child, childIndex) => {
+      const childPath = rowPathOf(child, `${path}.children.${childIndex}`);
+
+      this.disabled([`${childPath}.to_qty`], true);
+    });
+
+    console.log(
+      "item bundle row",
+      row.item_bundle_id,
+      "locked with",
+      bundleChildren.length,
+      "items",
+    );
   });
 };
 
@@ -376,6 +439,7 @@ const fetchDeliveredQuantity = async () => {
         }
         if (status !== "Completed") {
           await disabledSelectStock(data);
+          await disabledBundleRows(data);
           await setDisplayAssignedTo(data);
         }
         await checkAccIntegrationType(organizationId);
@@ -416,7 +480,6 @@ const fetchDeliveredQuantity = async () => {
 })();
 
 setTimeout(async () => {
-  if (!this.isAdd) return;
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
@@ -427,10 +490,24 @@ setTimeout(async () => {
   function getDefaultItem(arr) {
     return arr?.find((item) => item?.item?.is_default === 1);
   }
+  var params = this.getComponent("to_no");
+  const { options } = params;
 
   const optionsData = this.getOptionData("to_no_type") || [];
-  const data = getDefaultItem(optionsData);
-  if (data) {
-    this.setData({ to_no_type: data.value });
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("to_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        to_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ to_no_type: defaultData.value });
+    }
   }
-}, 500);
+}, 200);
