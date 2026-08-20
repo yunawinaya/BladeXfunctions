@@ -1,4 +1,42 @@
 {
+  "request_json": [
+    {
+      "key": "sihd3q6g",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "35hbuxp5",
+      "name": "pageStatus",
+      "title": "pageStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "tmhvw60d",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "08xy9haf",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -19,22 +57,126 @@
         "name": "Extract GD Scalars",
         "script": {
           "type": "javascript",
-          "code": "// Extract the scalars + tableData we need for SO restore + downstream inventory revert call.\nconst allData = {{workflowparams:allData}} || {};\n\nconst gdId = allData.id || \"\";\nconst gdNo = allData.delivery_no || allData.gd_no || \"\";\nconst gdStatus = allData.gd_status || \"\";\nconst plantId = allData.plant_id || \"\";\nconst organizationId = allData.organization_id || \"\";\nconst tableData = Array.isArray(allData.table_gd) ? allData.table_gd : [];\n\n// Extract SO line + SO header ids for current-state fetch (additive revert math).\nconst soLineItemIdsSet = new Set();\nconst soHeaderIdsSet = new Set();\nfor (const row of tableData) {\n  if (row.so_line_item_id) soLineItemIdsSet.add(row.so_line_item_id);\n  if (row.line_so_id) soHeaderIdsSet.add(row.line_so_id);\n}\nconst soLineItemIds = [...soLineItemIdsSet];\nconst soHeaderIds = [...soHeaderIdsSet];\n\n// Format current date as 'YYYY-MM-DD HH:mm:ss' for the doc_date param sent to ADD_INVENTORY_NEW.\nconst pad = (n) => (n < 10 ? \"0\" + n : \"\" + n);\nconst d = new Date();\nconst docDate = d.getFullYear() + \"-\" + pad(d.getMonth() + 1) + \"-\" + pad(d.getDate()) + \" \" + pad(d.getHours()) + \":\" + pad(d.getMinutes()) + \":\" + pad(d.getSeconds());\n\nreturn {\n  gdId,\n  gdNo,\n  gdStatus,\n  plantId,\n  organizationId,\n  tableData,\n  soLineItemIds,\n  soHeaderIds,\n  transactionType: \"GDL-R\",\n  docDate,\n  isCompleted: gdStatus === \"Completed\" ? 1 : 0,\n  hasSoLineItemIds: soLineItemIds.length > 0 ? 1 : 0,\n  hasSoHeaderIds: soHeaderIds.length > 0 ? 1 : 0,\n};\n"
+          "code": "// Extract the scalars + tableData we need for SO restore + downstream inventory revert call.\nconst allData = {{workflowparams:allData}} || {};\n\nconst gdId = allData.id || \"\";\nconst gdNo = allData.delivery_no || allData.gd_no || \"\";\nconst gdStatus = allData.gd_status || \"\";\nconst plantId = allData.plant_id || \"\";\nconst organizationId = allData.organization_id || \"\";\n// An item bundle is ONE row of table_gd with the bundle's items under `children`\n// when the delivery comes from the form, and as flat sibling rows carrying\n// parent_id once it has been stored -- this walk handles both, since a row with\n// no `children` simply contributes itself.\n//\n// The bundle row owns no material, no allocation and no picking record; its sales\n// order line is a header that never receives a delivered quantity. Everything\n// that has to be captured and put back therefore lives on its items, so the\n// bundle row is left out.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\nconst deliveryLines = (rows) =>\n  (rows || []).flatMap((row) => [\n    ...(isBundleParentRow(row) ? [] : [row]),\n    ...childrenOf(row),\n  ]);\n\n// The flat, bundle-row-free view is what goes downstream too: the inventory\n// revert reverses stock per material, and the SO math reverses per order line.\nconst tableData = deliveryLines(\n  Array.isArray(allData.table_gd) ? allData.table_gd : [],\n);\n\n// Extract SO line + SO header ids for current-state fetch (additive revert math).\nconst soLineItemIdsSet = new Set();\nconst soHeaderIdsSet = new Set();\nfor (const row of tableData) {\n  if (row.so_line_item_id) soLineItemIdsSet.add(row.so_line_item_id);\n  if (row.line_so_id) soHeaderIdsSet.add(row.line_so_id);\n}\nconst soLineItemIds = [...soLineItemIdsSet];\nconst soHeaderIds = [...soHeaderIdsSet];\n\n// Format current date as 'YYYY-MM-DD HH:mm:ss' for the doc_date param sent to ADD_INVENTORY_NEW.\nconst pad = (n) => (n < 10 ? \"0\" + n : \"\" + n);\nconst d = new Date();\nconst docDate = d.getFullYear() + \"-\" + pad(d.getMonth() + 1) + \"-\" + pad(d.getDate()) + \" \" + pad(d.getHours()) + \":\" + pad(d.getMinutes()) + \":\" + pad(d.getSeconds());\n\nreturn {\n  gdId,\n  gdNo,\n  gdStatus,\n  plantId,\n  organizationId,\n  tableData,\n  soLineItemIds,\n  soHeaderIds,\n  transactionType: \"GDL-R\",\n  docDate,\n  isCompleted: gdStatus === \"Completed\" ? 1 : 0,\n  hasSoLineItemIds: soLineItemIds.length > 0 ? 1 : 0,\n  hasSoHeaderIds: soHeaderIds.length > 0 ? 1 : 0,\n};\n"
         },
         "response_json": [
-          { "key": "hr1gdid01", "name": "gdId", "title": "gdId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hr2gdno02", "name": "gdNo", "title": "gdNo", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hr3gdst03", "name": "gdStatus", "title": "gdStatus", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hr4plnt04", "name": "plantId", "title": "plantId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hr5orgi05", "name": "organizationId", "title": "organizationId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hr6tabl06", "name": "tableData", "title": "tableData", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
-          { "key": "hr7trxt07", "name": "transactionType", "title": "transactionType", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hr8docd08", "name": "docDate", "title": "docDate", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hr9iscm09", "name": "isCompleted", "title": "isCompleted", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
-          { "key": "hra0soli10", "name": "soLineItemIds", "title": "soLineItemIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
-          { "key": "hrb1sohi11", "name": "soHeaderIds", "title": "soHeaderIds", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
-          { "key": "hrc2hsli12", "name": "hasSoLineItemIds", "title": "hasSoLineItemIds", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
-          { "key": "hrd3hshi13", "name": "hasSoHeaderIds", "title": "hasSoHeaderIds", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+          {
+            "key": "hr1gdid01",
+            "name": "gdId",
+            "title": "gdId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr2gdno02",
+            "name": "gdNo",
+            "title": "gdNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr3gdst03",
+            "name": "gdStatus",
+            "title": "gdStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr4plnt04",
+            "name": "plantId",
+            "title": "plantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr5orgi05",
+            "name": "organizationId",
+            "title": "organizationId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr6tabl06",
+            "name": "tableData",
+            "title": "tableData",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr7trxt07",
+            "name": "transactionType",
+            "title": "transactionType",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr8docd08",
+            "name": "docDate",
+            "title": "docDate",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr9iscm09",
+            "name": "isCompleted",
+            "title": "isCompleted",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hra0soli10",
+            "name": "soLineItemIds",
+            "title": "soLineItemIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hrb1sohi11",
+            "name": "soHeaderIds",
+            "title": "soHeaderIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hrc2hsli12",
+            "name": "hasSoLineItemIds",
+            "title": "hasSoLineItemIds",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hrd3hshi13",
+            "name": "hasSoHeaderIds",
+            "title": "hasSoHeaderIds",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
         ]
       },
       "blocks": []
@@ -50,7 +192,17 @@
         "condition_type": "Expression",
         "filter": {
           "list": [
-            { "id": 1779334300001, "parentId": 1779334300000, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+            {
+              "id": 1779334300001,
+              "parentId": 1779334300000,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
           ]
         },
         "expression": {
@@ -76,8 +228,22 @@
                 "name": "Return Not Completed",
                 "response_value": {
                   "list": [
-                    { "prop": "code", "operator": "", "valueType": "value", "value": "400", "valueLabel": "", "propLabel": "code" },
-                    { "prop": "message", "operator": "", "valueType": "value", "value": "Only Completed Goods Deliveries can be reverted", "valueLabel": "", "propLabel": "message" }
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "Only Completed Goods Deliveries can be reverted",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
                   ]
                 },
                 "return_raw_data": 0
@@ -172,12 +338,60 @@
           "code": "// search-node returns data.data as an array (possibly empty).\nconst raw = {{node:search_node_hrFindSnap.data.data}} || [];\nconst arr = Array.isArray(raw) ? raw : [];\n\nif (arr.length === 0) {\n  return {\n    snapshotFound: 0,\n    snapshotId: \"\",\n    preSoLines: [],\n    preSoHeaders: [],\n    hasSoLines: 0,\n    hasSoHeaders: 0,\n  };\n}\n\n// If multiple Actives somehow exist, take the most recently created.\nconst snapshot = arr.length === 1 ? arr[0] : arr.slice().sort((a, b) => {\n  const at = new Date(a.create_time || 0).getTime();\n  const bt = new Date(b.create_time || 0).getTime();\n  return bt - at;\n})[0];\n\nconst parse = (raw, def) => {\n  if (raw === null || raw === undefined || raw === \"\") return def;\n  if (typeof raw === \"string\") {\n    try { return JSON.parse(raw); } catch (e) { return def; }\n  }\n  return raw;\n};\n\nconst preSoLines = parse(snapshot.pre_so_lines, []);\nconst preSoHeaders = parse(snapshot.pre_so_headers, []);\n\nreturn {\n  snapshotFound: 1,\n  snapshotId: snapshot.id,\n  preSoLines,\n  preSoHeaders,\n  hasSoLines: preSoLines.length > 0 ? 1 : 0,\n  hasSoHeaders: preSoHeaders.length > 0 ? 1 : 0,\n};\n"
         },
         "response_json": [
-          { "key": "hp1snfd01", "name": "snapshotFound", "title": "snapshotFound", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
-          { "key": "hp2snid02", "name": "snapshotId", "title": "snapshotId", "description": "", "bsonType": "string", "isExpand": false, "children": [] },
-          { "key": "hp3psln03", "name": "preSoLines", "title": "preSoLines", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
-          { "key": "hp5psoh05", "name": "preSoHeaders", "title": "preSoHeaders", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
-          { "key": "hp4hsln04", "name": "hasSoLines", "title": "hasSoLines", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
-          { "key": "hp6hsoh06", "name": "hasSoHeaders", "title": "hasSoHeaders", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+          {
+            "key": "hp1snfd01",
+            "name": "snapshotFound",
+            "title": "snapshotFound",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hp2snid02",
+            "name": "snapshotId",
+            "title": "snapshotId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hp3psln03",
+            "name": "preSoLines",
+            "title": "preSoLines",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hp5psoh05",
+            "name": "preSoHeaders",
+            "title": "preSoHeaders",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hp4hsln04",
+            "name": "hasSoLines",
+            "title": "hasSoLines",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hp6hsoh06",
+            "name": "hasSoHeaders",
+            "title": "hasSoHeaders",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
         ]
       },
       "blocks": []
@@ -193,7 +407,17 @@
         "condition_type": "Expression",
         "filter": {
           "list": [
-            { "id": 1779334300201, "parentId": 1779334300200, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+            {
+              "id": 1779334300201,
+              "parentId": 1779334300200,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
           ]
         },
         "expression": {
@@ -219,8 +443,22 @@
                 "name": "Return Snapshot Missing",
                 "response_value": {
                   "list": [
-                    { "prop": "code", "operator": "", "valueType": "value", "value": "400", "valueLabel": "", "propLabel": "code" },
-                    { "prop": "message", "operator": "", "valueType": "value", "value": "No active snapshot found for this Goods Delivery; revert not possible (snapshot may have expired, been consumed by a previous revert, or this GD was completed before snapshots were enabled).", "valueLabel": "", "propLabel": "message" }
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "No active snapshot found for this Goods Delivery; revert not possible (snapshot may have expired, been consumed by a previous revert, or this GD was completed before snapshots were enabled).",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
                   ]
                 },
                 "return_raw_data": 0
@@ -320,13 +558,45 @@
         "name": "Compute Additive SO Updates",
         "script": {
           "type": "javascript",
-          "code": "// Compute additive SO line + aggregated SO header updates for revert.\n// Math mirrors completion's inverse: delivered -= gdQty, planned += gdQty.\n// This preserves other GDs' contributions when multiple GDs target the same SO.\n\nconst tableData = {{node:code_node_hrExtract.data.tableData}} || [];\nconst curSoLinesRaw = {{node:search_node_hrCurSoLines.data.data}} || [];\nconst curSoHdrsRaw = {{node:search_node_hrCurSoHdr.data.data}} || [];\nconst curSoLines = Array.isArray(curSoLinesRaw) ? curSoLinesRaw : [curSoLinesRaw];\nconst curSoHdrs = Array.isArray(curSoHdrsRaw) ? curSoHdrsRaw : [curSoHdrsRaw];\n\nconst roundQty = (v) => {\n  if (v === null || v === undefined || v === \"\") return 0;\n  return Math.round(parseFloat(v) * 1000) / 1000;\n};\nconst formatNumber = (v) => {\n  if (v === null || v === undefined || v === \"\") return \"0.000\";\n  return parseFloat(v).toFixed(3);\n};\n\n// Aggregate this GD's gd_qty contribution per so_line_item_id (handles multiple\n// GD rows targeting the same SO line — rare but possible).\nconst gdQtyBySoLine = {};\nfor (const row of tableData) {\n  if (!row.so_line_item_id) continue;\n  const qty = parseFloat(row.gd_qty) || 0;\n  gdQtyBySoLine[row.so_line_item_id] = roundQty((gdQtyBySoLine[row.so_line_item_id] || 0) + qty);\n}\n\n// Build SO line updates (additive reverse of completion).\nconst soLineUpdates = [];\nconst newLineStateById = {}; // for header aggregation\nfor (const soLine of curSoLines) {\n  const lineId = soLine.id;\n  const gdQty = gdQtyBySoLine[lineId] || 0;\n  const curDelivered = parseFloat(soLine.delivered_qty) || 0;\n  const curPlanned = parseFloat(soLine.planned_qty) || 0;\n  const soQuantity = parseFloat(soLine.so_quantity) || 0;\n  const newDelivered = Math.max(0, roundQty(curDelivered - gdQty));\n  const newPlanned = roundQty(curPlanned + gdQty);\n  const newOutstanding = Math.max(0, roundQty(soQuantity - newDelivered));\n\n  // line_status recompute:\n  // - newDelivered >= soQuantity > 0 → \"Completed\" (other GDs still cover it)\n  // - newDelivered > 0 → \"Processing\" (partial)\n  // - newDelivered === 0 → empty (back to pre-delivery state)\n  let newLineStatus;\n  if (soQuantity > 0 && newDelivered >= soQuantity) {\n    newLineStatus = \"Completed\";\n  } else if (newDelivered > 0) {\n    newLineStatus = \"Processing\";\n  } else {\n    newLineStatus = \"\";\n  }\n\n  soLineUpdates.push({\n    id: lineId,\n    planned_qty: formatNumber(newPlanned),\n    delivered_qty: formatNumber(newDelivered),\n    outstanding_quantity: formatNumber(newOutstanding),\n    line_status: newLineStatus,\n  });\n  newLineStateById[lineId] = {\n    delivered_qty: newDelivered,\n    so_quantity: soQuantity,\n    line_status: newLineStatus,\n  };\n}\n\n// Build SO header aggregated updates. Mirror of completion's code_node_lwB2FVe0\n// (Completed branch): count fully/partially delivered across ALL table_so lines,\n// using newLineStateById for lines we just updated and existing values for others.\nconst soHeaderUpdates = [];\nfor (const soHdr of curSoHdrs) {\n  const tableSo = Array.isArray(soHdr.table_so) ? soHdr.table_so : [];\n  const totalItems = tableSo.length;\n  let partiallyDeliveredItems = 0;\n  let fullyDeliveredItems = 0;\n\n  for (const soItem of tableSo) {\n    const updated = newLineStateById[soItem.id];\n    const lineToCheck = updated || soItem;\n    const deliveredQty = parseFloat(lineToCheck.delivered_qty || 0);\n    const soQty = parseFloat(lineToCheck.so_quantity || 0);\n    const lineStatus = lineToCheck.line_status;\n\n    if (lineStatus === \"Completed\" || (deliveredQty >= soQty && soQty > 0)) {\n      partiallyDeliveredItems++;\n      fullyDeliveredItems++;\n    } else if (deliveredQty > 0) {\n      partiallyDeliveredItems++;\n    }\n  }\n\n  const allItemsComplete = fullyDeliveredItems === totalItems && totalItems > 0;\n  const anyItemProcessing = partiallyDeliveredItems > 0;\n\n  // Derive SO header status from new line state:\n  // - all delivered → so_status=\"Completed\", gd_status=\"Fully Delivered\"\n  // - any partial → so_status=\"Processing\", gd_status=\"Partially Delivered\"\n  // - none delivered → so_status=\"Issued\" (revert to pre-delivery), gd_status=\"Created\"\n  //   (any GD still tied to this SO leaves gd_status=\"Created\"; we don't know about\n  //   other Created/Completed GDs here, so default to \"Created\" — completion's\n  //   own Created-path also sets \"Created\" when prev was empty/Cancelled.)\n  let newSoStatus;\n  let newGdStatus;\n  if (allItemsComplete) {\n    newSoStatus = \"Completed\";\n    newGdStatus = \"Fully Delivered\";\n  } else if (anyItemProcessing) {\n    newSoStatus = \"Processing\";\n    newGdStatus = \"Partially Delivered\";\n  } else {\n    newSoStatus = \"Issued\";\n    newGdStatus = \"Created\";\n  }\n\n  soHeaderUpdates.push({\n    id: soHdr.id,\n    so_status: newSoStatus,\n    gd_status: newGdStatus,\n    partially_delivered: totalItems > 0 ? (partiallyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n    fully_delivered: totalItems > 0 ? (fullyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n  });\n}\n\nreturn {\n  soLineUpdates,\n  soHeaderUpdates,\n  hasSoLineUpdates: soLineUpdates.length > 0 ? 1 : 0,\n  hasSoHeaderUpdates: soHeaderUpdates.length > 0 ? 1 : 0,\n};\n"
+          "code": "// Compute additive SO line + aggregated SO header updates for revert.\n// Math mirrors completion's inverse: delivered -= gdQty, planned += gdQty.\n// This preserves other GDs' contributions when multiple GDs target the same SO.\n\nconst tableData = {{node:code_node_hrExtract.data.tableData}} || [];\nconst curSoLinesRaw = {{node:search_node_hrCurSoLines.data.data}} || [];\nconst curSoHdrsRaw = {{node:search_node_hrCurSoHdr.data.data}} || [];\nconst curSoLines = Array.isArray(curSoLinesRaw) ? curSoLinesRaw : [curSoLinesRaw];\nconst curSoHdrs = Array.isArray(curSoHdrsRaw) ? curSoHdrsRaw : [curSoHdrsRaw];\n\nconst roundQty = (v) => {\n  if (v === null || v === undefined || v === \"\") return 0;\n  return Math.round(parseFloat(v) * 1000) / 1000;\n};\nconst formatNumber = (v) => {\n  if (v === null || v === undefined || v === \"\") return \"0.000\";\n  return parseFloat(v).toFixed(3);\n};\n\n// Aggregate this GD's gd_qty contribution per so_line_item_id (handles multiple\n// GD rows targeting the same SO line — rare but possible).\nconst gdQtyBySoLine = {};\nfor (const row of tableData) {\n  if (!row.so_line_item_id) continue;\n  const qty = parseFloat(row.gd_qty) || 0;\n  gdQtyBySoLine[row.so_line_item_id] = roundQty((gdQtyBySoLine[row.so_line_item_id] || 0) + qty);\n}\n\n// Build SO line updates (additive reverse of completion).\nconst soLineUpdates = [];\nconst newLineStateById = {}; // for header aggregation\nfor (const soLine of curSoLines) {\n  const lineId = soLine.id;\n  const gdQty = gdQtyBySoLine[lineId] || 0;\n  const curDelivered = parseFloat(soLine.delivered_qty) || 0;\n  const curPlanned = parseFloat(soLine.planned_qty) || 0;\n  const soQuantity = parseFloat(soLine.so_quantity) || 0;\n  const newDelivered = Math.max(0, roundQty(curDelivered - gdQty));\n  const newPlanned = roundQty(curPlanned + gdQty);\n  const newOutstanding = Math.max(0, roundQty(soQuantity - newDelivered));\n\n  // line_status recompute:\n  // - newDelivered >= soQuantity > 0 → \"Completed\" (other GDs still cover it)\n  // - newDelivered > 0 → \"Processing\" (partial)\n  // - newDelivered === 0 → empty (back to pre-delivery state)\n  let newLineStatus;\n  if (soQuantity > 0 && newDelivered >= soQuantity) {\n    newLineStatus = \"Completed\";\n  } else if (newDelivered > 0) {\n    newLineStatus = \"Processing\";\n  } else {\n    newLineStatus = \"\";\n  }\n\n  soLineUpdates.push({\n    id: lineId,\n    planned_qty: formatNumber(newPlanned),\n    delivered_qty: formatNumber(newDelivered),\n    outstanding_quantity: formatNumber(newOutstanding),\n    line_status: newLineStatus,\n  });\n  newLineStateById[lineId] = {\n    delivered_qty: newDelivered,\n    so_quantity: soQuantity,\n    line_status: newLineStatus,\n  };\n}\n\n// Build SO header aggregated updates. Mirror of completion's code_node_lwB2FVe0\n// (Completed branch): count fully/partially delivered across ALL table_so lines,\n// using newLineStateById for lines we just updated and existing values for others.\n// An item bundle is ONE line on the order with the bundle's items beneath it.\n// The bundle line is a header -- it never receives delivered_qty -- so counting\n// it here would inflate the denominator and it could never be marked delivered.\n// Same rule the completion rollup (code_node_lwB2FVe0) applies, so forward and\n// reverse agree on the ratio. On table_so item_name holds the item id.\nconst orderLines = (rows) =>\n  (rows || []).flatMap((row) => [\n    ...(Boolean(row.item_bundle_id) && !row.item_name ? [] : [row]),\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\nconst soHeaderUpdates = [];\nfor (const soHdr of curSoHdrs) {\n  const tableSo = orderLines(soHdr.table_so);\n  const totalItems = tableSo.length;\n  let partiallyDeliveredItems = 0;\n  let fullyDeliveredItems = 0;\n\n  for (const soItem of tableSo) {\n    const updated = newLineStateById[soItem.id];\n    const lineToCheck = updated || soItem;\n    const deliveredQty = parseFloat(lineToCheck.delivered_qty || 0);\n    const soQty = parseFloat(lineToCheck.so_quantity || 0);\n    const lineStatus = lineToCheck.line_status;\n\n    if (lineStatus === \"Completed\" || (deliveredQty >= soQty && soQty > 0)) {\n      partiallyDeliveredItems++;\n      fullyDeliveredItems++;\n    } else if (deliveredQty > 0) {\n      partiallyDeliveredItems++;\n    }\n  }\n\n  const allItemsComplete = fullyDeliveredItems === totalItems && totalItems > 0;\n  const anyItemProcessing = partiallyDeliveredItems > 0;\n\n  // Derive SO header status from new line state:\n  // - all delivered → so_status=\"Completed\", gd_status=\"Fully Delivered\"\n  // - any partial → so_status=\"Processing\", gd_status=\"Partially Delivered\"\n  // - none delivered → so_status=\"Issued\" (revert to pre-delivery), gd_status=\"Created\"\n  //   (any GD still tied to this SO leaves gd_status=\"Created\"; we don't know about\n  //   other Created/Completed GDs here, so default to \"Created\" — completion's\n  //   own Created-path also sets \"Created\" when prev was empty/Cancelled.)\n  let newSoStatus;\n  let newGdStatus;\n  if (allItemsComplete) {\n    newSoStatus = \"Completed\";\n    newGdStatus = \"Fully Delivered\";\n  } else if (anyItemProcessing) {\n    newSoStatus = \"Processing\";\n    newGdStatus = \"Partially Delivered\";\n  } else {\n    newSoStatus = \"Issued\";\n    newGdStatus = \"Created\";\n  }\n\n  soHeaderUpdates.push({\n    id: soHdr.id,\n    so_status: newSoStatus,\n    gd_status: newGdStatus,\n    partially_delivered: totalItems > 0 ? (partiallyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n    fully_delivered: totalItems > 0 ? (fullyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n  });\n}\n\nreturn {\n  soLineUpdates,\n  soHeaderUpdates,\n  hasSoLineUpdates: soLineUpdates.length > 0 ? 1 : 0,\n  hasSoHeaderUpdates: soHeaderUpdates.length > 0 ? 1 : 0,\n};\n"
         },
         "response_json": [
-          { "key": "hcs1lupd01", "name": "soLineUpdates", "title": "soLineUpdates", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
-          { "key": "hcs2hupd02", "name": "soHeaderUpdates", "title": "soHeaderUpdates", "description": "", "bsonType": "array", "isExpand": false, "children": [] },
-          { "key": "hcs3hsli03", "name": "hasSoLineUpdates", "title": "hasSoLineUpdates", "description": "", "bsonType": "int", "isExpand": false, "children": [] },
-          { "key": "hcs4hshi04", "name": "hasSoHeaderUpdates", "title": "hasSoHeaderUpdates", "description": "", "bsonType": "int", "isExpand": false, "children": [] }
+          {
+            "key": "hcs1lupd01",
+            "name": "soLineUpdates",
+            "title": "soLineUpdates",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hcs2hupd02",
+            "name": "soHeaderUpdates",
+            "title": "soHeaderUpdates",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hcs3hsli03",
+            "name": "hasSoLineUpdates",
+            "title": "hasSoLineUpdates",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hcs4hshi04",
+            "name": "hasSoHeaderUpdates",
+            "title": "hasSoHeaderUpdates",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
         ]
       },
       "blocks": []
@@ -342,7 +612,17 @@
         "condition_type": "Expression",
         "filter": {
           "list": [
-            { "id": 1779334300301, "parentId": 1779334300300, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+            {
+              "id": 1779334300301,
+              "parentId": 1779334300300,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
           ]
         },
         "expression": {
@@ -391,11 +671,46 @@
                 "props": {
                   "modelName": "",
                   "list": [
-                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
-                    { "prop": "planned_qty", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.planned_qty}}", "operator": "", "valueLabel": "", "propLabel": "Planned Quantity" },
-                    { "prop": "delivered_qty", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.delivered_qty}}", "operator": "", "valueLabel": "", "propLabel": "Delivered Quantity" },
-                    { "prop": "outstanding_quantity", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.outstanding_quantity}}", "operator": "", "valueLabel": "", "propLabel": "Outstanding Quantity" },
-                    { "prop": "line_status", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.line_status}}", "operator": "", "valueLabel": "", "propLabel": "Line Status" }
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "planned_qty",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.planned_qty}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Planned Quantity"
+                    },
+                    {
+                      "prop": "delivered_qty",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.delivered_qty}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Delivered Quantity"
+                    },
+                    {
+                      "prop": "outstanding_quantity",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.outstanding_quantity}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Outstanding Quantity"
+                    },
+                    {
+                      "prop": "line_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soLineUpdates.line_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Line Status"
+                    }
                   ]
                 }
               },
@@ -422,7 +737,17 @@
         "condition_type": "Expression",
         "filter": {
           "list": [
-            { "id": 1779334301001, "parentId": 1779334301000, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+            {
+              "id": 1779334301001,
+              "parentId": 1779334301000,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
           ]
         },
         "expression": {
@@ -471,11 +796,46 @@
                 "props": {
                   "modelName": "",
                   "list": [
-                    { "prop": "id", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.id}}", "operator": "", "valueLabel": "", "propLabel": "主键ID" },
-                    { "prop": "so_status", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.so_status}}", "operator": "", "valueLabel": "", "propLabel": "SO Status" },
-                    { "prop": "gd_status", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.gd_status}}", "operator": "", "valueLabel": "", "propLabel": "GD Status" },
-                    { "prop": "partially_delivered", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.partially_delivered}}", "operator": "", "valueLabel": "", "propLabel": "Partially Delivered" },
-                    { "prop": "fully_delivered", "valueType": "field", "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.fully_delivered}}", "operator": "", "valueLabel": "", "propLabel": "Fully Delivered" }
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "so_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.so_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "SO Status"
+                    },
+                    {
+                      "prop": "gd_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.gd_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "GD Status"
+                    },
+                    {
+                      "prop": "partially_delivered",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.partially_delivered}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Partially Delivered"
+                    },
+                    {
+                      "prop": "fully_delivered",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrComputeSoUpdates.data.soHeaderUpdates.fully_delivered}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Fully Delivered"
+                    }
                   ]
                 }
               },
@@ -507,7 +867,17 @@
           "rules": {
             "collectionId": "2058820005398224897",
             "list": [
-              { "id": 1779334300501, "parentId": 1779334300500, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+              {
+                "id": 1779334300501,
+                "parentId": 1779334300500,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
             ]
           }
         },
@@ -515,14 +885,70 @@
         "remoteType": "innerdatasource",
         "body_params": {
           "list": [
-            { "prop": "snapshot_id", "operator": "", "valueType": "field", "value": "{{node:code_node_hrParseSnap.data.snapshotId}}", "valueLabel": "", "propLabel": "Snapshot ID" },
-            { "prop": "doc_id", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.gdId}}", "valueLabel": "", "propLabel": "Document ID" },
-            { "prop": "gd_no", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.gdNo}}", "valueLabel": "", "propLabel": "GD Number" },
-            { "prop": "plant_id", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.plantId}}", "valueLabel": "", "propLabel": "Plant ID" },
-            { "prop": "organization_id", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.organizationId}}", "valueLabel": "", "propLabel": "Organization ID" },
-            { "prop": "transaction_type", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.transactionType}}", "valueLabel": "", "propLabel": "Transaction Type" },
-            { "prop": "doc_date", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.docDate}}", "valueLabel": "", "propLabel": "Document Date" },
-            { "prop": "tableData", "operator": "", "valueType": "field", "value": "{{node:code_node_hrExtract.data.tableData}}", "valueLabel": "", "propLabel": "Table Data" }
+            {
+              "prop": "snapshot_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrParseSnap.data.snapshotId}}",
+              "valueLabel": "",
+              "propLabel": "Snapshot ID"
+            },
+            {
+              "prop": "doc_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.gdId}}",
+              "valueLabel": "",
+              "propLabel": "Document ID"
+            },
+            {
+              "prop": "gd_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.gdNo}}",
+              "valueLabel": "",
+              "propLabel": "GD Number"
+            },
+            {
+              "prop": "plant_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.plantId}}",
+              "valueLabel": "",
+              "propLabel": "Plant ID"
+            },
+            {
+              "prop": "organization_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.organizationId}}",
+              "valueLabel": "",
+              "propLabel": "Organization ID"
+            },
+            {
+              "prop": "transaction_type",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.transactionType}}",
+              "valueLabel": "",
+              "propLabel": "Transaction Type"
+            },
+            {
+              "prop": "doc_date",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.docDate}}",
+              "valueLabel": "",
+              "propLabel": "Document Date"
+            },
+            {
+              "prop": "tableData",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.tableData}}",
+              "valueLabel": "",
+              "propLabel": "Table Data"
+            }
           ]
         }
       },
@@ -539,7 +965,17 @@
         "condition_type": "Expression",
         "filter": {
           "list": [
-            { "id": 1779334300601, "parentId": 1779334300600, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+            {
+              "id": 1779334300601,
+              "parentId": 1779334300600,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
           ]
         },
         "expression": {
@@ -565,8 +1001,22 @@
                 "name": "Return Inventory Conflict 409",
                 "response_value": {
                   "list": [
-                    { "prop": "code", "operator": "", "valueType": "value", "value": "409", "valueLabel": "", "propLabel": "code" },
-                    { "prop": "message", "operator": "", "valueType": "field", "value": "{{node:workflow_node_hrCallInvRevert.data.message}}", "valueLabel": "", "propLabel": "message" }
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "409",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:workflow_node_hrCallInvRevert.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
                   ]
                 },
                 "return_raw_data": 0
@@ -594,7 +1044,17 @@
         "condition_type": "Expression",
         "filter": {
           "list": [
-            { "id": 1779334300701, "parentId": 1779334300700, "isTop": true, "prop": "", "operator": "", "valueType": "", "value": "", "type": "leaf", "level": 1 }
+            {
+              "id": 1779334300701,
+              "parentId": 1779334300700,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
           ]
         },
         "expression": {
@@ -620,8 +1080,22 @@
                 "name": "Return Inventory Error 400",
                 "response_value": {
                   "list": [
-                    { "prop": "code", "operator": "", "valueType": "value", "value": "400", "valueLabel": "", "propLabel": "code" },
-                    { "prop": "message", "operator": "", "valueType": "field", "value": "{{node:workflow_node_hrCallInvRevert.data.message}}", "valueLabel": "", "propLabel": "message" }
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:workflow_node_hrCallInvRevert.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
                   ]
                 },
                 "return_raw_data": 0
@@ -673,7 +1147,14 @@
         "props": {
           "modelName": "",
           "list": [
-            { "prop": "gd_status", "operator": "", "valueType": "value", "value": "Created", "valueLabel": "", "propLabel": "GD Status" }
+            {
+              "prop": "gd_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Created",
+              "valueLabel": "",
+              "propLabel": "GD Status"
+            }
           ]
         }
       },
@@ -714,7 +1195,14 @@
         "props": {
           "modelName": "",
           "list": [
-            { "prop": "snapshot_status", "operator": "", "valueType": "value", "value": "Reverted", "valueLabel": "", "propLabel": "Snapshot Status" }
+            {
+              "prop": "snapshot_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Reverted",
+              "valueLabel": "",
+              "propLabel": "Snapshot Status"
+            }
           ]
         }
       },
@@ -732,8 +1220,22 @@
         "name": "Return Revert Success",
         "response_value": {
           "list": [
-            { "prop": "code", "operator": "", "valueType": "value", "value": "200", "valueLabel": "", "propLabel": "code" },
-            { "prop": "message", "operator": "", "valueType": "value", "value": "Goods Delivery reverted to Created successfully", "valueLabel": "", "propLabel": "message" }
+            {
+              "prop": "code",
+              "operator": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": "",
+              "propLabel": "code"
+            },
+            {
+              "prop": "message",
+              "operator": "",
+              "valueType": "value",
+              "value": "Goods Delivery reverted to Created successfully",
+              "valueLabel": "",
+              "propLabel": "message"
+            }
           ]
         },
         "return_raw_data": 0
@@ -747,43 +1249,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "sihd3q6g",
-      "name": "allData",
-      "title": "allData",
-      "description": "",
-      "bsonType": "any",
-      "isExpand": false,
-      "children": []
-    },
-    {
-      "key": "35hbuxp5",
-      "name": "pageStatus",
-      "title": "pageStatus",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [
-    {
-      "key": "tmhvw60d",
-      "name": "code",
-      "title": "code",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "08xy9haf",
-      "name": "message",
-      "title": "message",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "config": {}
+  "edges": []
 }
