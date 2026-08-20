@@ -1,4 +1,40 @@
 {
+  "request_json": [
+    {
+      "key": "wf_req_action",
+      "name": "action",
+      "title": "Action",
+      "description": "cancel | delete",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_gr_id",
+      "name": "gr_id",
+      "title": "GR ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_gr_no",
+      "name": "gr_no",
+      "title": "GR Number",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_id",
+      "name": "po_id",
+      "title": "PO ID(s)",
+      "description": "single id or array of ids",
+      "bsonType": "any",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -37,6 +73,7 @@
       },
       "blocks": [
         {
+          "id": "YqztXKYABhAzXyBipkJMM",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -127,6 +164,7 @@
           ]
         },
         {
+          "id": "bgQfFhWiwFESxPZpn11jJ",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -516,41 +554,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "wf_req_action",
-      "name": "action",
-      "title": "Action",
-      "description": "cancel | delete",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_gr_id",
-      "name": "gr_id",
-      "title": "GR ID",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_gr_no",
-      "name": "gr_no",
-      "title": "GR Number",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_po_id",
-      "name": "po_id",
-      "title": "PO ID(s)",
-      "description": "single id or array of ids",
-      "bsonType": "any",
-      "isExpand": false
-    }
-  ],
-  "response_json": [],
-  "config": {}
+  "edges": []
 }
