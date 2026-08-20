@@ -1,17 +1,37 @@
+// The dialog carries the fm_key of the row it was opened on. A subform row is
+// identified by its key, not by where it sits, so the row is found by walking
+// the tree -- an item under an item bundle is not a row of table_to at all, it
+// sits under its parent's children and no index can reach it.
+//
+// The trailing lookup by position is only for a row the platform has not given
+// a key to yet; a keyed row never reaches it.
+const resolveRow = (rows, key) => {
+  for (const row of rows || []) {
+    if (row && String(row.fm_key) === String(key)) return row;
+
+    const children = Array.isArray(row && row.children) ? row.children : [];
+
+    for (const child of children) {
+      if (child && String(child.fm_key) === String(key)) return child;
+    }
+  }
+
+  return (rows || [])[key] || null;
+};
+
 (async () => {
   try {
     const data = this.getValues();
     const fieldParts = rule.field.split(".");
     const index = fieldParts[2];
-    const rowIndex = data.to_item_balance.row_index;
+    const rowKey = data.to_item_balance.row_index;
+    const targetRow = resolveRow(data.table_to, rowKey) || {};
     const toStatus = data.to_status;
 
-    const materialId = data.table_to[rowIndex].material_id;
-    const to_order_quantity = parseFloat(
-      data.table_to[rowIndex].to_order_quantity || 0,
-    );
+    const materialId = targetRow.material_id;
+    const to_order_quantity = parseFloat(targetRow.to_order_quantity || 0);
     const initialDeliveredQty = parseFloat(
-      data.table_to[rowIndex].to_initial_delivered_qty || 0,
+      targetRow.to_initial_delivered_qty || 0,
     );
 
     // Calculate total EXCLUDING the current row being validated
@@ -57,14 +77,15 @@
 
       console.log("data", resItem.data);
       if (resItem.data && resItem.data[0]) {
-        // over_delivery_tolerance now lives per-UOM inside table_uom_conversion,
-        // keyed by alt_uom_id — match the PP line's order UOM.
-        const overDeliveryTolerance =
-          ((resItem.data[0].table_uom_conversion || []).find(
-            (c) => c.alt_uom_id === data.table_to[rowIndex].to_order_uom_id,
-          ) || {}).over_delivery_tolerance || 0;
         const orderLimit =
-          (to_order_quantity * (100 + overDeliveryTolerance)) / 100;
+          (to_order_quantity *
+            (100 +
+              ((
+                (resItem.data[0].table_uom_conversion || []).find(
+                  (c) => c.alt_uom_id === targetRow.to_order_uom_id,
+                ) || {}
+              ).over_delivery_tolerance || 0))) /
+          100;
 
         if (
           toStatus === "Created" &&
@@ -75,7 +96,7 @@
           return;
         } else if (toStatus !== "Created") {
           // For Draft status, check if there's pending reserved for this SO line at this location
-          const soLineItemId = data.table_to[rowIndex].so_line_item_id;
+          const soLineItemId = targetRow.so_line_item_id;
           let pendingReservedQty = 0;
 
           if (soLineItemId && locationId) {
@@ -98,8 +119,7 @@
 
             if (pendingReservedRes?.data?.length > 0) {
               pendingReservedQty = pendingReservedRes.data.reduce(
-                (total, reserved) =>
-                  total + parseFloat(reserved.open_qty || 0),
+                (total, reserved) => total + parseFloat(reserved.open_qty || 0),
                 0,
               );
             }

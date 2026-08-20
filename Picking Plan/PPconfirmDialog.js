@@ -1,3 +1,24 @@
+// The dialog carries the fm_key of the row it was opened on. A subform row is
+// identified by its key, not by where it sits, so the row is found by walking
+// the tree -- an item under an item bundle is not a row of table_to at all, it
+// sits under its parent's children and no index can reach it.
+//
+// The trailing lookup by position is only for a row the platform has not given
+// a key to yet; a keyed row never reaches it.
+const resolveRow = (rows, key) => {
+  for (const row of rows || []) {
+    if (row && String(row.fm_key) === String(key)) return row;
+
+    const children = Array.isArray(row && row.children) ? row.children : [];
+
+    for (const child of children) {
+      if (child && String(child.fm_key) === String(key)) return child;
+    }
+  }
+
+  return (rows || [])[key] || null;
+};
+
 (async () => {
   // Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
   const roundQty = (value) =>
@@ -5,10 +26,11 @@
 
   const data = this.getValues();
   const temporaryData = data.to_item_balance.table_item_balance;
-  const rowIndex = data.to_item_balance.row_index;
+  const rowKey = data.to_item_balance.row_index;
+  const targetRow = resolveRow(data.table_to, rowKey) || {};
   const selectedUOM = data.to_item_balance.material_uom;
-  const materialId = data.table_to[rowIndex].material_id;
-  const pickingPlanUOM = data.table_to[rowIndex].to_order_uom_id;
+  const materialId = targetRow.material_id;
+  const pickingPlanUOM = targetRow.to_order_uom_id;
 
   const toUOM = await db
     .collection("unit_of_measurement")
@@ -36,11 +58,9 @@
 
   // Re-validate all rows with quantities > 0 before confirming
   const toStatus = data.to_status;
-  const to_order_quantity = parseFloat(
-    data.table_to[rowIndex].to_order_quantity || 0,
-  );
+  const to_order_quantity = parseFloat(targetRow.to_order_quantity || 0);
   const initialDeliveredQty = parseFloat(
-    data.table_to[rowIndex].to_initial_delivered_qty || 0,
+    targetRow.to_initial_delivered_qty || 0,
   );
 
   let orderLimit = 0;
@@ -48,14 +68,15 @@
     const resItem = await db.collection("Item").where({ id: materialId }).get();
 
     if (resItem.data && resItem.data[0]) {
-      // over_delivery_tolerance now lives per-UOM inside table_uom_conversion,
-      // keyed by alt_uom_id — match the PP line's order UOM (pickingPlanUOM).
-      const overDeliveryTolerance =
-        ((resItem.data[0].table_uom_conversion || []).find(
-          (c) => c.alt_uom_id === pickingPlanUOM,
-        ) || {}).over_delivery_tolerance || 0;
       orderLimit =
-        (to_order_quantity * (100 + overDeliveryTolerance)) / 100;
+        (to_order_quantity *
+          (100 +
+            ((
+              (resItem.data[0].table_uom_conversion || []).find(
+                (c) => c.alt_uom_id === targetRow.to_order_uom_id,
+              ) || {}
+            ).over_delivery_tolerance || 0))) /
+        100;
     }
   }
 
@@ -77,7 +98,7 @@
   console.log("Total delivered quantity:", totalDeliveredQty);
 
   // Get SO line item ID for pending reserved check
-  const soLineItemId = data.table_to[rowIndex].so_line_item_id;
+  const soLineItemId = targetRow.so_line_item_id;
 
   // Check each row for validation
   for (let idx = 0; idx < temporaryData.length; idx++) {
@@ -334,6 +355,46 @@
   );
   console.log("Filtered data (excluding to_quantity <= 0):", filteredData);
 
+  // An item under an item bundle cannot be picked short. The bundle row's plan
+  // quantity is spread across its items by ratio (onChange_delivered_qty), so
+  // planning 2 of a bundle holding 2 of item A and 3 of item B plans 4 of A and
+  // 6 of B, and the items' own quantity fields are not editable. This dialog is
+  // the one thing that can break that: the write below replaces to_qty with
+  // whatever was picked here. A bundle picked 3 of A against a plan of 4 is not
+  // a bundle. To pick less, plan fewer bundles on the bundle row -- that moves
+  // every item together.
+  //
+  // A bundle's item carries both the bundle and a material of its own; the
+  // bundle row carries the bundle and no material, and never reaches this
+  // dialog -- the Select Stock column is disabled for it. Ordinary lines are
+  // left alone: how much of them is picked is their own business, and the
+  // checks above are all they answer to.
+  const currentRow = targetRow;
+
+  if (currentRow.item_bundle_id && currentRow.material_id) {
+    const plannedQty = roundQty(currentRow.to_qty);
+    // filteredData is already back in the picking plan's UOM, whatever the
+    // dialog was switched to.
+    const pickedQty = roundQty(
+      filteredData.reduce((sum, item) => sum + (item.to_quantity || 0), 0),
+    );
+
+    if (pickedQty !== plannedQty) {
+      console.log(
+        "Validation failed: item bundle item must be picked in full",
+        currentRow.material_id,
+        "picked",
+        pickedQty,
+        "planned",
+        plannedQty,
+      );
+      alert(
+        `This item is part of an item bundle and must be picked in full. Planned ${plannedQty} ${toUOM}, selected ${pickedQty} ${toUOM}. To pick less, reduce the plan quantity on the item bundle row.`,
+      );
+      return;
+    }
+  }
+
   const formatFilteredData = async (filteredData) => {
     // Get unique location IDs
     const locationIds = [
@@ -469,13 +530,13 @@
   const textareaContent = JSON.stringify(filteredData);
 
   this.setData({
-    [`table_to.${rowIndex}.temp_qty_data`]: textareaContent,
-    [`table_to.${rowIndex}.view_stock`]: formattedString,
+    [`table_to.${rowKey}.temp_qty_data`]: textareaContent,
+    [`table_to.${rowKey}.view_stock`]: formattedString,
     [`to_item_balance.table_item_balance`]: [],
   });
 
   console.log("Input data (filtered):", filteredData);
-  console.log("Row index:", rowIndex);
+  console.log("Row key:", rowKey);
 
   // Sum up all to_quantity values from filtered data
   const totalToQuantity = roundQty(
@@ -484,23 +545,21 @@
   console.log("Total TO quantity:", totalToQuantity);
 
   // Get the initial delivered quantity from the table_to
-  const initialDeliveredQty2 =
-    data.table_to[rowIndex].to_initial_delivered_qty || 0;
+  const initialDeliveredQty2 = targetRow.to_initial_delivered_qty || 0;
   console.log("Initial delivered quantity:", initialDeliveredQty2);
 
   const deliveredQty = roundQty(initialDeliveredQty2 + totalToQuantity);
   console.log("Final delivered quantity:", deliveredQty);
 
   // Calculate price per item for the current row
-  const totalPrice = parseFloat(data.table_to[rowIndex].total_price) || 0;
-  const orderQuantity =
-    parseFloat(data.table_to[rowIndex].to_order_quantity) || 0;
+  const totalPrice = parseFloat(targetRow.total_price) || 0;
+  const orderQuantity = parseFloat(targetRow.to_order_quantity) || 0;
 
   let pricePerItem = 0;
   if (orderQuantity > 0) {
     pricePerItem = totalPrice / orderQuantity;
   } else {
-    console.warn("Order quantity is zero or invalid for row", rowIndex);
+    console.warn("Order quantity is zero or invalid for row", rowKey);
   }
 
   const currentRowPrice = pricePerItem * totalToQuantity;
@@ -509,16 +568,16 @@
 
   // Store the row-specific data first
   this.setData({
-    [`table_to.${rowIndex}.to_delivered_qty`]: deliveredQty,
-    [`table_to.${rowIndex}.to_qty`]: totalToQuantity,
-    [`table_to.${rowIndex}.base_qty`]: totalToQuantity,
-    [`table_to.${rowIndex}.to_price`]: currentRowPrice,
-    [`table_to.${rowIndex}.price_per_item`]: pricePerItem,
+    [`table_to.${rowKey}.to_delivered_qty`]: deliveredQty,
+    [`table_to.${rowKey}.to_qty`]: totalToQuantity,
+    [`table_to.${rowKey}.base_qty`]: totalToQuantity,
+    [`table_to.${rowKey}.to_price`]: currentRowPrice,
+    [`table_to.${rowKey}.price_per_item`]: pricePerItem,
     error_message: "", // Clear any error message
   });
 
   console.log(
-    `Updated row ${rowIndex} with serialized=${isSerializedItem}, batch=${isBatchManagedItem}`,
+    `Updated row ${rowKey} with serialized=${isSerializedItem}, batch=${isBatchManagedItem}`,
   );
 
   // Recalculate total from all rows
@@ -530,7 +589,9 @@
     const rowTotalPrice = parseFloat(row.total_price) || 0;
 
     let rowToQty;
-    if (index === rowIndex) {
+    // The row being edited, matched by identity rather than by position. The
+    // loop walks the top-level rows only, exactly as before.
+    if (row === targetRow) {
       // For the current row being edited, use the new quantity we just calculated
       rowToQty = totalToQuantity;
     } else {

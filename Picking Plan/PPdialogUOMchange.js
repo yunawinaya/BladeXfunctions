@@ -1,3 +1,24 @@
+// The dialog carries the fm_key of the row it was opened on. A subform row is
+// identified by its key, not by where it sits, so the row is found by walking
+// the tree -- an item under an item bundle is not a row of table_to at all, it
+// sits under its parent's children and no index can reach it.
+//
+// The trailing lookup by position is only for a row the platform has not given
+// a key to yet; a keyed row never reaches it.
+const resolveRow = (rows, key) => {
+  for (const row of rows || []) {
+    if (row && String(row.fm_key) === String(key)) return row;
+
+    const children = Array.isArray(row && row.children) ? row.children : [];
+
+    for (const child of children) {
+      if (child && String(child.fm_key) === String(key)) return child;
+    }
+  }
+
+  return (rows || [])[key] || null;
+};
+
 (async () => {
   const fetchItemData = async (itemId) => {
     const itemData = await db.collection("Item").where({ id: itemId }).get();
@@ -7,13 +28,14 @@
   const allData = this.getValues();
 
   const selectedUOM = arguments[0].value;
-  const rowIndex = allData.to_item_balance.row_index;
+  const rowKey = allData.to_item_balance.row_index;
+  const targetRow = resolveRow(allData.table_to, rowKey) || {};
 
   console.log("DEBUG - UOM Change:");
   console.log("selectedUOM:", selectedUOM);
 
-  const pickingPlanUOM = allData.table_to[rowIndex].to_order_uom_id;
-  const itemId = allData.table_to[rowIndex].material_id;
+  const pickingPlanUOM = targetRow.to_order_uom_id;
+  const itemId = targetRow.material_id;
   const itemData = await fetchItemData(itemId);
   const tableUOMConversion = itemData.table_uom_conversion;
   const tableItemBalance = allData.to_item_balance.table_item_balance;
@@ -33,14 +55,14 @@
     }
 
     const uomConversion = table_uom_conversion.find(
-      (conv) => conv.alt_uom_id === uom
+      (conv) => conv.alt_uom_id === uom,
     );
 
     if (!uomConversion || !uomConversion.base_qty) {
       return baseQty;
     }
 
-    return Math.round(baseQty / uomConversion.base_qty * 1000) / 1000;
+    return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
   };
 
   const convertQuantityFromTo = (
@@ -48,7 +70,7 @@
     table_uom_conversion,
     fromUOM,
     toUOM,
-    baseUOM
+    baseUOM,
   ) => {
     if (!value || fromUOM === toUOM) return value;
 
@@ -56,7 +78,7 @@
     let baseQty = value;
     if (fromUOM !== baseUOM) {
       const fromConversion = table_uom_conversion.find(
-        (conv) => conv.alt_uom_id === fromUOM
+        (conv) => conv.alt_uom_id === fromUOM,
       );
       if (fromConversion && fromConversion.base_qty) {
         baseQty = value * fromConversion.base_qty;
@@ -93,7 +115,7 @@
             tableUOMConversion,
             pickingPlanUOM,
             selectedUOM,
-            itemData.based_uom
+            itemData.based_uom,
           );
           console.log(`${field}: ${originalValue} -> ${updatedRecord[field]}`);
         }
@@ -111,11 +133,11 @@
     this.models["previous_material_uom"] = selectedUOM;
 
     console.log(
-      `Updated table_item_balance quantities from ${pickingPlanUOM} to ${selectedUOM}`
+      `Updated table_item_balance quantities from ${pickingPlanUOM} to ${selectedUOM}`,
     );
   } else {
     console.log(
-      "UOMs are the same, converting tableItemBalance back to original UOM"
+      "UOMs are the same, converting tableItemBalance back to original UOM",
     );
 
     // Get the previous UOM that the table was converted to
@@ -123,7 +145,7 @@
 
     if (previousTableUOM && previousTableUOM !== pickingPlanUOM) {
       console.log(
-        `Converting table back from ${previousTableUOM} to ${pickingPlanUOM}`
+        `Converting table back from ${previousTableUOM} to ${pickingPlanUOM}`,
       );
 
       const quantityFields = [
@@ -149,10 +171,10 @@
               tableUOMConversion,
               previousTableUOM,
               pickingPlanUOM,
-              itemData.based_uom
+              itemData.based_uom,
             );
             console.log(
-              `${field}: ${originalValue} -> ${updatedRecord[field]}`
+              `${field}: ${originalValue} -> ${updatedRecord[field]}`,
             );
           }
         });
@@ -168,7 +190,7 @@
       });
 
       console.log(
-        `Converted table_item_balance back from ${previousTableUOM} to ${pickingPlanUOM}`
+        `Converted table_item_balance back from ${previousTableUOM} to ${pickingPlanUOM}`,
       );
     } else {
       console.log("Table is already in correct UOM, no conversion needed");

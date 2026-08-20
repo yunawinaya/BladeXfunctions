@@ -3,8 +3,10 @@
     console.log("Triggering storage location");
 
     const storageLocationId = arguments[0]?.value;
-    const previousStorageLocationId = this.models["previous_storage_location_id"];
-    const currentTableData = this.getValues()?.to_item_balance?.table_item_balance || [];
+    const previousStorageLocationId =
+      this.models["previous_storage_location_id"];
+    const currentTableData =
+      this.getValues()?.to_item_balance?.table_item_balance || [];
     let storageLocationData = this.models["default_storage_location"];
 
     console.log("storageLocationId", storageLocationId);
@@ -27,7 +29,7 @@
     const fullBalanceData = this.models["full_balance_data"];
 
     const hasAllocatedItems = currentTableData.some(
-      (data) => (data.to_quantity || 0) > 0
+      (data) => (data.to_quantity || 0) > 0,
     );
 
     if (hasAllocatedItems && previousStorageLocationId) {
@@ -39,7 +41,7 @@
             confirmButtonText: "OK",
             cancelButtonText: "Cancel",
             type: "warning",
-          }
+          },
         );
 
         fullBalanceData.forEach((data) => {
@@ -61,7 +63,7 @@
 
     const binLocationList =
       storageLocationData.table_bin_location?.map(
-        (bin) => bin.bin_location_id
+        (bin) => bin.bin_location_id,
       ) || [];
 
     const filteredBalanceData =
@@ -82,7 +84,7 @@
       console.log("No storage location data found");
       if (filteredBalanceData.length === 0) {
         this.$message.error(
-          "Inventory is not available in this storage location"
+          "Inventory is not available in this storage location",
         );
       }
       await this.setData({

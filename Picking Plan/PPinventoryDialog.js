@@ -2,7 +2,11 @@
   try {
     const data = this.getValues();
     const lineItemData = arguments[0]?.row;
-    const rowIndex = arguments[0]?.rowIndex;
+    // What the dialog is opened against. A subform row is identified by its
+    // fm_key, not by where it sits -- an item under an item bundle is not a row
+    // of table_to at all, so its position there means nothing. Position is kept
+    // only for a row the platform has not keyed yet.
+    const rowKey = arguments[0]?.row?.fm_key ?? arguments[0]?.rowIndex;
 
     if (!lineItemData) {
       console.error("Missing line item data");
@@ -709,7 +713,7 @@
     this.setData({
       [`to_item_balance.material_code`]: itemData.material_code,
       [`to_item_balance.material_name`]: itemData.material_name,
-      [`to_item_balance.row_index`]: rowIndex,
+      [`to_item_balance.row_index`]: rowKey,
       [`to_item_balance.material_uom`]: altUOM,
     });
 

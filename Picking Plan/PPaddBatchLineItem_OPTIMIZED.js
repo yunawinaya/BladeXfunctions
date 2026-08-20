@@ -41,6 +41,159 @@
 // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
 const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
 
+// ===========================================================================
+// ITEM BUNDLES
+// ---------------------------------------------------------------------------
+// An item bundle is ONE line on the sales order with the bundle's items beneath
+// it, and it is planned as a whole. table_to keeps that shape: the bundle is a
+// row with its items under `children`.
+//
+// The bundle row is not an item -- it has no material, holds no stock and
+// nothing is picked against it directly. Its items are the rows stock is
+// allocated for, so every walk below distinguishes the two.
+//
+// Note table_so's field names are inverted: item_name holds the item's id.
+// ===========================================================================
+
+// A picked entry that is a bundle rather than an item.
+const isBundleParentItem = (item) =>
+  Boolean(item.item_bundle_id) && !item.itemId;
+
+// A bundle's items reach us in one of three shapes, and all mean the same
+// thing: nested under `children`, flat rows pointing back through parent_id /
+// parent_fm_key, or -- on rows that lost their link -- a bundle row followed by
+// its item rows. Returns childrenOf (a parent's index -> its items' indexes)
+// and claimed (every index now owned by a parent, which the caller skips so a
+// bundle's items are not planned twice).
+const groupBundleRows = (rows, getItemId) => {
+  const childrenOf = new Map();
+  const claimed = new Set();
+
+  const isBundleRow = (row) => !!row.item_bundle_id && !getItemId(row);
+  const isBundleItem = (row) => !!row.item_bundle_id && !!getItemId(row);
+
+  let openParent = null;
+
+  rows.forEach((row, index) => {
+    if (isBundleRow(row)) {
+      // Already a tree: nothing to reattach.
+      if (Array.isArray(row.children) && row.children.length > 0) {
+        openParent = null;
+        return;
+      }
+
+      childrenOf.set(index, []);
+      openParent = index;
+      return;
+    }
+
+    if (!isBundleItem(row)) {
+      openParent = null; // a plain line closes the bundle above it
+      return;
+    }
+
+    let parentIndex = null;
+
+    rows.forEach((candidate, candidateIndex) => {
+      if (parentIndex !== null || !childrenOf.has(candidateIndex)) return;
+
+      const byId =
+        row.parent_id != null &&
+        candidate.id != null &&
+        String(row.parent_id) === String(candidate.id);
+      const byKey =
+        row.parent_fm_key != null &&
+        candidate.fm_key != null &&
+        String(row.parent_fm_key) === String(candidate.fm_key);
+
+      if (byId || byKey) parentIndex = candidateIndex;
+    });
+
+    // No link on the row: it belongs to the bundle it follows, as long as that
+    // is the same bundle.
+    if (
+      parentIndex === null &&
+      openParent !== null &&
+      String(rows[openParent].item_bundle_id) === String(row.item_bundle_id)
+    ) {
+      parentIndex = openParent;
+    }
+
+    if (parentIndex === null) return; // orphan: planned as a line of its own
+
+    childrenOf.get(parentIndex).push(index);
+    claimed.add(index);
+  });
+
+  console.log("item bundle grouping", {
+    rows: rows.length,
+    bundles: childrenOf.size,
+    claimed: claimed.size,
+  });
+
+  return { childrenOf, claimed };
+};
+
+// The picked entries in the order they will sit in table_to: a bundle followed
+// by its items. Allocation walks the rows by one index, so this is what lines
+// the entries up with the rows they become.
+const flattenAllItems = (items) =>
+  (items || []).flatMap((item) => [
+    item,
+    ...(Array.isArray(item.bundleChildren) ? item.bundleChildren : []),
+  ]);
+
+// The same walk over rows that already exist on the document.
+const flattenTreeRows = (rows) =>
+  (rows || []).flatMap((row) => [
+    row,
+    ...(Array.isArray(row.children) ? row.children : []),
+  ]);
+
+// Allocation addresses a row by a single index, but a bundle's items are rows
+// of the tree rather than of table_to. It therefore works on this flat view and
+// the result is folded back into the tree when it is done.
+const flattenForAllocation = (rows) => {
+  const flat = [];
+  const refs = [];
+
+  (rows || []).forEach((row, parent) => {
+    flat.push(row);
+    refs.push({ parent, child: null });
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    children.forEach((child, childIndex) => {
+      flat.push(child);
+      refs.push({ parent, child: childIndex });
+    });
+  });
+
+  return { flat, refs };
+};
+
+const rebuildTree = (rows, flat, refs) => {
+  const out = (rows || []).map((row) => ({ ...row }));
+
+  refs.forEach((ref, index) => {
+    // The parent's own `children` is stale by now -- the items are written
+    // through their own refs, which come after this one.
+    const { children: staleChildren, ...rest } = flat[index] || {};
+
+    if (ref.child === null) {
+      out[ref.parent] = { ...out[ref.parent], ...rest };
+      return;
+    }
+
+    const parent = out[ref.parent] || {};
+    const children = Array.isArray(parent.children) ? [...parent.children] : [];
+    children[ref.child] = { ...children[ref.child], ...flat[index] };
+    out[ref.parent] = { ...parent, children };
+  });
+
+  return out;
+};
+
 // ============================================================================
 // BATCH QUERY HELPER FUNCTIONS
 // ============================================================================
@@ -377,6 +530,14 @@ const checkInventoryWithDuplicates = async (
   const materialGroups = {};
 
   allItems.forEach((item, index) => {
+    // A bundle row holds no stock and nothing is picked against it, so it takes
+    // no part in allocation. Its items are entries of this list in their own
+    // right and are allocated normally. It still occupies its index, so the
+    // rows below stay lined up.
+    if (isBundleParentItem(item)) {
+      return;
+    }
+
     const materialId = item.itemId;
     if (!materialGroups[materialId]) {
       materialGroups[materialId] = [];
@@ -466,6 +627,24 @@ const checkInventoryWithDuplicates = async (
   // STEP 3: Process each material and build table data in memory
   // ========================================================================
   const tableToArray = this.getValue("table_to") || [];
+  const { flat: flatRows, refs: rowRefs } = flattenForAllocation(tableToArray);
+
+  // How to address a flat row. A subform row is identified by its fm_key, not
+  // by where it sits: the platform resolves `table_to.<fm_key>.<field>` to that
+  // row, which is also the only way to reach an item under a bundle without
+  // threading through its parent's position. Position is kept as a fallback for
+  // a row that has not been given a key yet.
+  const pathOf = (index) => {
+    const row = flatRows[index];
+    if (row && row.fm_key) return `table_to.${row.fm_key}`;
+
+    const ref = rowRefs[index];
+    if (!ref) return `table_to.${index}`;
+    return ref.child === null
+      ? `table_to.${ref.parent}`
+      : `table_to.${ref.parent}.children.${ref.child}`;
+  };
+
   const fieldsToDisable = [];
   const fieldsToEnable = [];
 
@@ -481,8 +660,8 @@ const checkInventoryWithDuplicates = async (
         const deliveredQty = item.deliveredQtyFromSource;
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
-        tableToArray[index] = {
-          ...tableToArray[index],
+        flatRows[index] = {
+          ...flatRows[index],
           material_id: "",
           material_name: item.itemName || "",
           to_material_desc: item.sourceItem.so_desc || "",
@@ -501,8 +680,8 @@ const checkInventoryWithDuplicates = async (
           to_qty: undeliveredQty,
         };
 
-        fieldsToDisable.push(`table_to.${index}.to_delivery_qty`);
-        fieldsToEnable.push(`table_to.${index}.to_qty`);
+        fieldsToDisable.push(`${pathOf(index)}.to_delivery_qty`);
+        fieldsToEnable.push(`${pathOf(index)}.to_qty`);
       });
       continue;
     }
@@ -523,8 +702,8 @@ const checkInventoryWithDuplicates = async (
         const deliveredQty = item.deliveredQtyFromSource;
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
 
-        tableToArray[index] = {
-          ...tableToArray[index],
+        flatRows[index] = {
+          ...flatRows[index],
           material_id: materialId,
           material_name: item.itemName,
           to_material_desc: item.sourceItem.so_desc || "",
@@ -546,12 +725,12 @@ const checkInventoryWithDuplicates = async (
 
         if (undeliveredQty <= 0) {
           fieldsToDisable.push(
-            `table_to.${index}.to_qty`,
-            `table_to.${index}.to_delivery_qty`,
+            `${pathOf(index)}.to_qty`,
+            `${pathOf(index)}.to_delivery_qty`,
           );
         } else {
-          fieldsToDisable.push(`table_to.${index}.to_delivery_qty`);
-          fieldsToEnable.push(`table_to.${index}.to_qty`);
+          fieldsToDisable.push(`${pathOf(index)}.to_delivery_qty`);
+          fieldsToEnable.push(`${pathOf(index)}.to_qty`);
         }
       });
       continue;
@@ -628,8 +807,8 @@ const checkInventoryWithDuplicates = async (
     // Handle UI controls based on balance data length
     if (balanceData.length === 1) {
       items.forEach((item) => {
-        fieldsToDisable.push(`table_to.${item.originalIndex}.to_delivery_qty`);
-        fieldsToEnable.push(`table_to.${item.originalIndex}.to_qty`);
+        fieldsToDisable.push(`${pathOf(item.originalIndex)}.to_delivery_qty`);
+        fieldsToEnable.push(`${pathOf(item.originalIndex)}.to_qty`);
       });
     }
 
@@ -654,8 +833,8 @@ const checkInventoryWithDuplicates = async (
 
       // Set basic item data
       const index = item.originalIndex;
-      tableToArray[index] = {
-        ...tableToArray[index],
+      flatRows[index] = {
+        ...flatRows[index],
         material_id: materialId,
         material_name: item.itemName,
         to_material_desc: item.sourceItem.so_desc || "",
@@ -731,8 +910,8 @@ const checkInventoryWithDuplicates = async (
           });
 
           // Update table array with base UOM
-          tableToArray[index] = {
-            ...tableToArray[index],
+          flatRows[index] = {
+            ...flatRows[index],
             to_order_quantity: orderedQtyBase,
             to_delivered_qty: deliveredQtyBase,
             to_initial_delivered_qty: deliveredQtyBase,
@@ -741,7 +920,7 @@ const checkInventoryWithDuplicates = async (
           };
 
           // Insufficient stock - don't fill to_qty
-          tableToArray[index].to_qty = 0;
+          flatRows[index].to_qty = 0;
         });
       } else {
         // Non-serialized items
@@ -796,7 +975,7 @@ const checkInventoryWithDuplicates = async (
           });
 
           // Insufficient stock - don't fill to_qty
-          tableToArray[index].to_qty = 0;
+          flatRows[index].to_qty = 0;
         });
       }
 
@@ -822,10 +1001,10 @@ const checkInventoryWithDuplicates = async (
 
         if (suggestedQty <= 0) {
           fieldsToDisable.push(
-            `table_to.${index}.to_qty`,
-            `table_to.${index}.to_delivery_qty`,
+            `${pathOf(index)}.to_qty`,
+            `${pathOf(index)}.to_delivery_qty`,
           );
-          tableToArray[index].to_qty = 0;
+          flatRows[index].to_qty = 0;
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
@@ -839,8 +1018,8 @@ const checkInventoryWithDuplicates = async (
               convertToBaseUOM(suggestedQty, item.altUOM, itemData),
             );
 
-            tableToArray[index] = {
-              ...tableToArray[index],
+            flatRows[index] = {
+              ...flatRows[index],
               to_order_quantity: orderedQtyBase,
               to_delivered_qty: deliveredQtyBase,
               to_initial_delivered_qty: deliveredQtyBase,
@@ -850,23 +1029,97 @@ const checkInventoryWithDuplicates = async (
 
             // Sufficient stock - fill to_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
-              tableToArray[index].to_qty =
+              flatRows[index].to_qty =
                 balanceData.length === 1 ? suggestedQtyBase : 0;
             } else {
-              tableToArray[index].to_qty = suggestedQtyBase;
+              flatRows[index].to_qty = suggestedQtyBase;
             }
           } else {
             // Non-serialized - fill to_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
-              tableToArray[index].to_qty =
+              flatRows[index].to_qty =
                 balanceData.length === 1 ? suggestedQty : 0;
             } else {
-              tableToArray[index].to_qty = suggestedQty;
+              flatRows[index].to_qty = suggestedQty;
             }
           }
         }
       });
     }
+  }
+
+  // An item bundle is planned as a whole. The bundle row's quantity is the
+  // number of bundles wanted, and every item under it follows from that by
+  // ratio (onChange_delivered_qty) -- so the bundle row is the one that takes a
+  // quantity, and its items are driven rather than driving. This is the same
+  // lock the mounted handler puts on bundles that were already on the plan;
+  // rows added here never pass through it.
+  //
+  // A bundle row holds no material, so it never reaches the allocation above
+  // and would come out of it with nothing planned at all. It is defaulted here
+  // to what is still outstanding on the line -- the order quantity less what is
+  // already delivered or planned, which is what every ordinary line is
+  // defaulted to a few lines up.
+  //
+  // That allocation also enabled to_qty on every row it costed, and a bundle's
+  // items are costed like any other line, so those are taken back here. Rows
+  // are addressed by pathOf, which keys off fm_key.
+  const bundleParents = new Set();
+
+  rowRefs.forEach((ref, index) => {
+    if (ref.child !== null) return;
+
+    const row = flatRows[index] || {};
+
+    if (row.item_bundle_id && !row.material_id) {
+      bundleParents.add(ref.parent);
+    }
+  });
+
+  if (bundleParents.size > 0) {
+    const drivenPaths = new Set();
+    const bundlePaths = [];
+
+    rowRefs.forEach((ref, index) => {
+      if (!bundleParents.has(ref.parent)) return;
+
+      const path = `${pathOf(index)}.to_qty`;
+
+      if (ref.child !== null) {
+        drivenPaths.add(path);
+        return;
+      }
+
+      const row = flatRows[index] || {};
+      // to_delivered_qty is what the source already has delivered or planned,
+      // so this is the number of bundles still to plan for.
+      const outstanding = roundQty(
+        (parseFloat(row.to_order_quantity) || 0) -
+          (parseFloat(row.to_delivered_qty) || 0),
+      );
+
+      flatRows[index] = { ...row, to_qty: outstanding };
+      bundlePaths.push(path);
+    });
+
+    // Enabling runs after disabling below, so a driven row left in the enable
+    // list would simply undo its own lock.
+    for (let i = fieldsToEnable.length - 1; i >= 0; i--) {
+      if (drivenPaths.has(fieldsToEnable[i])) {
+        fieldsToEnable.splice(i, 1);
+      }
+    }
+
+    drivenPaths.forEach((path) => fieldsToDisable.push(path));
+    bundlePaths.forEach((path) => fieldsToEnable.push(path));
+
+    console.log(
+      "item bundle rows",
+      bundlePaths.length,
+      "planned by the bundle,",
+      drivenPaths.size,
+      "items driven by it",
+    );
   }
 
   // ========================================================================
@@ -875,7 +1128,9 @@ const checkInventoryWithDuplicates = async (
   console.log(
     "🚀 OPTIMIZATION: Applying all updates in single setData call...",
   );
-  await this.setData({ table_to: tableToArray });
+  await this.setData({
+    table_to: rebuildTree(tableToArray, flatRows, rowRefs),
+  });
 
   // Apply insufficient dialog data if any
   if (insufficientDialogData.length > 0) {
@@ -895,7 +1150,7 @@ const checkInventoryWithDuplicates = async (
     this.disabled(fieldsToEnable, false);
   }
 
-  console.log(`✅ All ${tableToArray.length} rows updated in single operation`);
+  console.log(`✅ All ${flatRows.length} rows updated in single operation`);
 
   console.log(
     `✅ OPTIMIZATION COMPLETE: Total time ${Date.now() - overallStart}ms`,
@@ -922,9 +1177,10 @@ if (!window.globalAllocationTracker) {
 // ============================================================================
 
 const createTableToWithBaseUOM = async (allItems) => {
-  const processedItems = [];
-
-  for (const item of allItems) {
+  // One row from one picked entry. A bundle row has no material -- itemId is
+  // empty on it -- so no item is fetched for it and it takes the plain branch,
+  // leaving its stock fields empty, which is what a bundle row should carry.
+  const buildRow = async (item) => {
     let itemData = null;
     if (item.itemId) {
       try {
@@ -946,7 +1202,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         convertToBaseUOM(item.deliveredQtyFromSource, item.altUOM, itemData),
       );
 
-      processedItems.push({
+      return {
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         to_material_desc: item.itemDesc || "",
@@ -966,9 +1222,10 @@ const createTableToWithBaseUOM = async (allItems) => {
         item_category_id: item.item_category_id,
         base_uom_id: itemData.based_uom,
         customer_id: item.customer_id,
-      });
+        item_bundle_id: item.item_bundle_id || "",
+      };
     } else {
-      processedItems.push({
+      return {
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         to_material_desc: item.itemDesc || "",
@@ -989,8 +1246,31 @@ const createTableToWithBaseUOM = async (allItems) => {
         so_line_item_id: item.so_line_item_id,
         item_category_id: item.item_category_id,
         customer_id: item.customer_id,
-      });
+        item_bundle_id: item.item_bundle_id || "",
+      };
     }
+  };
+
+  const processedItems = [];
+
+  for (const item of allItems) {
+    const row = await buildRow(item);
+
+    // A bundle keeps its items under it, so the plan carries the same shape the
+    // sales order does.
+    const bundleChildren = Array.isArray(item.bundleChildren)
+      ? item.bundleChildren
+      : [];
+
+    if (bundleChildren.length > 0) {
+      row.children = [];
+
+      for (const child of bundleChildren) {
+        row.children.push(await buildRow(child));
+      }
+    }
+
+    processedItems.push(row);
   }
 
   return processedItems;
@@ -1101,62 +1381,125 @@ const createTableToWithBaseUOM = async (allItems) => {
   this.closeDialog("dialog_select_item");
   this.showLoading();
 
+  // One sales-order line as a picked entry. item_name holds the item's id on
+  // table_so and item_id its name -- the fields are inverted there.
+  const soLineToItem = (soItem, so) => ({
+    itemId: soItem.item_name,
+    itemName: soItem.item_id,
+    itemDesc: soItem.so_desc,
+    orderedQty: parseFloat(soItem.so_quantity || 0),
+    altUOM: soItem.so_item_uom || "",
+    sourceItem: soItem,
+    deliveredQtyFromSource: roundQty(
+      parseFloat(soItem.delivered_qty || 0) +
+        parseFloat(soItem.planned_qty || 0),
+    ),
+    original_so_id: so.sales_order_id,
+    so_no: so.sales_order_number,
+    so_line_item_id: soItem.id,
+    item_category_id: soItem.item_category_id,
+    customer_id: so.customer_id,
+    item_bundle_id: soItem.item_bundle_id || "",
+  });
+
   switch (referenceType) {
     case "Document":
       for (const so of currentItemArray) {
-        for (const soItem of so.table_so) {
-          allItems.push({
-            itemId: soItem.item_name,
-            itemName: soItem.item_id,
-            itemDesc: soItem.so_desc,
-            orderedQty: parseFloat(soItem.so_quantity || 0),
-            altUOM: soItem.so_item_uom || "",
-            sourceItem: soItem,
-            deliveredQtyFromSource: roundQty(
-              parseFloat(soItem.delivered_qty || 0) +
-                parseFloat(soItem.planned_qty || 0),
-            ),
-            original_so_id: so.sales_order_id,
-            so_no: so.sales_order_number,
-            so_line_item_id: soItem.id,
-            item_category_id: soItem.item_category_id,
-            customer_id: so.customer_id,
-          });
+        const soLines = so.table_so || [];
+
+        // A bundle's items are planned under their bundle line rather than as
+        // lines of their own, in whichever shape the order stored them.
+        const { childrenOf, claimed } = groupBundleRows(
+          soLines,
+          (row) => row.item_name,
+        );
+
+        for (const [index, soItem] of soLines.entries()) {
+          // Already carried by its bundle row; not a line of its own.
+          if (claimed.has(index)) continue;
+
+          const entry = soLineToItem(soItem, so);
+
+          const nested = Array.isArray(soItem.children) ? soItem.children : [];
+          const regrouped = (childrenOf.get(index) || []).map(
+            (childIndex) => soLines[childIndex],
+          );
+          const bundleChildren = nested.length > 0 ? nested : regrouped;
+
+          if (bundleChildren.length > 0) {
+            entry.bundleChildren = bundleChildren.map((child) =>
+              soLineToItem(child, so),
+            );
+          }
+
+          allItems.push(entry);
         }
       }
       break;
 
-    case "Item":
+    case "Item": {
+      // A picked row is already mapped by rowClick_addSOItem, and a bundle
+      // keeps its items under `children` there. A bundle row has no item, so
+      // every read through `item` is guarded.
+      const pickedToItem = (picked) => ({
+        itemId: picked.item?.id || "",
+        itemName: picked.item?.material_name || picked.item_bundle_code || "",
+        itemDesc: picked.so_desc,
+        orderedQty: parseFloat(picked.so_quantity || 0),
+        altUOM: picked.so_item_uom || "",
+        sourceItem: picked,
+        deliveredQtyFromSource: roundQty(
+          parseFloat(picked.delivered_qty || 0) +
+            parseFloat(picked.planned_qty || 0),
+        ),
+        original_so_id: picked.sales_order.id,
+        so_no: picked.sales_order.so_no,
+        so_line_item_id: picked.sales_order_line_id,
+        item_category_id: picked.item?.item_category,
+        customer_id: picked.customer_id,
+        item_bundle_id: picked.item_bundle_id || "",
+      });
+
       for (const soItem of currentItemArray) {
-        allItems.push({
-          itemId: soItem.item.id,
-          itemName: soItem.item.material_name,
-          itemDesc: soItem.so_desc,
-          orderedQty: parseFloat(soItem.so_quantity || 0),
-          altUOM: soItem.so_item_uom || "",
-          sourceItem: soItem,
-          deliveredQtyFromSource: roundQty(
-            parseFloat(soItem.delivered_qty || 0) +
-              parseFloat(soItem.planned_qty || 0),
-          ),
-          original_so_id: soItem.sales_order.id,
-          so_no: soItem.sales_order.so_no,
-          so_line_item_id: soItem.sales_order_line_id,
-          item_category_id: soItem.item.item_category,
-          customer_id: soItem.customer_id,
-        });
+        const entry = pickedToItem(soItem);
+
+        const bundleChildren = Array.isArray(soItem.children)
+          ? soItem.children
+          : [];
+
+        if (bundleChildren.length > 0) {
+          entry.bundleChildren = bundleChildren.map(pickedToItem);
+        }
+
+        allItems.push(entry);
       }
       break;
+    }
   }
 
   console.log("allItems", allItems);
-  allItems = allItems.filter(
-    (to) =>
-      to.deliveredQtyFromSource !== to.orderedQty &&
-      !existingTO.find(
-        (toItem) => toItem.so_line_item_id === to.so_line_item_id,
-      ),
-  );
+  // A line already planned in full is not worth adding again. A bundle's items
+  // are judged the same way, but only through their bundle -- they are never
+  // rows of this list.
+  const isOutstanding = (to) => to.deliveredQtyFromSource !== to.orderedQty;
+
+  allItems = allItems
+    .filter(
+      (to) =>
+        isOutstanding(to) &&
+        !existingTO.find(
+          (toItem) => toItem.so_line_item_id === to.so_line_item_id,
+        ),
+    )
+    .map((to) => {
+      if (!Array.isArray(to.bundleChildren)) return to;
+
+      const outstanding = to.bundleChildren.filter(isOutstanding);
+
+      return outstanding.length > 0
+        ? { ...to, bundleChildren: outstanding }
+        : { ...to, bundleChildren: undefined };
+    });
 
   console.log("allItems after filter", allItems);
 
@@ -1164,15 +1507,18 @@ const createTableToWithBaseUOM = async (allItems) => {
 
   const latestTableTO = [...existingTO, ...newTableTo];
 
-  const newTableInsufficient = allItems.map((item) => ({
-    material_id: item.itemId,
-    material_name: item.itemName,
-    material_uom: item.altUOM,
-    order_quantity: item.orderedQty,
-    available_qty: "",
-    shortfall_qty: "",
-    fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-  }));
+  // A bundle row has no material to be short of; its items are listed instead.
+  const newTableInsufficient = flattenAllItems(allItems)
+    .filter((item) => !isBundleParentItem(item))
+    .map((item) => ({
+      material_id: item.itemId,
+      material_name: item.itemName,
+      material_uom: item.altUOM,
+      order_quantity: item.orderedQty,
+      available_qty: "",
+      shortfall_qty: "",
+      fm_key: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+    }));
 
   soId = [...new Set(latestTableTO.map((gr) => gr.line_so_id))];
   salesOrderNumber = [...new Set(latestTableTO.map((gr) => gr.line_so_no))];
@@ -1201,10 +1547,12 @@ const createTableToWithBaseUOM = async (allItems) => {
         );
       });
 
+      // Allocation walks the rows flat, and a bundle's items are rows in their
+      // own right, so both the entries and the offset are counted that way.
       const insufficientItems = await checkInventoryWithDuplicates(
-        newItems,
+        flattenAllItems(newItems),
         plantId,
-        existingTO.length,
+        flattenTreeRows(existingTO).length,
       );
 
       if (insufficientItems.length > 0) {
