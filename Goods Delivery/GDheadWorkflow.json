@@ -917,7 +917,7 @@
         "name": "Zero Quantity Check",
         "script": {
           "type": "javascript",
-          "code": "const allData = {{workflowparams:allData}}\n\n\n// A bundle is ONE row of table_gd with the bundle's items under `children`. The\n// bundle row carries no material of its own and nothing is delivered against it;\n// its items are ordinary delivery lines that simply are not rows of table_gd.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\nconst zeroQtyArray = [];\nfor (const [index, gd] of allData.table_gd.entries()) {\n  if (isBundleParentRow(gd)) {\n    // The bundle row's own quantity is the number of bundles; what would be\n    // deleted is its items, so they are what is listed. A bundle with nothing\n    // left in it goes across as the bundle.\n    const kids = childrenOf(gd);\n    const zeroKids = [];\n\n    kids.forEach((child, childIndex) => {\n      if (child.gd_qty <= 0) zeroKids.push(`#${index + 1}/${childIndex + 1}`);\n    });\n\n    if (kids.length === 0 || zeroKids.length === kids.length) {\n      zeroQtyArray.push(`#${index + 1}`);\n    } else {\n      zeroQtyArray.push(...zeroKids);\n    }\n\n    continue;\n  }\n\n  if (gd.gd_qty <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\nlet hasZero = 0\nlet message = null;\nif (zeroQtyArray.length > 0) {\n  message = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\n    \", \",\n  )} ha${\n    zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n  } a zero deliver quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 deliver quantity. \\nWould you like to proceed?`;\n  hasZero = 1\n}\n\nlet pickingStatus = {{workflowparams:allData.picking_status}} || 'Not Required'\n\nreturn {\n  message,\n  hasZero,\n  pickingStatus\n};\n"
+          "code": "const allData = {{workflowparams:allData}}\n\n\n// A bundle is ONE row of table_gd with the bundle's items under `children`. The\n// bundle row carries no material of its own and nothing is delivered against it;\n// its items are ordinary delivery lines that simply are not rows of table_gd.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\nconst zeroQtyArray = [];\nfor (const [index, gd] of allData.table_gd.entries()) {\n  if (isBundleParentRow(gd)) {\n    // The bundle row's own quantity is the number of bundles; what would be\n    // deleted is its items, so they are what is listed. A bundle with nothing\n    // left in it goes across as the bundle.\n    const kids = childrenOf(gd);\n    const zeroKids = [];\n\n    kids.forEach((child, childIndex) => {\n      if (child.gd_qty <= 0) zeroKids.push(`#${index + 1}/${childIndex + 1}`);\n    });\n\n    if (kids.length === 0 || zeroKids.length === kids.length) {\n      zeroQtyArray.push(`#${index + 1}`);\n    } else {\n      zeroQtyArray.push(...zeroKids);\n    }\n\n    continue;\n  }\n\n  if (gd.gd_qty <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\nlet hasZero = 0\nlet message = null;\nif (zeroQtyArray.length > 0) {\n  message = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\n    \", \",\n  )} ha${\n    zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n  } a zero deliver quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 deliver quantity. \\nWould you like to proceed?`;\n  hasZero = 1\n}\n\nlet pickingStatus = {{workflowparams:allData.picking_status}} || 'Not Required'\n\n// Every material on the delivery, bundle items included. The Get Items search\n// used to filter on `allData.table_gd.material_id`, and that projection only\n// reaches top-level rows -- an item under a bundle was never fetched, so the\n// quantity check found no Item for it and stopped the save with \"Material not\n// found\". The same fetch also supplies the stock_control / show_delivery flags\n// the descriptive-line tests rely on.\nconst materialIds = [];\nfor (const row of allData.table_gd || []) {\n  for (const line of [row, ...(Array.isArray(row.children) ? row.children : [])]) {\n    const id = line && line.material_id;\n    if (id && materialIds.indexOf(String(id)) === -1) {\n      materialIds.push(String(id));\n    }\n  }\n}\n\n// An empty `in` list is ambiguous; \"0\" matches nothing, as the GR gate does.\nif (materialIds.length === 0) materialIds.push(\"0\");\n\nreturn {\n  message,\n  hasZero,\n  pickingStatus,\n  materialIds\n};\n"
         },
         "response_json": [
           {
@@ -943,6 +943,14 @@
             "title": "pickingStatus",
             "description": "",
             "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "mtlids01",
+            "name": "materialIds",
+            "title": "materialIds",
+            "description": "",
+            "bsonType": "array",
             "isExpand": false
           }
         ]
@@ -1227,7 +1235,7 @@
                             "prop": "id",
                             "operator": "in",
                             "valueType": "field",
-                            "value": "{{workflowparams:allData.table_gd.material_id}}",
+                            "value": "{{node:code_node_shTWK0Nm.data.materialIds}}",
                             "type": "leaf",
                             "level": 2,
                             "propLabel": "id",
