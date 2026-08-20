@@ -1,4 +1,48 @@
 {
+  "request_json": [
+    {
+      "key": "wf_req_action",
+      "name": "action",
+      "title": "Action",
+      "description": "cancel | delete",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_id",
+      "name": "po_id",
+      "title": "PO ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_no",
+      "name": "po_no",
+      "title": "PO Number",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_plant_id",
+      "name": "po_plant_id",
+      "title": "PO Plant ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_cancel_created_gr",
+      "name": "cancelCreatedGR",
+      "title": "Cancel Created GR",
+      "description": "1 = user confirmed cascading the Created GR cancellation",
+      "bsonType": "number",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -37,6 +81,7 @@
       },
       "blocks": [
         {
+          "id": "p2QyIx-v8A7dD8gO48VmH",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -127,6 +172,7 @@
           ]
         },
         {
+          "id": "bTJAhT1O-1flRlfmUMiua",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -291,13 +337,63 @@
           "code": "const grList = {{node:search_gr.data.data}} || [];\nconst piList = {{node:search_pi.data.data}} || [];\nconst cancelCreatedGR = {{workflowparams:cancelCreatedGR}};\n\nconst createdGr = grList.filter((g) => g.gr_status === \"Created\");\nconst processedGr = grList.filter((g) => g.gr_status === \"Received\" || g.gr_status === \"Completed\");\nconst draftGr = grList.filter((g) => g.gr_status === \"Draft\");\nconst invoicedPi = piList.filter((p) => p.pi_status !== \"Draft\" && p.pi_status !== \"Cancelled\");\nconst draftPi = piList.filter((p) => p.pi_status === \"Draft\");\n\nlet code = \"200\";\nlet message = \"\";\nif (processedGr.length > 0) {\n  // Hard block: stock already received.\n  code = \"400\";\n  message = \"Has received/completed goods receiving. Cannot cancel.\";\n} else if (invoicedPi.length > 0) {\n  code = \"400\";\n  message = \"Purchase order is already invoiced. Cannot cancel.\";\n} else if (createdGr.length > 0 && cancelCreatedGR != 1) {\n  // Soft block: caller must confirm cascading the GR cancellation.\n  code = \"409\";\n  message = \"Has created goods receiving.\";\n}\n\nconst proceed = code === \"200\";\n\nreturn {\n  code: code,\n  message: message,\n  blocked: proceed ? 0 : 1,\n  grNos: createdGr.map((g) => g.gr_no).join(\", \"),\n  createdGrList: proceed ? createdGr.map((g) => ({ gr_id: g.id, gr_no: g.gr_no, po_id: g.po_id })) : [],\n  deleteGR: (draftGr.length > 0 && proceed) ? 1 : 0,\n  deletePI: (draftPi.length > 0 && proceed) ? 1 : 0,\n  draftGrIds: draftGr.map((g) => g.id),\n  draftPiIds: draftPi.map((p) => p.id)\n};"
         },
         "response_json": [
-          { "key": "wf_code", "name": "code", "title": "code", "description": "", "bsonType": "string", "isExpand": false },
-          { "key": "wf_message", "name": "message", "title": "message", "description": "", "bsonType": "string", "isExpand": false },
-          { "key": "wf_blocked", "name": "blocked", "title": "blocked", "description": "", "bsonType": "number", "isExpand": false },
-          { "key": "wf_grnos", "name": "grNos", "title": "grNos", "description": "", "bsonType": "string", "isExpand": false },
-          { "key": "wf_createdgrlist", "name": "createdGrList", "title": "createdGrList", "description": "", "bsonType": "any", "isExpand": false, "children": [] },
-          { "key": "wf_deletegr", "name": "deleteGR", "title": "deleteGR", "description": "", "bsonType": "number", "isExpand": false },
-          { "key": "wf_deletepi", "name": "deletePI", "title": "deletePI", "description": "", "bsonType": "number", "isExpand": false },
+          {
+            "key": "wf_code",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "wf_message",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "wf_blocked",
+            "name": "blocked",
+            "title": "blocked",
+            "description": "",
+            "bsonType": "number",
+            "isExpand": false
+          },
+          {
+            "key": "wf_grnos",
+            "name": "grNos",
+            "title": "grNos",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "wf_createdgrlist",
+            "name": "createdGrList",
+            "title": "createdGrList",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "wf_deletegr",
+            "name": "deleteGR",
+            "title": "deleteGR",
+            "description": "",
+            "bsonType": "number",
+            "isExpand": false
+          },
+          {
+            "key": "wf_deletepi",
+            "name": "deletePI",
+            "title": "deletePI",
+            "description": "",
+            "bsonType": "number",
+            "isExpand": false
+          },
           {
             "key": "wf_draftgrids",
             "name": "draftGrIds",
@@ -306,7 +402,15 @@
             "bsonType": "array",
             "isExpand": true,
             "children": [
-              { "key": "wf_draftgrids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+              {
+                "key": "wf_draftgrids_item",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
             ]
           },
           {
@@ -317,7 +421,15 @@
             "bsonType": "array",
             "isExpand": true,
             "children": [
-              { "key": "wf_draftpiids_item", "name": "items", "title": "", "description": "", "bsonType": "string", "isExpand": false, "isArrayItem": true }
+              {
+                "key": "wf_draftpiids_item",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
             ]
           }
         ]
@@ -355,6 +467,7 @@
       },
       "blocks": [
         {
+          "id": "Fs1JYwf9Xlwq4XKpFNAIl",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -406,6 +519,7 @@
           ]
         },
         {
+          "id": "kWDlL8B7X9JfuogI8AkwH",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -572,6 +686,7 @@
       },
       "blocks": [
         {
+          "id": "44IzaEkYBHhUpa9JH1I3y",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -626,6 +741,7 @@
           ]
         },
         {
+          "id": "CdmsgifQSMPUdVurpfIyF",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -663,6 +779,7 @@
       },
       "blocks": [
         {
+          "id": "DfDRUvAWWnyHe11cNrHCa",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -717,6 +834,7 @@
           ]
         },
         {
+          "id": "zc_EGNzx6DPKT8Zz3MINH",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -814,7 +932,14 @@
           "code": "const poNo = {{workflowparams:po_no}} || \"\";\nreturn { poNo: poNo.endsWith(\"-Cancelled\") ? poNo : poNo + \"-Cancelled\" };"
         },
         "response_json": [
-          { "key": "wf_pono", "name": "poNo", "title": "poNo", "description": "", "bsonType": "string", "isExpand": false }
+          {
+            "key": "wf_pono",
+            "name": "poNo",
+            "title": "poNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
         ]
       },
       "blocks": []
@@ -966,49 +1091,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "wf_req_action",
-      "name": "action",
-      "title": "Action",
-      "description": "cancel | delete",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_po_id",
-      "name": "po_id",
-      "title": "PO ID",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_po_no",
-      "name": "po_no",
-      "title": "PO Number",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_po_plant_id",
-      "name": "po_plant_id",
-      "title": "PO Plant ID",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    },
-    {
-      "key": "wf_req_cancel_created_gr",
-      "name": "cancelCreatedGR",
-      "title": "Cancel Created GR",
-      "description": "1 = user confirmed cascading the Created GR cancellation",
-      "bsonType": "number",
-      "isExpand": false
-    }
-  ],
-  "response_json": [],
-  "config": {}
+  "edges": []
 }
