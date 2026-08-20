@@ -72,12 +72,8 @@
       "type": "condition-all-node",
       "data": {
         "title": "Parallel Lookups",
-        "filter": {
-          "list": []
-        },
-        "expression": {
-          "code": ""
-        },
+        "filter": { "list": [] },
+        "expression": { "code": "" },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -101,9 +97,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Items",
@@ -130,7 +124,7 @@
                         "value": "{{node:code_extract.data.itemIds}}",
                         "type": "leaf",
                         "level": 1,
-                        "propLabel": "主键ID",
+                        "propLabel": "Primary Key ID",
                         "valueLabel": "",
                         "operatorLabel": "Equal Any"
                       }
@@ -168,9 +162,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Storage Locations",
@@ -208,7 +200,7 @@
                             "value": "{{node:code_extract.data.storageNames}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Name",
+                            "propLabel": "Storage Name",
                             "valueLabel": "",
                             "operatorLabel": "Equal Any"
                           },
@@ -222,7 +214,7 @@
                             "value": "{{workflowparams:plant_id}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Plant ID",
+                            "propLabel": "Plant",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -276,9 +268,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Bin Locations",
@@ -316,7 +306,7 @@
                             "value": "{{node:code_extract.data.binCombines}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Bin Location Combine",
+                            "propLabel": "Preview Bin Location Code",
                             "valueLabel": "",
                             "operatorLabel": "Equal Any"
                           },
@@ -330,7 +320,7 @@
                             "value": "{{workflowparams:plant_id}}",
                             "type": "leaf",
                             "level": 2,
-                            "propLabel": "Plant ID",
+                            "propLabel": "Plant",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
@@ -384,9 +374,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "UOMs",
@@ -478,9 +466,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Default Bins",
@@ -691,10 +677,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],

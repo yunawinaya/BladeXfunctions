@@ -54,10 +54,7 @@
         "nodeName": "IF Item Not Found",
         "name": "IF Item Not Found",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -81,9 +78,7 @@
         {
           "id": "if_block_notfound_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "return_item_not_found",
@@ -142,9 +137,7 @@
         {
           "id": "if_block_notfound_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -158,10 +151,7 @@
         "nodeName": "IF Serialized Item",
         "name": "IF Serialized Item",
         "condition_type": "ConditionRule",
-        "expression": {
-          "type": "javascript",
-          "code": ""
-        },
+        "expression": { "type": "javascript", "code": "" },
         "filter": {
           "list": [
             {
@@ -185,9 +175,7 @@
         {
           "id": "if_block_serial_true",
           "type": "ifBlock",
-          "data": {
-            "title": "true"
-          },
+          "data": { "title": "true" },
           "blocks": [
             {
               "id": "return_item_serialized",
@@ -246,9 +234,7 @@
         {
           "id": "if_block_serial_false",
           "type": "ifBlock",
-          "data": {
-            "title": "false"
-          },
+          "data": { "title": "false" },
           "blocks": []
         }
       ]
@@ -305,12 +291,8 @@
       "type": "condition-all-node",
       "data": {
         "title": "Parallel Lookups",
-        "filter": {
-          "list": []
-        },
-        "expression": {
-          "code": ""
-        },
+        "filter": { "list": [] },
+        "expression": { "code": "" },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -334,9 +316,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Storage Locations",
@@ -442,9 +422,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Bin Locations",
@@ -550,9 +528,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "UOMs",
@@ -644,9 +620,7 @@
                 }
               ]
             },
-            "expression": {
-              "code": ""
-            },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Default Bins",
@@ -841,10 +815,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
