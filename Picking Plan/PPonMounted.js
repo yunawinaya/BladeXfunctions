@@ -237,67 +237,99 @@ const checkAccIntegrationType = async (organizationId) => {
 const disabledSelectStock = async (data) => {
   // A bundle row has no material of its own, so the guard below already steps
   // over it. Its items take the same treatment as any other row.
-  rowsWithPaths(data.table_to).forEach(async ({ row: item, path: index }) => {
-    if (item.material_id && item.material_id !== "") {
-      const resItem = await db
-        .collection("Item")
-        .where({ id: item.material_id, is_deleted: 0 })
-        .get();
-      if (resItem && resItem.data.length > 0) {
-        const plant = data.plant_id;
-        const itemData = resItem.data[0];
+  //
+  // Every row used to fetch its own item and its own balance, which on a plan of
+  // any size is dozens of round trips -- and because those fetches sat inside a
+  // forEach they also resolved AFTER disabledBundleRows had run, quietly handing
+  // an item under a bundle back its editable quantity. Everything is fetched up
+  // front instead, so the whole pass is awaited and the bundle lock keeps the
+  // last word.
+  const rows = rowsWithPaths(data.table_to).filter(
+    ({ row }) => row.material_id && row.material_id !== "",
+  );
 
-        if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
-          this.disabled([`${index}.to_delivery_qty`], true);
-          this.disabled([`${index}.to_qty`], false);
-        }
+  if (rows.length === 0) return;
 
-        if (itemData.item_batch_management === 0) {
-          if (plant) {
-            const resItemBalance = await db
-              .collection("item_balance")
-              .where({
-                plant_id: plant,
-                material_id: item.material_id,
-                is_deleted: 0,
-              })
-              .get();
+  const plant = data.plant_id;
+  const materialIds = [...new Set(rows.map(({ row }) => row.material_id))];
 
-            if (resItemBalance && resItemBalance.data.length === 1) {
-              if (
-                data.picking_status === "Completed" ||
-                data.picking_status === "In Progress"
-              ) {
-                this.disabled([`${index}.to_delivery_qty`], true);
-                this.disabled([`${index}.to_qty`], false);
-              } else {
-                this.disabled([`${index}.to_delivery_qty`], true);
-                this.disabled([`${index}.to_qty`], false);
-              }
-            }
-          }
-        } else if (itemData.item_batch_management === 1) {
-          const resItemBatchBalance = await db
-            .collection("item_batch_balance")
-            .where({ material_id: item.material_id, plant_id: plant })
-            .get();
+  const inFilter = (extra) => [
+    {
+      type: "branch",
+      operator: "all",
+      children: [
+        { prop: "material_id", operator: "in", value: materialIds },
+        ...extra,
+      ],
+    },
+  ];
 
-          if (resItemBatchBalance && resItemBatchBalance.data.length === 1) {
-            if (
-              data.picking_status === "Completed" ||
-              data.picking_status === "In Progress"
-            ) {
-              this.disabled([`${index}.to_delivery_qty`], true);
-              this.disabled([`${index}.to_qty`], false);
-            } else {
-              this.disabled([`${index}.to_delivery_qty`], true);
-              this.disabled([`${index}.to_qty`], false);
-            }
-          }
-        } else {
-          console.error("Item batch management is not found.");
-        }
+  const resItem = await db
+    .collection("Item")
+    .filter([
+      {
+        type: "branch",
+        operator: "all",
+        children: [
+          { prop: "id", operator: "in", value: materialIds },
+          { prop: "is_deleted", operator: "equal", value: 0 },
+        ],
+      },
+    ])
+    .get();
+
+  const itemMap = new Map((resItem?.data || []).map((item) => [item.id, item]));
+
+  // How many balance rows each material has. Only "exactly one" matters below:
+  // a single balance leaves nothing to choose between, so the row is planned by
+  // quantity rather than through the stock dialog.
+  const countByMaterial = async (collection, extra) => {
+    const counts = new Map();
+    if (!plant) return counts;
+
+    const res = await db.collection(collection).filter(inFilter(extra)).get();
+
+    (res?.data || []).forEach((balance) => {
+      const key = balance.material_id;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+
+    return counts;
+  };
+
+  const plainCounts = await countByMaterial("item_balance", [
+    { prop: "plant_id", operator: "equal", value: plant },
+    { prop: "is_deleted", operator: "equal", value: 0 },
+  ]);
+  const batchCounts = await countByMaterial("item_batch_balance", [
+    { prop: "plant_id", operator: "equal", value: plant },
+  ]);
+
+  // The one thing both branches did, however picking_status stood: hand the row
+  // its quantity field and take away the stock dialog.
+  const planByQuantity = (index) => {
+    this.disabled([`${index}.to_delivery_qty`], true);
+    this.disabled([`${index}.to_qty`], false);
+  };
+
+  rows.forEach(({ row: item, path: index }) => {
+    const itemData = itemMap.get(item.material_id);
+    if (!itemData) return;
+
+    if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
+      planByQuantity(index);
+    }
+
+    if (itemData.item_batch_management === 0) {
+      if (plainCounts.get(item.material_id) === 1) {
+        planByQuantity(index);
       }
+    } else if (itemData.item_batch_management === 1) {
+      if (batchCounts.get(item.material_id) === 1) {
+        planByQuantity(index);
+      }
+    } else {
+      console.error("Item batch management is not found.");
     }
   });
 };
@@ -356,27 +388,62 @@ const setDisplayAssignedTo = async (data) => {
 const fetchDeliveredQuantity = async () => {
   const tableGD = this.getValue("table_to") || [];
 
-  const resSOLineData = await Promise.all(
-    tableGD.map((item) =>
-      db.collection("sales_order_axszx8cj_sub").doc(item.so_line_item_id).get(),
+  // An item under a bundle is a line of the sales order in its own right and
+  // moves against it like any other, so it needs refreshing too -- it is just
+  // not a row of table_to. One query covers the whole tree instead of one per
+  // row. The bundle row itself is skipped: its sales order line is a header
+  // that never carries a delivered quantity.
+  const isBundleParent = (row) =>
+    Boolean(row.item_bundle_id) && !row.material_id;
+
+  const soLineIds = [
+    ...new Set(
+      rowsWithPaths(tableGD)
+        .filter(({ row }) => !isBundleParent(row) && row.so_line_item_id)
+        .map(({ row }) => row.so_line_item_id),
     ),
+  ];
+
+  if (soLineIds.length === 0) return;
+
+  const resSOLineData = await db
+    .collection("sales_order_axszx8cj_sub")
+    .filter([
+      {
+        type: "branch",
+        operator: "all",
+        children: [{ prop: "id", operator: "in", value: soLineIds }],
+      },
+    ])
+    .get();
+
+  const soLineById = new Map(
+    (resSOLineData?.data || []).map((line) => [line.id, line]),
   );
 
-  const soLineItemData = resSOLineData.map((response) => response.data[0]);
+  const refresh = (item) => {
+    if (isBundleParent(item)) return item;
 
-  const updatedTableGD = tableGD.map((item, index) => {
-    const soLine = soLineItemData[index];
+    const soLine = soLineById.get(item.so_line_item_id);
     const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
     const orderQty = soLine ? soLine.so_quantity || 0 : 0;
     const maxDeliverableQty =
       Math.round((orderQty - totalDeliveredQuantity) * 1000) / 1000;
+
     return {
       ...item,
       to_undelivered_qty:
         Math.round((maxDeliverableQty - item.to_qty) * 1000) / 1000,
       to_initial_delivered_qty: totalDeliveredQuantity,
     };
-  });
+  };
+
+  const updatedTableGD = tableGD.map((item) => ({
+    ...refresh(item),
+    ...(Array.isArray(item.children) && {
+      children: item.children.map(refresh),
+    }),
+  }));
 
   this.setData({ table_to: updatedTableGD });
 };

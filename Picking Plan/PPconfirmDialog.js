@@ -27,7 +27,16 @@ const resolveRow = (rows, key) => {
   const data = this.getValues();
   const temporaryData = data.to_item_balance.table_item_balance;
   const rowKey = data.to_item_balance.row_index;
-  const targetRow = resolveRow(data.table_to, rowKey) || {};
+  const targetRow = resolveRow(data.table_to, rowKey);
+
+  // A row that could not be found must not be treated as an empty one: every read
+  // below would come back undefined and the checks would all pass on nothing.
+  if (!targetRow) {
+    console.error("Could not resolve the line for row key", rowKey);
+    alert("Could not find the line this stock belongs to. Please reopen the dialog.");
+    return;
+  }
+
   const selectedUOM = data.to_item_balance.material_uom;
   const materialId = targetRow.material_id;
   const pickingPlanUOM = targetRow.to_order_uom_id;
@@ -590,7 +599,10 @@ const resolveRow = (rows, key) => {
 
     let rowToQty;
     // The row being edited, matched by identity rather than by position. The
-    // loop walks the top-level rows only, exactly as before.
+    // loop walks the top-level rows only, exactly as before -- and it has to: a
+    // bundle row already carries the bundle's whole price, so counting the items
+    // under it as well would charge for the bundle twice. An item under a bundle
+    // therefore matches nothing here, which is the intended outcome.
     if (row === targetRow) {
       // For the current row being edited, use the new quantity we just calculated
       rowToQty = totalToQuantity;

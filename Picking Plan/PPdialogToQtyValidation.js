@@ -25,8 +25,17 @@ const resolveRow = (rows, key) => {
     const fieldParts = rule.field.split(".");
     const index = fieldParts[2];
     const rowKey = data.to_item_balance.row_index;
-    const targetRow = resolveRow(data.table_to, rowKey) || {};
+    const targetRow = resolveRow(data.table_to, rowKey);
     const toStatus = data.to_status;
+
+    // A row that could not be found must not be treated as an empty one: every read
+    // below would come back undefined and the checks would all pass on nothing.
+    if (!targetRow) {
+      console.error("Could not resolve the line for row key", rowKey);
+      callback("Could not find the line this quantity belongs to");
+      return;
+    }
+
 
     const materialId = targetRow.material_id;
     const to_order_quantity = parseFloat(targetRow.to_order_quantity || 0);

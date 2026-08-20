@@ -50,6 +50,7 @@ const resetFormData = () => {
   });
 
   if (plant) {
+    this.disabled("table_to", false);
     this.hide("address_grid");
     if (arguments[0].fieldModel) {
       await resetFormData();
@@ -87,5 +88,10 @@ const resetFormData = () => {
     if (pickingSetupResponse.data.length > 0) {
       this.display("assigned_to");
     }
+
+    // Children under a line come from an item bundle, never from the user, so
+    // the per-row add-child-record control has nothing to add here. Hidden the
+    // same way PI, PO, GR, SO and Putaway hide theirs.
+    this.getComponent("table_to")?.hideChildRecord();
   }
 })();

@@ -29,7 +29,15 @@ const resolveRow = (rows, key) => {
 
   const selectedUOM = arguments[0].value;
   const rowKey = allData.to_item_balance.row_index;
-  const targetRow = resolveRow(allData.table_to, rowKey) || {};
+  const targetRow = resolveRow(allData.table_to, rowKey);
+
+  // A row that could not be found must not be treated as an empty one: every read
+  // below would come back undefined and the checks would all pass on nothing.
+  if (!targetRow) {
+    console.error("Could not resolve the line for row key", rowKey);
+    return;
+  }
+
 
   console.log("DEBUG - UOM Change:");
   console.log("selectedUOM:", selectedUOM);

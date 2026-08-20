@@ -30,15 +30,15 @@
     existingTempData !== "[]" &&
     existingTempData.trim() !== "";
 
-  // An item bundle parent is not an item: it has no material, holds no stock
-  // and nothing is picked against it directly. Planning N of the bundle plans
-  // the same proportion of every item under it, so the parent's quantity is
-  // clamped to what is still outstanding and then spread across its items by
-  // ratio -- their own quantity fields are not editable.
+  // An item bundle parent is not an item: it has no material, holds no stock and
+  // nothing is picked against it directly. Its quantity is the number of bundles
+  // planned, and every item under it follows from that -- planning 2 of a bundle
+  // holding 2 of item A and 3 of item B plans 4 of A and 6 of B. The items' own
+  // quantity fields are locked, so this is the only thing that sets them.
   //
-  // rowIndex addresses the top-level rows, so a change on an item under a
-  // bundle lands on a row that is not a bundle parent and falls through to the
-  // ordinary handling below, exactly as any other line does.
+  // rowIndex addresses the top-level rows, so a change on an item under a bundle
+  // lands on a row that is not a bundle parent and falls through to the ordinary
+  // handling below, exactly as any other line does.
   const currentRow = data.table_to[rowIndex] || {};
 
   // A subform row is identified by its fm_key, not by where it sits: the
@@ -50,55 +50,164 @@
     ? `table_to.${currentRow.fm_key}`
     : `table_to.${rowIndex}`;
 
-  const bundleChildren = Array.isArray(currentRow.children)
-    ? currentRow.children
-    : [];
+  // A reference is an object in the form model and a plain id once stored.
+  const referenceId = (value) => {
+    if (value && typeof value === "object") return value.id || null;
+    return value || null;
+  };
+
   const isBundleParentRow =
     Boolean(currentRow.item_bundle_id) && !currentRow.material_id;
 
-  if (isBundleParentRow && bundleChildren.length > 0) {
-    // A bundle carries no tolerance of its own, so the most that can be planned
-    // is whatever is still outstanding on the bundle line.
+  // The items under a bundle, each with the path that addresses it. They arrive
+  // nested under `children` when the plan was just built, and as flat rows
+  // pointing back through parent_id / parent_fm_key once it has been stored --
+  // both shapes mean the same thing. Mirrors getBundleChildren on the sales order.
+  const getBundleChildren = (rows, parent, parentIndex) => {
+    if (Array.isArray(parent.children) && parent.children.length > 0) {
+      return parent.children.map((child, childIndex) => ({
+        row: child,
+        path: child.fm_key
+          ? `table_to.${child.fm_key}`
+          : `${rowPath}.children.${childIndex}`,
+      }));
+    }
+
+    const isChildOf = (row) => {
+      if (parent.id != null && row.parent_id != null) {
+        if (String(row.parent_id) === String(parent.id)) return true;
+      }
+
+      if (parent.fm_key != null && row.parent_fm_key != null) {
+        if (String(row.parent_fm_key) === String(parent.fm_key)) return true;
+      }
+
+      return false;
+    };
+
+    const flatChildren = [];
+
+    (rows || []).forEach((row, index) => {
+      if (index === parentIndex) return;
+      if (!isChildOf(row)) return;
+
+      flatChildren.push({
+        row,
+        path: row.fm_key ? `table_to.${row.fm_key}` : `table_to.${index}`,
+      });
+    });
+
+    return flatChildren;
+  };
+
+  // What one bundle holds, read from the bundle itself rather than from the rows.
+  // The rows cannot be used for this: an item under a bundle is never edited by
+  // hand, so its quantity is always the bundle's own times the number of bundles,
+  // and the bundle is where that number lives. Keyed by item and kept in the
+  // order the bundle lists them, so a bundle holding the same item on two lines
+  // still lines up.
+  const fetchBundleQuantities = async (bundleId) => {
+    if (!bundleId) return null;
+
+    const resBundle = await db.collection("item_bundle").doc(bundleId).get();
+    const bundleLines = resBundle?.data?.[0]?.table_ib || [];
+
+    if (bundleLines.length === 0) {
+      console.log("item bundle has no lines", bundleId);
+      return null;
+    }
+
+    const byItem = new Map();
+
+    for (const line of bundleLines) {
+      const key = String(line.item_id ?? "");
+      if (!byItem.has(key)) byItem.set(key, []);
+      byItem.get(key).push(parseFloat(line.quantity) || 0);
+    }
+
+    return byItem;
+  };
+
+  if (isBundleParentRow) {
+    const bundleChildren = getBundleChildren(
+      data.table_to,
+      currentRow,
+      rowIndex,
+    );
+
+    if (bundleChildren.length === 0) {
+      console.log("item bundle line has no items", currentRow.item_bundle_id);
+      return;
+    }
+
+    const perBundle = await fetchBundleQuantities(
+      referenceId(currentRow.item_bundle_id),
+    );
+
+    if (!perBundle) return;
+
+    // How many bundles each item can still cover, at that item's own rate. The
+    // bundle can be planned no further than its tightest item -- the bundle row
+    // carries no outstanding of its own, since its sales order line is a header
+    // that never receives a planned quantity.
+    const taken = new Map();
+    const planned = [];
+    let maxBundles = null;
+
+    for (const { row, path } of bundleChildren) {
+      const key = String(row.material_id ?? "");
+      const quantities = perBundle.get(key) || [];
+      const position = taken.get(key) || 0;
+
+      taken.set(key, position + 1);
+
+      if (position >= quantities.length) {
+        // The bundle no longer lists this item -- leave the row as it stands
+        // rather than guessing at a quantity for it.
+        console.log(
+          "no bundle line for item",
+          key,
+          "on",
+          currentRow.item_bundle_id,
+        );
+        continue;
+      }
+
+      const perBundleQty = quantities[position];
+      const outstanding = roundQty(
+        (parseFloat(row.to_order_quantity) || 0) -
+          (parseFloat(row.to_initial_delivered_qty) || 0),
+      );
+      const coverable = perBundleQty > 0 ? outstanding / perBundleQty : 0;
+
+      if (maxBundles === null || coverable < maxBundles) maxBundles = coverable;
+
+      planned.push({ row, path, perBundleQty });
+    }
+
+    if (planned.length === 0) {
+      console.log("no bundle lines matched", currentRow.item_bundle_id);
+      return;
+    }
+
     let effectiveQty = roundQty(Math.max(0, quantity));
 
-    if (effectiveQty > undeliveredQty) {
-      effectiveQty = undeliveredQty;
+    if (maxBundles !== null && effectiveQty > maxBundles) {
+      effectiveQty = roundQty(maxBundles);
 
       console.log(
-        `Row ${rowIndex}: planned quantity adjusted to maximum allowed: ${undeliveredQty}`,
+        `Row ${rowIndex}: planned quantity adjusted to maximum allowed: ${effectiveQty}`,
       );
     }
 
-    // Planning half a bundle plans half of every item in it.
-    const ratio = undeliveredQty > 0 ? effectiveQty / undeliveredQty : 0;
-
-    const childOutstanding = (child) =>
-      roundQty(
-        (parseFloat(child.to_order_quantity) || 0) -
-          (parseFloat(child.to_initial_delivered_qty) || 0),
-      );
-
-    // An item cannot be planned beyond what it still has outstanding, whatever
-    // the ratio works out to.
-    const childQty = (child) => {
-      const outstanding = childOutstanding(child);
-      const planned = roundQty(outstanding * ratio);
-      return planned > outstanding ? outstanding : planned;
-    };
-
-    // A subform row is identified by its fm_key, not by where it sits: the
-    // platform resolves `table_to.<fm_key>.<field>` to that row. That is what
-    // lets an item under a bundle be written on its own -- it needs no path
-    // through its parent, so only the three quantities move rather than the
-    // whole `children` array.
-    const quantitiesFor = (row, planned) => {
+    const quantitiesFor = (row, plannedQty) => {
       const delivered = parseFloat(row.to_initial_delivered_qty) || 0;
       const ordered = parseFloat(row.to_order_quantity) || 0;
 
       return {
-        to_qty: planned,
-        to_delivered_qty: roundQty(delivered + planned),
-        to_undelivered_qty: roundQty(ordered - delivered - planned),
+        to_qty: plannedQty,
+        to_delivered_qty: roundQty(delivered + plannedQty),
+        to_undelivered_qty: roundQty(ordered - delivered - plannedQty),
       };
     };
 
@@ -110,32 +219,24 @@
       updates[`${rowPath}.${field}`] = value;
     }
 
-    // A row that has not been given a key yet cannot be addressed on its own,
-    // so those bundles still go across as one array.
-    if (bundleChildren.every((child) => child.fm_key)) {
-      for (const child of bundleChildren) {
-        for (const [field, value] of Object.entries(
-          quantitiesFor(child, childQty(child)),
-        )) {
-          updates[`table_to.${child.fm_key}.${field}`] = value;
-        }
+    for (const { row, path, perBundleQty } of planned) {
+      const childQty = roundQty(perBundleQty * effectiveQty);
+
+      for (const [field, value] of Object.entries(
+        quantitiesFor(row, childQty),
+      )) {
+        updates[`${path}.${field}`] = value;
       }
-    } else {
-      updates[`${rowPath}.children`] = bundleChildren.map((child) => ({
-        ...child,
-        ...quantitiesFor(child, childQty(child)),
-      }));
     }
 
     await this.setData(updates);
 
     console.log("item bundle line", currentRow.item_bundle_id, {
       planned: effectiveQty,
-      outstanding: undeliveredQty,
-      ratio,
-      children: bundleChildren.map((child) => ({
-        material_id: child.material_id,
-        to_qty: childQty(child),
+      maxBundles,
+      children: planned.map(({ row, perBundleQty }) => ({
+        material_id: row.material_id,
+        to_qty: roundQty(perBundleQty * effectiveQty),
       })),
     });
 

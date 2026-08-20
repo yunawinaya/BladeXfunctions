@@ -1177,22 +1177,44 @@ if (!window.globalAllocationTracker) {
 // ============================================================================
 
 const createTableToWithBaseUOM = async (allItems) => {
+  // Every item across the whole selection, bundles included, in one query. This
+  // used to be one fetch per row inside a sequential loop, which a bundle only
+  // made worse -- its items are rows too, so each bundle multiplied the round
+  // trips rather than adding one.
+  const itemIds = [
+    ...new Set(
+      flattenAllItems(allItems)
+        .map((item) => item.itemId)
+        .filter(Boolean),
+    ),
+  ];
+
+  const itemMap = new Map();
+
+  if (itemIds.length > 0) {
+    try {
+      const res = await db
+        .collection("Item")
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [{ prop: "id", operator: "in", value: itemIds }],
+          },
+        ])
+        .get();
+
+      (res.data || []).forEach((item) => itemMap.set(item.id, item));
+    } catch (error) {
+      console.error("Error fetching item data", error);
+    }
+  }
+
   // One row from one picked entry. A bundle row has no material -- itemId is
-  // empty on it -- so no item is fetched for it and it takes the plain branch,
+  // empty on it -- so no item is found for it and it takes the plain branch,
   // leaving its stock fields empty, which is what a bundle row should carry.
   const buildRow = async (item) => {
-    let itemData = null;
-    if (item.itemId) {
-      try {
-        const res = await db
-          .collection("Item")
-          .where({ id: item.itemId })
-          .get();
-        itemData = res.data?.[0];
-      } catch (error) {
-        console.error(`Error fetching item data for ${item.itemId}:`, error);
-      }
-    }
+    const itemData = item.itemId ? itemMap.get(item.itemId) : null;
 
     if (itemData?.serial_number_management === 1) {
       const orderedQtyBase = roundQty(
@@ -1483,23 +1505,34 @@ const createTableToWithBaseUOM = async (allItems) => {
   // rows of this list.
   const isOutstanding = (to) => to.deliveredQtyFromSource !== to.orderedQty;
 
-  allItems = allItems
-    .filter(
-      (to) =>
-        isOutstanding(to) &&
-        !existingTO.find(
-          (toItem) => toItem.so_line_item_id === to.so_line_item_id,
-        ),
-    )
-    .map((to) => {
-      if (!Array.isArray(to.bundleChildren)) return to;
+  // What is already on the plan, across the whole tree: an item under a bundle
+  // is a line of the order in its own right, it just sits under its bundle
+  // rather than in table_to. Without walking it, a bundle already planned comes
+  // straight back in through its bundle row.
+  const plannedLineIds = new Set(
+    flattenTreeRows(existingTO).map((toItem) => toItem.so_line_item_id),
+  );
 
-      const outstanding = to.bundleChildren.filter(isOutstanding);
+  const stillToPlan = (to) =>
+    isOutstanding(to) && !plannedLineIds.has(to.so_line_item_id);
 
-      return outstanding.length > 0
-        ? { ...to, bundleChildren: outstanding }
-        : { ...to, bundleChildren: undefined };
-    });
+  // A bundle row's own sales order line is a header -- it never receives a
+  // planned quantity, so it would always look outstanding. Whether a bundle has
+  // anything left is decided by its items.
+  const hasSomethingToPlan = (to) =>
+    Array.isArray(to.bundleChildren) && to.bundleChildren.length > 0
+      ? to.bundleChildren.some(stillToPlan)
+      : stillToPlan(to);
+
+  allItems = allItems.filter(hasSomethingToPlan).map((to) => {
+    if (!Array.isArray(to.bundleChildren)) return to;
+
+    const outstanding = to.bundleChildren.filter(stillToPlan);
+
+    return outstanding.length > 0
+      ? { ...to, bundleChildren: outstanding }
+      : { ...to, bundleChildren: undefined };
+  });
 
   console.log("allItems after filter", allItems);
 
