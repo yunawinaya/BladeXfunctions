@@ -160,7 +160,9 @@
 
       if (adjustment_type === "Stock Count") {
         filteredData.forEach((item) => {
-          if (item.movement_type === "OUT" && item.sa_quantity > 0) {
+          // Rows saved before the casing fix still read "OUT".
+          const movement = (item.movement_type || "").toUpperCase();
+          if (movement === "OUT" && item.sa_quantity > 0) {
             item.sa_quantity = -item.sa_quantity;
           }
         });
@@ -168,11 +170,11 @@
         // Stamped on the row, not just on the column, so rows revealed later by
         // the batch search carry it too.
         filteredData.forEach((item) => {
-          item.movement_type = "OUT";
+          item.movement_type = "Out";
         });
       } else if (isSerial) {
         filteredData.forEach((item) => {
-          item.movement_type = "OUT";
+          item.movement_type = "Out";
         });
       }
     };
@@ -180,7 +182,7 @@
     const applyMovementTypeUI = (isSerial) => {
       if (adjustment_type === "Write Off") {
         this.setData({
-          [`sa_item_balance.table_item_balance.movement_type`]: "OUT",
+          [`sa_item_balance.table_item_balance.movement_type`]: "Out",
         });
         this.hide("sa_item_balance.table_item_balance.movement_type");
       } else if (adjustment_type === "Stock Count") {
@@ -191,7 +193,7 @@
         this.display([`sa_item_balance.table_item_balance.movement_type`]);
       } else if (isSerial) {
         this.setData({
-          [`sa_item_balance.table_item_balance.movement_type`]: "OUT",
+          [`sa_item_balance.table_item_balance.movement_type`]: "Out",
         });
         this.disabled(
           [`sa_item_balance.table_item_balance.movement_type`],

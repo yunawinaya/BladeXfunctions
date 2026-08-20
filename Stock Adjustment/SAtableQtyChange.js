@@ -9,12 +9,12 @@
       if (sa_quantity < 0) {
         await this.setData({
           [`sa_item_balance.table_item_balance.${rowIndex}.movement_type`]:
-            "OUT",
+            "Out",
         });
       } else {
         await this.setData({
           [`sa_item_balance.table_item_balance.${rowIndex}.movement_type`]:
-            "IN",
+            "In",
         });
       }
     }

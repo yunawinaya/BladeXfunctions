@@ -61,9 +61,11 @@ if (adjustment_type === "Stock Count") {
     callback("Quantity cannot be zero");
   }
 } else {
-  if (movementType === "OUT") {
+  // Legacy rows hold "OUT"/"IN"; current ones hold "Out"/"In".
+  const movement = (movementType || "").toUpperCase();
+  if (movement === "OUT") {
     checkAvailable(numValue);
-  } else if (movementType === "IN") {
+  } else if (movement === "IN") {
     if (numValue <= 0) {
       callback("Quantity must be greater than zero for IN movement");
       return;
