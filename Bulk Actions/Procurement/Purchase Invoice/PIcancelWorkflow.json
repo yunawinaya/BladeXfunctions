@@ -1,4 +1,16 @@
 {
+  "request_json": [
+    {
+      "key": "3myngsyg",
+      "name": "pi_id",
+      "title": "PI ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {},
   "nodes": [
     {
       "id": "start",
@@ -356,17 +368,5 @@
       "blocks": []
     }
   ],
-  "edges": [],
-  "request_json": [
-    {
-      "key": "3myngsyg",
-      "name": "pi_id",
-      "title": "PI ID",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false
-    }
-  ],
-  "response_json": [],
-  "config": {}
+  "edges": []
 }
