@@ -1,7 +1,6 @@
 (async () => {
   // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
-  const roundQty = (value) =>
-    Math.round((parseFloat(value) || 0) * 1000) / 1000;
+  const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
 
   // Extract input parameters
   const data = this.getValues();
@@ -11,8 +10,7 @@
 
   // Retrieve values from context
   const orderedQty = parseFloat(data.table_gd[rowIndex].gd_order_quantity) || 0;
-  const initialDeliveredQty =
-    parseFloat(data.table_gd[rowIndex].gd_initial_delivered_qty) || 0;
+  const initialDeliveredQty = parseFloat(data.table_gd[rowIndex].gd_initial_delivered_qty) || 0;
   const uomId = data.table_gd[rowIndex].gd_order_uom_id;
   const itemCode = data.table_gd[rowIndex].material_id;
   const itemDesc = data.table_gd[rowIndex].gd_material_desc;
@@ -22,6 +20,198 @@
   // Calculate undelivered quantity
   const undeliveredQty = roundQty(orderedQty - initialDeliveredQty);
   const totalDeliveredQty = roundQty(quantity + initialDeliveredQty);
+
+  // ==========================================================================
+  // ITEM BUNDLES
+  // --------------------------------------------------------------------------
+  // A bundle row is not an item: it has no material, holds no stock and nothing
+  // is delivered against it directly. Its quantity is the number of bundles
+  // being delivered, and every item under it follows from that by ratio --
+  // their own quantity fields are not editable, so this is the only thing that
+  // sets them. A bundle is delivered whole or not at all, which the select
+  // stock dialog enforces on the items.
+  //
+  // A change on an item under a bundle never lands here: those rows are locked.
+  // A plain line falls straight through to the ordinary handling below.
+  // ==========================================================================
+  const currentRow = data.table_gd[rowIndex] || {};
+
+  // A subform row is identified by its fm_key, not by where it sits: the
+  // platform resolves `table_gd.<fm_key>.<field>` to that row, which is the
+  // only way to reach an item under a bundle -- it is not a row of table_gd at
+  // all. Position is kept as a fallback for a row without a key yet.
+  const rowPath = currentRow.fm_key
+    ? `table_gd.${currentRow.fm_key}`
+    : `table_gd.${rowIndex}`;
+
+  // The tree only exists while the form is open. A saved subform is stored
+  // flat -- every item under a bundle is a row of table_gd in its own right,
+  // carrying its parent's id in parent_id -- so a bundle just added has its
+  // items nested under `children`, while the same bundle reopened for edit has
+  // them sitting beside it instead. Both shapes arrive here.
+  const isChildOf = (row, parent) => {
+    if (
+      parent.id != null &&
+      parent.id !== "" &&
+      row.parent_id != null &&
+      row.parent_id !== ""
+    ) {
+      if (String(row.parent_id) === String(parent.id)) return true;
+    }
+
+    if (parent.fm_key != null && row.parent_fm_key != null) {
+      if (String(row.parent_fm_key) === String(parent.fm_key)) return true;
+    }
+
+    return false;
+  };
+
+  // Each item with the path it is written back through: its fm_key, which
+  // resolves a row wherever it sits, falling back to its own position when it
+  // is a row of table_gd that has no key yet. A nested item with no key has no
+  // path of its own -- those are the bundles that have to go across as a whole
+  // array instead.
+  const resolveBundleChildren = (rows, parent, parentIndex) => {
+    if (Array.isArray(parent.children) && parent.children.length > 0) {
+      return parent.children.map((child) => ({
+        row: child,
+        path: child.fm_key ? `table_gd.${child.fm_key}` : null,
+      }));
+    }
+
+    const flat = [];
+
+    rows.forEach((row, index) => {
+      if (!row || index === parentIndex) return;
+      if (!isChildOf(row, parent)) return;
+
+      flat.push({
+        row,
+        path: row.fm_key ? `table_gd.${row.fm_key}` : `table_gd.${index}`,
+      });
+    });
+
+    return flat;
+  };
+
+  const bundleChildren = resolveBundleChildren(
+    Array.isArray(data.table_gd) ? data.table_gd : [],
+    currentRow,
+    rowIndex,
+  );
+
+  // It is the bundle id that says a row is a bundle, but a row holding no
+  // material with items under it is one either way. A line with a material is
+  // never a bundle, so an ordinary line is untouched by this.
+  const isBundleParentRow =
+    !currentRow.material_id &&
+    (Boolean(currentRow.item_bundle_id) || bundleChildren.length > 0);
+
+  if (isBundleParentRow) {
+    // A bundle row holds no material, so every lookup below -- the item, its
+    // balances, its batches -- would go out with an empty id and come back as a
+    // conversion error. Nothing is ever allocated against the bundle row, so
+    // there is nothing here for it either way.
+    if (bundleChildren.length === 0) {
+      console.log(
+        "item bundle line with no items under it, nothing to spread",
+        currentRow.item_bundle_id,
+      );
+
+      return;
+    }
+
+    // A bundle carries no tolerance of its own, so the most that can be
+    // delivered is whatever is still outstanding on the bundle line.
+    let effectiveQty = roundQty(Math.max(0, quantity));
+
+    if (effectiveQty > undeliveredQty) {
+      effectiveQty = undeliveredQty;
+
+      console.log(
+        `Row ${rowIndex}: delivery quantity adjusted to maximum allowed: ${undeliveredQty}`,
+      );
+    }
+
+    // Delivering two of three outstanding bundles delivers two thirds of every
+    // item in them.
+    const ratio = undeliveredQty > 0 ? effectiveQty / undeliveredQty : 0;
+
+    const childOutstanding = (child) =>
+      roundQty(
+        (parseFloat(child.gd_order_quantity) || 0) -
+          (parseFloat(child.gd_initial_delivered_qty) || 0),
+      );
+
+    // An item cannot be delivered beyond what it still has outstanding,
+    // whatever the ratio works out to.
+    const childQty = (child) => {
+      const outstanding = childOutstanding(child);
+      const delivered = roundQty(outstanding * ratio);
+      return delivered > outstanding ? outstanding : delivered;
+    };
+
+    // Packing quantity and net weight are derived from the line quantity and
+    // are not editable, so nothing else will put them right once an item's
+    // quantity moves -- the same two formulas recalcPackingWeight runs for an
+    // ordinary line.
+    const quantitiesFor = (row, delivered) => {
+      const already = parseFloat(row.gd_initial_delivered_qty) || 0;
+      const ordered = parseFloat(row.gd_order_quantity) || 0;
+      const packingConversion = parseFloat(row.packing_conversion) || 1;
+      const weightConversion = parseFloat(row.weight_conversion) || 0;
+
+      return {
+        gd_qty: delivered,
+        gd_delivered_qty: roundQty(already + delivered),
+        gd_undelivered_qty: roundQty(ordered - already - delivered),
+        packing_qty: packingConversion
+          ? roundQty(delivered / packingConversion)
+          : 0,
+        net_weight: roundQty(delivered * weightConversion),
+      };
+    };
+
+    const updates = {};
+
+    for (const [field, value] of Object.entries(
+      quantitiesFor(currentRow, effectiveQty),
+    )) {
+      updates[`${rowPath}.${field}`] = value;
+    }
+
+    // A nested row that has not been given a key yet cannot be addressed on its
+    // own, so those bundles still go across as one array. An item that is a row
+    // of table_gd in its own right always has a path.
+    if (bundleChildren.every((child) => child.path)) {
+      for (const child of bundleChildren) {
+        for (const [field, value] of Object.entries(
+          quantitiesFor(child.row, childQty(child.row)),
+        )) {
+          updates[`${child.path}.${field}`] = value;
+        }
+      }
+    } else {
+      updates[`${rowPath}.children`] = bundleChildren.map((child) => ({
+        ...child.row,
+        ...quantitiesFor(child.row, childQty(child.row)),
+      }));
+    }
+
+    await this.setData(updates);
+
+    console.log("item bundle line", currentRow.item_bundle_id, {
+      delivered: effectiveQty,
+      outstanding: undeliveredQty,
+      ratio,
+      children: bundleChildren.map((child) => ({
+        material_id: child.row.material_id,
+        gd_qty: childQty(child.row),
+      })),
+    });
+
+    return;
+  }
 
   // Live-update packing qty + net weight from the delivery qty, using the
   // line's stored packing_conversion / weight_conversion (seeded on add).
@@ -75,11 +265,9 @@
       const baseQtyFactorGDPP = getBaseQtyFactorGDPP(uomId, itemDataGDPP);
 
       // Calculate total to_quantity (ceiling from PP)
-      const totalToQuantity = roundQty(
-        tempDataArray.reduce((sum, item) => {
-          return sum + parseFloat(item.to_quantity || 0);
-        }, 0),
-      );
+      const totalToQuantity = roundQty(tempDataArray.reduce((sum, item) => {
+        return sum + parseFloat(item.to_quantity || 0);
+      }, 0));
 
       // Validate: quantity cannot exceed total to_quantity
       if (quantity > totalToQuantity) {
@@ -203,14 +391,11 @@
       // Update GD row
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-        [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-          orderedQty - totalDeliveredQty,
-        ),
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+          roundQty(orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(updatedTempData),
-        [`table_gd.${rowIndex}.base_qty`]: roundQty(
-          quantity * baseQtyFactorGDPP,
-        ),
+        [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactorGDPP),
       });
 
       console.log(
@@ -283,9 +468,8 @@
     const uomName = await getUOMData(uomId);
     this.setData({
       [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-      [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-        orderedQty - totalDeliveredQty,
-      ),
+      [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+        roundQty(orderedQty - totalDeliveredQty),
       [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}`,
     });
     return;
@@ -336,9 +520,8 @@
       );
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-        [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-          orderedQty - totalDeliveredQty,
-        ),
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+          roundQty(orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
       });
       return;
@@ -368,9 +551,7 @@
           );
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-              orderedQty - totalDeliveredQty,
-            ),
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
           });
           return;
@@ -463,9 +644,8 @@
         if (!hasExistingAllocation) {
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-              orderedQty - totalDeliveredQty,
-            ),
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+              roundQty(orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
@@ -474,9 +654,8 @@
           // If there's existing allocation, just update delivery quantities
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-              orderedQty - totalDeliveredQty,
-            ),
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+              roundQty(orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
           });
         }
@@ -491,9 +670,8 @@
         if (!hasExistingAllocation) {
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-              orderedQty - totalDeliveredQty,
-            ),
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+              roundQty(orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog to select serial number`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]",
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
@@ -501,9 +679,8 @@
         } else {
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-              orderedQty - totalDeliveredQty,
-            ),
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+              roundQty(orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
           });
         }
@@ -545,9 +722,8 @@
       // Update data
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-        [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-          orderedQty - totalDeliveredQty,
-        ),
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+          roundQty(orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
         [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
@@ -677,9 +853,8 @@
       // Update data
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-        [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(
-          orderedQty - totalDeliveredQty,
-        ),
+        [`table_gd.${rowIndex}.gd_undelivered_qty`]:
+          roundQty(orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
         [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,

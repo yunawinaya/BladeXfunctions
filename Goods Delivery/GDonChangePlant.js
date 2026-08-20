@@ -98,7 +98,7 @@ const resetFormData = () => {
         "table_gd",
         "gd_delivery_method",
         "gd_area_id",
-        "sales_person",
+        'sales_person',
         "select_vehicle_id",
         "select_driver_id",
         "document_description",
@@ -135,5 +135,10 @@ const resetFormData = () => {
         pickingSetupResponse.data[0].split_policy || "ALLOW_SPLIT";
       this.setData({ split_policy: splitPolicy });
     }
+
+    // Children under a line come from an item bundle, never from the user, so
+    // the per-row add-child-record control has nothing to add here. Hidden the
+    // same way PP, PI, PO, GR and Putaway hide theirs.
+    this.getComponent("table_gd")?.hideChildRecord();
   }
 })();

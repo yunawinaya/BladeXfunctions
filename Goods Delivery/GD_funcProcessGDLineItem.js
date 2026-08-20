@@ -10,15 +10,182 @@
 // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
 const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
 
+// An id that is not an id. A bundle row carries no material, and a row that
+// lost its link carries nothing either, so a missing id reaches here as null,
+// undefined, "" or -- once it has been through Object.keys or a template --
+// the strings "null" and "undefined". The database types these columns as
+// numbers, so any of them comes back as a conversion failure rather than an
+// empty result. Everything below drops them before a query is built.
+const isRealId = (id) =>
+  id !== null &&
+  id !== undefined &&
+  id !== "" &&
+  id !== "null" &&
+  id !== "undefined";
+
+const realIds = (ids) => [...new Set((ids || []).filter(isRealId))];
+
+// A bundle's items are delivered under their bundle row rather than beside it,
+// so table_gd is a tree. Allocation still works a row at a time, so it runs
+// over a flat view of that tree and writes back through refs that remember
+// where each row sits.
+const flattenForAllocation = (rows) => {
+  const flat = [];
+  const refs = [];
+
+  (rows || []).forEach((row, parent) => {
+    flat.push(row);
+    refs.push({ parent, child: null });
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    children.forEach((child, childIndex) => {
+      flat.push(child);
+      refs.push({ parent, child: childIndex });
+    });
+  });
+
+  return { flat, refs };
+};
+
+const rebuildTree = (rows, flat, refs) => {
+  const out = (rows || []).map((row) => ({ ...row }));
+
+  refs.forEach((ref, index) => {
+    // The parent's own `children` is stale by now -- the items are written
+    // through their own refs, which come after this one.
+    const { children: staleChildren, ...rest } = flat[index] || {};
+
+    if (ref.child === null) {
+      out[ref.parent] = { ...out[ref.parent], ...rest };
+      return;
+    }
+
+    const parent = out[ref.parent] || {};
+    const children = Array.isArray(parent.children) ? [...parent.children] : [];
+    children[ref.child] = { ...children[ref.child], ...flat[index] };
+    out[ref.parent] = { ...parent, children };
+  });
+
+  return out;
+};
+
+// The convert workflow hands the order's lines over flat and carries only
+// so_line_item_id. The parent_id that ties a bundle's items to their bundle row
+// is not part of what it sends, so it is read back off the sales order here --
+// which is where that link actually lives.
+const fetchSoBundleLinks = async (items, organizationId) => {
+  const links = new Map();
+  const soIds = realIds((items || []).map((item) => item.original_so_id));
+
+  if (soIds.length === 0) return links;
+
+  const conditions = [
+    { prop: "id", operator: "in", value: soIds },
+    { prop: "is_deleted", operator: "equal", value: 0 },
+  ];
+
+  if (isRealId(organizationId)) {
+    conditions.push({
+      prop: "organization_id",
+      operator: "equal",
+      value: organizationId,
+    });
+  }
+
+  try {
+    const res = await db
+      .collection("sales_order")
+      .filter([{ type: "branch", operator: "all", children: conditions }])
+      .get();
+
+    (res.data || []).forEach((so) => {
+      (so.table_so || []).forEach((line) => {
+        if (!line || !isRealId(line.id)) return;
+
+        links.set(String(line.id), {
+          parentId: isRealId(line.parent_id) ? String(line.parent_id) : null,
+          bundleId: line.item_bundle_id || "",
+        });
+      });
+    });
+  } catch (error) {
+    console.error("Error reading the order's item bundle links:", error);
+  }
+
+  return links;
+};
+
+// Put every bundle's items directly after their bundle row. The allocation
+// addresses a row by its position in this order, so the order the tree is built
+// in and the order it is walked in have to be the same one.
+const orderByBundle = (items, links) => {
+  const present = new Set(
+    realIds((items || []).map((item) => item.so_line_item_id)).map(String),
+  );
+
+  const childrenOf = new Map();
+  const tops = [];
+
+  (items || []).forEach((item) => {
+    const link = links.get(String(item.so_line_item_id));
+
+    // The order is authoritative, but a line can arrive already knowing where
+    // it belongs -- the convert workflow says so on every line it maps -- and
+    // that is the only thing to go on when the order handed its bundles over
+    // nested rather than flat.
+    const parentId =
+      (link && link.parentId) ||
+      (isRealId(item.parent_id) ? String(item.parent_id) : null);
+
+    // A bundle row that did not come across -- already delivered in full, or
+    // filtered out above -- leaves its items as lines of their own rather than
+    // dropping them.
+    if (parentId && present.has(parentId)) {
+      if (!childrenOf.has(parentId)) childrenOf.set(parentId, []);
+      childrenOf.get(parentId).push(item);
+      return;
+    }
+
+    tops.push(item);
+  });
+
+  const bundleIdOf = (item) => {
+    const link = links.get(String(item.so_line_item_id));
+    return (link && link.bundleId) || item.item_bundle_id || "";
+  };
+
+  const ordered = [];
+
+  tops.forEach((item) => {
+    const lineId = String(item.so_line_item_id);
+
+    ordered.push({ ...item, item_bundle_id: bundleIdOf(item) });
+
+    (childrenOf.get(lineId) || []).forEach((child) => {
+      ordered.push({
+        ...child,
+        item_bundle_id: bundleIdOf(child) || bundleIdOf(item),
+        parentSoLineId: lineId,
+      });
+    });
+  });
+
+  console.log(
+    "item bundles on the order:",
+    [...childrenOf].map(([parent, kids]) => parent + " -> " + kids.length),
+  );
+
+  return ordered;
+};
+
 // ============================================================================
 // BATCH QUERY HELPER FUNCTIONS
 // ============================================================================
 
 const batchFetchItems = async (materialIds) => {
   if (!materialIds || materialIds.length === 0) return new Map();
-  const uniqueIds = [
-    ...new Set(materialIds.filter((id) => id && id !== "undefined")),
-  ];
+  const uniqueIds = realIds(materialIds);
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -65,9 +232,11 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
     return { serial: new Map(), batch: new Map(), regular: new Map() };
   }
 
-  const uniqueIds = [
-    ...new Set(materialIds.filter((id) => id && id !== "undefined")),
-  ];
+  if (!isRealId(plantId)) {
+    return { serial: new Map(), batch: new Map(), regular: new Map() };
+  }
+
+  const uniqueIds = realIds(materialIds);
   if (uniqueIds.length === 0) {
     return { serial: new Map(), batch: new Map(), regular: new Map() };
   }
@@ -162,6 +331,15 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
 };
 
 const fetchPickingSetup = async (plantId) => {
+  if (!isRealId(plantId)) {
+    return {
+      pickingMode: "Manual",
+      defaultStrategy: "RANDOM",
+      fallbackStrategy: "RANDOM",
+      splitPolicy: "ALLOW_SPLIT",
+    };
+  }
+
   try {
     const response = await db
       .collection("picking_setup")
@@ -197,7 +375,7 @@ const fetchPickingSetup = async (plantId) => {
 
 const batchFetchBinLocations = async (locationIds) => {
   if (!locationIds || locationIds.length === 0) return new Map();
-  const uniqueIds = [...new Set(locationIds.filter((id) => id))];
+  const uniqueIds = realIds(locationIds);
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -233,9 +411,8 @@ const batchFetchBinLocations = async (locationIds) => {
 
 const batchFetchBatchData = async (materialIds, plantId) => {
   if (!materialIds || materialIds.length === 0) return new Map();
-  const uniqueIds = [
-    ...new Set(materialIds.filter((id) => id && id !== "undefined")),
-  ];
+  if (!isRealId(plantId)) return new Map();
+  const uniqueIds = realIds(materialIds);
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -276,9 +453,8 @@ const batchFetchBatchData = async (materialIds, plantId) => {
 // 🔧 NEW: Batch fetch pending reserved data for all SO line items
 const batchFetchPendingReserved = async (soLineItemIds, plantId) => {
   if (!soLineItemIds || soLineItemIds.length === 0) return new Map();
-  const uniqueIds = [
-    ...new Set(soLineItemIds.filter((id) => id && id !== "undefined")),
-  ];
+  if (!isRealId(plantId)) return new Map();
+  const uniqueIds = realIds(soLineItemIds);
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -346,26 +522,6 @@ const getBaseQty = (itemData, uom) => {
   return uomConversion && uomConversion.base_qty ? uomConversion.base_qty : 1;
 };
 
-// Find the packing detail row for a UOM. An item may define several packing rows
-// per uom_id, so when a packing UOM is supplied match on the (uom_id,
-// packing_uom_id) pair, which is unique. Otherwise fall back to the first row.
-const getPackingDetail = (table_packing_detail, uom, packingUom) => {
-  if (!Array.isArray(table_packing_detail) || !uom) {
-    return null;
-  }
-
-  const rows = table_packing_detail.filter((conv) => conv.uom_id === uom);
-  if (rows.length === 0) {
-    return null;
-  }
-
-  if (packingUom) {
-    return rows.find((conv) => conv.packing_uom_id === packingUom) || null;
-  }
-
-  return rows[0];
-};
-
 // ============================================================================
 // OPTIMIZED MAIN INVENTORY CHECK FUNCTION
 // ============================================================================
@@ -400,15 +556,13 @@ const checkInventoryWithDuplicates = async (
   // ========================================================================
   // STEP 1: Batch fetch ALL data upfront (replaces 100s of individual queries)
   // ========================================================================
-  const materialIds = Object.keys(materialGroups).filter(
-    (id) => id !== "undefined",
-  );
+  const materialIds = Object.keys(materialGroups).filter(isRealId);
 
   // Collect all SO line item IDs for pending reserved fetch
   const allSoLineItemIds = [];
   Object.values(materialGroups).forEach((items) => {
     items.forEach((item) => {
-      if (item.so_line_item_id) {
+      if (isRealId(item.so_line_item_id)) {
         allSoLineItemIds.push(item.so_line_item_id);
       }
     });
@@ -493,14 +647,35 @@ const checkInventoryWithDuplicates = async (
   // STEP 3: Process each material and build table data in memory
   // ========================================================================
   const tableGdArray = this.getValue("table_gd") || [];
+
+  // An item under a bundle is a row of the tree, not of the array, so the walk
+  // below runs over a flat view and rowRefs remembers where each row came from.
+  const { flat: flatRows, refs: rowRefs } = flattenForAllocation(tableGdArray);
+
+  // A row is addressed by where it sits: the platform resolves
+  // `table_gd.<fm_key>.<field>` to that row wherever it is, which is the only
+  // way to reach an item under a bundle without threading through its parent's
+  // position. Position is the fallback for a row with no key yet.
+  const pathOf = (index) => {
+    const row = flatRows[index];
+    if (row && row.fm_key) return `table_gd.${row.fm_key}`;
+
+    const ref = rowRefs[index];
+    if (!ref) return `table_gd.${index}`;
+    return ref.child === null
+      ? `table_gd.${ref.parent}`
+      : `table_gd.${ref.parent}.children.${ref.child}`;
+  };
+
   const fieldsToDisable = [];
   const fieldsToEnable = [];
 
   for (const [materialId, items] of Object.entries(materialGroups)) {
     console.log("Processing materialID:", materialId);
 
-    // Handle undefined material IDs
-    if (materialId === "undefined") {
+    // Handle undefined material IDs -- and a bundle row, which holds no
+    // material of its own and reaches here as the string "null" or "".
+    if (!isRealId(materialId)) {
       console.log(`Skipping item with null materialId`);
       items.forEach((item) => {
         const index = item.originalIndex;
@@ -510,8 +685,8 @@ const checkInventoryWithDuplicates = async (
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
         const suggestedQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
 
-        tableGdArray[index] = {
-          ...tableGdArray[index],
+        flatRows[index] = {
+          ...flatRows[index],
           material_id: "",
           material_name: item.itemName || "",
           gd_material_desc: item.itemDesc || "",
@@ -532,10 +707,11 @@ const checkInventoryWithDuplicates = async (
           item_costing_method: "",
           gd_qty: suggestedQty,
           base_qty: suggestedQty, // no item data → no UOM conversion possible
+          further_description: item.further_description || "",
         };
 
-        fieldsToDisable.push(`table_gd.${index}.gd_delivery_qty`);
-        fieldsToEnable.push(`table_gd.${index}.gd_qty`);
+        fieldsToDisable.push(`${pathOf(index)}.gd_delivery_qty`);
+        fieldsToEnable.push(`${pathOf(index)}.gd_qty`);
       });
       continue;
     }
@@ -558,8 +734,8 @@ const checkInventoryWithDuplicates = async (
         const undeliveredQty = roundQty(orderedQty - deliveredQty);
         const suggestedQty = roundQty(Math.max(0, undeliveredQty - plannedQty));
 
-        tableGdArray[index] = {
-          ...tableGdArray[index],
+        flatRows[index] = {
+          ...flatRows[index],
           material_id: materialId,
           material_name: item.itemName,
           gd_material_desc: item.itemDesc || "",
@@ -583,16 +759,17 @@ const checkInventoryWithDuplicates = async (
             convertToBaseUOM(suggestedQty, item.altUOM, itemData),
           ),
           gd_undelivered_qty: 0,
+          further_description: item.further_description || "",
         };
 
         if (suggestedQty <= 0) {
           fieldsToDisable.push(
-            `table_gd.${index}.gd_qty`,
-            `table_gd.${index}.gd_delivery_qty`,
+            `${pathOf(index)}.gd_qty`,
+            `${pathOf(index)}.gd_delivery_qty`,
           );
         } else {
-          fieldsToDisable.push(`table_gd.${index}.gd_delivery_qty`);
-          fieldsToEnable.push(`table_gd.${index}.gd_qty`);
+          fieldsToDisable.push(`${pathOf(index)}.gd_delivery_qty`);
+          fieldsToEnable.push(`${pathOf(index)}.gd_qty`);
         }
       });
       continue;
@@ -675,8 +852,8 @@ const checkInventoryWithDuplicates = async (
     const materialHasHU = huMaterialSet.has(materialId);
     if (balanceData.length === 1 && !materialHasHU) {
       items.forEach((item) => {
-        fieldsToDisable.push(`table_gd.${item.originalIndex}.gd_delivery_qty`);
-        fieldsToEnable.push(`table_gd.${item.originalIndex}.gd_qty`);
+        fieldsToDisable.push(`${pathOf(item.originalIndex)}.gd_delivery_qty`);
+        fieldsToEnable.push(`${pathOf(item.originalIndex)}.gd_qty`);
       });
     }
 
@@ -704,8 +881,8 @@ const checkInventoryWithDuplicates = async (
 
       // Set basic item data
       const index = item.originalIndex;
-      tableGdArray[index] = {
-        ...tableGdArray[index],
+      flatRows[index] = {
+        ...flatRows[index],
         material_id: materialId,
         material_name: item.itemName,
         gd_material_desc: item.itemDesc || "",
@@ -724,6 +901,7 @@ const checkInventoryWithDuplicates = async (
         unit_price: item.unitPrice || 0,
         total_price: item.soAmount || 0,
         item_costing_method: itemData.material_costing_method,
+        further_description: item.further_description || "",
       };
     });
 
@@ -792,8 +970,8 @@ const checkInventoryWithDuplicates = async (
           });
 
           // Update table array with base UOM
-          tableGdArray[index] = {
-            ...tableGdArray[index],
+          flatRows[index] = {
+            ...flatRows[index],
             gd_order_quantity: orderedQtyBase,
             gd_delivered_qty: deliveredQtyBase,
             gd_initial_delivered_qty: deliveredQtyBase,
@@ -802,8 +980,8 @@ const checkInventoryWithDuplicates = async (
           };
 
           // Insufficient stock - don't fill gd_qty
-          tableGdArray[index].gd_qty = 0;
-          tableGdArray[index].base_qty = 0;
+          flatRows[index].gd_qty = 0;
+          flatRows[index].base_qty = 0;
         });
       } else {
         // Non-serialized items
@@ -863,8 +1041,8 @@ const checkInventoryWithDuplicates = async (
           });
 
           // Insufficient stock - don't fill gd_qty
-          tableGdArray[index].gd_qty = 0;
-          tableGdArray[index].base_qty = 0;
+          flatRows[index].gd_qty = 0;
+          flatRows[index].base_qty = 0;
         });
       }
 
@@ -892,11 +1070,11 @@ const checkInventoryWithDuplicates = async (
 
         if (finalQty <= 0) {
           fieldsToDisable.push(
-            `table_gd.${index}.gd_qty`,
-            `table_gd.${index}.gd_delivery_qty`,
+            `${pathOf(index)}.gd_qty`,
+            `${pathOf(index)}.gd_delivery_qty`,
           );
-          tableGdArray[index].gd_qty = 0;
-          tableGdArray[index].base_qty = 0;
+          flatRows[index].gd_qty = 0;
+          flatRows[index].base_qty = 0;
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
@@ -910,8 +1088,8 @@ const checkInventoryWithDuplicates = async (
               convertToBaseUOM(finalQty, item.altUOM, itemData),
             );
 
-            tableGdArray[index] = {
-              ...tableGdArray[index],
+            flatRows[index] = {
+              ...flatRows[index],
               gd_order_quantity: orderedQtyBase,
               gd_delivered_qty: deliveredQtyBase,
               gd_initial_delivered_qty: deliveredQtyBase,
@@ -921,27 +1099,22 @@ const checkInventoryWithDuplicates = async (
 
             // Sufficient stock - fill gd_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
-              tableGdArray[index].gd_qty =
+              flatRows[index].gd_qty =
                 balanceData.length === 1 ? finalQtyBase : 0;
             } else {
-              tableGdArray[index].gd_qty = finalQtyBase;
+              flatRows[index].gd_qty = finalQtyBase;
             }
             // Serialized: gd_qty already in base UOM
-            tableGdArray[index].base_qty = tableGdArray[index].gd_qty;
+            flatRows[index].base_qty = flatRows[index].gd_qty;
           } else {
             // Non-serialized - fill gd_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
-              tableGdArray[index].gd_qty =
-                balanceData.length === 1 ? finalQty : 0;
+              flatRows[index].gd_qty = balanceData.length === 1 ? finalQty : 0;
             } else {
-              tableGdArray[index].gd_qty = finalQty;
+              flatRows[index].gd_qty = finalQty;
             }
-            tableGdArray[index].base_qty = roundQty(
-              convertToBaseUOM(
-                tableGdArray[index].gd_qty,
-                item.altUOM,
-                itemData,
-              ),
+            flatRows[index].base_qty = roundQty(
+              convertToBaseUOM(flatRows[index].gd_qty, item.altUOM, itemData),
             );
           }
         }
@@ -957,42 +1130,33 @@ const checkInventoryWithDuplicates = async (
   for (const items of Object.values(materialGroups)) {
     for (const item of items) {
       const index = item.originalIndex;
-      const row = tableGdArray[index];
+      const row = flatRows[index];
       if (!row) continue;
 
       const rowItemData = itemDataMap.get(row.material_id);
       const uom = row.good_delivery_uom_id;
       const qty = parseFloat(row.gd_qty) || 0;
 
-      // packing_uom is taken from the SO line (the user can choose it there, and
-      // an item may define several packing rows for the same uom_id). Fall back
-      // to first-match on the item when the source line carries none (older SOs
-      // / other flows) or when its choice does not exist for this GD's UOM,
-      // which happens when the GD delivers in a different UOM.
-      const tpd = rowItemData?.table_packing_detail;
-      const soPackingUom = item.sourceItem?.packing_uom ?? item.packing_uom;
       const packingDetail =
-        getPackingDetail(tpd, uom, soPackingUom || undefined) ||
-        getPackingDetail(tpd, uom);
+        (rowItemData?.table_packing_detail || []).find(
+          (p) => p.uom_id === uom,
+        ) || null;
       const packingConversion = packingDetail?.quantity || 1;
 
-      // weight_conversion is the weight of ONE unit in the line's UOM, so the SO
-      // line's value (which the user can manually edit there) only carries over
-      // while the GD delivers in the SO's UOM - serialized items switch to base
-      // UOM above. Otherwise derive it from the item, whose net_weight is the
-      // weight of one base UOM unit.
+      // weight_conversion is taken from the SO line (the user can manually edit
+      // it there); fall back to deriving it from the item only when the source
+      // line does not carry a value (older SOs / other flows).
       const baseQty = getBaseQty(rowItemData, uom);
       const soWeightConversion =
         item.sourceItem?.weight_conversion ?? item.weight_conversion;
       const weightConversion =
-        String(item.altUOM || "") === String(uom || "") &&
         soWeightConversion !== undefined &&
         soWeightConversion !== null &&
         soWeightConversion !== ""
           ? Number(soWeightConversion)
           : roundQty((Number(rowItemData?.net_weight) || 0) * baseQty);
 
-      tableGdArray[index] = {
+      flatRows[index] = {
         ...row,
         packing_uom: packingDetail?.packing_uom_id || "",
         packing_conversion: packingConversion,
@@ -1010,7 +1174,7 @@ const checkInventoryWithDuplicates = async (
     "🚀 OPTIMIZATION: Applying all updates in single setData call...",
   );
   await this.setData({
-    table_gd: tableGdArray,
+    table_gd: rebuildTree(tableGdArray, flatRows, rowRefs),
     split_policy: pickingSetup.splitPolicy || "ALLOW_SPLIT",
   });
 
@@ -1063,7 +1227,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   for (const item of allItems) {
     let itemData = null;
-    if (item.itemId) {
+    if (isRealId(item.itemId)) {
       try {
         const res = await db
           .collection("Item")
@@ -1115,6 +1279,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
         base_uom_id: itemData.based_uom,
         custom_fields: item.custom_fields || {},
         tariff_id: item.tariff_id,
+        further_description: item.further_description || "",
+        item_bundle_id: item.item_bundle_id || "",
       });
     } else {
       processedItems.push({
@@ -1145,11 +1311,37 @@ const createTableGdWithBaseUOM = async (allItems) => {
         item_category_id: item.item_category_id,
         custom_fields: item.custom_fields || {},
         tariff_id: item.tariff_id,
+        further_description: item.further_description || "",
+        item_bundle_id: item.item_bundle_id || "",
       });
     }
   }
 
-  return processedItems;
+  // A bundle's items go under their bundle row, so the delivery carries the
+  // same shape the order does. orderByBundle has already put each item straight
+  // after its bundle, so one pass over the rows is enough.
+  const tree = [];
+  const rowByLine = new Map();
+
+  processedItems.forEach((row, index) => {
+    const source = allItems[index] || {};
+    const parentRow = source.parentSoLineId
+      ? rowByLine.get(String(source.parentSoLineId))
+      : null;
+
+    if (parentRow) {
+      if (!Array.isArray(parentRow.children)) parentRow.children = [];
+      parentRow.children.push(row);
+    } else {
+      tree.push(row);
+    }
+
+    if (isRealId(source.so_line_item_id)) {
+      rowByLine.set(String(source.so_line_item_id), row);
+    }
+  });
+
+  return tree;
 };
 
 (async () => {
@@ -1192,14 +1384,16 @@ const createTableGdWithBaseUOM = async (allItems) => {
     false,
   );
 
-  const pickingSetupResponse = await db
-    .collection("picking_setup")
-    .where({
-      plant_id: plant,
-      picking_after: "Goods Delivery",
-      picking_required: 1,
-    })
-    .get();
+  const pickingSetupResponse = isRealId(plant)
+    ? await db
+        .collection("picking_setup")
+        .where({
+          plant_id: plant,
+          picking_after: "Goods Delivery",
+          picking_required: 1,
+        })
+        .get()
+    : { data: [] };
 
   if (pickingSetupResponse.data.length > 0) {
     this.display("assigned_to");
@@ -1222,8 +1416,17 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   allItems = allItems.map((item) => ({
     ...item,
-    altUOM: item.altUOM.toString(),
+    altUOM: item.altUOM == null ? "" : item.altUOM.toString(),
   }));
+
+  // Resolve the bundles before anything is built off the lines: the order they
+  // come out in is both the order the tree is written in and the order the
+  // allocation walks it, and those two have to agree.
+  const soBundleLinks = await fetchSoBundleLinks(
+    allItems,
+    this.getValue("organization_id"),
+  );
+  allItems = orderByBundle(allItems, soBundleLinks);
 
   console.log("new all item", allItems);
   let newTableGd = await createTableGdWithBaseUOM(allItems);
@@ -1235,6 +1438,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
       table_insufficient: [], // Will be populated by checkInventoryWithDuplicates
     },
   }).then(() => {
+    this.getComponent("table_gd").hideChildRecord();
     this.hideLoading();
   });
 

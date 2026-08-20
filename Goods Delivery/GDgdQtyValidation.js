@@ -1,16 +1,33 @@
+// A subform row is identified by its fm_key, not by where it sits, and an item
+// under an item bundle is not a row of table_gd at all -- it sits under its
+// parent, so no position in that array reaches it. rule.field already carries
+// whatever token addresses this row, so the row is read back through it rather
+// than by indexing the array.
 const data = this.getValues();
 const fieldParts = rule.field.split(".");
 const index = fieldParts[1];
+const rowPath = fieldParts.slice(0, 2).join(".");
+const readRow = (field) => this.getValue(`${rowPath}.${field}`);
+
+// Every line of the document -- top-level rows and the items under a bundle. A
+// material delivered both on a line of its own and inside a bundle has to count
+// once for each, or the stock checks below under-count what is being asked for.
+const allRows = (data.table_gd || []).flatMap((row) => [
+  row,
+  ...(Array.isArray(row.children) ? row.children : []),
+]);
+
 const gdStatus = data.gd_status;
 const isSelectPicking = data.is_select_picking;
-const order_quantity = parseFloat(data.table_gd[index].gd_order_quantity || 0);
+const order_quantity = parseFloat(readRow("gd_order_quantity") || 0);
 const gd_initial_delivered_qty = parseFloat(
-  data.table_gd[index].gd_initial_delivered_qty || 0,
+  readRow("gd_initial_delivered_qty") || 0,
 );
 const gdUndeliveredQty = order_quantity - gd_initial_delivered_qty;
 const quantity = value;
-const materialId = data.table_gd[index].material_id;
-const currentUOM = data.table_gd[index].gd_order_uom_id;
+const materialId = readRow("material_id");
+const currentUOM = readRow("gd_order_uom_id");
+const soLineItemId = readRow("so_line_item_id");
 
 // Create or use a global validation state
 if (!window.validationState) {
@@ -18,7 +35,7 @@ if (!window.validationState) {
 }
 
 if (Object.keys(window.validationState).length === 0) {
-  const rowCount = data.table_gd.length;
+  const rowCount = allRows.length;
   for (let i = 0; i < rowCount; i++) {
     window.validationState[i] = true;
   }
@@ -26,9 +43,9 @@ if (Object.keys(window.validationState).length === 0) {
 
 // Calculate total quantity for this material across all rows
 let currentItemQtyTotal = 0;
-for (let i = 0; i < data.table_gd.length; i++) {
-  if (materialId === data.table_gd[i].material_id) {
-    currentItemQtyTotal += parseFloat(data.table_gd[i].gd_qty || 0);
+for (let i = 0; i < allRows.length; i++) {
+  if (materialId === allRows[i].material_id) {
+    currentItemQtyTotal += parseFloat(allRows[i].gd_qty || 0);
   }
 }
 
@@ -81,21 +98,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
     // Convert quantities to base UOM for validation
     const quantityBase = convertToBaseUOM(quantity, currentUOM, itemData);
-    // Sum each row's qty in BASE UOM. Rows for the same material can use
-    // different order UOMs (e.g. one line in base PCS, another in alt UNIT),
-    // so convert per-row with that row's own gd_order_uom_id instead of summing
-    // raw then applying the current row's factor — otherwise a base-UOM row
-    // gets inflated by the alt factor (e.g. 10 PCS + 5 UNIT read as 155 not 65).
-    let currentItemQtyTotalBase = 0;
-    for (let i = 0; i < data.table_gd.length; i++) {
-      if (materialId === data.table_gd[i].material_id) {
-        currentItemQtyTotalBase += convertToBaseUOM(
-          parseFloat(data.table_gd[i].gd_qty || 0),
-          data.table_gd[i].gd_order_uom_id,
-          itemData,
-        );
-      }
-    }
+    const currentItemQtyTotalBase = allRows.reduce((s, r) => materialId === r.material_id ? s + convertToBaseUOM(parseFloat(r.gd_qty || 0), r.gd_order_uom_id, itemData) : s, 0);
     const orderQtyBase = convertToBaseUOM(order_quantity, currentUOM, itemData);
     const initialDeliveredQtyBase = convertToBaseUOM(
       gd_initial_delivered_qty,
@@ -120,14 +123,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
       // Still check order limits (use base quantities)
       const orderLimitBase =
-        orderQtyBase *
-          (1 +
-            ((
-              (itemData.table_uom_conversion || []).find(
-                (c) => c.alt_uom_id === currentUOM,
-              ) || {}
-            ).over_delivery_tolerance || 0) /
-              100) -
+        orderQtyBase * (1 + (((itemData.table_uom_conversion || []).find((c) => c.alt_uom_id === currentUOM) || {}).over_delivery_tolerance || 0) / 100) -
         initialDeliveredQtyBase;
 
       if (quantityBase > orderLimitBase) {
@@ -150,14 +146,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
     // Calculate order limit with tolerance (use base quantities)
     const orderLimitBase =
-      orderQtyBase *
-        (1 +
-          ((
-            (itemData.table_uom_conversion || []).find(
-              (c) => c.alt_uom_id === currentUOM,
-            ) || {}
-          ).over_delivery_tolerance || 0) /
-            100) -
+      orderQtyBase * (1 + (((itemData.table_uom_conversion || []).find((c) => c.alt_uom_id === currentUOM) || {}).over_delivery_tolerance || 0) / 100) -
       initialDeliveredQtyBase;
 
     // Check order limit first (business rule validation)
@@ -172,7 +161,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
     if (isSelectPicking === 1) {
       console.log(`GDPP mode validation for item ${materialId}`);
 
-      const tempQtyData = data.table_gd[index].temp_qty_data;
+      const tempQtyData = readRow("temp_qty_data");
 
       if (!tempQtyData || tempQtyData === "[]" || tempQtyData.trim() === "") {
         console.warn(`Row ${index}: No temp_qty_data from PP`);
@@ -228,15 +217,22 @@ for (let i = 0; i < data.table_gd.length; i++) {
         .where({ id: data.id })
         .get();
 
-      if (!resGD?.data?.[0]?.table_gd?.[index]?.temp_qty_data) {
+      // Matched by sales order line rather than by position: the stored delivery
+      // is a tree, and an item under a bundle has no position in table_gd.
+      const storedRows = (resGD?.data?.[0]?.table_gd || []).flatMap((row) => [
+        row,
+        ...(Array.isArray(row.children) ? row.children : []),
+      ]);
+      const storedRow =
+        storedRows.find((row) => row.so_line_item_id === soLineItemId) || null;
+
+      if (!storedRow?.temp_qty_data) {
         window.validationState[index] = true;
         callback();
         return;
       }
 
-      const prevTempData = JSON.parse(
-        resGD.data[0].table_gd[index].temp_qty_data,
-      );
+      const prevTempData = JSON.parse(storedRow.temp_qty_data);
 
       if (prevTempData.length >= 1) {
         // For Created GD, sum up all available quantities from temp data
@@ -244,7 +240,7 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
         prevTempData.forEach((tempItem) => {
           // temp_qty_data is already in goodDeliveryUOM, convert to base for validation
-          const gdUOM = data.table_gd[index].gd_order_uom_id;
+          const gdUOM = currentUOM;
           const unrestricted_qty_base = convertToBaseUOM(
             parseFloat(tempItem.unrestricted_qty || 0),
             gdUOM,
@@ -276,7 +272,6 @@ for (let i = 0; i < data.table_gd.length; i++) {
 
       // 🔧 NEW: Fetch pending reserved data for this SO line item
       // Reserved stock for this SO should be counted as available
-      const soLineItemId = data.table_gd[index].so_line_item_id;
       let pendingReservedQty = 0;
 
       if (soLineItemId) {
@@ -291,18 +286,12 @@ for (let i = 0; i < data.table_gd.length; i++) {
           .get();
 
         if (pendingReservedRes?.data?.length > 0) {
-          pendingReservedQty = pendingReservedRes.data.reduce(
-            (total, reserved) => {
-              return total + parseFloat(reserved.open_qty || 0);
-            },
-            0,
-          );
+          pendingReservedQty = pendingReservedRes.data.reduce((total, reserved) => {
+            return total + parseFloat(reserved.open_qty || 0);
+          }, 0);
         }
 
-        console.log(
-          `Pending reserved qty for SO line ${soLineItemId}:`,
-          pendingReservedQty,
-        );
+        console.log(`Pending reserved qty for SO line ${soLineItemId}:`, pendingReservedQty);
       }
 
       if (isSerializedItem) {

@@ -431,6 +431,24 @@ const displayPlanQty = async (data) => {
   }
 };
 
+// Only tenant 128671 mirrors its delivery orders to the external system, so it is
+// the only one that gets the created-and-post button, and posting is pointless
+// once the delivery is Completed. Mirrors the display condition:
+//   tenantId === '128671' && (!gd_status || gd_status !== 'Completed')
+// An empty status (Add mode) passes the second half.
+const DO_SYNC_TENANT_ID = "128671";
+
+const displayCreatedPostButton = (status) => {
+  const tenantId = this.getVarSystem("tenantId");
+  console.log("Created post button — tenant:", tenantId, "status:", status);
+
+  if (tenantId === DO_SYNC_TENANT_ID && status !== "Completed") {
+    this.display(["button_created_post"]);
+  } else {
+    this.hide(["button_created_post"]);
+  }
+};
+
 const displayPickedFieldsIfFullPicking = async (organizationId) => {
   if (!organizationId) return;
   try {
@@ -491,7 +509,7 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
           console.log("all item mounted json", allItems);
           allItems = allItems.map((item) => ({
             ...item,
-            altUOM: item.altUOM.toString(),
+            altUOM: item.altUOM == null ? "" : item.altUOM.toString(),
           }));
           console.log("all item mounted convert", allItems);
           await this.triggerEvent("func_processGDLineItem", {
@@ -509,6 +527,7 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
           gd_status !== "Completed" &&
           gd_status !== "Created"
         ) {
+          this.getComponent("table_gd").hideChildRecord();
           let allItem = this.getValue("all_item");
           if (allItem !== "") {
             console.log("all item mounted", allItem);
@@ -516,7 +535,7 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
             console.log("all item mounted json", allItem);
             allItem = allItem.map((item) => ({
               ...item,
-              altUOM: item.altUOM.toString(),
+              altUOM: item.altUOM == null ? "" : item.altUOM.toString(),
             }));
             console.log("all item mounted convert", allItem);
             await this.triggerEvent("func_processGDLineItem", {
@@ -564,6 +583,10 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
         this.display(["so_no"]);
         break;
     }
+
+    // Runs after the mode branches so the tenant/status filter is the last word
+    // on this button in every page mode.
+    displayCreatedPostButton(status);
   } catch (error) {
     console.error(error);
     this.$message.error(error.message || "An error occurred");

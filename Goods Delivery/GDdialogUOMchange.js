@@ -1,3 +1,24 @@
+// The dialog carries the fm_key of the row it was opened on. A subform row is
+// identified by its key, not by where it sits, so the row is found by walking
+// the tree -- an item under an item bundle is not a row of table_gd at all, it
+// sits under its parent's children and no index can reach it.
+//
+// The trailing lookup by position is only for a row the platform has not given
+// a key to yet; a keyed row never reaches it.
+const resolveRow = (rows, key) => {
+  for (const row of rows || []) {
+    if (row && String(row.fm_key) === String(key)) return row;
+
+    const children = Array.isArray(row && row.children) ? row.children : [];
+
+    for (const child of children) {
+      if (child && String(child.fm_key) === String(key)) return child;
+    }
+  }
+
+  return (rows || [])[key] || null;
+};
+
 (async () => {
   const fetchItemData = async (itemId) => {
     const itemData = await db.collection("Item").where({ id: itemId }).get();
@@ -7,13 +28,14 @@
   const allData = this.getValues();
 
   const selectedUOM = arguments[0].value;
-  const rowIndex = allData.gd_item_balance.row_index;
+  const rowKey = allData.gd_item_balance.row_index;
+  const targetRow = resolveRow(allData.table_gd, rowKey) || {};
 
   console.log("DEBUG - UOM Change:");
   console.log("selectedUOM:", selectedUOM);
 
-  const goodDeliveryUOM = allData.table_gd[rowIndex].gd_order_uom_id;
-  const itemId = allData.table_gd[rowIndex].material_id;
+  const goodDeliveryUOM = targetRow.gd_order_uom_id;
+  const itemId = targetRow.material_id;
   const itemData = await fetchItemData(itemId);
   const tableUOMConversion = itemData.table_uom_conversion;
   const tableItemBalance = allData.gd_item_balance.table_item_balance;

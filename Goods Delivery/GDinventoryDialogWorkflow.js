@@ -5,9 +5,36 @@
     const data = this.getValues();
     const lineItemData = arguments[0]?.row;
     const rowIndex = arguments[0]?.rowIndex;
+    // A subform row is identified by its fm_key, not by where it sits. The
+    // dialog carries that key so it can find the row again -- an item under an
+    // item bundle is not a row of table_gd at all and no index reaches it.
+    const rowKey = arguments[0]?.row?.fm_key ?? rowIndex;
+
+    // The line the dialog was opened on, excluded from the sweeps over the
+    // other lines below. Matched by key where the platform has given one, by
+    // position otherwise -- and an item under a bundle matches nothing here,
+    // which is right: it is not one of these rows.
+    const isCurrentLine = (line, idx) =>
+      line && line.fm_key != null
+        ? String(line.fm_key) === String(rowKey)
+        : idx === rowIndex;
 
     if (!lineItemData) {
       console.error("Missing line item data");
+      this.hideLoading();
+      return;
+    }
+
+    // A bundle row is not an item: it has no material, holds no stock and
+    // nothing is picked against it directly -- its items are the rows stock is
+    // selected for. Every lookup below is keyed on the material, so letting a
+    // bundle row through sends an empty id to the server and comes back as a
+    // type conversion error. Its quantity is set on the row itself.
+    if (lineItemData.item_bundle_id && !lineItemData.material_id) {
+      console.log(
+        "item bundle row: no stock to select against it",
+        lineItemData.item_bundle_id,
+      );
       this.hideLoading();
       return;
     }
@@ -947,7 +974,7 @@
     const existingAllocationData = [];
     if (data.table_gd) {
       data.table_gd.forEach((line, idx) => {
-        if (idx === rowIndex) return;
+        if (isCurrentLine(line, idx)) return;
         if (line.material_id !== materialId) return;
 
         const tempData = line.temp_qty_data;
@@ -987,7 +1014,7 @@
     this.setData({
       [`gd_item_balance.material_code`]: itemData.material_code,
       [`gd_item_balance.material_name`]: itemData.material_name,
-      [`gd_item_balance.row_index`]: rowIndex,
+      [`gd_item_balance.row_index`]: rowKey,
       [`gd_item_balance.material_uom`]: altUOM,
     });
 
@@ -1122,7 +1149,7 @@
     if (splitPolicy !== "ALLOW_SPLIT") {
       const tableGd = data.table_gd || [];
       tableGd.forEach((line, idx) => {
-        if (idx === rowIndex) return;
+        if (isCurrentLine(line, idx)) return;
         if (line.temp_hu_data && line.temp_hu_data !== "[]") {
           try {
             const lineHuData = JSON.parse(line.temp_hu_data);
@@ -1140,7 +1167,7 @@
     const otherLinesHuAllocations = [];
     if (data.table_gd) {
       data.table_gd.forEach((line, idx) => {
-        if (idx === rowIndex) return;
+        if (isCurrentLine(line, idx)) return;
         if (line.material_id !== materialId) return;
 
         const huStr = line.temp_hu_data;

@@ -1,3 +1,24 @@
+// The dialog carries the fm_key of the row it was opened on. A subform row is
+// identified by its key, not by where it sits, so the row is found by walking
+// the tree -- an item under an item bundle is not a row of table_gd at all, it
+// sits under its parent's children and no index can reach it.
+//
+// The trailing lookup by position is only for a row the platform has not given
+// a key to yet; a keyed row never reaches it.
+const resolveRow = (rows, key) => {
+  for (const row of rows || []) {
+    if (row && String(row.fm_key) === String(key)) return row;
+
+    const children = Array.isArray(row && row.children) ? row.children : [];
+
+    for (const child of children) {
+      if (child && String(child.fm_key) === String(key)) return child;
+    }
+  }
+
+  return (rows || [])[key] || null;
+};
+
 (async () => {
   // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
   const roundQty = (value) =>
@@ -6,10 +27,11 @@
   const data = this.getValues();
   const temporaryData = data.gd_item_balance.table_item_balance;
   const huData = data.gd_item_balance.table_hu || [];
-  const rowIndex = data.gd_item_balance.row_index;
+  const rowKey = data.gd_item_balance.row_index;
+  const targetRow = resolveRow(data.table_gd, rowKey) || {};
   const selectedUOM = data.gd_item_balance.material_uom;
-  const materialId = data.table_gd[rowIndex].material_id;
-  const goodDeliveryUOM = data.table_gd[rowIndex].gd_order_uom_id;
+  const materialId = targetRow.material_id;
+  const goodDeliveryUOM = targetRow.gd_order_uom_id;
   const isSelectPicking = data.is_select_picking;
   const splitPolicy = data.split_policy || "ALLOW_SPLIT";
 
@@ -107,10 +129,10 @@
   };
 
   const rawOrderQty = parseFloat(
-    data.table_gd[rowIndex].gd_order_quantity || 0,
+    targetRow.gd_order_quantity || 0,
   );
   const rawInitialDeliveredQty = parseFloat(
-    data.table_gd[rowIndex].gd_initial_delivered_qty || 0,
+    targetRow.gd_initial_delivered_qty || 0,
   );
   const gd_order_quantity = convertGdToDialogUOM(rawOrderQty);
   const initialDeliveredQty = convertGdToDialogUOM(rawInitialDeliveredQty);
@@ -172,7 +194,7 @@
   console.log("Total delivered quantity:", totalDeliveredQty);
 
   // Get SO line item ID for pending reserved check
-  const soLineItemId = data.table_gd[rowIndex].so_line_item_id;
+  const soLineItemId = targetRow.so_line_item_id;
 
   // Check each row for validation
   for (let idx = 0; idx < temporaryData.length; idx++) {
@@ -420,6 +442,41 @@
   );
   console.log("Filtered data (excluding gd_quantity <= 0):", filteredData);
 
+  // An item bundle is delivered whole or not at all. Every item under a bundle
+  // carries the quantity the bundle row fixed for it, so picking less than the
+  // line asks for would leave the bundle half delivered -- and picking more
+  // would break the ratio the other items are held to. To deliver fewer
+  // bundles, the quantity on the bundle row is what moves; that respreads every
+  // item under it.
+  //
+  // filteredData is already back in the line's own UOM by here, and the HU
+  // quantities are summed the same way the confirmed gd_qty is worked out
+  // further down, so the two sides of this comparison are in the same unit.
+  if (targetRow.item_bundle_id && targetRow.material_id) {
+    const requiredQty = roundQty(targetRow.gd_qty);
+    const pickedQty = roundQty(
+      filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0) +
+        filteredHuData.reduce(
+          (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
+          0,
+        ),
+    );
+
+    if (pickedQty !== requiredQty) {
+      console.log("Validation failed: item bundle must be picked in full", {
+        item_bundle_id: targetRow.item_bundle_id,
+        required: requiredQty,
+        picked: pickedQty,
+      });
+      alert(
+        `This item is part of an item bundle and must be delivered in full. ` +
+          `Line quantity ${requiredQty} ${gdUOM}, selected ${pickedQty} ${gdUOM}. ` +
+          `To deliver less, reduce the quantity on the item bundle row.`,
+      );
+      return;
+    }
+  }
+
   const formatFilteredData = async (filteredData) => {
     // Get unique location IDs
     const locationIds = [
@@ -628,7 +685,7 @@
   const tempExcessData = [];
 
   if (splitPolicy !== "ALLOW_SPLIT") {
-    const gdQty = parseFloat(data.table_gd[rowIndex].gd_qty || 0);
+    const gdQty = parseFloat(targetRow.gd_qty || 0);
 
     // 1. Over-pick excess: current material picked more than GD line needs
     const currentMaterialHuTotal = roundQty(
@@ -687,7 +744,7 @@
     // Build map: material_id -> [{ lineIndex, remainingNeed }]
     const gdMaterialMap = {};
     tableGd.forEach((line, idx) => {
-      if (idx === rowIndex) return; // skip current line
+      if (line === targetRow) return; // skip current line
       if (!line.material_id) return;
 
       // Calculate how much this line still needs
@@ -823,18 +880,18 @@
   }
 
   this.setData({
-    [`table_gd.${rowIndex}.temp_qty_data`]: textareaContent,
-    [`table_gd.${rowIndex}.temp_hu_data`]: JSON.stringify(filteredHuData),
-    [`table_gd.${rowIndex}.temp_excess_data`]: JSON.stringify(
+    [`table_gd.${rowKey}.temp_qty_data`]: textareaContent,
+    [`table_gd.${rowKey}.temp_hu_data`]: JSON.stringify(filteredHuData),
+    [`table_gd.${rowKey}.temp_excess_data`]: JSON.stringify(
       tempExcessData || [],
     ),
-    [`table_gd.${rowIndex}.view_stock`]: formattedString,
+    [`table_gd.${rowKey}.view_stock`]: formattedString,
     [`gd_item_balance.table_item_balance`]: [],
     [`gd_item_balance.table_hu`]: [],
   });
 
   console.log("Input data (filtered):", filteredData);
-  console.log("Row index:", rowIndex);
+  console.log("Row key:", rowKey);
 
   // Sum up all gd_quantity values from filtered data + HU deliver quantities
   const totalGdQuantity = roundQty(
@@ -848,22 +905,22 @@
 
   // Get the initial delivered quantity from the table_gd
   const initialDeliveredQty2 =
-    parseFloat(data.table_gd[rowIndex].gd_initial_delivered_qty) || 0;
+    parseFloat(targetRow.gd_initial_delivered_qty) || 0;
   console.log("Initial delivered quantity:", initialDeliveredQty2);
 
   const deliveredQty = roundQty(initialDeliveredQty2 + totalGdQuantity);
   console.log("Final delivered quantity:", deliveredQty);
 
   // Calculate price per item for the current row
-  const totalPrice = parseFloat(data.table_gd[rowIndex].total_price) || 0;
+  const totalPrice = parseFloat(targetRow.total_price) || 0;
   const orderQuantity =
-    parseFloat(data.table_gd[rowIndex].gd_order_quantity) || 0;
+    parseFloat(targetRow.gd_order_quantity) || 0;
 
   let pricePerItem = 0;
   if (orderQuantity > 0) {
     pricePerItem = totalPrice / orderQuantity;
   } else {
-    console.warn("Order quantity is zero or invalid for row", rowIndex);
+    console.warn("Order quantity is zero or invalid for row", rowKey);
   }
 
   const currentRowPrice = pricePerItem * totalGdQuantity;
@@ -874,30 +931,30 @@
   // the line's stored packing_conversion / weight_conversion (seeded on add).
   // The workflow recomputes these authoritatively on save as well.
   const packingConversion =
-    parseFloat(data.table_gd[rowIndex].packing_conversion) || 1;
+    parseFloat(targetRow.packing_conversion) || 1;
   const weightConversion =
-    parseFloat(data.table_gd[rowIndex].weight_conversion) || 0;
+    parseFloat(targetRow.weight_conversion) || 0;
 
   // Store the row-specific data first
   this.setData({
-    [`table_gd.${rowIndex}.gd_delivered_qty`]: deliveredQty,
-    [`table_gd.${rowIndex}.gd_qty`]: totalGdQuantity,
-    [`table_gd.${rowIndex}.base_qty`]: roundQty(
+    [`table_gd.${rowKey}.gd_delivered_qty`]: deliveredQty,
+    [`table_gd.${rowKey}.gd_qty`]: totalGdQuantity,
+    [`table_gd.${rowKey}.base_qty`]: roundQty(
       convertToBaseUOM(totalGdQuantity, goodDeliveryUOM),
     ),
-    [`table_gd.${rowIndex}.gd_price`]: currentRowPrice,
-    [`table_gd.${rowIndex}.price_per_item`]: pricePerItem,
-    [`table_gd.${rowIndex}.packing_qty`]: packingConversion
+    [`table_gd.${rowKey}.gd_price`]: currentRowPrice,
+    [`table_gd.${rowKey}.price_per_item`]: pricePerItem,
+    [`table_gd.${rowKey}.packing_qty`]: packingConversion
       ? roundQty(totalGdQuantity / packingConversion)
       : 0,
-    [`table_gd.${rowIndex}.net_weight`]: roundQty(
+    [`table_gd.${rowKey}.net_weight`]: roundQty(
       totalGdQuantity * weightConversion,
     ),
     error_message: "", // Clear any error message
   });
 
   console.log(
-    `Updated row ${rowIndex} with serialized=${isSerializedItem}, batch=${isBatchManagedItem}`,
+    `Updated row ${rowKey} with serialized=${isSerializedItem}, batch=${isBatchManagedItem}`,
   );
 
   // Recalculate total from all rows
@@ -909,7 +966,7 @@
     const rowTotalPrice = parseFloat(row.total_price) || 0;
 
     let rowGdQty;
-    if (index === rowIndex) {
+    if (row === targetRow) {
       // For the current row being edited, use the new quantity we just calculated
       rowGdQty = totalGdQuantity;
     } else {
