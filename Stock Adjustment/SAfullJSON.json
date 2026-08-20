@@ -5191,20 +5191,7 @@
                     "remoteFunc": "func_zxj3n22a",
                     "remoteOption": "option_zxj3n22a",
                     "tableColumn": false,
-                    "subform": false,
-                    "highFrequencyInput": false,
-                    "highFrequencyTimeField": "",
-                    "highFrequencyDuration": 30,
-                    "highFrequencyMinCount": 20,
-                    "highFrequencyMaxItems": 5,
-                    "highFrequencySortRule": 1,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": "",
-                    "select-card_4c8m22dh": []
+                    "subform": false
                   },
                   "events": {
                     "onChange": "",
@@ -5364,20 +5351,7 @@
                 "remoteOption": "option_xr3lmpwo",
                 "tableColumn": false,
                 "subform": false,
-                "hideLabel": true,
-                "highFrequencyInput": false,
-                "highFrequencyTimeField": "",
-                "highFrequencyDuration": 30,
-                "highFrequencyMinCount": 20,
-                "highFrequencyMaxItems": 5,
-                "highFrequencySortRule": 1,
-                "select-card_n7ge7fmb": [],
-                "left": 3,
-                "right": 4,
-                "pad": "*",
-                "desensitization_pattern": "",
-                "desensitization_replace": "",
-                "select-card_4c8m22dh": []
+                "hideLabel": true
               },
               "events": {
                 "onChange": "",
@@ -5417,13 +5391,7 @@
                 "remoteFunc": "func_adao40gq",
                 "remoteOption": "option_adao40gq",
                 "tableColumn": false,
-                "subform": false,
-                "select-card_n7ge7fmb": [],
-                "left": 3,
-                "right": 4,
-                "pad": "*",
-                "desensitization_pattern": "",
-                "desensitization_replace": ""
+                "subform": false
               },
               "events": {
                 "onClick": "1bu6yqdq"
@@ -5461,13 +5429,7 @@
                 "remoteFunc": "func_o7omiz46",
                 "remoteOption": "option_o7omiz46",
                 "tableColumn": false,
-                "subform": false,
-                "select-card_n7ge7fmb": [],
-                "left": 3,
-                "right": 4,
-                "pad": "*",
-                "desensitization_pattern": "",
-                "desensitization_replace": ""
+                "subform": false
               },
               "events": {
                 "onClick": "38rhq4h8"
@@ -6529,9 +6491,7 @@
                   "showNumber": "",
                   "viewMode": "",
                   "format": "rmb",
-                  "cacheProp": true,
-                  "precision_rule": 1,
-                  "number_rule": ""
+                  "cacheProp": true
                 },
                 "tip": "",
                 "remoteFunc": "func_tu0zllfe",
@@ -7221,7 +7181,6 @@
         "concurrency": 0,
         "remark": ""
       }
-    ],
-    "watchers": []
+    ]
   }
 }
