@@ -7,8 +7,11 @@ PAYLOAD
                                            Customer via tenant_id2. NOT tenant_id -
                                            that is the acting tenant and is ignored.
 
-  reload_type          string   required   "Monthly Subscription" | "Flex"
-                                           Any other value prices as 0 credits.
+  reload_type          string   required   "Monthly Subscription" | "Flex".
+                                           Matched case-insensitively and trimmed.
+                                           "Add On", the former name of "Flex", is
+                                           still accepted and is STORED as "Flex".
+                                           Anything else -> 422.
 
   ai_credit_plan       string   Monthly    AI Credit Plan row id. Sets price AND credits.
 
@@ -47,4 +50,5 @@ ERRORS - all checks run before any write, so a failure leaves no partial record
   404  no Sudu Customer matches tenant_2
   409  Flex reload but no Flex Topup Rate configured
   410  Monthly but the plan is missing, inactive, or has no price / credit amount
+  422  reload_type was sent but is not Flex / Add On / Monthly Subscription
 

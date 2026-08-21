@@ -56,7 +56,7 @@
         "name": "Determine Params",
         "script": {
           "type": "javascript",
-          "code": "const input = {{workflowparams:data}} || {};\n\nconst pageStatus = input.page_status || '';\n\n// tenant_2 is the tenant being topped up - it fetches the Sudu Customer.\n// input.tenant_id is the acting/context tenant, a DIFFERENT value; not used here.\nconst custTenant = input.tenant_2 || '';\n\n// A form call declares mode 'form' AND carries page_status (set in onMounted).\n// A headless caller sends neither, so anything lacking both markers is headless.\nconst isForm = input.mode === 'form' || pageStatus !== '';\nconst isHeadless = isForm ? 'N' : 'Y';\nconst isEdit = (isForm && pageStatus === 'Edit') ? 'Y' : 'N';\n\n\n// The form's Discount (Type) select is constrained to '%' / 'Amount', but a\n// headless caller sends free text. Canonicalise the obvious spellings here - both\n// normalizers read this same input, so downstream only ever sees '', '%' or\n// 'Amount'. Anything unrecognised is rejected rather than guessed: silently\n// pricing 'percent' as an Amount is a money error the caller never sees.\nconst rawUom = input.reload_discount_uom;\nlet discountUom = '';\nlet badUom = false;\n\nif (rawUom !== null && rawUom !== undefined && String(rawUom).trim() !== '') {\n  const normalised = String(rawUom).trim().toLowerCase();\n\n  if (normalised === '%' || normalised === 'percent' || normalised === 'percentage') {\n    discountUom = '%';\n  } else if (normalised === 'amount') {\n    discountUom = 'Amount';\n  } else {\n    badUom = true;\n  }\n}\n\ninput.reload_discount_uom = discountUom;\n\n// The two types are priced from opposite ends. Monthly Subscription comes from\n// the chosen AI Credit Plan - the caller sends a plan id and reload_amount is\n// derived from monthly_price_rm, so demanding an amount would reject every valid\n// subscription call. Flex is the mirror image: the amount IS the input and\n// there is no plan.\nconst isMonthly = String(input.reload_type || '').trim() === 'Monthly Subscription';\nconst missingPrice = isMonthly\n  ? !input.ai_credit_plan\n  : !(parseFloat(input.reload_amount) > 0);\nconst badInput = !custTenant || !input.reload_type || missingPrice || badUom;\n\nlet errorCode = '';\n\nif (isHeadless === 'Y' && badInput) {\n  errorCode = '400';\n} else if (isHeadless === 'N' && isEdit === 'N' && badInput) {\n  errorCode = '406';\n}\n\nreturn { input, mode: isHeadless === 'Y' ? 'headless' : 'form', isEdit, isHeadless, errorCode, custTenant };"
+          "code": "const input = {{workflowparams:data}} || {};\n\nconst pageStatus = input.page_status || '';\n\n// tenant_2 is the tenant being topped up - it fetches the Sudu Customer.\n// input.tenant_id is the acting/context tenant, a DIFFERENT value; not used here.\nconst custTenant = input.tenant_2 || '';\n\n// A form call declares mode 'form' AND carries page_status (set in onMounted).\n// A headless caller sends neither, so anything lacking both markers is headless.\nconst isForm = input.mode === 'form' || pageStatus !== '';\nconst isHeadless = isForm ? 'N' : 'Y';\nconst isEdit = (isForm && pageStatus === 'Edit') ? 'Y' : 'N';\n\n\n// The form's Discount (Type) select is constrained to '%' / 'Amount', but a\n// headless caller sends free text. Canonicalise the obvious spellings here - both\n// normalizers read this same input, so downstream only ever sees '', '%' or\n// 'Amount'. Anything unrecognised is rejected rather than guessed: silently\n// pricing 'percent' as an Amount is a money error the caller never sees.\nconst rawUom = input.reload_discount_uom;\nlet discountUom = '';\nlet badUom = false;\n\nif (rawUom !== null && rawUom !== undefined && String(rawUom).trim() !== '') {\n  const normalised = String(rawUom).trim().toLowerCase();\n\n  if (normalised === '%' || normalised === 'percent' || normalised === 'percentage') {\n    discountUom = '%';\n  } else if (normalised === 'amount') {\n    discountUom = 'Amount';\n  } else {\n    badUom = true;\n  }\n}\n\ninput.reload_discount_uom = discountUom;\n\n// A closed set, canonicalised like reload_discount_uom above. 'Add On' is the\n// pre-rename spelling of 'Flex' and is stored as 'Flex' - code_cr_calc matches\n// the current name exactly, so the legacy label would price as nothing.\nconst RELOAD_TYPES = ['Flex', 'Monthly Subscription'];\nconst rawType = String(input.reload_type || '').trim();\nconst lowerType = rawType.toLowerCase();\nconst reloadType = RELOAD_TYPES.filter((t) => t.toLowerCase() === lowerType)[0] ||\n  (lowerType === 'add on' ? 'Flex' : '');\n\n// A blank type stays badInput's 400/406, not this - only a value that was sent\n// and is not recognised lands on 422.\nconst badType = rawType !== '' && reloadType === '';\ninput.reload_type = reloadType || rawType;\n\n// The two types are priced from opposite ends. Monthly Subscription comes from\n// the chosen AI Credit Plan - the caller sends a plan id and reload_amount is\n// derived from monthly_price_rm, so demanding an amount would reject every valid\n// subscription call. Flex is the mirror image: the amount IS the input and\n// there is no plan.\nconst isMonthly = reloadType === 'Monthly Subscription';\nconst missingPrice = isMonthly\n  ? !input.ai_credit_plan\n  : !(parseFloat(input.reload_amount) > 0);\nconst badInput = !custTenant || !rawType || missingPrice || badUom;\n\nlet errorCode = '';\n\n// Edit only settles payment and never sends a type - same carve-out badInput has.\nif (isEdit === 'N' && badType) {\n  errorCode = '422';\n} else if (isHeadless === 'Y' && badInput) {\n  errorCode = '400';\n} else if (isHeadless === 'N' && isEdit === 'N' && badInput) {\n  errorCode = '406';\n}\n\nreturn { input, mode: isHeadless === 'Y' ? 'headless' : 'form', isEdit, isHeadless, errorCode, custTenant };"
         },
         "response_json": [
           {
@@ -227,6 +227,65 @@
         },
         {
           "id": "ifBlock_if_cr_bad_form_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_cr_bad_type",
+      "type": "if",
+      "data": {
+        "title": "Unknown Reload Type ?",
+        "isValidator": true,
+        "nodeName": "Unknown Reload Type ?",
+        "name": "Unknown Reload Type ?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_cr_determine.data.errorCode}}' == '422'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_if_cr_bad_type_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "end_cr_bad_type",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 422,
+                "msg": {
+                  "type": "javascript",
+                  "code": "reload_type must be 'Flex' or 'Monthly Subscription'."
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_if_cr_bad_type_false",
           "type": "ifBlock",
           "data": {
             "title": "false"
