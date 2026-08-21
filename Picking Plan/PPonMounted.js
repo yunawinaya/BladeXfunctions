@@ -469,6 +469,12 @@ const fetchDeliveredQuantity = async () => {
 
     this.setData({ page_status: pageStatus });
 
+    // Children under a line come from an item bundle, never from the user, so
+    // the per-row add-child-record control has nothing to add here. Hidden the
+    // same way SO, PO, GR, PI, GD and Putaway hide theirs.
+    this.getComponent("table_to")?.hideChildRecord();
+
+
     const salesOrderId = this.getValue("so_id");
 
     switch (pageStatus) {
