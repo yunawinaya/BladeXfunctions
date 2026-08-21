@@ -734,20 +734,50 @@
                   "parentId": 1779901400100,
                   "isTop": true,
                   "prop": "",
-                  "operator": "",
+                  "operator": "all",
                   "valueType": "",
                   "value": "",
-                  "type": "leaf",
-                  "level": 1
+                  "type": "branch",
+                  "level": 1,
+                  "children": [
+                    {
+                      "id": 1779901400102,
+                      "parentId": 1779901400101,
+                      "isTop": false,
+                      "prop": "workflowparams.isGDPP",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 2,
+                      "propLabel": "isGDPP",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    },
+                    {
+                      "id": 1779901400103,
+                      "parentId": 1779901400101,
+                      "isTop": false,
+                      "prop": "workflowparams.transaction_type",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "PP",
+                      "type": "leaf",
+                      "level": 2,
+                      "propLabel": "Trx Type",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
                 }
               ]
             },
-            "expression": { "code": "1 == 1", "type": "javascript" },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Branch 3",
             "name": "Branch 3",
-            "condition_type": "Expression"
+            "condition_type": "ConditionRule"
           },
           "blocks": [
             {
