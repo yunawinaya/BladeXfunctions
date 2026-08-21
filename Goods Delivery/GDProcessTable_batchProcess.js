@@ -1548,7 +1548,10 @@ for (const processed of processedTableData) {
   const isPP = isGDPP === 1;
 
   // Per-line copy of the delivered-away qty, drained group by group below.
-  const ppDeliveredBins = isPP && saveAs !== "Cancelled"
+  // PP-form saves only: a GD-from-PP row's doc_line_id is a GD line, not a plan
+  // line, so it has nothing to deduct (isGdFromPp is the same discriminator the
+  // GDPP-Created early return uses).
+  const ppDeliveredBins = isPP && !isGdFromPp && saveAs !== "Cancelled"
     ? new Map(ppDeliveredByLine.get(String(processed.doc_line_id)) || [])
     : null;
 
