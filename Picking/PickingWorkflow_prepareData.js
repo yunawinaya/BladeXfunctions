@@ -104,6 +104,15 @@ tablePickingItems.sort((a, b) => {
 const withHeaders = [];
 let lastHuId = null;
 for (const row of tablePickingItems) {
+  // A bundle is ONE row with its items nested under it, so the items never reach
+  // this loop at all and can never be separated from the bundle by the grouping.
+  // The bundle row itself holds no handling unit: it opens no header, and it must
+  // not close the run above it either.
+  if (row.item_bundle_id) {
+    withHeaders.push({ ...row, row_type: "item" });
+    continue;
+  }
+  
   const huId = row.handling_unit_id;
   if (huId && huId !== lastHuId) {
     withHeaders.push({

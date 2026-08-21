@@ -1,3 +1,31 @@
+// table_picking_items is a TREE: an item bundle is ONE row with the items under
+// it as `children`. Every per-row loop below walks this flat view, because a
+// nested item has no top-level index -- addressing it by one would write to a
+// different row, or to nothing at all.
+//
+// Each entry carries the path that addresses its row, so this.setData,
+// this.disabled, this.hide and this.setOptionData all reach a nested item the
+// same way GR reaches its own nested children. A document with no bundles
+// flattens to itself.
+const flatPickingRows = (rows) => {
+  const flat = [];
+
+  (rows || []).forEach((row, index) => {
+    flat.push({ row, path: `table_picking_items.${index}` });
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    children.forEach((child, childIndex) => {
+      flat.push({
+        row: child,
+        path: `table_picking_items.${index}.children.${childIndex}`,
+      });
+    });
+  });
+
+  return flat;
+};
+
 // Helper functions
 const showStatusHTML = (status) => {
   switch (status) {
@@ -68,12 +96,12 @@ const disableTableRows = () => {
     const data = this.getValues();
     const rows = data.table_picking_items || [];
 
-    rows.forEach((row, index) => {
-      const fieldNames = Object.keys(row).filter((key) => key !== "picked_qty");
-
-      const fieldsToDisable = fieldNames.map(
-        (field) => `table_picking_items.${index}.${field}`,
+    flatPickingRows(rows).forEach(({ row, path }) => {
+      const fieldNames = Object.keys(row).filter(
+        (key) => key !== "picked_qty" && key !== "children",
       );
+
+      const fieldsToDisable = fieldNames.map((field) => `${path}.${field}`);
 
       this.disabled(fieldsToDisable, true);
     });
@@ -113,7 +141,7 @@ const viewSerialNumber = async () => {
   const table_picking_items = this.getValue("table_picking_items");
   const table_picking_records = this.getValue("table_picking_records");
   if (table_picking_items.length > 0) {
-    for (const picking of table_picking_items) {
+    for (const { row: picking } of flatPickingRows(table_picking_items)) {
       if (picking.is_serialized_item === 1) {
         await this.display([
           "table_picking_items.select_serial_number",
@@ -144,7 +172,9 @@ const setSerialNumber = async () => {
       return;
     }
 
-    for (const [index, picking] of table_picking_items.entries()) {
+    for (const [index, { row: picking, path }] of flatPickingRows(
+      table_picking_items,
+    ).entries()) {
       try {
         // Check if item is serialized
         if (picking.is_serialized_item === 1) {
@@ -189,13 +219,13 @@ const setSerialNumber = async () => {
 
           // Set option data for select dropdown
           await this.setOptionData(
-            [`table_picking_items.${index}.select_serial_number`],
+            [`${path}.select_serial_number`],
             serialNumbers,
           );
 
           // Set the actual data
           await this.setData({
-            [`table_picking_items.${index}.select_serial_number`]:
+            [`${path}.select_serial_number`]:
               serialNumbers,
           });
 
@@ -203,8 +233,8 @@ const setSerialNumber = async () => {
           // by the serial-number count, so UOM switching is meaningless here)
           await this.disabled(
             [
-              `table_picking_items.${index}.picked_qty`,
-              `table_picking_items.${index}.picking_uom`,
+              `${path}.picked_qty`,
+              `${path}.picking_uom`,
             ],
             true,
           );
@@ -236,17 +266,17 @@ const disabledPickedQtyField = async () => {
   const cancelledGD = gdData.filter((gd) => gd.picking_status === "Cancelled");
   const tablePickingItems = this.getValue("table_picking_items");
   if (tablePickingItems.length > 0) {
-    for (const [index, picking] of tablePickingItems.entries()) {
+    for (const { row: picking, path } of flatPickingRows(tablePickingItems)) {
       const cancelGD = cancelledGD.find((gd) => gd.id === picking.gd_id);
       console.log("cancelGD", cancelGD);
       if (picking.line_status === "Cancelled" || cancelGD) {
         setTimeout(async () => {
           this.disabled(
             [
-              `table_picking_items.${index}.picked_qty`,
-              `table_picking_items.${index}.picking_uom`,
-              `table_picking_items.${index}.remark`,
-              `table_picking_items.${index}.select_serial_number`,
+              `${path}.picked_qty`,
+              `${path}.picking_uom`,
+              `${path}.remark`,
+              `${path}.select_serial_number`,
             ],
             true,
           );
@@ -314,11 +344,16 @@ const enrichPickingUOM = async () => {
     const rows = this.getValue("table_picking_items") || [];
     if (rows.length === 0) return;
 
+    // Flat: a bundle's items are the rows carrying materials, so reading the top
+    // level alone left them out of the cache entirely -- their conversion data was
+    // never fetched and every conversion silently fell back to identity.
+    const flatRows = flatPickingRows(rows);
+
     const materialIds = [
       ...new Set(
-        rows
-          .filter((r) => r.row_type !== "header" && r.item_code)
-          .map((r) => String(r.item_code)),
+        flatRows
+          .filter((e) => e.row.row_type !== "header" && e.row.item_code)
+          .map((e) => String(e.row.item_code)),
       ),
     ];
     if (materialIds.length === 0) return;
@@ -353,8 +388,20 @@ const enrichPickingUOM = async () => {
 
     // Apply per-row: default Pick UOM, conversion scalars, alt-UOM displays.
     const updates = {};
-    for (const [i, row] of rows.entries()) {
-      if (row.row_type === "header" || !row.item_code) continue;
+    for (const { row, path } of flatRows) {
+      if (row.row_type === "header") continue;
+
+      // The bundle row carries no material and no UOM -- its Pick UOM column is
+      // disabled for exactly that reason -- so there is nothing to convert. Its
+      // alt-UOM displays mirror the canonical quantities, which are already
+      // counted in bundles. Without this the row fell out of the loop and read 0
+      // beside its own items.
+      if (!row.item_code) {
+        updates[`${path}.to_pick_alt`] = parseFloat(row.qty_to_pick) || 0;
+        updates[`${path}.pending_alt`] =
+          parseFloat(row.pending_process_qty) || 0;
+        continue;
+      }
       const matId = String(row.item_code);
       const cache = window.pickingUOMCache[matId];
       if (!cache) continue;
@@ -363,31 +410,31 @@ const enrichPickingUOM = async () => {
       const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;
 
       if (!row.picking_uom) {
-        updates[`table_picking_items.${i}.picking_uom`] = orderUom;
+        updates[`${path}.picking_uom`] = orderUom;
       }
 
       // Exact conversion factors carried to the workflow funnel (see comment on
       // getBaseQtyForUom). order_base_qty is fixed per line (item_uom never
       // changes); picking_base_qty tracks the chosen Pick UOM.
-      updates[`table_picking_items.${i}.order_base_qty`] = getBaseQtyForUom(
+      updates[`${path}.order_base_qty`] = getBaseQtyForUom(
         orderUom,
         cache.based_uom,
         cache.table_uom_conversion,
       );
-      updates[`table_picking_items.${i}.picking_base_qty`] = getBaseQtyForUom(
+      updates[`${path}.picking_base_qty`] = getBaseQtyForUom(
         pickingUom,
         cache.based_uom,
         cache.table_uom_conversion,
       );
 
-      updates[`table_picking_items.${i}.to_pick_alt`] = convertQuantityFromTo(
+      updates[`${path}.to_pick_alt`] = convertQuantityFromTo(
         parseFloat(row.qty_to_pick) || 0,
         cache.table_uom_conversion,
         orderUom,
         pickingUom,
         cache.based_uom,
       );
-      updates[`table_picking_items.${i}.pending_alt`] = convertQuantityFromTo(
+      updates[`${path}.pending_alt`] = convertQuantityFromTo(
         parseFloat(row.pending_process_qty) || 0,
         cache.table_uom_conversion,
         orderUom,
@@ -432,6 +479,15 @@ const createHeaderRows = async () => {
   let lastHuId = null;
 
   for (const row of rows) {
+    // A bundle is ONE row with its items nested under it, so the items never reach
+    // this loop at all and can never be separated from the bundle by the grouping.
+    // The bundle row itself holds no handling unit: it opens no header, and it must
+    // not close the run above it either.
+    if (row.item_bundle_id) {
+      newRows.push({ ...row, row_type: "item" });
+      continue;
+    }
+    
     const huId = row.handling_unit_id;
     if (huId && huId !== lastHuId) {
       newRows.push({
@@ -449,14 +505,23 @@ const createHeaderRows = async () => {
   if (newRows.length !== rows.length) {
     await this.setData({ table_picking_items: newRows });
   }
+
+  // Re-applied after the rows are replaced: a re-render brings the per-row
+  // add-child-record control back, and a bundle's items come from the bundle
+  // definition, never from the user.
+  this.getComponent("table_picking_items")?.hideChildRecord();
 };
 
 const applyHUVisibility = async () => {
   const rows = this.getValue("table_picking_items") || [];
   if (rows.length === 0) return;
 
+  // Flat: a bundle's items carry the handling units, so a bundle whose items are
+  // HU-allocated would otherwise read as "no HU anywhere" and lose the column.
+  const flatRows = flatPickingRows(rows);
+
   // No row carries a handling_unit_id — hide the HU column and skip the rest.
-  if (!rows.some((r) => r.handling_unit_id)) {
+  if (!flatRows.some((e) => e.row.handling_unit_id)) {
     await this.hide("table_picking_items.handling_unit_id");
     return;
   }
@@ -478,10 +543,14 @@ const applyHUVisibility = async () => {
   }
 
   const HU_FIELDS = ["handling_unit_id", "hu_select"];
-  const sampleItem = rows.find((r) => r.row_type !== "header");
-  const itemFields = sampleItem
-    ? Object.keys(sampleItem).filter(
-        (k) => !HU_FIELDS.includes(k) && k !== "row_type",
+  // The bundle row is a header-like line carrying `children`; an item row is the
+  // better sample for the field list.
+  const sampleEntry =
+    flatRows.find((e) => e.row.row_type !== "header" && e.row.item_code) ||
+    flatRows.find((e) => e.row.row_type !== "header");
+  const itemFields = sampleEntry
+    ? Object.keys(sampleEntry.row).filter(
+        (k) => !HU_FIELDS.includes(k) && k !== "row_type" && k !== "children",
       )
     : [];
 
@@ -489,23 +558,23 @@ const applyHUVisibility = async () => {
   // on header rows so they don't trigger validation or accept input while hidden
   const HEADER_DISABLE_FIELDS = ["picked_qty", "picking_uom", "remark"];
 
-  for (const [i, row] of rows.entries()) {
+  for (const { row, path } of flatRows) {
     if (row.row_type === "header") {
       for (const f of itemFields) {
-        await this.hide(`table_picking_items.${i}.${f}`);
+        await this.hide(`${path}.${f}`);
       }
       if (huSelectEnabled) {
-        await this.display(`table_picking_items.${i}.hu_select`);
+        await this.display(`${path}.hu_select`);
       }
       for (const f of HEADER_DISABLE_FIELDS) {
-        await this.disabled(`table_picking_items.${i}.${f}`, true);
+        await this.disabled(`${path}.${f}`, true);
       }
     } else {
-      await this.hide(`table_picking_items.${i}.handling_unit_id`);
+      await this.hide(`${path}.handling_unit_id`);
       if (huSelectEnabled) {
         // hu_select column was just enabled at column level; explicitly hide
         // on item rows so the checkbox only renders on HU header rows.
-        await this.hide(`table_picking_items.${i}.hu_select`);
+        await this.hide(`${path}.hu_select`);
       }
     }
   }
@@ -514,12 +583,12 @@ const applyHUVisibility = async () => {
   // by the header's hu_select — disable manual entry. Loose item rows (no
   // handling_unit_id) stay editable. Header rows were already disabled above.
   if (huSelectEnabled) {
-    for (const [i, row] of rows.entries()) {
+    for (const { row, path } of flatRows) {
       if (row.row_type !== "header" && row.handling_unit_id) {
         await this.disabled(
           [
-            `table_picking_items.${i}.picked_qty`,
-            `table_picking_items.${i}.picking_uom`,
+            `${path}.picked_qty`,
+            `${path}.picking_uom`,
           ],
           true,
         );
@@ -609,6 +678,12 @@ const revealDeliveryMethodSection = async () => {
 
     console.log("pageStatus", pageStatus);
     await this.setData({ page_status: pageStatus });
+
+    // Children under a line come from an item bundle, never from the user, so
+    // the per-row add-child-record control has nothing to add here. Hidden the
+    // same way SO, PP, PO, GR, PI, GD and Putaway hide theirs.
+    this.getComponent("table_picking_items")?.hideChildRecord();
+
     console.log("pageStatusData", this.getValue("page_status"));
 
     switch (pageStatus) {
