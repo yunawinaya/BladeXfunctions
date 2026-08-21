@@ -776,6 +776,20 @@
                                             "operatorLabel": "Equal"
                                           },
                                           {
+                                            "id": 1700000900005,
+                                            "parentId": 1700000900001,
+                                            "isTop": false,
+                                            "prop": "department_id",
+                                            "operator": "numberEqual",
+                                            "valueType": "field",
+                                            "value": "{{global:firstLvDeptId}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Organization ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Equal"
+                                          },
+                                          {
                                             "id": 1700000900003,
                                             "parentId": 1700000900001,
                                             "isTop": false,
