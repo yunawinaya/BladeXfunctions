@@ -77,6 +77,26 @@ for (const item of allItemsData) {
 // Helper functions
 const roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));
 
+// Qty already delivered out of each Picking Plan line, keyed by line + source bin.
+// Completion restamps a delivered PP reservation onto the GD, so the Allocated
+// lookup below can no longer see it. Without this the plan re-allocates that qty
+// on every re-save (confirming a picking triggers one), minting a duplicate
+// reservation for stock that has already left.
+const _ppPickingRaw = {{node:search_node_PpDelivRec01.data.data}};
+const _ppPickingRecords = Array.isArray(_ppPickingRaw)
+  ? _ppPickingRaw
+  : (_ppPickingRaw ? [_ppPickingRaw] : []);
+const ppDeliveredByLine = new Map();
+for (const rec of _ppPickingRecords) {
+  const deliveredQty = roundQty(rec.delivered_qty || 0);
+  const lineKey = String(rec.to_line_id || "");
+  if (deliveredQty <= 0 || !lineKey) continue;
+  const binKey = String(rec.source_bin || rec.target_location || "");
+  if (!ppDeliveredByLine.has(lineKey)) ppDeliveredByLine.set(lineKey, new Map());
+  const bins = ppDeliveredByLine.get(lineKey);
+  bins.set(binKey, roundQty((bins.get(binKey) || 0) + deliveredQty));
+}
+
 // Filter itemData to only include fields needed by inventory workflow
 const filterItemData = (itemData) => {
   if (!itemData) return null;
@@ -1527,6 +1547,11 @@ for (const processed of processedTableData) {
   const { item, itemData, groupedTempData, groupKeys } = processed;
   const isPP = isGDPP === 1;
 
+  // Per-line copy of the delivered-away qty, drained group by group below.
+  const ppDeliveredBins = isPP && saveAs !== "Cancelled"
+    ? new Map(ppDeliveredByLine.get(String(processed.doc_line_id)) || [])
+    : null;
+
   // For Completed: pre-compute over-pick excess per (location, batch, HU).
   // Excess reduces the delivery quantity passed to processDeliveredAllocation,
   // which then releases the remainder via its existing release path
@@ -1561,6 +1586,23 @@ for (const processed of processedTableData) {
       if (groupExcess > 0) {
         quantity = roundQty(Math.max(0, quantity - groupExcess));
       }
+    }
+
+    // A plan line only still owes what it has not already delivered. Deduct the
+    // matching bin first; picking records with no bin spill over. A bin that
+    // matches no group is left alone rather than released from the wrong place.
+    if (ppDeliveredBins) {
+      const ppBinKey = String(group.location_id || "");
+      let ppDeduct = Math.min(quantity, ppDeliveredBins.get(ppBinKey) || 0);
+      if (ppDeduct > 0) {
+        ppDeliveredBins.set(ppBinKey, roundQty((ppDeliveredBins.get(ppBinKey) || 0) - ppDeduct));
+      }
+      const ppSpill = Math.min(roundQty(quantity - ppDeduct), ppDeliveredBins.get("") || 0);
+      if (ppSpill > 0) {
+        ppDeliveredBins.set("", roundQty((ppDeliveredBins.get("") || 0) - ppSpill));
+        ppDeduct = roundQty(ppDeduct + ppSpill);
+      }
+      quantity = roundQty(Math.max(0, quantity - ppDeduct));
     }
 
     const params = {
