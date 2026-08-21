@@ -4,3 +4,7 @@ Resume/
 # Playwright MCP scratch output
 .playwright-mcp/
 .superpowers/
+
+# Local DB access tooling + credentials — NEVER commit
+.dbtools/
+*.env
