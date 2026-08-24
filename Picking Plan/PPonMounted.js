@@ -100,9 +100,13 @@ const disabledField = async (status, pickingStatus) => {
     if (status === "Created") {
       this.hide(["button_save_as_draft"]);
 
-      if (pickingStatus === "In Progress" || pickingStatus === "Completed") {
-        this.hide(["button_save_as_created"]);
-      }
+      // A plan whose picking had started used to lose Save as Created outright.
+      // It stays now: raising a quantity is legitimate, and the outstanding
+      // balance is picked by converting a second Picking. What is genuinely not
+      // allowed -- reducing below what was picked, removing or re-iteming a
+      // picked line, or touching a line a Goods Delivery has already claimed --
+      // is decided server-side per line, where the reservations can actually be
+      // read, and comes back as a 400 naming the item.
 
       this.disabled(["plant_id"], true);
     }
