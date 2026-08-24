@@ -10626,18 +10626,45 @@
                           "operatorLabel": "Equal"
                         },
                         {
-                          "id": 1770688167641,
+                          "id": 1787600000001,
                           "parentId": 1770688167638,
                           "isTop": false,
-                          "prop": "node.code_picking_defaults.data.autoTriggerTo",
-                          "operator": "numberEqual",
-                          "valueType": "value",
-                          "value": 1,
-                          "type": "leaf",
+                          "prop": "",
+                          "operator": "any",
+                          "valueType": "",
+                          "value": "",
+                          "type": "branch",
                           "level": 2,
-                          "propLabel": "Auto Trigger To",
-                          "valueLabel": "",
-                          "operatorLabel": "Equal"
+                          "children": [
+                            {
+                              "id": 1770688167641,
+                              "parentId": 1787600000001,
+                              "isTop": false,
+                              "prop": "node.code_picking_defaults.data.autoTriggerTo",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 3,
+                              "propLabel": "Auto Trigger To",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            },
+                            {
+                              "id": 1787600000002,
+                              "parentId": 1787600000001,
+                              "isTop": false,
+                              "prop": "node.code_pick_reconcile.data.reconcileNeeded",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 3,
+                              "propLabel": "Reconcile Needed",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
                         },
                         {
                           "id": 1770708382950,

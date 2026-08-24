@@ -134,4 +134,28 @@ rsD = rows(outD); show("decimal 1.6 -> 2.9", rsD)
 assert rsD[0]["pending_process_qty"] == 1.3, f"got {rsD[0]['pending_process_qty']}"
 print(f"      raw float would have been {2.9 - 1.6!r}")
 
+# --- 7. reconcileNeeded=1 must ALWAYS mean UPDATE, never ADD -----------
+# if_9xhwui06 now lets a reconcile through even when auto_trigger_to = 0, which is
+# the flag meaning "do not auto-create a Picking for this org". That is only safe
+# because reconcileNeeded=1 implies get_pick_for_reconcile found one, so the
+# producer can only ever take the update branch.
+cases = [
+    ("qty up",        gdfull([gline(LA, 140)]), pick),
+    ("line added",    gdfull([gline(LA, 100), gline("LB", 20)]), pick),
+]
+for label, aft, pk in cases:
+    pl = reconcile(aft, pk, before)
+    o = produce(aft, pk, pl)
+    assert pl["reconcileNeeded"] == 1
+    assert o["isUpdate"] == 1, f"{label}: reconcile must never create a Picking"
+    assert o["existingTOId"] == "TO1"
+print(f"  reconcileNeeded=1 -> isUpdate=1 in {len(cases)} cases (never ADD)")
+
+# and with no picking at all, the reconcile stands down entirely
+pl_none = reconcile(gdfull([gline(LA, 140)]), None, before)
+assert pl_none["reconcileNeeded"] == 0
+o_none = produce(gdfull([gline(LA, 140)]), None, pl_none)
+assert o_none["isUpdate"] == 0
+print("  no picking          -> reconcileNeeded=0, isUpdate=0 (create path untouched)")
+
 print("\nall producer scenarios passed")
