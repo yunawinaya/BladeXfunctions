@@ -4051,33 +4051,33 @@
                 "name": "Build Reversal Message",
                 "script": {
                   "type": "javascript",
-                  "code": "// Turn the reversal plan into something an operator can act on. Bin ids mean\n// nothing on a shop floor, so they are resolved to their display names here --\n// this node only runs when there is actually something to reverse.\nconst reversals = {{node:code_pick_reconcile.data.reversals}} || [];\nconst pickingNo = {{node:code_pick_reconcile.data.pickingNo}} || \"\";\nconst rawBins = {{node:search_bin_names.data.data}};\nconst bins = Array.isArray(rawBins) ? rawBins : rawBins ? [rawBins] : [];\n\nconst nameOf = {};\nfor (const b of bins) {\n  if (b && b.id) {\n    nameOf[String(b.id)] = b.bin_location_combine || b.bin_name || String(b.id);\n  }\n}\nconst label = (id) => nameOf[String(id)] || String(id || \"its source bin\");\n\n// Merge by item and bin pair so one line does not produce a wall of near-identical\n// bullets when several scans are unwound.\nconst merged = {};\nfor (const r of reversals) {\n  const key = r.item_code + \"|\" + r.return_to + \"|\" + r.currently_at;\n  if (!merged[key]) merged[key] = { ...r, qty: 0 };\n  merged[key].qty = Math.round((merged[key].qty + (parseFloat(r.qty) || 0)) * 1000) / 1000;\n}\n\nconst lines = Object.keys(merged).map((k) => {\n  const r = merged[k];\n  const what = r.item_name || r.item_code;\n  // Where the pick moved the stock (a loading bay) the two bins differ, and saying\n  // so is the difference between a paper correction and a physical one.\n  if (r.currently_at && r.currently_at !== r.return_to) {\n    return (\n      \"\u2022 \" + what + \": \" + r.qty + \" is staged at \" + label(r.currently_at) +\n      \" \u2014 move it back to \" + label(r.return_to)\n    );\n  }\n  return (\n    \"\u2022 \" + what + \": \" + r.qty + \" picked at \" + label(r.return_to) +\n    \" will be released (no physical move needed)\"\n  );\n});\n\nconst body = lines.join(\"\\n\");\n\nconst confirmMessage =\n  \"Reducing this delivery reverses quantities already picked on \" + pickingNo + \":\\n\\n\" +\n  body +\n  \"\\n\\nThe Picking and the stock reservations will be updated. Proceed?\";\n\nconst noticeMessage =\n  \"Picking \" + pickingNo + \" was adjusted. Stock to put back:\\n\\n\" + body;\n\nreturn {\n  confirmMessage: confirmMessage,\n  noticeMessage: noticeMessage,\n  reversalCount: lines.length\n};\n"
+                  "code": "// Turn the reversal plan into something an operator can act on. Bin ids mean\n// nothing on a shop floor, so they are resolved to their display names here --\n// this node only runs when there is actually something to reverse.\nconst reversals = {{node:code_pick_reconcile.data.reversals}} || [];\nconst pickingNo = {{node:code_pick_reconcile.data.pickingNo}} || \"\";\nconst rawBins = {{node:search_bin_names.data.data}};\nconst bins = Array.isArray(rawBins) ? rawBins : rawBins ? [rawBins] : [];\n\nconst nameOf = {};\nfor (const b of bins) {\n  if (b && b.id) {\n    nameOf[String(b.id)] = b.bin_location_combine || b.bin_name || String(b.id);\n  }\n}\nconst label = (id) => nameOf[String(id)] || String(id || \"its source bin\");\n\n// Merge by item and bin pair so one line does not produce a wall of near-identical\n// bullets when several scans are unwound.\nconst merged = {};\nfor (const r of reversals) {\n  const key = r.item_code + \"|\" + r.return_to + \"|\" + r.currently_at;\n  if (!merged[key]) merged[key] = { ...r, qty: 0 };\n  merged[key].qty = Math.round((merged[key].qty + (parseFloat(r.qty) || 0)) * 1000) / 1000;\n}\n\nconst lines = Object.keys(merged).map((k) => {\n  const r = merged[k];\n  const what = r.item_name || r.item_code;\n  // Where the pick moved the stock (a loading bay) the two bins differ, and saying\n  // so is the difference between a paper correction and a physical one.\n  if (r.currently_at && r.currently_at !== r.return_to) {\n    return (\n      \"• \" + what + \": \" + r.qty + \" is staged at \" + label(r.currently_at) +\n      \" — move it back to \" + label(r.return_to)\n    );\n  }\n  return (\n    \"• \" + what + \": \" + r.qty + \" picked at \" + label(r.return_to) +\n    \" will be released (no physical move needed)\"\n  );\n});\n\nconst body = lines.join(\"\\n\");\n\nconst confirmMessage =\n  \"Reducing this delivery reverses quantities already picked on \" + pickingNo + \":\\n\\n\" +\n  body +\n  \"\\n\\nThe Picking and the stock reservations will be updated. Proceed?\";\n\nconst noticeMessage =\n  \"Picking \" + pickingNo + \" was adjusted. Stock to put back:\\n\\n\" + body;\n\nreturn {\n  confirmMessage: confirmMessage,\n  noticeMessage: noticeMessage,\n  reversalCount: lines.length\n};\n"
                 },
                 "response_json": [
-                    {
-                      "key": "confmsg01",
-                      "name": "confirmMessage",
-                      "title": "confirmMessage",
-                      "description": "",
-                      "bsonType": "string",
-                      "isExpand": false
-                    },
-                    {
-                      "key": "notimsg01",
-                      "name": "noticeMessage",
-                      "title": "noticeMessage",
-                      "description": "",
-                      "bsonType": "string",
-                      "isExpand": false
-                    },
-                    {
-                      "key": "revcnt001",
-                      "name": "reversalCount",
-                      "title": "reversalCount",
-                      "description": "",
-                      "bsonType": "int",
-                      "isExpand": false
-                    }
+                  {
+                    "key": "confmsg01",
+                    "name": "confirmMessage",
+                    "title": "confirmMessage",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "notimsg01",
+                    "name": "noticeMessage",
+                    "title": "noticeMessage",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "revcnt001",
+                    "name": "reversalCount",
+                    "title": "reversalCount",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  }
                 ]
               },
               "blocks": []
@@ -10779,7 +10779,7 @@
                       },
                       "blocks": []
                     },
-{
+                    {
                       "id": "code_node_o35eZx2c",
                       "type": "code-node",
                       "data": {
