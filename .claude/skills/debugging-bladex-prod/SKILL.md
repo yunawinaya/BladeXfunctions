@@ -12,11 +12,17 @@ alone when the data can be read.
 ## Safety — non-negotiable
 
 - The helper is **read-only** and refuses anything but SELECT/SHOW/DESC/EXPLAIN/WITH.
-- **Never run UPDATE/INSERT/DELETE/DDL without showing the statement and getting a yes.**
-  Prod is SELECT-only at the grant level, but **dev has UPDATE on all of `bladex_boot`**.
+- **Never write without showing the statement and getting a yes.** Prod is SELECT-only at the
+  grant level, but **dev has UPDATE on all of `bladex_boot`**. Writes go through a separate
+  DEV-ONLY tool, `.dbtools/dbw "UPDATE ... WHERE ..."`, which previews by default (table, SET,
+  WHERE, exact affected row count, current values) and writes only with `--execute`. Show the
+  preview, wait for an explicit yes, then re-run with `--execute`. The flag is a safety catch,
+  not the permission.
 - Every call prints `[DEV]` or `[PROD]`. Check it. Investigate incidents on prod; explore on dev.
 - **There is no default org.** Prod is multi-tenant (~30 tenant/org pairs, ~10 active). The
   document number determines the org — never assume a tenant, never scan across tenants casually.
+  **Some orgs are internal test accounts but there is no list of which**, so treat every tenant's
+  rows as potentially real customer data.
 
 ## Playbook: "something is wrong in prod"
 
@@ -40,7 +46,8 @@ alone when the data can be read.
 | Command | Purpose |
 |---|---|
 | `.dbtools/db --dev\|--prod [--json] [--limit N] "SQL"` | read-only query |
-| `.dbtools/wf --prod find <doc_no>` | every workflow run touching a document |
+| `.dbtools/dbw "UPDATE ... WHERE ..."` [--execute] | DEV-ONLY guarded write; previews first |
+| `.dbtools/wf --prod find <doc_no> [--full]` | every workflow run touching a document |
 | `.dbtools/wf --prod runs <NAME\|id>` | recent executions (id = the one copied from the platform UI) |
 | `.dbtools/wf --prod trace <id> [--node X]` | node-by-node inputs/outputs |
 | `.dbtools/wf --prod deployed <repo.json>` | is this repo workflow live in prod? |
@@ -78,6 +85,17 @@ Full schema notes: `.dbtools/SCHEMA.md`.
   Movement: `sm_misc_receipt` (MSR), `sm_misc_issue` (MSI), `sm_location_transfer` (LOT).
   `blade_*` is live platform infra (users/depts), not business data.
 - Nearly every table has `tenant_id` + `is_deleted` — filter both.
+
+## Two limits of `wf find`
+
+- **Long-lived documents.** A LIKE over longtext is only affordable inside a narrow id window, but
+  documents stay open for days (avg GD ~38h, seen 283h; 54% are updated >1h after creation). So it
+  searches a 4h window around creation and another around the last update, and says so. If a run
+  happened in between, pass **`--full`** to scan every 4h slice.
+- **Duplicate document numbers across orgs.** Draft placeholders collide hard — `Draft/GD/0003`
+  exists in 4 different organizations. `find` prints every match with its `org=`/`tenant=`, so
+  CHECK which org you are looking at before drawing conclusions, and prefer a real issued number
+  over a `Draft/...` one.
 
 ## Common mistakes
 
