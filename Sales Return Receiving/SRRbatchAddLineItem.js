@@ -59,8 +59,8 @@ const checkSerialNumber = async (tempData, index) => {
 };
 
 (async () => {
-  const referenceType = this.getValue(`dialog_select_item.reference_type`);
-  const currentItemArray = this.getValue(`dialog_select_item.item_array`);
+  const referenceType = arguments[0].referenceType;
+  const currentItemArray = arguments[0].itemArray;
   let existingSRR = this.getValue("table_srr");
   const previousReferenceType = this.getValue("reference_type");
   const defaultBinLocation = this.getValue("default_bin_location");
