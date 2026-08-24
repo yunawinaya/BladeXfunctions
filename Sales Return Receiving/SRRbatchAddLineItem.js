@@ -33,7 +33,7 @@ const checkSerialNumber = async (tempData, index) => {
       (item) =>
         item.serial_number &&
         item.serial_number !== "" &&
-        item.serial_number !== null
+        item.serial_number !== null,
     )
     .map((item) => item.serial_number.trim());
 
@@ -47,7 +47,7 @@ const checkSerialNumber = async (tempData, index) => {
     await this.disabled(`table_srr.${index}.received_qty`, true);
     await this.setOptionData(
       [`table_srr.${index}.select_serial_number`],
-      serialNumbers
+      serialNumbers,
     );
   } else {
     await this.setData({
@@ -92,7 +92,7 @@ const checkSerialNumber = async (tempData, index) => {
         cancelButtonText: "Cancel",
         type: "error",
         dangerouslyUseHTMLString: true,
-      }
+      },
     ).catch(() => {
       console.log("User clicked Cancel or closed the dialog");
       throw new Error();
@@ -102,7 +102,7 @@ const checkSerialNumber = async (tempData, index) => {
   }
 
   const uniqueCustomers = new Set(
-    currentItemArray.map((srr) => srr.customer_id)
+    currentItemArray.map((srr) => srr.customer_id),
   );
   const allSameCustomer = uniqueCustomers.size === 1;
 
@@ -113,7 +113,7 @@ const checkSerialNumber = async (tempData, index) => {
       {
         confirmButtonText: "OK",
         type: "error",
-      }
+      },
     );
     return;
   }
@@ -291,7 +291,7 @@ const checkSerialNumber = async (tempData, index) => {
   tableSRR = tableSRR.filter(
     (srr) =>
       srr.to_receive_qty !== 0 &&
-      !existingSRR.find((srrItem) => srrItem.sr_line_id === srr.sr_line_id)
+      !existingSRR.find((srrItem) => srrItem.sr_line_id === srr.sr_line_id),
   );
 
   const latesttableSRR = [...existingSRR, ...tableSRR];
@@ -334,7 +334,7 @@ const checkSerialNumber = async (tempData, index) => {
             `table_srr.${index}.manufacturing_date`,
             `table_srr.${index}.expired_date`,
           ],
-          true
+          true,
         );
       }
     }
