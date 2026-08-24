@@ -170,8 +170,25 @@ for (let i = 0; i < allRows.length; i++) {
         row,
         ...(Array.isArray(row.children) ? row.children : []),
       ]);
+      // The row id is immutable; so_line_item_id is neither unique nor stable, so
+      // it is only the fallback for a row that has not been stored yet.
+      const rowId = readRow("id");
       const storedRow =
-        storedRows.find((row) => row.so_line_item_id === soLineItemId) || null;
+        (rowId && storedRows.find((row) => row.id === rowId)) ||
+        storedRows.find((row) => row.so_line_item_id === soLineItemId) ||
+        null;
+
+      // A picked line cannot be planned below what has already been taken off the
+      // shelf -- the Picking that took it could then never be closed. Refused here
+      // so the message lands on the field; the save refuses it again server-side.
+      const pickedQty = parseFloat(storedRow?.picked_qty || 0);
+      if (pickedQty > 0 && quantity < pickedQty) {
+        window.validationState[index] = false;
+        callback(
+          `${pickedQty} already picked. Cancel or revert the Picking before reducing this line.`,
+        );
+        return;
+      }
 
       if (!storedRow?.temp_qty_data) {
         window.validationState[index] = true;

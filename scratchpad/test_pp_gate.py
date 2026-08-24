@@ -140,6 +140,66 @@ r = show("Completed line with 0 picked is not re-offered",
 assert r["blockEdit"] == 0
 assert "L2" not in r["lineStatusOverrides"], "would have been sent back to Created"
 
+# --- allocation coverage: picked stock must stay allocated ---------------------
+# PPconvertToPicking subtracts picked_temp_qty_data from temp_qty_data keyed on
+# location|batch|handling_unit. A key dropped from the plan is re-offered as
+# quantity to pick a second time, so the gate refuses the save.
+
+def alloc(entries):
+    return json.dumps([
+        {"location_id": b, "batch_id": t, "handling_unit_id": h, "to_quantity": q}
+        for b, t, h, q in entries
+    ])
+
+def aline(lid, to_qty, picked, planned, picked_at, item="ITEM_A", status="Completed"):
+    row = line(lid, to_qty, picked, item=item, status=status)
+    row["temp_qty_data"] = alloc(planned) if planned is not None else ""
+    row["picked_temp_qty_data"] = alloc(picked_at) if picked_at is not None else ""
+    return row
+
+A, B = "BIN_A", "BIN_B"
+
+r = show("alloc kept at the picked bin",
+         gate(pp([aline(L1, 5, 5, [(A, "", "", 5)], [(A, "", "", 5)])]),
+              pp([aline(L1, 8, 5, [(A, "", "", 8)], [(A, "", "", 5)])])))
+assert r["blockEdit"] == 0 and r["lineStatusOverrides"][L1] == "In Progress"
+
+r = show("alloc moved off the picked bin",
+         gate(pp([aline(L1, 5, 5, [(A, "", "", 5)], [(A, "", "", 5)])]),
+              pp([aline(L1, 8, 5, [(B, "", "", 8)], [(A, "", "", 5)])])))
+assert r["blockEdit"] == 1 and "no longer allocates" in r["blockMessage"]
+
+r = show("alloc keeps the bin but drops the batch",
+         gate(pp([aline(L1, 5, 5, [(A, "T1", "", 5)], [(A, "T1", "", 5)])]),
+              pp([aline(L1, 8, 5, [(A, "T2", "", 8)], [(A, "T1", "", 5)])])))
+assert r["blockEdit"] == 1 and "no longer allocates" in r["blockMessage"]
+
+r = show("picked bin kept but under-covered",
+         gate(pp([aline(L1, 5, 5, [(A, "", "", 5)], [(A, "", "", 5)])]),
+              pp([aline(L1, 8, 5, [(A, "", "", 3), (B, "", "", 5)], [(A, "", "", 5)])])))
+assert r["blockEdit"] == 1 and "no longer allocates" in r["blockMessage"]
+
+r = show("split alloc still covering both picked bins",
+         gate(pp([aline(L1, 5, 5, [(A, "", "", 5)], [(A, "", "", 3), (B, "", "", 2)])]),
+              pp([aline(L1, 9, 5, [(A, "", "", 4), (B, "", "", 5)], [(A, "", "", 3), (B, "", "", 2)])])))
+assert r["blockEdit"] == 0
+
+r = show("allocation wiped while stock is picked",
+         gate(pp([aline(L1, 5, 5, [(A, "", "", 5)], [(A, "", "", 5)])]),
+              pp([aline(L1, 8, 5, None, [(A, "", "", 5)])])))
+assert r["blockEdit"] == 1 and "no longer allocates" in r["blockMessage"]
+
+r = show("legacy row with no picked allocation recorded",
+         gate(pp([aline(L1, 5, 5, [(A, "", "", 5)], None)]),
+              pp([aline(L1, 8, 5, [(B, "", "", 8)], None)])))
+assert r["blockEdit"] == 0, "missing picked_temp_qty_data must not block"
+
+r = show("nothing picked, allocation free to move",
+         gate(pp([aline(L1, 5, 0, [(A, "", "", 5)], None, status="Created")]),
+              pp([aline(L1, 8, 0, [(B, "", "", 8)], None, status="Created")]),
+              picks=[picking(to_status="Cancelled")], res=[]))
+assert r["blockEdit"] == 0
+
 # --- the binding check: the assertion that would have caught the dead write ----
 import json as _json
 _wf = _json.load(open("Picking Plan/PPheadWorkflow.json", encoding="utf-8"))

@@ -50,6 +50,67 @@
     ? `table_to.${currentRow.fm_key}`
     : `table_to.${rowIndex}`;
 
+  // Rebuilding the allocation from a single balance row is only safe while nothing
+  // has been picked against the line. Convert to Picking works out what is left by
+  // subtracting picked_temp_qty_data from temp_qty_data key by key, so a key that
+  // is dropped here is re-offered as quantity to pick a second time -- stock that
+  // is already off the shelf. Keep every picked key as a floor and put only the
+  // remainder on the newly chosen bin.
+  const allocationKey = (entry) =>
+    [
+      entry.location_id || "",
+      entry.batch_id || "",
+      entry.handling_unit_id || "",
+    ].join("|");
+
+  const allocationRespectingPicked = (fresh) => {
+    let picked = [];
+    try {
+      picked = JSON.parse(currentRow.picked_temp_qty_data || "[]") || [];
+    } catch (error) {
+      picked = [];
+    }
+    if (!Array.isArray(picked) || !picked.length) {
+      return { allocation: [fresh], preserved: 0 };
+    }
+
+    const floors = [];
+    const byKey = {};
+    picked.forEach((entry) => {
+      const qty = roundQty(entry.to_quantity);
+      if (qty <= 0) return;
+      const key = allocationKey(entry);
+      if (byKey[key]) {
+        byKey[key].to_quantity = roundQty(byKey[key].to_quantity + qty);
+        return;
+      }
+      const floor = Object.assign({}, entry, { to_quantity: qty });
+      byKey[key] = floor;
+      floors.push(floor);
+    });
+    if (!floors.length) return { allocation: [fresh], preserved: 0 };
+
+    const pickedTotal = roundQty(
+      floors.reduce((sum, entry) => sum + entry.to_quantity, 0),
+    );
+    const freshKey = allocationKey(fresh);
+
+    // Below what is already picked there is no allocation that both covers the
+    // picked stock and totals the requested quantity. Keep the picked floors --
+    // the save refuses the reduction and names the shortfall.
+    const remainder = roundQty(quantity - pickedTotal);
+    if (remainder < 0) return { allocation: floors, preserved: pickedTotal };
+
+    if (byKey[freshKey]) {
+      Object.assign(byKey[freshKey], fresh, {
+        to_quantity: roundQty(byKey[freshKey].to_quantity + remainder),
+      });
+    } else if (remainder > 0) {
+      floors.push(Object.assign({}, fresh, { to_quantity: remainder }));
+    }
+    return { allocation: floors, preserved: pickedTotal };
+  };
+
   // A reference is an object in the form model and a plain id once stored.
   const referenceId = (value) => {
     if (value && typeof value === "object") return value.id || null;
@@ -490,13 +551,19 @@
       }
 
       // Update data
+      const { allocation, preserved } =
+        allocationRespectingPicked(temporaryData);
+      if (preserved > 0) {
+        summary += `\n\nNote: ${preserved} ${uomName} already picked is kept in this allocation.`;
+      }
+
       this.setData({
         [`${rowPath}.to_delivered_qty`]: totalDeliveredQty,
         [`${rowPath}.to_undelivered_qty`]: roundQty(
           orderedQty - totalDeliveredQty,
         ),
         [`${rowPath}.view_stock`]: summary,
-        [`${rowPath}.temp_qty_data`]: JSON.stringify([temporaryData]),
+        [`${rowPath}.temp_qty_data`]: JSON.stringify(allocation),
       });
 
       console.log(
@@ -621,13 +688,19 @@
       }
 
       // Update data
+      const { allocation, preserved } =
+        allocationRespectingPicked(temporaryData);
+      if (preserved > 0) {
+        summary += `\n\nNote: ${preserved} ${uomName} already picked is kept in this allocation.`;
+      }
+
       this.setData({
         [`${rowPath}.to_delivered_qty`]: totalDeliveredQty,
         [`${rowPath}.to_undelivered_qty`]: roundQty(
           orderedQty - totalDeliveredQty,
         ),
         [`${rowPath}.view_stock`]: summary,
-        [`${rowPath}.temp_qty_data`]: JSON.stringify([temporaryData]),
+        [`${rowPath}.temp_qty_data`]: JSON.stringify(allocation),
       });
 
       console.log(`Row ${rowIndex}: Manual allocation completed successfully`);
