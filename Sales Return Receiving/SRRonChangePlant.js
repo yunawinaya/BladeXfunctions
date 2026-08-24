@@ -56,20 +56,22 @@
       .where({ plant_id: plantID })
       .get();
 
-    const newBatch =
-      !resSRSetup || resSRSetup.data.length === 0
-        ? 1
-        : resSRSetup.data[0].generate_new_batch;
+    const hasSRSetup = !!resSRSetup && resSRSetup.data.length > 0;
 
-    if (!resSRSetup || resSRSetup.data.length === 0) {
-      console.log("No SR Setup found. Please contact support.");
-      return;
-    }
+    // Left unset, the save workflow neither generates a batch nor reuses the
+    // delivered one, so new_batch always has to be written.
+    const newBatch = hasSRSetup ? resSRSetup.data[0].generate_new_batch : 1;
 
     this.setData({
       default_bin_location: defaultBinLocationID ?? null,
       default_storage_location: defaultStorageLocationID ?? null,
       new_batch: newBatch,
     });
+
+    if (!hasSRSetup) {
+      this.$message.warning(
+        "No Sales Return Setup found for this plant. Please contact support.",
+      );
+    }
   }
 })();

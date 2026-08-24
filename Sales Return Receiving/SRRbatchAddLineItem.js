@@ -27,6 +27,185 @@ const getItemDefaultBin = (tableDefaultBin, plantId) => {
   };
 };
 
+// `temp_qty_data` is the balance breakdown the delivery was picked from, so it
+// records which batch every delivered unit came out of.
+const parseTempQtyData = (raw) => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+const sourceBatchesOf = (tempQtyData) => {
+  const byBatch = new Map();
+
+  for (const entry of parseTempQtyData(tempQtyData)) {
+    if (!entry.batch_id) continue;
+
+    const qty = parseFloat(
+      entry.gd_quantity ??
+        entry.unrestricted_qty ??
+        entry.balance_quantity ??
+        0,
+    );
+    if (!(qty > 0)) continue;
+
+    const existing = byBatch.get(entry.batch_id);
+    if (existing) existing.qty += qty;
+    else byBatch.set(entry.batch_id, { batch_id: entry.batch_id, qty });
+  }
+
+  return [...byBatch.values()];
+};
+
+const fetchBatchNumbers = async (batchIds) => {
+  if (batchIds.length === 0) return new Map();
+
+  const resBatch = await db
+    .collection("batch")
+    .filter(new Filter().in("id", batchIds).build())
+    .get();
+
+  return new Map(
+    (resBatch?.data || []).map((batch) => [batch.id, batch.batch_number]),
+  );
+};
+
+// Qty already put back per (SR line, batch), so a second receipt does not
+// return stock into a batch that earlier receipts already filled.
+const fetchReceivedByBatch = async (srLineIds) => {
+  const received = new Map();
+  if (srLineIds.length === 0) return received;
+
+  const resSRRLine = await db
+    .collection("sales_return_receiving_05z4r94a_sub")
+    .filter(new Filter().in("sr_line_id", srLineIds).build())
+    .get();
+
+  for (const line of resSRRLine?.data || []) {
+    if (!line.batch_id) continue;
+
+    const key = `${line.sr_line_id}|${line.batch_id}`;
+    received.set(
+      key,
+      (received.get(key) || 0) + parseFloat(line.received_qty || 0),
+    );
+  }
+
+  return received;
+};
+
+// sales_return_setup.generate_new_batch = 0 means the plant returns stock into
+// the batch it was delivered from, so the row must carry that batch_id instead
+// of a placeholder the save workflow would turn into a brand new batch. A line
+// delivered out of several batches becomes one row per batch.
+const applySourceBatches = async (rows, sourceMeta) => {
+  const batchesPerRow = rows.map((row, index) =>
+    row.batch_no === "-" ? [] : sourceBatchesOf(sourceMeta[index]),
+  );
+
+  const unresolved = [
+    ...new Set(
+      rows
+        .filter(
+          (row, index) =>
+            row.batch_no !== "-" && batchesPerRow[index].length === 0,
+        )
+        .map((row) => row.material_name),
+    ),
+  ];
+
+  if (unresolved.length > 0) {
+    return {
+      rows: null,
+      error: `This plant returns stock into the batch it was delivered from, but no delivered batch could be found for:<br><br>${unresolved.join(
+        "<br>",
+      )}<br><br>Please check the goods delivery of these item(s) before receiving them.`,
+    };
+  }
+
+  const multiBatchSRLineIds = [
+    ...new Set(
+      rows
+        .filter((_row, index) => batchesPerRow[index].length > 1)
+        .map((row) => row.sr_line_id)
+        .filter(Boolean),
+    ),
+  ];
+
+  const [batchNumberById, receivedByBatch] = await Promise.all([
+    fetchBatchNumbers([
+      ...new Set(batchesPerRow.flat().map((batch) => batch.batch_id)),
+    ]),
+    fetchReceivedByBatch(multiBatchSRLineIds),
+  ]);
+
+  const expanded = [];
+
+  rows.forEach((row, index) => {
+    const batches = batchesPerRow[index];
+
+    if (batches.length === 0) {
+      expanded.push(row);
+      return;
+    }
+
+    if (batches.length === 1) {
+      expanded.push({
+        ...row,
+        batch_id: batches[0].batch_id,
+        batch_no: batchNumberById.get(batches[0].batch_id) || row.batch_no,
+      });
+      return;
+    }
+
+    let outstanding = parseFloat(row.to_receive_qty || 0);
+    const rowsForLine = [];
+
+    for (const batch of batches) {
+      if (!(outstanding > 0)) break;
+
+      const available =
+        batch.qty -
+        (receivedByBatch.get(`${row.sr_line_id}|${batch.batch_id}`) || 0);
+      if (!(available > 0)) continue;
+
+      const share = Math.min(available, outstanding);
+      outstanding -= share;
+
+      rowsForLine.push({
+        ...row,
+        batch_id: batch.batch_id,
+        batch_no: batchNumberById.get(batch.batch_id) || row.batch_no,
+        to_receive_qty: share,
+      });
+    }
+
+    // Anything the source batches cannot account for still has to be
+    // receivable, so it stays on the first batch rather than disappearing.
+    if (outstanding > 0) {
+      if (rowsForLine.length === 0) {
+        rowsForLine.push({
+          ...row,
+          batch_id: batches[0].batch_id,
+          batch_no: batchNumberById.get(batches[0].batch_id) || row.batch_no,
+        });
+      } else {
+        rowsForLine[0].to_receive_qty += outstanding;
+      }
+    }
+
+    expanded.push(...rowsForLine);
+  });
+
+  return { rows: expanded, error: null };
+};
+
 const checkSerialNumber = async (tempData, index) => {
   const serialNumbers = tempData
     .filter(
@@ -65,8 +244,10 @@ const checkSerialNumber = async (tempData, index) => {
   const previousReferenceType = this.getValue("reference_type");
   const defaultBinLocation = this.getValue("default_bin_location");
   const plantId = this.getValue("plant_id");
+  const newBatch = this.getValue("new_batch");
 
   let tableSRR = [];
+  let sourceMeta = [];
   let salesReturnNumber = [];
   let srId = [];
   let salesOrderNumber = [];
@@ -222,6 +403,7 @@ const checkSerialNumber = async (tempData, index) => {
           };
 
           tableSRR.push(newtableSRRRecord);
+          sourceMeta.push(srItem.temp_qty_data);
         }
       }
 
@@ -284,15 +466,37 @@ const checkSerialNumber = async (tempData, index) => {
         };
 
         tableSRR.push(newtableSRRRecord);
+        sourceMeta.push(srItem.temp_qty_data);
       }
       break;
   }
 
-  tableSRR = tableSRR.filter(
-    (srr) =>
+  // Filtered with the source breakdown alongside it so the two stay aligned.
+  const keptSourceMeta = [];
+  tableSRR = tableSRR.filter((srr, index) => {
+    const keep =
       srr.to_receive_qty !== 0 &&
-      !existingSRR.find((srrItem) => srrItem.sr_line_id === srr.sr_line_id),
-  );
+      !existingSRR.find((srrItem) => srrItem.sr_line_id === srr.sr_line_id);
+
+    if (keep) keptSourceMeta.push(sourceMeta[index]);
+    return keep;
+  });
+
+  if (newBatch === 0) {
+    const resolved = await applySourceBatches(tableSRR, keptSourceMeta);
+
+    if (resolved.error) {
+      this.hideLoading();
+      this.$alert(resolved.error, "Missing Source Batch", {
+        confirmButtonText: "OK",
+        type: "error",
+        dangerouslyUseHTMLString: true,
+      });
+      return;
+    }
+
+    tableSRR = resolved.rows;
+  }
 
   const latesttableSRR = [...existingSRR, ...tableSRR];
   console.log("latesttableSRR", latesttableSRR);
