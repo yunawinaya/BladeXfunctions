@@ -7452,9 +7452,7 @@
                 {
                   "id": "if_block_PpReorderCreatedTrue",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "workflow_node_PpReorderCreated",
@@ -7526,9 +7524,7 @@
                 {
                   "id": "if_block_PpReorderCreatedFalse",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -7551,9 +7547,7 @@
                 {
                   "id": "if_block_PpReorderCancelledTrue",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "true"
-                  },
+                  "data": { "title": "true" },
                   "blocks": [
                     {
                       "id": "workflow_node_PpReorderCancelled",
@@ -7617,9 +7611,7 @@
                 {
                   "id": "if_block_PpReorderCancelledFalse",
                   "type": "ifBlock",
-                  "data": {
-                    "title": "false"
-                  },
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
