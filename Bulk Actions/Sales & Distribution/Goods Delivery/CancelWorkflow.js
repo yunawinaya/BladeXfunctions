@@ -138,16 +138,30 @@ const runGDWorkflow = async (data) => {
                     continue;
                   }
 
-                  for (const pickingItem of pickingData.table_picking_items) {
+                  // A bundle is ONE row of table_picking_items with its items under `children`.
+                  // The items are picking lines in their own right and carry the same gd_id, so
+                  // they have to be cancelled too -- reading the top level alone cancelled the
+                  // bundle row and left its items Open on a Picking marked Cancelled. Walked
+                  // WITHOUT copying: these very row objects are what gets written back below.
+                  const allPickingRows = [];
+                  for (const row of pickingData.table_picking_items || []) {
+                    allPickingRows.push(row);
+                    for (const kid of Array.isArray(row.children)
+                      ? row.children
+                      : []) {
+                      allPickingRows.push(kid);
+                    }
+                  }
+
+                  for (const pickingItem of allPickingRows) {
                     if (pickingItem.gd_id === id) {
                       pickingItem.line_status = "Cancelled";
                     }
                   }
 
-                  const isAllGDCancelled =
-                    pickingData.table_picking_items.every(
-                      (item) => item.line_status === "Cancelled",
-                    );
+                  const isAllGDCancelled = allPickingRows.every(
+                    (item) => item.line_status === "Cancelled",
+                  );
 
                   if (isAllGDCancelled) {
                     pickingData.to_status = "Cancelled";
