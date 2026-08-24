@@ -5,10 +5,8 @@ const closeDialog = () => {
   }
 };
 
-// Every confirmation the workflow can ask for is carried in one object. Threading
-// them individually meant a retry after one prompt dropped the answer to another --
-// answer the zero-quantity prompt, hit the pick-reversal prompt, and the retry would
-// arrive with continueZero cleared and ask about zero quantities all over again.
+// Every confirmation the workflow can ask for travels in one object, so answering
+// one prompt never discards the answer to another on the retry.
 const runGDWorkflow = async (data, ctx) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
@@ -33,6 +31,55 @@ const runGDWorkflow = async (data, ctx) => {
       },
     );
   });
+};
+
+// Only this tenant mirrors its delivery orders to the external system, so the
+// call is gated on the tenant id rather than on the accounting integration.
+const DO_SYNC_TENANT_ID = "128671";
+const DO_SYNC_WORKFLOW_ID = "2076967001969713153";
+
+// Mirrors the saved delivery order to the external system. Sending one out for
+// the first time is a post_do — that covers a new delivery as well as a draft
+// being saved as Created. Editing one that was already Created means the
+// external system already has it, so that is an update_do.
+//
+// data is the snapshot taken before the save ran, so gd_status is still the
+// status the delivery had going in rather than the Created it has now.
+const syncDeliveryOrder = async (gdId, data) => {
+  const tenantId = this.getVarSystem("tenantId");
+  console.log("Delivery order sync — tenant:", tenantId, "gdId:", gdId);
+
+  if (tenantId !== DO_SYNC_TENANT_ID) {
+    return;
+  }
+
+  if (!gdId) {
+    console.error("Delivery order sync skipped: workflow returned no gdId");
+    return;
+  }
+
+  let organizationId = this.getVarGlobal("deptParentId");
+  if (organizationId === "0") {
+    organizationId = this.getVarSystem("deptIds").split(",")[0];
+  }
+
+  await this.runWorkflow(
+    DO_SYNC_WORKFLOW_ID,
+    {
+      org_id: organizationId,
+      task_type:
+        data.page_status === "Edit" && data.gd_status === "Created" && data.posted_status === 'Posted'
+          ? "update_do"
+          : "post_do",
+      payload: [gdId],
+    },
+    (res) => {
+      console.log("Delivery order sync response:", res);
+    },
+    (err) => {
+      console.error("Failed to sync delivery order:", err);
+    },
+  );
 };
 
 const handleWorkflowResult = async (workflowResult, data, ctx) => {
@@ -138,7 +185,7 @@ const handleWorkflowResult = async (workflowResult, data, ctx) => {
 
     const proceed = await this.$confirm(
       message,
-      "Internal Trading – Auto-create Goods Receipt",
+      "Internal Trading - Auto-create Goods Receipt",
       {
         confirmButtonText: "Yes, prepare GR",
         cancelButtonText: "No, save without",
@@ -241,6 +288,7 @@ const handleWorkflowResult = async (workflowResult, data, ctx) => {
       workflowResult.data.message ||
       workflowResult.data.msg ||
       "Goods Delivery saved successfully";
+
     this.$message.success(successMessage);
 
     // A toast disappears; the list of stock to put back must not. Only present when
@@ -254,6 +302,14 @@ const handleWorkflowResult = async (workflowResult, data, ctx) => {
     }
 
     closeDialog();
+
+    // The delivery is saved and already reported as such — a failure to mirror
+    // it out must not turn that into an error, so this only logs.
+    try {
+      await syncDeliveryOrder(workflowResult.data.gdId, data);
+    } catch (error) {
+      console.error("Delivery order sync failed:", error);
+    }
   } else {
     this.hideLoading();
     this.models["_data"] = {

@@ -18,7 +18,13 @@ const showStatusHTML = (status) => {
   }
 };
 
-const disabledField = async (status, pickingStatus) => {
+const disabledField = async (
+  status,
+  pickingStatus,
+  pickingSetup,
+  data,
+  packingRequired,
+) => {
   if (status === "Completed") {
     this.disabled(
       [
@@ -102,7 +108,29 @@ const disabledField = async (status, pickingStatus) => {
     if (status === "Created") {
       this.hide(["button_save_as_draft"]);
 
-      if (pickingStatus === "In Progress" || pickingStatus === "Completed") {
+      // A delivery whose Picking has started used to lose Save as Created outright,
+      // leaving Save as Completed as the only way out. The workflow now reconciles
+      // the Picking instead, so the button stays -- except for the shapes the
+      // reconcile deliberately does not cover. The workflow blocks all of these too,
+      // so a stale page still gets a clean error rather than diverging silently.
+      const setup = pickingSetup || {};
+      const isSelectPicking =
+        (data && data.is_select_picking === 1) ||
+        setup.picking_after === "Sales Order";
+      const siStatus = String((data && data.si_status) || "");
+      const packStatus = String((data && data.packing_status) || "");
+      const canEditAfterPicking =
+        !isSelectPicking &&
+        Number(setup.allow_full_picking) !== 1 &&
+        Number(packingRequired) !== 1 &&
+        siStatus !== "Fully Invoiced" &&
+        siStatus !== "Partially Invoiced" &&
+        (!packStatus || packStatus === "None");
+
+      if (
+        !canEditAfterPicking &&
+        (pickingStatus === "In Progress" || pickingStatus === "Completed")
+      ) {
         this.hide(["button_save_as_created"]);
       }
 
@@ -366,6 +394,27 @@ const setPickingSetup = async (data) => {
     const splitPolicy =
       pickingSetupResponse.data[0].split_policy || "ALLOW_SPLIT";
     this.setData({ split_policy: splitPolicy });
+
+    return pickingSetupResponse.data[0];
+  }
+
+  return null;
+};
+
+// Organisation-level packing. Editing a delivery whose Picking has started is not
+// supported when packing is on, because the packed handling units would have to be
+// unwound too -- the workflow enforces the same rule.
+const isPackingRequired = async (organizationId) => {
+  if (!organizationId) return 0;
+  try {
+    const res = await db
+      .collection("packing_setup")
+      .where({ organization_id: organizationId, packing_required: 1 })
+      .get();
+    return res?.data?.length > 0 ? 1 : 0;
+  } catch (error) {
+    console.error("Error reading packing_setup:", error);
+    return 0;
   }
 };
 
@@ -520,14 +569,16 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
 
       case "Edit":
         console.log("Full data", data);
+        let pickingSetup = null;
+        let packingRequired = 0;
         const fromConvert = this.getValue("from_convert");
         const gd_status = this.getValue("gd_status");
+        this.getComponent("table_gd").hideChildRecord();
         if (
           fromConvert === "Yes" &&
           gd_status !== "Completed" &&
           gd_status !== "Created"
         ) {
-          this.getComponent("table_gd").hideChildRecord();
           let allItem = this.getValue("all_item");
           if (allItem !== "") {
             console.log("all item mounted", allItem);
@@ -546,10 +597,19 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
         if (status !== "Completed") {
           await disabledSelectStock(data);
           disabledGDPPRows(data);
-          await setPickingSetup(data);
+          [pickingSetup, packingRequired] = await Promise.all([
+            setPickingSetup(data),
+            isPackingRequired(organizationId),
+          ]);
         }
         await checkAccIntegrationType(organizationId);
-        await disabledField(status, pickingStatus);
+        await disabledField(
+          status,
+          pickingStatus,
+          pickingSetup,
+          data,
+          packingRequired,
+        );
         await showStatusHTML(status);
         if (salesOrderId.length > 0) {
           await this.display(["address_grid"]);

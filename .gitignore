@@ -8,3 +8,4 @@ Resume/
 # Local DB access tooling + credentials — NEVER commit
 .dbtools/
 *.env
+scratchpad/__pycache__/

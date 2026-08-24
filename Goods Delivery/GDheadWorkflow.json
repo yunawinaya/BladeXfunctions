@@ -76,6 +76,15 @@
       "children": []
     },
     {
+      "key": "confrev01",
+      "name": "confirmPickReversal",
+      "title": "confirmPickReversal",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
       "key": "grp_auto_gr_confirmed",
       "name": "auto_gr_confirmed",
       "title": "auto_gr_confirmed",
@@ -170,6 +179,14 @@
       "name": "siMessage",
       "title": "siMessage",
       "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gdhw_res_pickrevnote",
+      "name": "pickingReversalNote",
+      "title": "pickingReversalNote",
+      "description": "What the operator has to put back after a picked quantity was reversed. Empty unless a reversal happened.",
       "bsonType": "string",
       "isExpand": false
     }
@@ -1285,6 +1302,97 @@
               "blocks": []
             }
           ]
+        },
+        {
+          "id": "cond_item_packing_setup",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 3",
+            "filter": {
+              "list": [
+                {
+                  "id": 1787200000001,
+                  "parentId": 1787200000002,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "true", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 3",
+            "name": "Branch 3",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "get_packing_setup",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Packing Setup:Table:1993892873289064450",
+                  "rules": {
+                    "collectionId": "1993892873289064450",
+                    "list": [
+                      {
+                        "id": 1787200000003,
+                        "parentId": 1787200000004,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1787200000005,
+                            "parentId": 1787200000003,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:allData.organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1787200000006,
+                            "parentId": 1787200000003,
+                            "isTop": false,
+                            "prop": "packing_required",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Packing Required",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Packing Setup",
+                "isValidator": true,
+                "nodeName": "Get Packing Setup",
+                "name": "Get Packing Setup"
+              },
+              "blocks": []
+            }
+          ]
         }
       ]
     },
@@ -1301,7 +1409,7 @@
         "name": "Resolve Picking Setup",
         "script": {
           "type": "javascript",
-          "code": "// Single org-scoped picking_setup fetch.\n//\n// This node used to be filtered by picking_after = \"Goods Delivery\", which made it\n// come back empty for Picking-Plan orgs (picking_after = \"Sales Order\") and for orgs\n// with no setup at all. Neither fetch ever scoped by plant, and PickingSetupSave writes\n// the same config to every plant row, so one org row carries everything; the old filter\n// was just this row plus a string compare.\nconst raw = {{node:get_node_iFPuvJX2.data.data}};\nconst orgSetup = Array.isArray(raw) ? raw[0] : raw;\n\n// gdSetup: the setup ONLY when picking happens after Goods Delivery -- null for\n// Picking-Plan and no-setup orgs. Exactly what the old filtered fetch returned, so it\n// still drives the picking / auto-Transfer-Order gates unchanged.\nconst isGDFlow = !!(orgSetup && orgSetup.picking_after === \"Goods Delivery\");\nconst gdSetup = isGDFlow ? orgSetup : null;\n\n// Auto allocation must NOT be gated by whether a picking setup exists -- only by\n// picking_mode, which is a deliberate config choice. So allocation reads the org row,\n// or these defaults when there is no setup at all.\n// picking_required is intentionally absent: no setup means no picking and no auto\n// Transfer Order. Only stock allocation is defaulted on.\nconst DEFAULT_SETUP = {\n  picking_mode: \"Auto\",\n  default_strategy_id: \"RANDOM\",\n  fallback_strategy_id: \"FIXED BIN\",\n  split_policy: \"ALLOW_SPLIT\",\n};\n\nconst effectiveSetup = orgSetup || DEFAULT_SETUP;\n\nreturn {\n  orgSetup: orgSetup,\n  gdSetup: gdSetup,\n  effectiveSetup: effectiveSetup,\n  pickingMode: effectiveSetup.picking_mode || \"Manual\",\n  splitPolicy: effectiveSetup.split_policy || \"ALLOW_SPLIT\",\n  pickingRequired: gdSetup && Number(gdSetup.picking_required) === 1 ? 1 : 0,\n  autoTriggerTo: gdSetup && Number(gdSetup.auto_trigger_to) === 1 ? 1 : 0,\n  allowFullPicking: gdSetup && Number(gdSetup.allow_full_picking) === 1 ? 1 : 0,\n  // Auto Sales Invoice on completion. Read off the org row (like picking_mode), NOT gdSetup:\n  // it is not tied to picking_after, so Picking-Plan orgs must get it too. null/undefined/0 = off.\n  autoCompletedSi: orgSetup && Number(orgSetup.auto_completed_si) === 1 ? 1 : 0,\n};\n"
+          "code": "// Single org-scoped picking_setup fetch.\n//\n// This node used to be filtered by picking_after = \"Goods Delivery\", which made it\n// come back empty for Picking-Plan orgs (picking_after = \"Sales Order\") and for orgs\n// with no setup at all. Neither fetch ever scoped by plant, and PickingSetupSave writes\n// the same config to every plant row, so one org row carries everything; the old filter\n// was just this row plus a string compare.\nconst raw = {{node:get_node_iFPuvJX2.data.data}};\nconst orgSetup = Array.isArray(raw) ? raw[0] : raw;\n\n// gdSetup: the setup ONLY when picking happens after Goods Delivery -- null for\n// Picking-Plan and no-setup orgs. Exactly what the old filtered fetch returned, so it\n// still drives the picking / auto-Transfer-Order gates unchanged.\nconst isGDFlow = !!(orgSetup && orgSetup.picking_after === \"Goods Delivery\");\nconst gdSetup = isGDFlow ? orgSetup : null;\n\n// Auto allocation must NOT be gated by whether a picking setup exists -- only by\n// picking_mode, which is a deliberate config choice. So allocation reads the org row,\n// or these defaults when there is no setup at all.\n// picking_required is intentionally absent: no setup means no picking and no auto\n// Transfer Order. Only stock allocation is defaulted on.\nconst DEFAULT_SETUP = {\n  picking_mode: \"Auto\",\n  default_strategy_id: \"RANDOM\",\n  fallback_strategy_id: \"FIXED BIN\",\n  split_policy: \"ALLOW_SPLIT\",\n};\n\nconst effectiveSetup = orgSetup || DEFAULT_SETUP;\n\n// Scope gate for editing a Created delivery whose Picking has already started.\n// It lives here rather than on the reconcile node because if_o5z3RcOy runs\n// earlier -- pointing that gate the other way is a forward reference, which the\n// linter rejects and the runtime resolves to null.\n//\n// Three shapes stay on the old hard block, each for a structural reason:\n//   GD-from-Picking-Plan  its lines key on picking_plan_line_id, not gd_line_id\n//   Full Picking          one delivery line fans across several Pickings\n//   Packing enabled       the packed handling units would have to be unwound too\nconst isGDPP = Number({{workflowparams:allData.is_select_picking}} || 0) === 1;\nconst allowFullPickingFlag =\n  gdSetup && Number(gdSetup.allow_full_picking) === 1 ? 1 : 0;\n\nconst rawPackingSetup = {{node:get_packing_setup.data.data}};\nconst packingSetup = Array.isArray(rawPackingSetup)\n  ? rawPackingSetup[0] || null\n  : rawPackingSetup || null;\n// The fetch already filters packing_required = 1, so a row coming back IS the\n// answer -- but re-read the column rather than trusting the filter alone.\nconst packingRequired =\n  packingSetup && Number(packingSetup.packing_required) === 1 ? 1 : 0;\n\nlet pickBlockMessage =\n  \"Unable to save as Created since Picking already being processed\";\nif (isGDPP) {\n  pickBlockMessage =\n    \"This delivery was built from a Picking Plan, so it cannot be changed once picking has started. Cancel the Picking first.\";\n} else if (allowFullPickingFlag) {\n  pickBlockMessage =\n    \"Full Picking is enabled, so this delivery can be spread across several Pickings and cannot be changed once picking has started. Cancel the Pickings first.\";\n} else if (packingRequired) {\n  pickBlockMessage =\n    \"Packing is enabled for this organisation, so this delivery cannot be changed once picking has started. Cancel the Picking first.\";\n}\n\nconst pickReconcileSupported =\n  isGDPP || allowFullPickingFlag || packingRequired ? 0 : 1;\n\nreturn {\n  orgSetup: orgSetup,\n  gdSetup: gdSetup,\n  effectiveSetup: effectiveSetup,\n  packingRequired: packingRequired,\n  pickReconcileSupported: pickReconcileSupported,\n  pickBlockMessage: pickBlockMessage,\n  // Only the Picking and Packing ever PASS isLoadingBay; a GD-initiated save sends\n  // nothing, so detectBinHuMigrations would never fire for a bay org once these\n  // saves are allowed. Resolve it from the setup row as a fallback.\n  isLoadingBay: orgSetup && Number(orgSetup.is_loading_bay) === 1 ? 1 : 0,\n  pickingMode: effectiveSetup.picking_mode || \"Manual\",\n  splitPolicy: effectiveSetup.split_policy || \"ALLOW_SPLIT\",\n  pickingRequired: gdSetup && Number(gdSetup.picking_required) === 1 ? 1 : 0,\n  autoTriggerTo: gdSetup && Number(gdSetup.auto_trigger_to) === 1 ? 1 : 0,\n  allowFullPicking: gdSetup && Number(gdSetup.allow_full_picking) === 1 ? 1 : 0,\n  // Auto Sales Invoice on completion. Read off the org row (like picking_mode), NOT gdSetup:\n  // it is not tied to picking_after, so Picking-Plan orgs must get it too. null/undefined/0 = off.\n  autoCompletedSi: orgSetup && Number(orgSetup.auto_completed_si) === 1 ? 1 : 0,\n};\n"
         },
         "response_json": [
           {
@@ -1326,6 +1434,38 @@
             "title": "effectiveSetup",
             "description": "",
             "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "packreq01",
+            "name": "packingRequired",
+            "title": "packingRequired",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "pkblkmsg1",
+            "name": "pickBlockMessage",
+            "title": "pickBlockMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "precsup01",
+            "name": "pickReconcileSupported",
+            "title": "pickReconcileSupported",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "isldbay01",
+            "name": "isLoadingBay",
+            "title": "isLoadingBay",
+            "description": "",
+            "bsonType": "int",
             "isExpand": false
           },
           {
@@ -2948,6 +3088,81 @@
               "blocks": []
             },
             {
+              "id": "get_pick_for_reconcile",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Transfer Order Picking:Table:1935556443668959233",
+                  "rules": {
+                    "collectionId": "1935556443668959233",
+                    "list": [
+                      {
+                        "id": 1787100000010,
+                        "parentId": 1787100000009,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1787100000011,
+                            "parentId": 1787100000010,
+                            "isTop": false,
+                            "prop": "gd_no",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{workflowparams:allData.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Reference Doc No",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          },
+                          {
+                            "id": 1787100000012,
+                            "parentId": 1787100000010,
+                            "isTop": false,
+                            "prop": "to_status",
+                            "operator": "notEqual",
+                            "valueType": "value",
+                            "value": "Draft",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Transfer Order Status",
+                            "valueLabel": "",
+                            "operatorLabel": "Not Equal"
+                          },
+                          {
+                            "id": 1787100000013,
+                            "parentId": 1787100000010,
+                            "isTop": false,
+                            "prop": "to_status",
+                            "operator": "notEqual",
+                            "valueType": "value",
+                            "value": "Cancelled",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Transfer Order Status",
+                            "valueLabel": "",
+                            "operatorLabel": "Not Equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Picking (Reconcile)",
+                "isValidator": true,
+                "nodeName": "Get Picking (Reconcile)",
+                "name": "Get Picking (Reconcile)"
+              },
+              "blocks": []
+            },
+            {
               "id": "if_amlgRu7I",
               "type": "if",
               "data": {
@@ -2955,23 +3170,50 @@
                 "isValidator": true,
                 "nodeName": "IF Picking Status In Progress",
                 "name": "IF Picking Status In Progress",
-                "condition_type": "Expression",
-                "expression": {
-                  "type": "javascript",
-                  "code": "'{{node:code_node_shTWK0Nm.data.pickingStatus}}' == 'In Progress' || '{{node:code_node_shTWK0Nm.data.pickingStatus}}' == 'Completed'"
-                },
+                "condition_type": "ConditionRule",
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
-                      "id": 1736695973613,
-                      "parentId": 1736695973612,
+                      "id": 1787100000001,
+                      "parentId": 1787100000000,
                       "isTop": true,
                       "prop": "",
-                      "operator": "",
+                      "operator": "any",
                       "valueType": "",
                       "value": "",
-                      "type": "leaf",
-                      "level": 1
+                      "type": "branch",
+                      "level": 1,
+                      "children": [
+                        {
+                          "id": 1787100000002,
+                          "parentId": 1787100000001,
+                          "isTop": false,
+                          "prop": "node.get_node_xTRvHWB8.data.data.picking_status",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "In Progress",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Picking Status",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        },
+                        {
+                          "id": 1787100000003,
+                          "parentId": 1787100000001,
+                          "isTop": false,
+                          "prop": "node.get_node_xTRvHWB8.data.data.picking_status",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "Completed",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "Picking Status",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -3016,6 +3258,20 @@
                                   "type": "leaf",
                                   "level": 2,
                                   "propLabel": "saveAs",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                },
+                                {
+                                  "id": 1787100000004,
+                                  "parentId": 1770708170127,
+                                  "isTop": false,
+                                  "prop": "node.code_picking_defaults.data.pickReconcileSupported",
+                                  "operator": "numberEqual",
+                                  "valueType": "value",
+                                  "value": 0,
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Pick Reconcile Supported",
                                   "valueLabel": "",
                                   "operatorLabel": "Equal"
                                 },
@@ -3068,8 +3324,8 @@
                                     {
                                       "prop": "message",
                                       "operator": "",
-                                      "valueType": "value",
-                                      "value": "Unable to save as Created since Picking already being processed",
+                                      "valueType": "field",
+                                      "value": "{{node:code_picking_defaults.data.pickBlockMessage}}",
                                       "valueLabel": "",
                                       "propLabel": "message"
                                     }
@@ -3477,6 +3733,440 @@
         },
         {
           "id": "if_block_ZXvb2h5i",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_pick_reconcile",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Plan Picking Reconcile",
+        "isValidator": true,
+        "nodeName": "Plan Picking Reconcile",
+        "name": "Plan Picking Reconcile",
+        "script": {
+          "type": "javascript",
+          "code": "// Picking reconcile -- planning pass.\n//\n// Classifies each delivery line against the Picking as it stands so the producer\n// downstream can merge into the plan rather than rebuild it. An increase or a new\n// line reopens the Picking; a decrease below what has already been picked would\n// have to unwind pick records and is not handled yet.\nconst RECONCILE_ENABLED = 1;\n\nconst saveAs = {{workflowparams:saveAs}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst isPicking = {{workflowparams:isPicking}};\nconst confirmReversal = {{workflowparams:confirmPickReversal}};\nconst supported = {{node:code_picking_defaults.data.pickReconcileSupported}} || 0;\nconst allData = {{node:code_node_IyJHrBst.data.allData}} || null;\n\n// get_pick_for_reconcile sits inside \"IF Created\", so this is null on an Add or a\n// Draft save -- exactly the cases where there is no Picking to reconcile against.\nconst rawPicking = {{node:get_pick_for_reconcile.data.data}};\nconst picking = Array.isArray(rawPicking)\n  ? rawPicking[0] || null\n  : rawPicking || null;\n\n// The delivery as stored, not as the browser has it. Same reason if_amlgRu7I was\n// repointed here: a page opened before the picker started carries a stale\n// picking_status, si_status and packing_status.\nconst rawBefore = {{node:get_node_xTRvHWB8.data.data}};\nconst beforeGD = Array.isArray(rawBefore)\n  ? rawBefore[0] || null\n  : rawBefore || null;\n\nconst OFF = {\n  reconcileNeeded: 0,\n  blockCreatedEdit: 0,\n  blockMessage: \"\",\n  pickingId: \"\",\n  pickingNo: \"\",\n  pickingToStatus: \"\",\n  targetToStatus: \"\",\n  targetGdPickingStatus: \"\",\n  linePlans: [],\n  lineStatusOverrides: {},\n  hasReversals: 0,\n  needsReversalConfirm: 0,\n  reversals: [],\n  binIdsToName: [\"0\"],\n  recordAdjustments: [],\n  reversalNote: \"\"\n};\n\nif (\n  RECONCILE_ENABLED !== 1 ||\n  supported !== 1 ||\n  saveAs !== \"Created\" ||\n  pageStatus !== \"Edit\" ||\n  isPicking ||\n  !picking ||\n  !picking.id ||\n  !allData\n) {\n  return OFF;\n}\n\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst gdId = String(allData.id || \"\");\n\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\n\n// Only the case that used to be blocked outright is new territory: a Picking still\n// at Created was always editable, so it goes down the untouched path. Both status\n// fields are read because production holds deliveries where they disagree -- a\n// shared Picking still In Progress while the delivery already reads Completed, and\n// the reverse -- so either one is enough to mean picking has started.\nconst priorPickingStatus = String((beforeGD && beforeGD.picking_status) || \"\");\nconst priorToStatus = String(picking.to_status || \"\");\nconst started =\n  priorPickingStatus === \"In Progress\" ||\n  priorPickingStatus === \"Completed\" ||\n  priorToStatus === \"In Progress\" ||\n  priorToStatus === \"Completed\";\nif (!started) {\n  return OFF;\n}\n\n// PickingLoopWorkflow takes is_processing as a mutex while a picker confirms. This\n// runs before any write, so refusing here is clean -- nothing has been touched yet.\nif (Number(picking.is_processing || 0) !== 0) {\n  return {\n    reconcileNeeded: 0,\n    blockCreatedEdit: 1,\n    blockMessage:\n      \"Picking \" +\n      (picking.to_id || picking.id) +\n      \" is being processed on a device right now. Try again in a moment.\",\n    pickingId: String(picking.id),\n    pickingNo: String(picking.to_id || picking.id),\n    pickingToStatus: String(picking.to_status || \"\"),\n    targetToStatus: \"\",\n    targetGdPickingStatus: \"\",\n    linePlans: [],\n    lineStatusOverrides: {},\n    hasReversals: 0,\n    needsReversalConfirm: 0,\n    reversals: [],\n    binIdsToName: [\"0\"],\n    recordAdjustments: [],\n    reversalNote: \"\"\n  };\n}\n\nconst blockWith = (message) => ({\n  reconcileNeeded: 0,\n  blockCreatedEdit: 1,\n  blockMessage: message,\n  pickingId: String(picking.id),\n  pickingNo: String(picking.to_id || picking.id),\n  pickingToStatus: String(picking.to_status || \"\"),\n  targetToStatus: \"\",\n  targetGdPickingStatus: \"\",\n  linePlans: [],\n  lineStatusOverrides: {},\n  hasReversals: 0,\n  needsReversalConfirm: 0,\n  reversals: [],\n  binIdsToName: [\"0\"],\n  recordAdjustments: [],\n  reversalNote: \"\"\n});\n\n// Invoiced deliveries are off limits: changing a quantity would leave the Sales\n// Invoice describing something that was never delivered, and nothing here reconciles\n// an invoice. Line invoice_qty is checked too, because a partial invoice only shows\n// on the lines, and the submitted value is a fallback so an invoiced delivery cannot\n// slip through on an empty read.\nconst siStatus = String(\n  (beforeGD && beforeGD.si_status) || allData.si_status || \"\"\n);\nconst beforeLines = flattenRows(beforeGD && beforeGD.table_gd);\nconst anyInvoicedLine = beforeLines.some(\n  (l) => (parseFloat(l && l.invoice_qty) || 0) > 0\n);\nif (siStatus === \"Fully Invoiced\" || siStatus === \"Partially Invoiced\" || anyInvoicedLine) {\n  return blockWith(\n    \"Delivery \" +\n      (allData.delivery_no || \"\") +\n      \" has already been invoiced (\" +\n      (siStatus || \"invoiced lines\") +\n      \"), so it cannot be changed once picking has started. Cancel or credit the Sales Invoice first.\"\n  );\n}\n\n// A Packing document already exists against this delivery. Organisation-level\n// packing is screened earlier by pickReconcileSupported; this catches the delivery\n// that has packing in flight regardless of the current setup.\nconst packingStatus = String(\n  (beforeGD && beforeGD.packing_status) || allData.packing_status || \"\"\n);\nif (packingStatus && packingStatus !== \"None\") {\n  return blockWith(\n    \"Delivery \" +\n      (allData.delivery_no || \"\") +\n      \" already has packing in progress (\" +\n      packingStatus +\n      \"), so it cannot be changed once picking has started. Cancel the Packing first.\"\n  );\n}\n\n// --- the Picking as it stands ---------------------------------------------\n// Scope by gd_id. One Picking routinely covers several deliveries (1,063 in\n// production cover between 2 and 22), so another delivery's lines must never be\n// read as this one's -- the same guard the force-complete path already applies.\nconst allPlanRows = flattenRows(picking.table_picking_items).filter(\n  (r) => r && r.row_type !== \"header\"\n);\nconst planRows = allPlanRows.filter((r) => String(r.gd_id || \"\") === gdId);\nconst otherRows = allPlanRows.filter((r) => String(r.gd_id || \"\") !== gdId);\nconst records = (picking.table_picking_records || []).filter(\n  (r) => r && String(r.gd_id || \"\") === gdId\n);\n\n// Records are the authority on what was physically picked: they survive the\n// plan-row id churn a delivery re-save causes.\nconst pickedByLine = {};\nfor (const rec of records) {\n  const line = String(rec.gd_line_id || \"\");\n  const q = parseFloat(rec.store_out_qty) || 0;\n  if (!line || q <= 0) continue;\n  pickedByLine[line] = roundQty((pickedByLine[line] || 0) + q);\n}\n\n// A force-completed Picking writes no records at all, so those lines fall back to\n// the plan's own arithmetic.\nfor (const row of planRows) {\n  const line = String(row.gd_line_id || \"\");\n  if (!line || pickedByLine[line] !== undefined) continue;\n  const done = roundQty(\n    (parseFloat(row.qty_to_pick) || 0) -\n      (parseFloat(row.pending_process_qty) || 0)\n  );\n  if (done > 0) pickedByLine[line] = done;\n}\n\nconst plannedByLine = {};\nconst pendingByLine = {};\nfor (const row of planRows) {\n  const line = String(row.gd_line_id || \"\");\n  if (!line || row.line_status === \"Cancelled\") continue;\n  plannedByLine[line] = roundQty(\n    (plannedByLine[line] || 0) + (parseFloat(row.qty_to_pick) || 0)\n  );\n  pendingByLine[line] = roundQty(\n    (pendingByLine[line] || 0) + (parseFloat(row.pending_process_qty) || 0)\n  );\n}\n\n// --- what the delivery now wants ------------------------------------------\n// A line added in this save has no id yet, so it is keyed synthetically: it has no\n// counterpart in the Picking either, and the producer emits it as a fresh Open row.\nconst desiredByLine = {};\nflattenRows(allData.table_gd).forEach((item, index) => {\n  if (!item || !item.material_id) return;\n  const line = String(item.id || \"\") || \"__new__\" + index;\n  let total = 0;\n  try {\n    const temp = item.temp_qty_data ? JSON.parse(item.temp_qty_data) : [];\n    for (const t of temp) total += parseFloat(t.gd_quantity) || 0;\n  } catch (e) {\n    total = 0;\n  }\n  desiredByLine[line] = roundQty((desiredByLine[line] || 0) + total);\n});\n\n// --- classify each line ----------------------------------------------------\nconst lineIds = {};\nfor (const k of Object.keys(pickedByLine)) lineIds[k] = 1;\nfor (const k of Object.keys(plannedByLine)) lineIds[k] = 1;\nfor (const k of Object.keys(desiredByLine)) lineIds[k] = 1;\n\nconst linePlans = [];\nconst lineStatusOverrides = {};\nconst shortfalls = [];\n\nfor (const line of Object.keys(lineIds)) {\n  const picked = roundQty(pickedByLine[line] || 0);\n  const planned = roundQty(plannedByLine[line] || 0);\n  const pending = roundQty(pendingByLine[line] || 0);\n  const desired = roundQty(desiredByLine[line] || 0);\n\n  if (desired < picked) {\n    shortfalls.push({\n      line: line,\n      picked: picked,\n      desired: desired,\n      planned: planned,\n      pending: pending\n    });\n    continue;\n  }\n\n  const newPending = roundQty(Math.max(0, desired - picked));\n  linePlans.push({\n    gd_line_id: line,\n    mode:\n      picked === 0\n        ? \"rebuild\"\n        : desired > planned\n          ? \"extend\"\n          : desired < planned\n            ? \"shrink\"\n            : \"hold\",\n    picked: picked,\n    planned: planned,\n    pending: pending,\n    desired: desired,\n    newPending: newPending\n  });\n\n  // The delivery line's own picking_status. This matters: code_node_iES7iMKA skips\n  // any line still reading Completed, so without the downgrade a reopened line would\n  // never receive the next pick.\n  if (desired === 0) lineStatusOverrides[line] = \"Cancelled\";\n  else if (newPending === 0) lineStatusOverrides[line] = \"Completed\";\n  else if (picked > 0) lineStatusOverrides[line] = \"In Progress\";\n  else lineStatusOverrides[line] = \"Created\";\n}\n\n// --- unwind what was over-picked ------------------------------------------\n// Records are reduced newest first, so the most recent scan is the one undone.\n// Each reduction names the bin the stock has to go back to; where the pick moved\n// it (a loading bay) the two differ and the operator is told both.\nconst recordsByLine = {};\nfor (const rec of records) {\n  const line = String(rec.gd_line_id || \"\");\n  if (!line) continue;\n  if (!recordsByLine[line]) recordsByLine[line] = [];\n  recordsByLine[line].push(rec);\n}\n\nconst reversals = [];\nconst recordAdjustments = [];\nconst binIdSet = {};\n\n// Serialised lines cannot be unwound. code_node_oHIIKfiw never writes\n// serial_numbers onto a pick record -- nothing in production has them -- so there is\n// no way to tell WHICH serial to un-pick. Reducing the quantity would leave the plan\n// row still listing every serial as picked, which is silently wrong rather than\n// merely incomplete.\nconst serialisedLines = {};\nfor (const row of planRows) {\n  const isSerial =\n    Number(row.is_serialized_item || 0) === 1 ||\n    (row.serial_numbers !== undefined &&\n      row.serial_numbers !== null &&\n      String(row.serial_numbers) !== \"\");\n  if (isSerial) serialisedLines[String(row.gd_line_id || \"\")] = 1;\n}\nconst serialShortfall = shortfalls.filter((s) => serialisedLines[String(s.line)]);\nif (serialShortfall.length > 0) {\n  return blockWith(\n    \"Reducing \" +\n      serialShortfall.length +\n      \" serialised line(s) on \" +\n      (picking.to_id || picking.id) +\n      \" cannot be reversed automatically, because the pick records do not record which serial numbers were taken. Cancel the Picking first.\"\n  );\n}\n\nfor (const s of shortfalls) {\n  let left = roundQty(s.picked - s.desired);\n  const newestFirst = (recordsByLine[s.line] || []).slice().sort((a, b) => {\n    const ta = String(a.confirmed_at || \"\");\n    const tb = String(b.confirmed_at || \"\");\n    if (ta !== tb) return ta < tb ? 1 : -1;\n    return String(a.id || \"\") < String(b.id || \"\") ? 1 : -1;\n  });\n\n  for (const rec of newestFirst) {\n    if (left <= 0) break;\n    const have = roundQty(rec.store_out_qty);\n    if (have <= 0) continue;\n\n    const take = roundQty(Math.min(left, have));\n    const remain = roundQty(have - take);\n    // picked_qty_alt is the same pick in the picking UOM; scale it by the same\n    // proportion rather than recomputing a conversion factor here.\n    const alt = roundQty(rec.picked_qty_alt);\n    const newAlt = have > 0 ? roundQty(alt * (remain / have)) : 0;\n\n    recordAdjustments.push({\n      id: String(rec.id || \"\"),\n      store_out_qty: remain,\n      picked_qty_alt: newAlt,\n      drop: remain <= 0 ? 1 : 0,\n      qty: take\n    });\n\n    reversals.push({\n      gd_line_id: s.line,\n      item_code: String(rec.item_code || \"\"),\n      item_name: String(rec.item_name || \"\"),\n      qty: take,\n      return_to: String(rec.source_bin || \"\"),\n      currently_at: String(rec.target_location || rec.source_bin || \"\")\n    });\n\n    if (rec.source_bin) binIdSet[String(rec.source_bin)] = 1;\n    if (rec.target_location) binIdSet[String(rec.target_location)] = 1;\n    left = roundQty(left - take);\n  }\n\n  // A force-completed Picking writes no records, so there is nothing to unwind\n  // against and no bin to name. That has to be done by hand.\n  if (left > 0) {\n    return blockWith(\n      \"Line \" +\n        s.line +\n        \" on \" +\n        (picking.to_id || picking.id) +\n        \" shows \" +\n        s.picked +\n        \" picked but has no pick records covering \" +\n        left +\n        \" of it (a force-completed Picking records none), so it cannot be reversed automatically. Cancel the Picking first.\"\n    );\n  }\n\n  // Post-reversal the line is satisfied exactly, so nothing is left open.\n  linePlans.push({\n    gd_line_id: s.line,\n    mode: \"reverse\",\n    picked: s.desired,\n    planned: s.planned,\n    pending: s.pending,\n    desired: s.desired,\n    newPending: 0\n  });\n  lineStatusOverrides[s.line] = s.desired === 0 ? \"Cancelled\" : \"Completed\";\n}\n\nconst binIdsToName = Object.keys(binIdSet);\n// An empty `equalAny` list matches everything, so send a value that matches nothing.\nif (binIdsToName.length === 0) binIdsToName.push(\"0\");\n\n// Plain-text fallback, used if the bin-name lookup returns nothing.\nconst reversalNote = reversals\n  .map(\n    (r) =>\n      (r.item_name || r.item_code) +\n      \": return \" +\n      r.qty +\n      (r.currently_at && r.currently_at !== r.return_to\n        ? \" (currently staged away from its source bin)\"\n        : \"\")\n  )\n  .join(\"; \");\n\n// --- roll the statuses up --------------------------------------------------\n// The Picking's own status spans every delivery it carries; the delivery header\n// mirrors only its own lines.\nlet allDone = true;\nlet anyProgress = false;\nlet anyLive = false;\nlet gdAllDone = true;\nlet gdAnyProgress = false;\nlet gdAnyLive = false;\n\nfor (const p of linePlans) {\n  if (p.desired === 0) continue;\n  anyLive = true;\n  gdAnyLive = true;\n  if (p.newPending > 0) {\n    allDone = false;\n    gdAllDone = false;\n  }\n  if (p.picked > 0) {\n    anyProgress = true;\n    gdAnyProgress = true;\n  }\n}\nfor (const row of otherRows) {\n  if (row.line_status === \"Cancelled\") continue;\n  anyLive = true;\n  if ((parseFloat(row.pending_process_qty) || 0) > 0) allDone = false;\n  if (row.line_status === \"Completed\" || row.line_status === \"In Progress\") {\n    anyProgress = true;\n  }\n}\n\nconst rollup = (live, done, progress) =>\n  !live ? \"Created\" : done ? \"Completed\" : progress ? \"In Progress\" : \"Created\";\n\nreturn {\n  reconcileNeeded: 1,\n  blockCreatedEdit: 0,\n  blockMessage: \"\",\n  pickingId: String(picking.id),\n  pickingNo: String(picking.to_id || picking.id),\n  pickingToStatus: String(picking.to_status || \"\"),\n  targetToStatus: rollup(anyLive, allDone, anyProgress),\n  targetGdPickingStatus: rollup(gdAnyLive, gdAllDone, gdAnyProgress),\n  linePlans: linePlans,\n  lineStatusOverrides: lineStatusOverrides,\n  hasReversals: reversals.length > 0 ? 1 : 0,\n  // Asking twice is worse than not asking, so the confirm is suppressed once the\n  // operator has already agreed to it.\n  needsReversalConfirm:\n    reversals.length > 0 && confirmReversal !== \"Yes\" ? 1 : 0,\n  reversals: reversals,\n  binIdsToName: binIdsToName,\n  recordAdjustments: recordAdjustments,\n  reversalNote: reversalNote\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "recneed01",
+            "name": "reconcileNeeded",
+            "title": "reconcileNeeded",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "blkcre001",
+            "name": "blockCreatedEdit",
+            "title": "blockCreatedEdit",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "blkmsg001",
+            "name": "blockMessage",
+            "title": "blockMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "pickid001",
+            "name": "pickingId",
+            "title": "pickingId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "pickno001",
+            "name": "pickingNo",
+            "title": "pickingNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "picksts01",
+            "name": "pickingToStatus",
+            "title": "pickingToStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "tgtsts001",
+            "name": "targetToStatus",
+            "title": "targetToStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "tgtgdsts1",
+            "name": "targetGdPickingStatus",
+            "title": "targetGdPickingStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "lineplan1",
+            "name": "linePlans",
+            "title": "linePlans",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          },
+          {
+            "key": "lnstatov1",
+            "name": "lineStatusOverrides",
+            "title": "lineStatusOverrides",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "hasrev001",
+            "name": "hasReversals",
+            "title": "hasReversals",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "needrev01",
+            "name": "needsReversalConfirm",
+            "title": "needsReversalConfirm",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "revlist01",
+            "name": "reversals",
+            "title": "reversals",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          },
+          {
+            "key": "binids001",
+            "name": "binIdsToName",
+            "title": "binIdsToName",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          },
+          {
+            "key": "recadj001",
+            "name": "recordAdjustments",
+            "title": "recordAdjustments",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false
+          },
+          {
+            "key": "revnote01",
+            "name": "reversalNote",
+            "title": "reversalNote",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_pick_block",
+      "type": "if",
+      "data": {
+        "title": "IF Picking Blocks Edit",
+        "isValidator": true,
+        "nodeName": "IF Picking Blocks Edit",
+        "name": "IF Picking Blocks Edit",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1787100000020,
+              "parentId": 1787100000019,
+              "isTop": true,
+              "prop": "node.code_pick_reconcile.data.blockCreatedEdit",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "Block Created Edit",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_pick_block_t",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_pick_block",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Picking Block",
+                "isValidator": true,
+                "nodeName": "Return Picking Block",
+                "name": "Return Picking Block",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_pick_reconcile.data.blockMessage}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_pick_block_f",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_pick_has_reversal",
+      "type": "if",
+      "data": {
+        "title": "IF Pick Reversal Needed",
+        "isValidator": true,
+        "nodeName": "IF Pick Reversal Needed",
+        "name": "IF Pick Reversal Needed",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1787400000001,
+              "parentId": 1787400000000,
+              "isTop": true,
+              "prop": "node.code_pick_reconcile.data.hasReversals",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "Has Reversals",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_pick_rev_t",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "search_bin_names",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Bin Location:Table:1902282127538507778",
+                  "rules": {
+                    "collectionId": "1902282127538507778",
+                    "list": [
+                      {
+                        "id": 1787400000002,
+                        "parentId": 1787400000003,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_pick_reconcile.data.binIdsToName}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal Any"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get Bin Names",
+                "isValidator": true,
+                "nodeName": "Get Bin Names",
+                "name": "Get Bin Names"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_pick_reversal_msg",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Build Reversal Message",
+                "isValidator": true,
+                "nodeName": "Build Reversal Message",
+                "name": "Build Reversal Message",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Turn the reversal plan into something an operator can act on. Bin ids mean\n// nothing on a shop floor, so they are resolved to their display names here --\n// this node only runs when there is actually something to reverse.\nconst reversals = {{node:code_pick_reconcile.data.reversals}} || [];\nconst pickingNo = {{node:code_pick_reconcile.data.pickingNo}} || \"\";\nconst rawBins = {{node:search_bin_names.data.data}};\nconst bins = Array.isArray(rawBins) ? rawBins : rawBins ? [rawBins] : [];\n\nconst nameOf = {};\nfor (const b of bins) {\n  if (b && b.id) {\n    nameOf[String(b.id)] = b.bin_location_combine || b.bin_name || String(b.id);\n  }\n}\nconst label = (id) => nameOf[String(id)] || String(id || \"its source bin\");\n\n// Merge by item and bin pair so one line does not produce a wall of near-identical\n// bullets when several scans are unwound.\nconst merged = {};\nfor (const r of reversals) {\n  const key = r.item_code + \"|\" + r.return_to + \"|\" + r.currently_at;\n  if (!merged[key]) merged[key] = { ...r, qty: 0 };\n  merged[key].qty = Math.round((merged[key].qty + (parseFloat(r.qty) || 0)) * 1000) / 1000;\n}\n\nconst lines = Object.keys(merged).map((k) => {\n  const r = merged[k];\n  const what = r.item_name || r.item_code;\n  // Where the pick moved the stock (a loading bay) the two bins differ, and saying\n  // so is the difference between a paper correction and a physical one.\n  if (r.currently_at && r.currently_at !== r.return_to) {\n    return (\n      \"\u2022 \" + what + \": \" + r.qty + \" is staged at \" + label(r.currently_at) +\n      \" \u2014 move it back to \" + label(r.return_to)\n    );\n  }\n  return (\n    \"\u2022 \" + what + \": \" + r.qty + \" picked at \" + label(r.return_to) +\n    \" will be released (no physical move needed)\"\n  );\n});\n\nconst body = lines.join(\"\\n\");\n\nconst confirmMessage =\n  \"Reducing this delivery reverses quantities already picked on \" + pickingNo + \":\\n\\n\" +\n  body +\n  \"\\n\\nThe Picking and the stock reservations will be updated. Proceed?\";\n\nconst noticeMessage =\n  \"Picking \" + pickingNo + \" was adjusted. Stock to put back:\\n\\n\" + body;\n\nreturn {\n  confirmMessage: confirmMessage,\n  noticeMessage: noticeMessage,\n  reversalCount: lines.length\n};\n"
+                },
+                "response_json": [
+                    {
+                      "key": "confmsg01",
+                      "name": "confirmMessage",
+                      "title": "confirmMessage",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "notimsg01",
+                      "name": "noticeMessage",
+                      "title": "noticeMessage",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                    },
+                    {
+                      "key": "revcnt001",
+                      "name": "reversalCount",
+                      "title": "reversalCount",
+                      "description": "",
+                      "bsonType": "int",
+                      "isExpand": false
+                    }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_pick_reversal_confirm",
+              "type": "if",
+              "data": {
+                "title": "IF Needs Reversal Confirm",
+                "isValidator": true,
+                "nodeName": "IF Needs Reversal Confirm",
+                "name": "IF Needs Reversal Confirm",
+                "condition_type": "ConditionRule",
+                "expression": { "type": "javascript", "code": "" },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1787400000004,
+                      "parentId": 1787400000005,
+                      "isTop": true,
+                      "prop": "node.code_pick_reconcile.data.needsReversalConfirm",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "Needs Reversal Confirm",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_pick_rev_confirm_t",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_pick_reversal",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Reversal Confirm",
+                        "isValidator": true,
+                        "nodeName": "Return Reversal Confirm",
+                        "name": "Return Reversal Confirm",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "413",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_reversal_msg.data.confirmMessage}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_pick_rev_confirm_f",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_pick_rev_f",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -5241,7 +5931,7 @@
         "name": "Table GD",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{node:code_node_IyJHrBst.data.allData}};\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// Every decimal column on a line. A bundle keeps its items under `children` and\n// they are stored as lines in their own right, so they need the same treatment --\n// a decimal left as a raw float is rejected on write.\nconst formatLine = (item) => ({\n    ...item,\n    gd_order_quantity: formatNumber(item.gd_order_quantity),\n    plan_qty: formatNumber(item.plan_qty),\n    gd_qty: formatNumber(item.gd_qty),\n    base_qty: formatNumber(item.base_qty),\n    gd_initial_delivered_qty: formatNumber(item.gd_initial_delivered_qty),\n    gd_delivered_qty: formatNumber(item.gd_delivered_qty),\n    gd_undelivered_qty: formatNumber(Math.max(0, item.gd_undelivered_qty)),\n    unit_price: formatNumber(item.unit_price),\n    total_price: formatNumber(item.total_price),\n    packing_qty: formatNumber((parseFloat(item.gd_qty) || 0) / (parseFloat(item.packing_conversion) || 1)),\n    net_weight: formatNumber((parseFloat(item.gd_qty) || 0) * (parseFloat(item.weight_conversion) || 0)),\n});\n\n// Format table_gd fields\nif (allData.table_gd && allData.table_gd.length > 0) {\n  allData.table_gd = allData.table_gd.map((item) => ({\n    ...formatLine(item),\n    ...(Array.isArray(item.children) && {\n      children: item.children.map(formatLine),\n    }),\n  }));\n}\n\n// Format top-level fields\nallData.gd_total = formatNumber(allData.gd_total);\n\nreturn {\n  allData: allData\n};\n"
+          "code": "let allData = {{node:code_node_IyJHrBst.data.allData}};\n\n// A line that was fully picked reads picking_status \"Completed\", and\n// code_node_iES7iMKA skips any such line outright -- so a line reopened by an\n// increase would never receive the next pick. The reconcile works out the real\n// status per line; this is the only place table_gd is written, so it is where the\n// correction has to land. Empty when nothing was reconciled.\nconst pickOverrides = {{node:code_pick_reconcile.data.lineStatusOverrides}} || {};\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// Every decimal column on a line. A bundle keeps its items under `children` and\n// they are stored as lines in their own right, so they need the same treatment --\n// a decimal left as a raw float is rejected on write.\nconst formatLine = (item) => ({\n    ...item,\n    picking_status:\n      pickOverrides[String(item.id || \"\")] || item.picking_status,\n    gd_order_quantity: formatNumber(item.gd_order_quantity),\n    plan_qty: formatNumber(item.plan_qty),\n    gd_qty: formatNumber(item.gd_qty),\n    base_qty: formatNumber(item.base_qty),\n    gd_initial_delivered_qty: formatNumber(item.gd_initial_delivered_qty),\n    gd_delivered_qty: formatNumber(item.gd_delivered_qty),\n    gd_undelivered_qty: formatNumber(Math.max(0, item.gd_undelivered_qty)),\n    unit_price: formatNumber(item.unit_price),\n    total_price: formatNumber(item.total_price),\n    packing_qty: formatNumber((parseFloat(item.gd_qty) || 0) / (parseFloat(item.packing_conversion) || 1)),\n    net_weight: formatNumber((parseFloat(item.gd_qty) || 0) * (parseFloat(item.weight_conversion) || 0)),\n});\n\n// Format table_gd fields\nif (allData.table_gd && allData.table_gd.length > 0) {\n  allData.table_gd = allData.table_gd.map((item) => ({\n    ...formatLine(item),\n    ...(Array.isArray(item.children) && {\n      children: item.children.map(formatLine),\n    }),\n  }));\n}\n\n// Format top-level fields\nallData.gd_total = formatNumber(allData.gd_total);\n\nreturn {\n  allData: allData\n};\n"
         },
         "response_json": [
           {
@@ -9963,18 +10653,45 @@
                           "operatorLabel": "Is Null"
                         },
                         {
-                          "id": 1779334000001,
+                          "id": 1787300000001,
                           "parentId": 1770688167638,
                           "isTop": false,
-                          "prop": "node.code_node_IyJHrBst.data.picking_status",
-                          "operator": "notEqual",
-                          "valueType": "value",
-                          "value": "Completed",
-                          "type": "leaf",
+                          "prop": "",
+                          "operator": "any",
+                          "valueType": "",
+                          "value": "",
+                          "type": "branch",
                           "level": 2,
-                          "propLabel": "picking_status",
-                          "valueLabel": "",
-                          "operatorLabel": "Not Equal"
+                          "children": [
+                            {
+                              "id": 1779334000001,
+                              "parentId": 1787300000001,
+                              "isTop": false,
+                              "prop": "node.code_node_IyJHrBst.data.picking_status",
+                              "operator": "notEqual",
+                              "valueType": "value",
+                              "value": "Completed",
+                              "type": "leaf",
+                              "level": 3,
+                              "propLabel": "picking_status",
+                              "valueLabel": "",
+                              "operatorLabel": "Not Equal"
+                            },
+                            {
+                              "id": 1787300000002,
+                              "parentId": 1787300000001,
+                              "isTop": false,
+                              "prop": "node.code_pick_reconcile.data.reconcileNeeded",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 3,
+                              "propLabel": "Reconcile Needed",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
                         },
                         {
                           "id": 1779334000002,
@@ -10062,140 +10779,7 @@
                       },
                       "blocks": []
                     },
-                    {
-                      "id": "if_koxbC9gT",
-                      "type": "if",
-                      "data": {
-                        "title": "IF Existing Picking Created",
-                        "isValidator": true,
-                        "nodeName": "IF Existing Picking Created",
-                        "name": "IF Existing Picking Created",
-                        "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
-                        "filter": {
-                          "list": [
-                            {
-                              "id": 1770689360381,
-                              "parentId": 1770689360382,
-                              "isTop": true,
-                              "prop": "",
-                              "operator": "all",
-                              "valueType": "",
-                              "value": "",
-                              "type": "branch",
-                              "level": 1,
-                              "children": [
-                                {
-                                  "id": 1736695973613,
-                                  "parentId": 1770689360381,
-                                  "isTop": false,
-                                  "prop": "node.code_node_IyJHrBst.data.picking_status",
-                                  "operator": "equal",
-                                  "valueType": "value",
-                                  "value": "Created",
-                                  "type": "leaf",
-                                  "level": 2,
-                                  "propLabel": "picking_status",
-                                  "valueLabel": "",
-                                  "operatorLabel": "Equal"
-                                },
-                                {
-                                  "id": 1770689360383,
-                                  "parentId": 1770689360381,
-                                  "isTop": false,
-                                  "prop": "workflowparams.pageStatus",
-                                  "operator": "equal",
-                                  "valueType": "value",
-                                  "value": "Edit",
-                                  "type": "leaf",
-                                  "level": 2,
-                                  "propLabel": "pageStatus",
-                                  "valueLabel": "",
-                                  "operatorLabel": "Equal"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      },
-                      "blocks": [
-                        {
-                          "id": "if_block_mp_k5Q3r",
-                          "type": "ifBlock",
-                          "data": { "title": "true" },
-                          "blocks": [
-                            {
-                              "id": "get_node_EeFMAtLg",
-                              "type": "get-node",
-                              "data": {
-                                "table_id": {
-                                  "source": "Transfer Order Picking:Table:1935556443668959233",
-                                  "rules": {
-                                    "collectionId": "1935556443668959233",
-                                    "list": [
-                                      {
-                                        "id": 1770087811253,
-                                        "parentId": 1770087811254,
-                                        "isTop": true,
-                                        "type": "branch",
-                                        "operator": "all",
-                                        "prop": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "level": 1,
-                                        "children": [
-                                          {
-                                            "id": 1770087811258,
-                                            "parentId": 1770087811253,
-                                            "isTop": false,
-                                            "prop": "gd_no",
-                                            "operator": "in",
-                                            "valueType": "field",
-                                            "value": "{{node:code_node_IyJHrBst.data.allData.id}}",
-                                            "type": "leaf",
-                                            "level": 2,
-                                            "propLabel": "Reference Doc No",
-                                            "valueLabel": "",
-                                            "operatorLabel": "In"
-                                          },
-                                          {
-                                            "id": 1770087811255,
-                                            "parentId": 1770087811253,
-                                            "isTop": false,
-                                            "prop": "to_status",
-                                            "operator": "notEqual",
-                                            "valueType": "value",
-                                            "value": "Draft",
-                                            "type": "leaf",
-                                            "level": 2,
-                                            "propLabel": "Transfer Order Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Not Equal"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                },
-                                "condition": {},
-                                "title": "Get Picking",
-                                "isValidator": true,
-                                "nodeName": "Get Picking",
-                                "name": "Get Picking"
-                              },
-                              "blocks": []
-                            }
-                          ]
-                        },
-                        {
-                          "id": "if_block_I8vRtXI4",
-                          "type": "ifBlock",
-                          "data": { "title": "false" },
-                          "blocks": []
-                        }
-                      ]
-                    },
-                    {
+{
                       "id": "code_node_o35eZx2c",
                       "type": "code-node",
                       "data": {
@@ -10208,7 +10792,7 @@
                         "name": "Prepare Picking Data",
                         "script": {
                           "type": "javascript",
-                          "code": "// A bundle is ONE row with its items under `children` -- the same shape the source\n// document is stored in, and the same one the platform reads back. Nesting the\n// items rather than laying them out beside the bundle keeps the two together\n// whatever else reorders the table, and keeps the items out of the handling-unit\n// grouping, which only ever walks top-level rows.\nconst nestBundleRows = (rows) => {\n  const nested = [];\n  const bundleRowByLineId = new Map();\n\n  for (const row of rows) {\n    const parentLineId = row.bundle_parent_line_id;\n    delete row.bundle_parent_line_id;\n\n    if (!parentLineId) {\n      // The bundle row itself, keyed by the source line its items point back at.\n      // It is the only row carrying a bundle id but no item.\n      if (row.item_bundle_id && !row.item_code) {\n        bundleRowByLineId.set(String(row.gd_line_id || row.to_line_id || \"\"), row);\n      }\n\n      nested.push(row);\n      continue;\n    }\n\n    const parentRow = bundleRowByLineId.get(String(parentLineId));\n\n    // A bundle row is only created when its bundle still has something to pick.\n    // An item whose bundle row was never created stays a row of its own rather\n    // than being dropped from the picking altogether.\n    if (!parentRow) {\n      nested.push(row);\n      continue;\n    }\n\n    if (!Array.isArray(parentRow.children)) parentRow.children = [];\n    parentRow.children.push({ ...row, row_type: \"item\" });\n  }\n\n  return nested;\n};\n\nconst parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    console.error(\"JSON parse error:\", error);\n    return defaultValue;\n  }\n};\n\nconst allData = {{node:code_node_Pgtw6zFL.data.gdDataFull}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst gdId = allData.id\nconst pickingNoType = {{node:get_node_zna6o03F.data.data.id}};\nconst organizationId = allData.organization_id;\n\nconst existingTOData = {{node:get_node_EeFMAtLg.data.data}} || null;\nconst isUpdate = existingTOData && existingTOData.id ? 1 : 0;\nconst existingTO = isUpdate === 1 ? existingTOData : null;\n\n// Process table items with grouping for serialized items\nconst pickingItemGroups = new Map();\n\n// A bundle row holds no material and nothing is picked against it -- the guard\n// inside steps over it -- while its items are picked like any other line.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\n// A bundle's items each carry item_bundle_id, but only the bundle row carries the\n// bundle's number (its material_name is the ib_no) -- and that row never becomes a\n// picking line, because nothing is picked against a bundle. The number is read off\n// it here so every component line can show which bundle it belongs to, which is what\n// lets the picker see that their quantities are locked together.\nconst bundleNoById = {};\n// The bundle rows themselves, kept whole: the bundle row is a picking line in its\n// own right -- it is the one the picker types on.\nconst bundleRowById = {};\nfor (const row of allData.table_gd || []) {\n  if (row && row.item_bundle_id && !row.material_id) {\n    bundleNoById[String(row.item_bundle_id)] = row.material_name || \"\";\n    if (row.id != null) bundleRowById[String(row.id)] = row;\n  }\n}\n\n// Which bundle row each item hangs off. The same bundle can appear twice on one\n// document, and the all-or-nothing check has to judge each occurrence on its own --\n// grouping by the bundle alone would merge them and reject a picker who legitimately\n// completed one and left the other. Both shapes are read: nested under `children`\n// before the document is stored, flat through parent_id afterwards.\nconst bundleParentByLineId = {};\nfor (const row of allData.table_gd || []) {\n  if (!row) continue;\n  for (const kid of Array.isArray(row.children) ? row.children : []) {\n    if (kid && kid.id != null) bundleParentByLineId[String(kid.id)] = String(row.id);\n  }\n  if (row.parent_id != null && row.parent_id !== \"\" && row.id != null) {\n    bundleParentByLineId[String(row.id)] = String(row.parent_id);\n  }\n}\n\nflattenGdRows(allData.table_gd).forEach((item, gdLineIndex) => {\n  // The bundle row itself, created the moment its first item appears so it lands\n  // directly above them. It holds no stock -- no material, no bin, no batch, no\n  // handling unit -- but it IS the line the picker works on: its quantity is the\n  // number of bundles, and every item under it follows from that by ratio. Only\n  // bundles that still have something to pick get one, which is why it is created\n  // from the surviving items rather than from the source rows.\n  const parentLineId = item.item_bundle_id\n    ? bundleParentByLineId[String(item.id)]\n    : null;\n  if (parentLineId && !pickingItemGroups.has(`bundle_${parentLineId}`)) {\n    const bundleRow = bundleRowById[String(parentLineId)];\n    if (bundleRow) {\n      pickingItemGroups.set(`bundle_${parentLineId}`, {\n        item_bundle_id: bundleRow.item_bundle_id || null,\n        bundle_parent_line_id: null,\n        item_code: \"\",\n        item_name: bundleRow.material_name || \"\",\n        item_desc: bundleRow.gd_material_desc || \"\",\n        more_desc: bundleRow.more_desc || \"\",\n        batch_no: null,\n        qty_to_pick: parseFloat(bundleRow.gd_qty) || 0,\n        item_uom: \"\",\n        picking_uom: \"\",\n        source_bin: \"\",\n        pending_process_qty: parseFloat(bundleRow.gd_qty) || 0,\n        line_status: \"Open\",\n        so_no: bundleRow.line_so_no,\n        gd_no: allData.delivery_no,\n        so_id: String(bundleRow.line_so_id || \"\"),\n        so_line_id: String(bundleRow.so_line_item_id || \"\"),\n        gd_id: gdId,\n        gd_line_id: String(bundleRow.id),\n        serial_numbers: [],\n        is_serialized_item: 0,\n        packing_uom: \"\",\n        packing_conversion: 0,\n        weight_conversion: 0,\n        packing_qty: 0,\n        net_weight: 0,\n        handling_unit_id: null,\n      });\n    }\n  }\n\n  if (item.temp_qty_data && item.material_id) {\n    try {\n      const tempData = parseJsonSafely(item.temp_qty_data);\n\n      tempData.forEach((tempItem) => {\n        const materialId = tempItem.material_id || item.material_id;\n        // Group key now includes handling_unit_id so HU and loose allocations\n        // for the same line/batch/location become separate picking rows.\n        const groupKey = `${materialId}_${tempItem.batch_id || \"no-batch\"}_${tempItem.location_id}_line${gdLineIndex}_${tempItem.handling_unit_id || \"no-hu\"}`;\n\n        if (!pickingItemGroups.has(groupKey)) {\n          // Create new group\n          pickingItemGroups.set(groupKey, {\n            item_bundle_id: item.item_bundle_id || null,\n            bundle_parent_line_id: item.item_bundle_id\n              ? bundleParentByLineId[String(item.id)] || null\n              : null,\n            item_code: String(materialId),\n            item_name: item.material_name,\n            item_desc: item.gd_material_desc || \"\",\n            more_desc: item.more_desc || \"\",\n            batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            qty_to_pick: 0,\n            item_uom: String(item.gd_order_uom_id),\n            pending_process_qty: 0,\n            source_bin: String(tempItem.location_id),\n            line_status: \"Open\",\n            so_no: item.line_so_no,\n            gd_no: allData.delivery_no,\n            so_id: item.line_so_id,\n            so_line_id: item.so_line_item_id,\n            gd_id: gdId,\n            gd_line_id: item.id,\n            serial_numbers: [],\n            packing_uom: item.packing_uom ? String(item.packing_uom) : \"\",\n            packing_conversion: parseFloat(item.packing_conversion) || 1,\n            weight_conversion: parseFloat(item.weight_conversion) || 0,\n            packing_qty: 0,\n            net_weight: 0,\n            handling_unit_id: tempItem.handling_unit_id ? String(tempItem.handling_unit_id) : null,\n          });\n        }\n\n        const group = pickingItemGroups.get(groupKey);\n        group.qty_to_pick += parseFloat(tempItem.gd_quantity);\n        group.pending_process_qty += parseFloat(tempItem.gd_quantity);\n\n        // Add serial number if exists\n        if (tempItem.serial_number) {\n          group.serial_numbers.push(String(tempItem.serial_number));\n        }\n      });\n    } catch (error) {\n      console.error(`Error parsing temp_qty_data: ${error.message}`);\n    }\n  }\n});\n\n// Convert grouped items to picking items array\nconst tablePickingItems = [];\npickingItemGroups.forEach((group) => {\n  // Format serial numbers with comma if any exist\n  if (group.serial_numbers.length > 0) {\n    group.serial_numbers = group.serial_numbers.join(\", \");\n    group.is_serialized_item = 1;\n  } else {\n    delete group.serial_numbers;\n    group.is_serialized_item = 0;\n  }\n  group.packing_qty = group.packing_conversion ? Math.round((group.qty_to_pick / group.packing_conversion) * 1000) / 1000 : 0;\n  group.net_weight = Math.round((group.qty_to_pick * group.weight_conversion) * 1000) / 1000;\n  tablePickingItems.push(group);\n});\n\n// Cluster HU-allocated rows within each gd_line_id so consecutive HU rows\n// can share a single header row inserted below.\ntablePickingItems.splice(0, tablePickingItems.length, ...nestBundleRows(tablePickingItems));\n\ntablePickingItems.sort((a, b) => {\n  if (a.gd_line_id !== b.gd_line_id) return 0;\n  const aHU = a.handling_unit_id || \"\";\n  const bHU = b.handling_unit_id || \"\";\n  if (aHU === bHU) return 0;\n  return aHU < bHU ? -1 : 1;\n});\n\n// Insert display-only header rows above each consecutive run sharing the\n// same handling_unit_id. Item rows are stamped with row_type: \"item\";\n// header rows get row_type: \"header\" and carry only the HU fields.\nconst withHeaders = [];\nlet lastHuId = null;\nfor (const row of tablePickingItems) {\n  // A bundle is ONE row with its items nested under it, so the items never reach\n  // this loop at all and can never be separated from the bundle by the grouping.\n  // The bundle row itself holds no handling unit: it opens no header, and it must\n  // not close the run above it either.\n  if (row.item_bundle_id) {\n    withHeaders.push({ ...row, row_type: \"item\" });\n    continue;\n  }\n\n  const huId = row.handling_unit_id;\n  if (huId && huId !== lastHuId) {\n    withHeaders.push({\n      row_type: \"header\",\n      handling_unit_id: huId,\n      hu_select: 0,\n    });\n    lastHuId = huId;\n  } else if (!huId) {\n    lastHuId = null;\n  }\n  withHeaders.push({ ...row, row_type: \"item\" });\n}\ntablePickingItems.splice(0, tablePickingItems.length, ...withHeaders);\n\n// Get SO numbers for display\nconst soNOs = [...new Set(tablePickingItems.map((pi) => pi.so_no).filter(Boolean))];\n\n// Carry the GD's delivery method + details onto the auto-created Picking. GD\n// and Picking name some fields differently, so Company Truck / Shipping values\n// are remapped into Picking's ct_* / ss_* fields. One GD head -> one Picking,\n// so the fields are always filled (no multi-GD ambiguity).\nconst DELIVERY_FIELD_KEYS = [\n  \"delivery_method\", \"delivery_method_text\", \"area_id\",\n  \"driver_name\", \"ic_no\", \"driver_contact_no\", \"sp_vehicle_no\", \"pickup_date\", \"validity_of_collection\",\n  \"courier_company\", \"shipping_date\", \"tracking_number\", \"est_arrival_date\", \"freight_charges\",\n  \"ct_driver_name\", \"ct_driver_contact_no\", \"ct_ic_no\", \"vehicle_no\", \"est_delivery_date\", \"delivery_cost\",\n  \"shipping_company\", \"ss_shipping_date\", \"ss_freight_charges\", \"shipping_method\", \"ss_est_arrival_date\", \"ss_tracking_number\",\n  \"tpt_vehicle_number\", \"tpt_transport_name\", \"tpt_ic_no\", \"tpt_driver_contact_no\", \"tpt_driver_name\",\n  \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\",\n];\n\nconst buildDeliveryFields = (gd) => {\n  const fields = {};\n  for (const k of DELIVERY_FIELD_KEYS) fields[k] = \"\";\n  const method = gd.gd_delivery_method || \"\";\n  fields.delivery_method = method;\n  fields.delivery_method_text = gd.delivery_method_text || method;\n  fields.area_id = gd.gd_area_id || \"\";\n\n  // Consolidated Delivery Info block. GD and Picking share these column\n  // names, so no remap is needed and they copy straight across.\n  fields.di_shipping_method = gd.di_shipping_method ?? \"\";\n  fields.di_driver_name = gd.di_driver_name ?? \"\";\n  fields.di_ic_no = gd.di_ic_no ?? \"\";\n  fields.di_driver_contact_no = gd.di_driver_contact_no ?? \"\";\n  fields.di_shipping_company = gd.di_shipping_company ?? \"\";\n  fields.di_transport_name = gd.di_transport_name ?? \"\";\n  fields.di_vehicle_number = gd.di_vehicle_number ?? \"\";\n  fields.di_est_delivery_date = gd.di_est_delivery_date ?? \"\";\n  fields.di_est_arrival_date = gd.di_est_arrival_date ?? \"\";\n  fields.di_pickup_date = gd.di_pickup_date ?? \"\";\n  fields.di_validity_of_collection = gd.di_validity_of_collection ?? \"\";\n  fields.di_tracking_number = gd.di_tracking_number ?? \"\";\n  fields.di_freight_charges = gd.di_freight_charges ?? \"\";\n\n  switch (method) {\n    case \"Self Pickup\":\n      fields.driver_name = gd.driver_name ?? \"\";\n      fields.ic_no = gd.ic_no ?? \"\";\n      fields.driver_contact_no = gd.driver_contact_no ?? \"\";\n      fields.sp_vehicle_no = gd.sp_vehicle_no ?? \"\";\n      fields.pickup_date = gd.pickup_date ?? \"\";\n      fields.validity_of_collection = gd.validity_of_collection ?? \"\";\n      break;\n    case \"Courier Service\":\n      fields.courier_company = gd.courier_company ?? \"\";\n      fields.shipping_date = gd.shipping_date ?? \"\";\n      fields.tracking_number = gd.tracking_number ?? \"\";\n      fields.est_arrival_date = gd.est_arrival_date ?? \"\";\n      fields.freight_charges = gd.freight_charges ?? \"\";\n      break;\n    case \"Company Truck\":\n      fields.ct_driver_name = gd.driver_name ?? \"\";\n      fields.ct_driver_contact_no = gd.driver_contact_no ?? \"\";\n      fields.ct_ic_no = gd.ic_no ?? \"\";\n      fields.vehicle_no = gd.vehicle_no ?? \"\";\n      fields.est_delivery_date = gd.est_delivery_date ?? \"\";\n      fields.delivery_cost = gd.delivery_cost ?? \"\";\n      break;\n    case \"Shipping Service\":\n      fields.shipping_company = gd.shipping_company ?? \"\";\n      fields.ss_shipping_date = gd.shipping_date ?? \"\";\n      fields.ss_freight_charges = gd.freight_charges ?? \"\";\n      fields.shipping_method = gd.shipping_method ?? \"\";\n      fields.ss_est_arrival_date = gd.est_arrival_date ?? \"\";\n      fields.ss_tracking_number = gd.tracking_number ?? \"\";\n      break;\n    case \"3rd Party Transporter\":\n      fields.tpt_vehicle_number = gd.tpt_vehicle_number ?? \"\";\n      fields.tpt_transport_name = gd.tpt_transport_name ?? \"\";\n      fields.tpt_ic_no = gd.tpt_ic_no ?? \"\";\n      fields.tpt_driver_contact_no = gd.tpt_driver_contact_no ?? \"\";\n      fields.tpt_driver_name = gd.tpt_driver_name ?? \"\";\n      break;\n  }\n  return fields;\n};\n\nconst deliveryFields = buildDeliveryFields(allData);\n\n// Build the transfer order data\nconst transferOrderData = {\n  to_status: \"Created\",\n  to_id: 'issued',\n  to_id_type: pickingNoType,\n  plant_id: allData.plant_id,\n  organization_id: organizationId,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Goods Delivery\",\n  gd_no: [gdId],\n  delivery_no: allData.delivery_no,\n  so_no: soNOs.join(\", \"),\n  customer_id: [allData.customer_name],\n  ref_doc: allData.gd_ref_doc,\n  assigned_to: allData.assigned_to,\n  project_id: allData.project_id ?? \"\",\n  table_picking_items: tablePickingItems,\n  ...deliveryFields,\n  is_deleted: 0,\n};\n\n// Notification data\nlet notificationData = null;\nlet removedUsers = [];\nlet addedUsers = [];\n\nif (isUpdate === 1 && existingTO) {\n  // Prepare for update\n  transferOrderData.updated_by = allData.gd_created_by;\n  transferOrderData.updated_at = new Date().toISOString();\n\n  // Determine notification recipients for update\n  if (existingTO.assigned_to && allData.assigned_to) {\n    const oldAssigned = Array.isArray(existingTO.assigned_to)\n      ? existingTO.assigned_to\n      : [existingTO.assigned_to];\n\n    const newAssigned = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n\n    // Users who were removed\n    removedUsers = oldAssigned.filter((userId) => !newAssigned.includes(userId));\n\n    // Users who were added\n    addedUsers = newAssigned.filter((userId) => !oldAssigned.includes(userId));\n  }\n} else {\n  // Prepare for create\n  transferOrderData.created_by = allData.gd_created_by;\n  transferOrderData.created_at = new Date().toISOString().slice(0, 19).replace(\"T\", \" \");\n\n  // New assignment notification\n  if (allData.assigned_to && allData.assigned_to.length > 0) {\n    addedUsers = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n  }\n}\n\nreturn {\n  isUpdate,\n  existingTOId: existingTO ? existingTO.id : null,\n  existingTONo: existingTO ? existingTO.to_id : null,\n  transferOrderData,\n  gdId,\n  deliveryNo: allData.delivery_no,\n  removedUsers,\n  addedUsers,\n  pickingStatus: \"Created\",\n};\n"
+                          "code": "// A bundle is ONE row with its items under `children` -- the same shape the source\n// document is stored in, and the same one the platform reads back. Nesting the\n// items rather than laying them out beside the bundle keeps the two together\n// whatever else reorders the table, and keeps the items out of the handling-unit\n// grouping, which only ever walks top-level rows.\nconst nestBundleRows = (rows) => {\n  const nested = [];\n  const bundleRowByLineId = new Map();\n\n  for (const row of rows) {\n    const parentLineId = row.bundle_parent_line_id;\n    delete row.bundle_parent_line_id;\n\n    if (!parentLineId) {\n      // The bundle row itself, keyed by the source line its items point back at.\n      // It is the only row carrying a bundle id but no item.\n      if (row.item_bundle_id && !row.item_code) {\n        bundleRowByLineId.set(String(row.gd_line_id || row.to_line_id || \"\"), row);\n      }\n\n      nested.push(row);\n      continue;\n    }\n\n    const parentRow = bundleRowByLineId.get(String(parentLineId));\n\n    // A bundle row is only created when its bundle still has something to pick.\n    // An item whose bundle row was never created stays a row of its own rather\n    // than being dropped from the picking altogether.\n    if (!parentRow) {\n      nested.push(row);\n      continue;\n    }\n\n    if (!Array.isArray(parentRow.children)) parentRow.children = [];\n    parentRow.children.push({ ...row, row_type: \"item\" });\n  }\n\n  return nested;\n};\n\nconst parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    console.error(\"JSON parse error:\", error);\n    return defaultValue;\n  }\n};\n\nconst allData = {{node:code_node_Pgtw6zFL.data.gdDataFull}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst gdId = allData.id\nconst pickingNoType = {{node:get_node_zna6o03F.data.data.id}};\nconst reconcilePlan = {{node:code_pick_reconcile.data}} || {};\nconst organizationId = allData.organization_id;\n\n// Fetched once, up in \"IF Created\", and no longer gated on the picking already\n// being at Created -- that gate is what used to send an In Progress picking down\n// the ADD branch and mint a second Picking for the same delivery.\nconst rawExistingTO = {{node:get_pick_for_reconcile.data.data}};\nconst existingTOData = Array.isArray(rawExistingTO)\n  ? rawExistingTO[0] || null\n  : rawExistingTO || null;\nconst isUpdate = existingTOData && existingTOData.id ? 1 : 0;\nconst existingTO = isUpdate === 1 ? existingTOData : null;\n\n// Process table items with grouping for serialized items\nconst pickingItemGroups = new Map();\n\n// A bundle row holds no material and nothing is picked against it -- the guard\n// inside steps over it -- while its items are picked like any other line.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\n// A bundle's items each carry item_bundle_id, but only the bundle row carries the\n// bundle's number (its material_name is the ib_no) -- and that row never becomes a\n// picking line, because nothing is picked against a bundle. The number is read off\n// it here so every component line can show which bundle it belongs to, which is what\n// lets the picker see that their quantities are locked together.\nconst bundleNoById = {};\n// The bundle rows themselves, kept whole: the bundle row is a picking line in its\n// own right -- it is the one the picker types on.\nconst bundleRowById = {};\nfor (const row of allData.table_gd || []) {\n  if (row && row.item_bundle_id && !row.material_id) {\n    bundleNoById[String(row.item_bundle_id)] = row.material_name || \"\";\n    if (row.id != null) bundleRowById[String(row.id)] = row;\n  }\n}\n\n// Which bundle row each item hangs off. The same bundle can appear twice on one\n// document, and the all-or-nothing check has to judge each occurrence on its own --\n// grouping by the bundle alone would merge them and reject a picker who legitimately\n// completed one and left the other. Both shapes are read: nested under `children`\n// before the document is stored, flat through parent_id afterwards.\nconst bundleParentByLineId = {};\nfor (const row of allData.table_gd || []) {\n  if (!row) continue;\n  for (const kid of Array.isArray(row.children) ? row.children : []) {\n    if (kid && kid.id != null) bundleParentByLineId[String(kid.id)] = String(row.id);\n  }\n  if (row.parent_id != null && row.parent_id !== \"\" && row.id != null) {\n    bundleParentByLineId[String(row.id)] = String(row.parent_id);\n  }\n}\n\nflattenGdRows(allData.table_gd).forEach((item, gdLineIndex) => {\n  // The bundle row itself, created the moment its first item appears so it lands\n  // directly above them. It holds no stock -- no material, no bin, no batch, no\n  // handling unit -- but it IS the line the picker works on: its quantity is the\n  // number of bundles, and every item under it follows from that by ratio. Only\n  // bundles that still have something to pick get one, which is why it is created\n  // from the surviving items rather than from the source rows.\n  const parentLineId = item.item_bundle_id\n    ? bundleParentByLineId[String(item.id)]\n    : null;\n  if (parentLineId && !pickingItemGroups.has(`bundle_${parentLineId}`)) {\n    const bundleRow = bundleRowById[String(parentLineId)];\n    if (bundleRow) {\n      pickingItemGroups.set(`bundle_${parentLineId}`, {\n        item_bundle_id: bundleRow.item_bundle_id || null,\n        bundle_parent_line_id: null,\n        item_code: \"\",\n        item_name: bundleRow.material_name || \"\",\n        item_desc: bundleRow.gd_material_desc || \"\",\n        more_desc: bundleRow.more_desc || \"\",\n        batch_no: null,\n        qty_to_pick: parseFloat(bundleRow.gd_qty) || 0,\n        item_uom: \"\",\n        picking_uom: \"\",\n        source_bin: \"\",\n        pending_process_qty: parseFloat(bundleRow.gd_qty) || 0,\n        line_status: \"Open\",\n        so_no: bundleRow.line_so_no,\n        gd_no: allData.delivery_no,\n        so_id: String(bundleRow.line_so_id || \"\"),\n        so_line_id: String(bundleRow.so_line_item_id || \"\"),\n        gd_id: gdId,\n        gd_line_id: String(bundleRow.id),\n        serial_numbers: [],\n        is_serialized_item: 0,\n        packing_uom: \"\",\n        packing_conversion: 0,\n        weight_conversion: 0,\n        packing_qty: 0,\n        net_weight: 0,\n        handling_unit_id: null,\n      });\n    }\n  }\n\n  if (item.temp_qty_data && item.material_id) {\n    try {\n      const tempData = parseJsonSafely(item.temp_qty_data);\n\n      tempData.forEach((tempItem) => {\n        const materialId = tempItem.material_id || item.material_id;\n        // Group key now includes handling_unit_id so HU and loose allocations\n        // for the same line/batch/location become separate picking rows.\n        const groupKey = `${materialId}_${tempItem.batch_id || \"no-batch\"}_${tempItem.location_id}_line${gdLineIndex}_${tempItem.handling_unit_id || \"no-hu\"}`;\n\n        if (!pickingItemGroups.has(groupKey)) {\n          // Create new group\n          pickingItemGroups.set(groupKey, {\n            item_bundle_id: item.item_bundle_id || null,\n            bundle_parent_line_id: item.item_bundle_id\n              ? bundleParentByLineId[String(item.id)] || null\n              : null,\n            item_code: String(materialId),\n            item_name: item.material_name,\n            item_desc: item.gd_material_desc || \"\",\n            more_desc: item.more_desc || \"\",\n            batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            qty_to_pick: 0,\n            item_uom: String(item.gd_order_uom_id),\n            pending_process_qty: 0,\n            source_bin: String(tempItem.location_id),\n            line_status: \"Open\",\n            so_no: item.line_so_no,\n            gd_no: allData.delivery_no,\n            so_id: item.line_so_id,\n            so_line_id: item.so_line_item_id,\n            gd_id: gdId,\n            gd_line_id: item.id,\n            serial_numbers: [],\n            packing_uom: item.packing_uom ? String(item.packing_uom) : \"\",\n            packing_conversion: parseFloat(item.packing_conversion) || 1,\n            weight_conversion: parseFloat(item.weight_conversion) || 0,\n            packing_qty: 0,\n            net_weight: 0,\n            handling_unit_id: tempItem.handling_unit_id ? String(tempItem.handling_unit_id) : null,\n          });\n        }\n\n        const group = pickingItemGroups.get(groupKey);\n        group.qty_to_pick += parseFloat(tempItem.gd_quantity);\n        group.pending_process_qty += parseFloat(tempItem.gd_quantity);\n\n        // Add serial number if exists\n        if (tempItem.serial_number) {\n          group.serial_numbers.push(String(tempItem.serial_number));\n        }\n      });\n    } catch (error) {\n      console.error(`Error parsing temp_qty_data: ${error.message}`);\n    }\n  }\n});\n\n// Convert grouped items to picking items array\nconst tablePickingItems = [];\npickingItemGroups.forEach((group) => {\n  // Format serial numbers with comma if any exist\n  if (group.serial_numbers.length > 0) {\n    group.serial_numbers = group.serial_numbers.join(\", \");\n    group.is_serialized_item = 1;\n  } else {\n    delete group.serial_numbers;\n    group.is_serialized_item = 0;\n  }\n  group.packing_qty = group.packing_conversion ? Math.round((group.qty_to_pick / group.packing_conversion) * 1000) / 1000 : 0;\n  group.net_weight = Math.round((group.qty_to_pick * group.weight_conversion) * 1000) / 1000;\n  tablePickingItems.push(group);\n});\n\n// --- merge into the Picking that already exists ---------------------------\n// Handing back a freshly built array soft-deletes every plan row and re-inserts it\n// under a new id, which detaches whatever the picker has open. Merge instead:\n//   rows belonging to other deliveries are carried through verbatim -- one Picking\n//     can cover several;\n//   this delivery's rows keep their id wherever the line/item/batch/bin/HU key\n//     survives;\n//   rows with no counterpart are simply not emitted, which the platform soft-deletes;\n//   quantity already picked on a line is spread over the rows the delivery now wants,\n//     so only the remainder is left open.\nconst flattenPlanRows = (rows) =>\n  (rows || []).flatMap((r) => [\n    r,\n    ...(Array.isArray(r.children) ? r.children : [])\n  ]);\n\nconst storedRows = flattenPlanRows(\n  existingTOData && existingTOData.table_picking_items\n).filter((r) => r && r.row_type !== \"header\");\n\nconst carriedRows = storedRows.filter(\n  (r) => String(r.gd_id || \"\") !== String(gdId)\n);\n\nconst planKeyOf = (r) =>\n  [\n    String(r.gd_line_id || \"\"),\n    String(r.item_code || \"\"),\n    String(r.batch_no || \"\"),\n    String(r.source_bin || \"\"),\n    String(r.handling_unit_id || \"\")\n  ].join(\"|\");\n\nconst storedByKey = {};\nfor (const r of storedRows) {\n  if (String(r.gd_id || \"\") !== String(gdId)) continue;\n  const k = planKeyOf(r);\n  if (!storedByKey[k]) storedByKey[k] = r;\n}\n\nconst pickedLeft = {};\nfor (const lp of reconcilePlan.linePlans || []) {\n  pickedLeft[String(lp.gd_line_id)] = parseFloat(lp.picked) || 0;\n}\n\n// Rows that already carry progress get first claim on their line's picked quantity,\n// so a row whose bin is unchanged keeps its status rather than the progress landing\n// on a sibling row the picker never touched.\nconst progressOf = (r) => {\n  const s = storedByKey[planKeyOf(r)];\n  if (!s) return 0;\n  return Math.max(\n    0,\n    (parseFloat(s.qty_to_pick) || 0) - (parseFloat(s.pending_process_qty) || 0)\n  );\n};\n\nconst claimOrder = tablePickingItems\n  .slice()\n  .sort((a, b) => progressOf(b) - progressOf(a));\n\nfor (const row of claimOrder) {\n  const stored = storedByKey[planKeyOf(row)];\n  if (stored && stored.id) row.id = stored.id;\n\n  const line = String(row.gd_line_id || \"\");\n  const want = parseFloat(row.qty_to_pick) || 0;\n  const available = pickedLeft[line] || 0;\n  const take = Math.min(available, want);\n  if (take > 0) {\n    pickedLeft[line] = Math.round((available - take) * 1000) / 1000;\n  }\n  row.pending_process_qty = Math.max(\n    0,\n    Math.round((want - take) * 1000) / 1000\n  );\n  row.line_status =\n    row.pending_process_qty <= 0\n      ? \"Completed\"\n      : take > 0\n        ? \"In Progress\"\n        : \"Open\";\n}\n\n// Records the reversal decided to shrink or drop. Everything else passes through\n// untouched, including other deliveries' records on a shared Picking. A record\n// reduced to zero is simply not emitted, which the platform soft-deletes -- the row\n// survives in the table for audit rather than being destroyed.\nconst storedRecords =\n  (existingTOData && existingTOData.table_picking_records) || [];\nconst recordAdjustments = {};\nfor (const a of reconcilePlan.recordAdjustments || []) {\n  recordAdjustments[String(a.id)] = a;\n}\n\nconst mergedRecords = [];\nfor (const rec of storedRecords) {\n  const adj = recordAdjustments[String(rec.id || \"\")];\n  if (!adj) {\n    mergedRecords.push(rec);\n    continue;\n  }\n  if (Number(adj.drop) === 1) continue;\n  mergedRecords.push({\n    ...rec,\n    store_out_qty: Math.max(\n      0,\n      Math.round((parseFloat(adj.store_out_qty) || 0) * 1000) / 1000\n    ),\n    picked_qty_alt: Math.max(\n      0,\n      Math.round((parseFloat(adj.picked_qty_alt) || 0) * 1000) / 1000\n    )\n  });\n}\n\n// Cluster HU-allocated rows within each gd_line_id so consecutive HU rows\n// can share a single header row inserted below.\ntablePickingItems.splice(0, tablePickingItems.length, ...nestBundleRows(tablePickingItems));\n\ntablePickingItems.sort((a, b) => {\n  if (a.gd_line_id !== b.gd_line_id) return 0;\n  const aHU = a.handling_unit_id || \"\";\n  const bHU = b.handling_unit_id || \"\";\n  if (aHU === bHU) return 0;\n  return aHU < bHU ? -1 : 1;\n});\n\n// Insert display-only header rows above each consecutive run sharing the\n// same handling_unit_id. Item rows are stamped with row_type: \"item\";\n// header rows get row_type: \"header\" and carry only the HU fields.\nconst withHeaders = [];\nlet lastHuId = null;\nfor (const row of tablePickingItems) {\n  // A bundle is ONE row with its items nested under it, so the items never reach\n  // this loop at all and can never be separated from the bundle by the grouping.\n  // The bundle row itself holds no handling unit: it opens no header, and it must\n  // not close the run above it either.\n  if (row.item_bundle_id) {\n    withHeaders.push({ ...row, row_type: \"item\" });\n    continue;\n  }\n\n  const huId = row.handling_unit_id;\n  if (huId && huId !== lastHuId) {\n    withHeaders.push({\n      row_type: \"header\",\n      handling_unit_id: huId,\n      hu_select: 0,\n    });\n    lastHuId = huId;\n  } else if (!huId) {\n    lastHuId = null;\n  }\n  withHeaders.push({ ...row, row_type: \"item\" });\n}\ntablePickingItems.splice(0, tablePickingItems.length, ...withHeaders);\n\n// Get SO numbers for display\nconst soNOs = [...new Set(tablePickingItems.map((pi) => pi.so_no).filter(Boolean))];\n\n// Carry the GD's delivery method + details onto the auto-created Picking. GD\n// and Picking name some fields differently, so Company Truck / Shipping values\n// are remapped into Picking's ct_* / ss_* fields. One GD head -> one Picking,\n// so the fields are always filled (no multi-GD ambiguity).\nconst DELIVERY_FIELD_KEYS = [\n  \"delivery_method\", \"delivery_method_text\", \"area_id\",\n  \"driver_name\", \"ic_no\", \"driver_contact_no\", \"sp_vehicle_no\", \"pickup_date\", \"validity_of_collection\",\n  \"courier_company\", \"shipping_date\", \"tracking_number\", \"est_arrival_date\", \"freight_charges\",\n  \"ct_driver_name\", \"ct_driver_contact_no\", \"ct_ic_no\", \"vehicle_no\", \"est_delivery_date\", \"delivery_cost\",\n  \"shipping_company\", \"ss_shipping_date\", \"ss_freight_charges\", \"shipping_method\", \"ss_est_arrival_date\", \"ss_tracking_number\",\n  \"tpt_vehicle_number\", \"tpt_transport_name\", \"tpt_ic_no\", \"tpt_driver_contact_no\", \"tpt_driver_name\",\n  \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\",\n];\n\nconst buildDeliveryFields = (gd) => {\n  const fields = {};\n  for (const k of DELIVERY_FIELD_KEYS) fields[k] = \"\";\n  const method = gd.gd_delivery_method || \"\";\n  fields.delivery_method = method;\n  fields.delivery_method_text = gd.delivery_method_text || method;\n  fields.area_id = gd.gd_area_id || \"\";\n\n  // Consolidated Delivery Info block. GD and Picking share these column\n  // names, so no remap is needed and they copy straight across.\n  fields.di_shipping_method = gd.di_shipping_method ?? \"\";\n  fields.di_driver_name = gd.di_driver_name ?? \"\";\n  fields.di_ic_no = gd.di_ic_no ?? \"\";\n  fields.di_driver_contact_no = gd.di_driver_contact_no ?? \"\";\n  fields.di_shipping_company = gd.di_shipping_company ?? \"\";\n  fields.di_transport_name = gd.di_transport_name ?? \"\";\n  fields.di_vehicle_number = gd.di_vehicle_number ?? \"\";\n  fields.di_est_delivery_date = gd.di_est_delivery_date ?? \"\";\n  fields.di_est_arrival_date = gd.di_est_arrival_date ?? \"\";\n  fields.di_pickup_date = gd.di_pickup_date ?? \"\";\n  fields.di_validity_of_collection = gd.di_validity_of_collection ?? \"\";\n  fields.di_tracking_number = gd.di_tracking_number ?? \"\";\n  fields.di_freight_charges = gd.di_freight_charges ?? \"\";\n\n  switch (method) {\n    case \"Self Pickup\":\n      fields.driver_name = gd.driver_name ?? \"\";\n      fields.ic_no = gd.ic_no ?? \"\";\n      fields.driver_contact_no = gd.driver_contact_no ?? \"\";\n      fields.sp_vehicle_no = gd.sp_vehicle_no ?? \"\";\n      fields.pickup_date = gd.pickup_date ?? \"\";\n      fields.validity_of_collection = gd.validity_of_collection ?? \"\";\n      break;\n    case \"Courier Service\":\n      fields.courier_company = gd.courier_company ?? \"\";\n      fields.shipping_date = gd.shipping_date ?? \"\";\n      fields.tracking_number = gd.tracking_number ?? \"\";\n      fields.est_arrival_date = gd.est_arrival_date ?? \"\";\n      fields.freight_charges = gd.freight_charges ?? \"\";\n      break;\n    case \"Company Truck\":\n      fields.ct_driver_name = gd.driver_name ?? \"\";\n      fields.ct_driver_contact_no = gd.driver_contact_no ?? \"\";\n      fields.ct_ic_no = gd.ic_no ?? \"\";\n      fields.vehicle_no = gd.vehicle_no ?? \"\";\n      fields.est_delivery_date = gd.est_delivery_date ?? \"\";\n      fields.delivery_cost = gd.delivery_cost ?? \"\";\n      break;\n    case \"Shipping Service\":\n      fields.shipping_company = gd.shipping_company ?? \"\";\n      fields.ss_shipping_date = gd.shipping_date ?? \"\";\n      fields.ss_freight_charges = gd.freight_charges ?? \"\";\n      fields.shipping_method = gd.shipping_method ?? \"\";\n      fields.ss_est_arrival_date = gd.est_arrival_date ?? \"\";\n      fields.ss_tracking_number = gd.tracking_number ?? \"\";\n      break;\n    case \"3rd Party Transporter\":\n      fields.tpt_vehicle_number = gd.tpt_vehicle_number ?? \"\";\n      fields.tpt_transport_name = gd.tpt_transport_name ?? \"\";\n      fields.tpt_ic_no = gd.tpt_ic_no ?? \"\";\n      fields.tpt_driver_contact_no = gd.tpt_driver_contact_no ?? \"\";\n      fields.tpt_driver_name = gd.tpt_driver_name ?? \"\";\n      break;\n  }\n  return fields;\n};\n\nconst deliveryFields = buildDeliveryFields(allData);\n\n// Build the transfer order data\nconst transferOrderData = {\n  // On a create this is always \"Created\". On an update it is whatever the\n  // reconcile decided, falling back to the Picking's current status -- writing a\n  // flat \"Created\" here would silently demote a Picking that had moved on.\n  to_status:\n    reconcilePlan.targetToStatus ||\n    (existingTOData && existingTOData.to_status) ||\n    \"Created\",\n  to_id: 'issued',\n  to_id_type: pickingNoType,\n  plant_id: allData.plant_id,\n  organization_id: organizationId,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Goods Delivery\",\n  gd_no: [gdId],\n  delivery_no: allData.delivery_no,\n  so_no: soNOs.join(\", \"),\n  customer_id: [allData.customer_name],\n  ref_doc: allData.gd_ref_doc,\n  assigned_to: allData.assigned_to,\n  project_id: allData.project_id ?? \"\",\n  table_picking_items: carriedRows.concat(tablePickingItems),\n  table_picking_records: mergedRecords,\n  ...deliveryFields,\n  is_deleted: 0,\n};\n\n// Notification data\nlet notificationData = null;\nlet removedUsers = [];\nlet addedUsers = [];\n\nif (isUpdate === 1 && existingTO) {\n  // Prepare for update\n  transferOrderData.updated_by = allData.gd_created_by;\n  transferOrderData.updated_at = new Date().toISOString();\n\n  // Determine notification recipients for update\n  if (existingTO.assigned_to && allData.assigned_to) {\n    const oldAssigned = Array.isArray(existingTO.assigned_to)\n      ? existingTO.assigned_to\n      : [existingTO.assigned_to];\n\n    const newAssigned = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n\n    // Users who were removed\n    removedUsers = oldAssigned.filter((userId) => !newAssigned.includes(userId));\n\n    // Users who were added\n    addedUsers = newAssigned.filter((userId) => !oldAssigned.includes(userId));\n  }\n} else {\n  // Prepare for create\n  transferOrderData.created_by = allData.gd_created_by;\n  transferOrderData.created_at = new Date().toISOString().slice(0, 19).replace(\"T\", \" \");\n\n  // New assignment notification\n  if (allData.assigned_to && allData.assigned_to.length > 0) {\n    addedUsers = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n  }\n}\n\nreturn {\n  isUpdate,\n  existingTOId: existingTO ? existingTO.id : null,\n  existingTONo: existingTO ? existingTO.to_id : null,\n  transferOrderData,\n  gdId,\n  deliveryNo: allData.delivery_no,\n  removedUsers,\n  addedUsers,\n  pickingStatus: reconcilePlan.targetGdPickingStatus || \"Created\",\n};\n"
                         },
                         "response_json": [
                           {
@@ -10326,7 +10910,7 @@
                         "name": "Picking Create or Update",
                         "script": {
                           "type": "javascript",
-                          "code": "const preparedData = {{node:code_node_o35eZx2c.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n  project_id: transferOrderData.project_id,\n};\n\n// Sync delivery method + details onto the existing Picking too. Without this,\n// GD edits to delivery_method/area_id/delivery_cost/etc. wouldn't propagate\n// to a Picking that was already created in a prior save.\nconst DELIVERY_FIELD_KEYS = [\n  \"delivery_method\", \"delivery_method_text\", \"area_id\",\n  \"driver_name\", \"ic_no\", \"driver_contact_no\", \"sp_vehicle_no\", \"pickup_date\", \"validity_of_collection\",\n  \"courier_company\", \"shipping_date\", \"tracking_number\", \"est_arrival_date\", \"freight_charges\",\n  \"ct_driver_name\", \"ct_driver_contact_no\", \"ct_ic_no\", \"vehicle_no\", \"est_delivery_date\", \"delivery_cost\",\n  \"shipping_company\", \"ss_shipping_date\", \"ss_freight_charges\", \"shipping_method\", \"ss_est_arrival_date\", \"ss_tracking_number\",\n  \"tpt_vehicle_number\", \"tpt_transport_name\", \"tpt_ic_no\", \"tpt_driver_contact_no\", \"tpt_driver_name\",\n  \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\",\n];\nfor (const k of DELIVERY_FIELD_KEYS) {\n  updateFields[k] = transferOrderData[k];\n}\n\n// For CREATE operation - use full transferOrderData\n\n// For GD status update\nconst gdUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  gdId: preparedData.gdId,\n  gdUpdateData: gdUpdateFields,\n  deliveryNo: preparedData.deliveryNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
+                          "code": "const preparedData = {{node:code_node_o35eZx2c.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// This write path never carried a decimal allow-list. It got away with it because\n// every quantity was an addition of parseFloat'd values; the reconcile subtracts,\n// which is exactly the operation that yields 1.5999999999999999 and a BigDecimal\n// rejection on a decimal(65,3) column. Clamped at zero too -- a negative pending\n// quantity is rejected the same way.\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst PICKING_DECIMAL_COLS = [\n  \"qty_to_pick\",\n  \"pending_process_qty\",\n  \"picked_qty\",\n  \"packing_qty\",\n  \"net_weight\",\n  \"to_pick_alt\",\n  \"pending_alt\"\n];\nconst normalizePickingRow = (row) => {\n  if (!row) return;\n  for (const col of PICKING_DECIMAL_COLS) {\n    if (row[col] !== undefined && row[col] !== null && row[col] !== \"\") {\n      row[col] = Math.max(0, roundQty(row[col]));\n    }\n  }\n  if (Array.isArray(row.children)) row.children.forEach(normalizePickingRow);\n};\n(transferOrderData.table_picking_items || []).forEach(normalizePickingRow);\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  to_status: transferOrderData.to_status,\n  table_picking_records: transferOrderData.table_picking_records,\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n  project_id: transferOrderData.project_id,\n};\n\n// Sync delivery method + details onto the existing Picking too. Without this,\n// GD edits to delivery_method/area_id/delivery_cost/etc. wouldn't propagate\n// to a Picking that was already created in a prior save.\nconst DELIVERY_FIELD_KEYS = [\n  \"delivery_method\", \"delivery_method_text\", \"area_id\",\n  \"driver_name\", \"ic_no\", \"driver_contact_no\", \"sp_vehicle_no\", \"pickup_date\", \"validity_of_collection\",\n  \"courier_company\", \"shipping_date\", \"tracking_number\", \"est_arrival_date\", \"freight_charges\",\n  \"ct_driver_name\", \"ct_driver_contact_no\", \"ct_ic_no\", \"vehicle_no\", \"est_delivery_date\", \"delivery_cost\",\n  \"shipping_company\", \"ss_shipping_date\", \"ss_freight_charges\", \"shipping_method\", \"ss_est_arrival_date\", \"ss_tracking_number\",\n  \"tpt_vehicle_number\", \"tpt_transport_name\", \"tpt_ic_no\", \"tpt_driver_contact_no\", \"tpt_driver_name\",\n  \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\",\n];\nfor (const k of DELIVERY_FIELD_KEYS) {\n  updateFields[k] = transferOrderData[k];\n}\n\n// For CREATE operation - use full transferOrderData\n\n// For GD status update\nconst gdUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  gdId: preparedData.gdId,\n  gdUpdateData: gdUpdateFields,\n  deliveryNo: preparedData.deliveryNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
                         },
                         "response_json": [
                           {
@@ -10442,6 +11026,82 @@
                       "blocks": []
                     },
                     {
+                      "id": "update_node_recon_lock",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Transfer Order Picking:Table:1935556443668959233",
+                          "rules": {
+                            "collectionId": "1935556443668959233",
+                            "list": [
+                              {
+                                "id": 1787500000000,
+                                "parentId": 1787500000001,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1787500000002,
+                                    "parentId": 1787500000000,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_6L2Ozea8.data.existingTOId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  },
+                                  {
+                                    "id": 1787500000003,
+                                    "parentId": 1787500000000,
+                                    "isTop": false,
+                                    "prop": "is_processing",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 0,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Is Processing",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Take Picking Lock",
+                        "isValidator": true,
+                        "nodeName": "Take Picking Lock",
+                        "name": "Take Picking Lock",
+                        "description": "Claims the Picking with sentinel 2 so a mobile confirm cannot interleave with the writes below. PickingLoopWorkflow only proceeds on is_processing = 0, so any non-zero value blocks it. A no-op when nothing matches, which is the create path.",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "is_processing",
+                              "operator": "",
+                              "valueType": "value",
+                              "value": 2,
+                              "valueLabel": "",
+                              "propLabel": "Is Processing"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "if_sGJFlTdX",
                       "type": "if",
                       "data": {
@@ -10511,6 +11171,22 @@
                                 "props": {
                                   "modelName": "",
                                   "list": [
+                                    {
+                                      "prop": "table_picking_records",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.table_picking_records}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Picking Records"
+                                    },
+                                    {
+                                      "prop": "to_status",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_6L2Ozea8.data.updateData.to_status}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Transfer Order Status"
+                                    },
                                     {
                                       "prop": "assigned_to",
                                       "valueType": "field",
@@ -11472,11 +12148,87 @@
                           "list": [
                             {
                               "prop": "picking_status",
-                              "valueType": "value",
-                              "value": "Created",
+                              "valueType": "field",
+                              "value": "{{node:code_node_6L2Ozea8.data.gdUpdateData.picking_status}}",
                               "operator": "",
                               "valueLabel": "",
                               "propLabel": "Picking Status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "update_node_recon_unlock",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Transfer Order Picking:Table:1935556443668959233",
+                          "rules": {
+                            "collectionId": "1935556443668959233",
+                            "list": [
+                              {
+                                "id": 1787510000000,
+                                "parentId": 1787510000001,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1787510000002,
+                                    "parentId": 1787510000000,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_6L2Ozea8.data.existingTOId}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  },
+                                  {
+                                    "id": 1787510000003,
+                                    "parentId": 1787510000000,
+                                    "isTop": false,
+                                    "prop": "is_processing",
+                                    "operator": "numberEqual",
+                                    "valueType": "value",
+                                    "value": 2,
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Is Processing",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Release Picking Lock",
+                        "isValidator": true,
+                        "nodeName": "Release Picking Lock",
+                        "name": "Release Picking Lock",
+                        "description": "Releases only a lock this save took (sentinel 2), so a lock held by a mobile confirm is never cleared by mistake.",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "is_processing",
+                              "operator": "",
+                              "valueType": "value",
+                              "value": 0,
+                              "valueLabel": "",
+                              "propLabel": "Is Processing"
                             }
                           ]
                         }
@@ -15003,6 +15755,14 @@
               "value": "{{node:code_si_trigger_result.data.siTriggerFailed}}",
               "valueLabel": "",
               "propLabel": "siFailed"
+            },
+            {
+              "prop": "pickingReversalNote",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_pick_reversal_msg.data.noticeMessage}}",
+              "valueLabel": "",
+              "propLabel": "pickingReversalNote"
             },
             {
               "prop": "siMessage",
