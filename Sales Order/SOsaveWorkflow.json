@@ -1953,13 +1953,13 @@
                                 "body_params": {
                                   "list": [
                                     {
-                                      "prop": "mode",
-                                      "propLabel": "mode",
+                                      "prop": "passNo",
+                                      "propLabel": "passNo",
                                       "operator": "",
                                       "operatorLabel": "",
                                       "valueType": "value",
                                       "valueTypeLabel": "",
-                                      "value": "adjust",
+                                      "value": 1,
                                       "valueLabel": ""
                                     },
                                     {
@@ -5368,13 +5368,13 @@
                 "body_params": {
                   "list": [
                     {
-                      "prop": "mode",
-                      "propLabel": "mode",
+                      "prop": "passNo",
+                      "propLabel": "passNo",
                       "operator": "",
                       "operatorLabel": "",
                       "valueType": "value",
                       "valueTypeLabel": "",
-                      "value": "append",
+                      "value": 2,
                       "valueLabel": ""
                     },
                     {
