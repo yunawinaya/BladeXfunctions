@@ -3361,7 +3361,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_description}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Description"
+                      "propLabel": "Description",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "created_source",
@@ -3369,7 +3370,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.created_source}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Created Source"
+                      "propLabel": "Created Source",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "wa_number",
@@ -3377,7 +3379,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.wa_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Whatsapp No"
+                      "propLabel": "Whatsapp No",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "wa_group",
@@ -3385,7 +3388,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.wa_group}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Whatsapp Group"
+                      "propLabel": "Whatsapp Group",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_no",
@@ -3393,7 +3397,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Sales Order Number"
+                      "propLabel": "Sales Order Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_date",
@@ -3401,7 +3406,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "SO Issue Date"
+                      "propLabel": "SO Issue Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "customer_name",
@@ -3409,7 +3415,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.customer_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Customer Name"
+                      "propLabel": "Customer Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "plant_name",
@@ -3417,7 +3424,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.plant_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Plant"
+                      "propLabel": "Plant",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cust_billing_address",
@@ -3425,7 +3433,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cust_billing_address}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Billing Address"
+                      "propLabel": "Billing Address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cust_shipping_address",
@@ -3433,7 +3442,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cust_shipping_address}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Shipping Address"
+                      "propLabel": "Shipping Address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_payment_term",
@@ -3441,7 +3451,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_payment_term}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Payment Term"
+                      "propLabel": "Payment Term",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_shipping_date",
@@ -3449,7 +3460,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_shipping_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Expected Shipment Date"
+                      "propLabel": "Expected Shipment Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_delivery_method",
@@ -3457,7 +3469,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_delivery_method}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Delivery Method"
+                      "propLabel": "Delivery Method",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "table_so",
@@ -3465,7 +3478,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.table_so}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Sales Order Table"
+                      "propLabel": "Sales Order Table",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_total_gross",
@@ -3473,7 +3487,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_total_gross}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Gross"
+                      "propLabel": "Gross",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_total_discount",
@@ -3481,7 +3496,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_total_discount}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total Discount"
+                      "propLabel": "Total Discount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_total_tax",
@@ -3489,7 +3505,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_total_tax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total Tax Fee"
+                      "propLabel": "Total Tax Fee",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_total",
@@ -3497,7 +3514,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_total}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total"
+                      "propLabel": "Total",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_sales_person",
@@ -3505,7 +3523,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_sales_person}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Sales Representative"
+                      "propLabel": "Sales Representative",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_remarks",
@@ -3513,7 +3532,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_remarks}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Remark 1"
+                      "propLabel": "Remark 1",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_tnc",
@@ -3521,7 +3541,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_tnc}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Terms & Conditions"
+                      "propLabel": "Terms & Conditions",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_payment_details",
@@ -3529,7 +3550,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_payment_details}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Payment Details"
+                      "propLabel": "Payment Details",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_4",
@@ -3537,7 +3559,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address Line 4"
+                      "propLabel": "Address Line 4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_postal_code",
@@ -3545,7 +3568,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Postal Code"
+                      "propLabel": "Postal Code",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_state",
@@ -3553,7 +3577,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_state}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "State"
+                      "propLabel": "State",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_city",
@@ -3561,7 +3586,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_city}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "City"
+                      "propLabel": "City",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_country",
@@ -3569,7 +3595,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_country}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Country"
+                      "propLabel": "Country",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_fax",
@@ -3577,7 +3604,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Fax"
+                      "propLabel": "Fax",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_code",
@@ -3585,7 +3613,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_code}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address Code"
+                      "propLabel": "Address Code",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_code",
@@ -3593,7 +3622,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_code}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address Code"
+                      "propLabel": "Address Code",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_fax",
@@ -3601,7 +3631,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Fax"
+                      "propLabel": "Fax",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_city",
@@ -3609,7 +3640,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_city}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "City"
+                      "propLabel": "City",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_1",
@@ -3617,7 +3649,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address"
+                      "propLabel": "Address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_state",
@@ -3625,7 +3658,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_state}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "State"
+                      "propLabel": "State",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_3",
@@ -3633,7 +3667,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address Line 3"
+                      "propLabel": "Address Line 3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_1",
@@ -3641,7 +3676,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address"
+                      "propLabel": "Address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_3",
@@ -3649,7 +3685,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_3"
+                      "propLabel": "billing_address_line_3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_4",
@@ -3657,7 +3694,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_4"
+                      "propLabel": "billing_address_line_4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_country",
@@ -3665,7 +3703,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_country}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Country"
+                      "propLabel": "Country",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_postal_code",
@@ -3673,7 +3712,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Postal Code"
+                      "propLabel": "Postal Code",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_2",
@@ -3681,7 +3721,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_2"
+                      "propLabel": "billing_address_line_2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_2",
@@ -3689,7 +3730,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address Line 2"
+                      "propLabel": "Address Line 2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_currency",
@@ -3697,7 +3739,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Currency"
+                      "propLabel": "Currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cs_shipping_date",
@@ -3705,7 +3748,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cs_shipping_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Shipping Date"
+                      "propLabel": "Shipping Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ss_shippping_date",
@@ -3713,7 +3757,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ss_shippping_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Shipping Date"
+                      "propLabel": "Shipping Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ss_est_arrival_date",
@@ -3721,7 +3766,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ss_est_arrival_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Est. Arrival Date"
+                      "propLabel": "Est. Arrival Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cs_courier_company",
@@ -3729,7 +3775,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cs_courier_company}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Courier Company"
+                      "propLabel": "Courier Company",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cp_vehicle_number",
@@ -3737,7 +3784,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cp_vehicle_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Vehicle Number"
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "delivery_method_text",
@@ -3745,7 +3793,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.delivery_method_text}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Delivery Method Text"
+                      "propLabel": "Delivery Method Text",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ct_driver_contact_no",
@@ -3753,7 +3802,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ct_driver_contact_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Driver Contact No"
+                      "propLabel": "Driver Contact No",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cp_driver_contact_no",
@@ -3761,7 +3811,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cp_driver_contact_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Driver Contact No"
+                      "propLabel": "Driver Contact No",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ct_delivery_cost",
@@ -3769,7 +3820,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ct_delivery_cost}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Delivery Cost"
+                      "propLabel": "Delivery Cost",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ct_driver_name",
@@ -3777,7 +3829,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ct_driver_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Driver Name"
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cp_pickup_date",
@@ -3785,7 +3838,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cp_pickup_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Pickup Date"
+                      "propLabel": "Pickup Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ct_est_delivery_date",
@@ -3793,7 +3847,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ct_est_delivery_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Est. Delivery Date"
+                      "propLabel": "Est. Delivery Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ss_freight_charges",
@@ -3801,7 +3856,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ss_freight_charges}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Freight Charges"
+                      "propLabel": "Freight Charges",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ct_vehicle_number",
@@ -3809,7 +3865,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ct_vehicle_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Vehicle Number"
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ss_shipping_company",
@@ -3817,7 +3874,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ss_shipping_company}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Shipping Company"
+                      "propLabel": "Shipping Company",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ss_tracking_number",
@@ -3825,7 +3883,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ss_tracking_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Tracking Number"
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cp_driver_name",
@@ -3833,7 +3892,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cp_driver_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Driver Name"
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "est_arrival_date",
@@ -3841,7 +3901,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.est_arrival_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Est. Arrival Date"
+                      "propLabel": "Est. Arrival Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "si_status",
@@ -3849,7 +3910,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.si_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "SI Completed Status"
+                      "propLabel": "SI Completed Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_status",
@@ -3857,7 +3919,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "SO Status"
+                      "propLabel": "SO Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "gd_status",
@@ -3865,7 +3928,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.gd_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "GD Status"
+                      "propLabel": "GD Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "sqt_no",
@@ -3873,7 +3937,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.sqt_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Quotation Number"
+                      "propLabel": "Quotation Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "organization_id",
@@ -3881,7 +3946,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.organization_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Organization"
+                      "propLabel": "Organization",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "si_posted_status",
@@ -3889,7 +3955,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.si_posted_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "SI Posted Status"
+                      "propLabel": "SI Posted Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "myr_total_amount",
@@ -3897,7 +3964,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.myr_total_amount}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total Amount"
+                      "propLabel": "Total Amount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate",
@@ -3905,7 +3973,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.exchange_rate}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Exchangea Rate"
+                      "propLabel": "Exchangea Rate",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "tpt_vehicle_number",
@@ -3913,7 +3982,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.tpt_vehicle_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Vehicle Number"
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "tpt_driver_contact_no",
@@ -3921,7 +3991,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.tpt_driver_contact_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Driver Contact No"
+                      "propLabel": "Driver Contact No",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_shipping_method",
@@ -3929,7 +4000,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_shipping_method}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Shipping Method"
+                      "propLabel": "Shipping Method",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_driver_name",
@@ -3937,7 +4009,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_driver_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Driver Name"
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_ic_no",
@@ -3945,7 +4018,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_ic_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "IC No"
+                      "propLabel": "IC No",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_driver_contact_no",
@@ -3953,7 +4027,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_driver_contact_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Driver Contact No"
+                      "propLabel": "Driver Contact No",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_shipping_company",
@@ -3961,7 +4036,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_shipping_company}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Shipping Company"
+                      "propLabel": "Shipping Company",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_transport_name",
@@ -3969,7 +4045,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_transport_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Transport Name"
+                      "propLabel": "Transport Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_vehicle_number",
@@ -3977,7 +4054,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_vehicle_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Vehicle Number"
+                      "propLabel": "Vehicle Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_est_delivery_date",
@@ -3985,7 +4063,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_est_delivery_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Est Delivery Date"
+                      "propLabel": "Est Delivery Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_est_arrival_date",
@@ -3993,7 +4072,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_est_arrival_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Est Arrival Date"
+                      "propLabel": "Est Arrival Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_pickup_date",
@@ -4001,7 +4081,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_pickup_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Pickup Date"
+                      "propLabel": "Pickup Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_validity_of_collection",
@@ -4009,7 +4090,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_validity_of_collection}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Validity of Collection"
+                      "propLabel": "Validity of Collection",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_tracking_number",
@@ -4017,7 +4099,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_tracking_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Tracking Number"
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "di_freight_charges",
@@ -4025,7 +4108,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.di_freight_charges}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Freight Charges"
+                      "propLabel": "Freight Charges",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "project_id",
@@ -4033,7 +4117,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.project_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Project"
+                      "propLabel": "Project",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "tpt_transport_name",
@@ -4041,7 +4126,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.tpt_transport_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Transport Name"
+                      "propLabel": "Transport Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ct_ic_no",
@@ -4049,7 +4135,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ct_ic_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "IC No."
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "tpt_ic_no",
@@ -4057,7 +4144,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.tpt_ic_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "IC No."
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_docno",
@@ -4065,7 +4153,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_docno}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "SO Doc No"
+                      "propLabel": "SO Doc No",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_gross_currency",
@@ -4073,7 +4162,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.total_gross_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total Gross"
+                      "propLabel": "Total Gross",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate_myr",
@@ -4081,7 +4171,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.exchange_rate_myr}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Exchange Rate MYR"
+                      "propLabel": "Exchange Rate MYR",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_amount_myr",
@@ -4089,7 +4180,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.total_amount_myr}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total Amount (MYR)"
+                      "propLabel": "Total Amount (MYR)",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate_currency",
@@ -4097,7 +4189,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.exchange_rate_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Exchange Rate"
+                      "propLabel": "Exchange Rate",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_tax_currency",
@@ -4105,7 +4198,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.total_tax_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total Tax Fee"
+                      "propLabel": "Total Tax Fee",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_discount_currency",
@@ -4113,7 +4207,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.total_discount_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total Discount"
+                      "propLabel": "Total Discount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_amount_currency",
@@ -4121,7 +4216,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.total_amount_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Total Amount"
+                      "propLabel": "Total Amount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cp_ic_no",
@@ -4129,7 +4225,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cp_ic_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "IC No."
+                      "propLabel": "IC No.",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "validity_of_collection",
@@ -4137,7 +4234,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.validity_of_collection}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Validity of Collection"
+                      "propLabel": "Validity of Collection",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cs_tracking_number",
@@ -4145,7 +4243,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cs_tracking_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Tracking Number"
+                      "propLabel": "Tracking Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "ss_shipping_method",
@@ -4153,7 +4252,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.ss_shipping_method}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Shipping Method"
+                      "propLabel": "Shipping Method",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "partially_delivered",
@@ -4161,7 +4261,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.partially_delivered}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Partially Delivered"
+                      "propLabel": "Partially Delivered",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "fully_delivered",
@@ -4169,7 +4270,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.fully_delivered}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Fully Delivered"
+                      "propLabel": "Fully Delivered",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "sr_status",
@@ -4177,7 +4279,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.sr_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "SR Status"
+                      "propLabel": "SR Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "srr_status",
@@ -4185,7 +4288,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.srr_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "SRR Status"
+                      "propLabel": "SRR Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_ref_doc",
@@ -4193,7 +4297,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_ref_doc}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Reference Documents"
+                      "propLabel": "Reference Documents",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cs_freight_charges",
@@ -4201,7 +4306,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cs_freight_charges}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Freight Charges"
+                      "propLabel": "Freight Charges",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_attention",
@@ -4209,7 +4315,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_attention}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Attention"
+                      "propLabel": "Attention",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_attention",
@@ -4217,7 +4324,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_attention}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Attention"
+                      "propLabel": "Attention",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_phone",
@@ -4225,7 +4333,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Contact Number"
+                      "propLabel": "Contact Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_name",
@@ -4233,7 +4342,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.shipping_address_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address Name"
+                      "propLabel": "Address Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_name",
@@ -4241,7 +4351,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Address Name"
+                      "propLabel": "Address Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_phone",
@@ -4249,7 +4360,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.billing_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Contact Number"
+                      "propLabel": "Contact Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "production_status",
@@ -4257,7 +4369,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.production_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Production Status"
+                      "propLabel": "Production Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "overdue_inv_total_amount",
@@ -4265,7 +4378,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.overdue_inv_total_amount}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Overdue Invoice Total Amount"
+                      "propLabel": "Overdue Invoice Total Amount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "last_sync_date",
@@ -4273,7 +4387,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.last_sync_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Last Sync Date"
+                      "propLabel": "Last Sync Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "outstanding_balance",
@@ -4281,7 +4396,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.outstanding_balance}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Outstanding Balance"
+                      "propLabel": "Outstanding Balance",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "is_accurate",
@@ -4289,7 +4405,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.is_accurate}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Is Accurate"
+                      "propLabel": "Is Accurate",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "customer_credit_limit",
@@ -4297,7 +4414,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.customer_credit_limit}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Credit Limit"
+                      "propLabel": "Credit Limit",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "overdue_limit",
@@ -4305,7 +4423,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.overdue_limit}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Overdue Limit"
+                      "propLabel": "Overdue Limit",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "acc_integration_type",
@@ -4313,7 +4432,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.acc_integration_type}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Accounting Integration Type"
+                      "propLabel": "Accounting Integration Type",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "sqt_id",
@@ -4321,7 +4441,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.sqt_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Quotation ID"
+                      "propLabel": "Quotation ID",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_created_by",
@@ -4329,7 +4450,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_created_by}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "SO Created By"
+                      "propLabel": "SO Created By",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cust_po",
@@ -4337,7 +4459,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cust_po}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Customer PO Number"
+                      "propLabel": "Customer PO Number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_remarks2",
@@ -4345,7 +4468,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_remarks2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Remark 2"
+                      "propLabel": "Remark 2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_remarks3",
@@ -4353,7 +4477,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_remarks3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Remark 3"
+                      "propLabel": "Remark 3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "cust_po_date",
@@ -4361,7 +4486,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.cust_po_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Customer PO Date"
+                      "propLabel": "Customer PO Date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "access_group",
@@ -4369,7 +4495,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.access_group}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Access Group"
+                      "propLabel": "Access Group",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "price_tag_id",
@@ -4377,7 +4504,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.price_tag_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Price Tag ID"
+                      "propLabel": "Price Tag ID",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "to_status",
@@ -4385,7 +4513,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.to_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Picking Status"
+                      "propLabel": "Picking Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "packing_status",
@@ -4393,7 +4522,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.packing_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Packing Status"
+                      "propLabel": "Packing Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_no_type",
@@ -4401,7 +4531,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_no_type}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "规则"
+                      "propLabel": "规则",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "previous_status",
@@ -4409,7 +4540,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.previous_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Previous Status"
+                      "propLabel": "Previous Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "need_cl",
@@ -4417,7 +4549,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.need_cl}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Need CL ?"
+                      "propLabel": "Need CL ?",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "posted_status",
@@ -4425,7 +4558,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.posted_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Posted Status"
+                      "propLabel": "Posted Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_remarks5",
@@ -4433,7 +4567,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_remarks5}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Remark 5"
+                      "propLabel": "Remark 5",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_remarks4",
@@ -4441,7 +4576,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_remarks4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Remark 4"
+                      "propLabel": "Remark 4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_delivery_term",
@@ -4449,7 +4585,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_delivery_term}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Delivery Term"
+                      "propLabel": "Delivery Term",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_area_id",
@@ -4457,7 +4594,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_area_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Area"
+                      "propLabel": "Area",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_agent_user_id",
@@ -4465,7 +4603,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_agent_user_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Agent User ID"
+                      "propLabel": "Agent User ID",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "tpt_driver_name",
@@ -4473,7 +4612,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.tpt_driver_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Driver Name"
+                      "propLabel": "Driver Name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "auto_si",
@@ -4481,7 +4621,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.auto_si}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Auto SI?"
+                      "propLabel": "Auto SI?",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "auto_gd",
@@ -4489,7 +4630,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.auto_gd}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Auto GD?"
+                      "propLabel": "Auto GD?",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_type",
@@ -4497,7 +4639,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_type}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Type"
+                      "propLabel": "Type",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "create_si",
@@ -4505,7 +4648,8 @@
                       "value": "{{node:code_node_BtxYhPym.data.entry.create_si}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Create SI Anyway?"
+                      "propLabel": "Create SI Anyway?",
+                      "is_negative_number": false
                     }
                   ]
                 }
@@ -5098,7 +5242,7 @@
                                 "name": "Map AR Data",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "let soData = {{node:get_node_NCJ7taxf.data.data}};\n\nconst mapLineItem = (item, record, index) => {\n  const lineItemPromise = {\n    item_id: item.item_name,\n    item_name: item.item_id,\n    item_description: item.so_desc,\n    amount: (\n      parseFloat(item.so_gross) - parseFloat(item.so_discount_amount || 0)\n    ).toFixed(4),\n    tax_code: item.so_tax_preference,\n    tax_percent: item.so_tax_percentage,\n    tax_inclusive: item.so_tax_inclusive,\n    tax_tariff_id: item.tariff_id,\n    tax_amount: parseFloat(item.so_tax_amount).toFixed(4),\n    subtotal: parseFloat(item.so_amount).toFixed(4),\n    customer_id: item.customer_id,\n    area_id: item.area_id,\n    agent_id: item.sales_person_id,\n    payment_term_id: item.payment_term_id,\n    plant_id: item.organization_id,\n    organization_id: item.organization_id,\n    project_id: item.project_id ?? null,\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (record, lineItemPromise) => {\n  const data = {\n    payment_status: \"Unpaid\",\n    plant_id: record.organization_id,\n    organization_id: record.organization_id,\n    ar_invoice_no: record.so_no,\n    ar_invoice_no_type: -9999,\n    customer_id: record.customer_name,\n    currency_code: record.so_currency,\n    description: \"Sales\",\n    ar_billing_address: record.cust_billing_address,\n    ar_shipping_address: record.cust_shipping_address,\n    invoice_date: new Date().toISOString().split(\"T\")[0],\n    area_id: record.so_area_id || \"\",\n    agent_id: record.so_sales_person,\n    agent_user_id: record.so_agent_user_id,\n    payment_term_id: record.so_payment_term,\n    due_date: new Date().toISOString().split(\"T\")[0],\n    so_id: record.id,\n    project_id: record.project_id ?? null,\n    table_ar_invoice: lineItemPromise,\n    tax_total_currency: record.so_currency,\n    invoice_total_currency: record.so_currency,\n    outstanding_amount_currency: record.so_currency,\n    tax_total: parseFloat(record.so_total_tax).toFixed(4),\n    invoice_total: parseFloat(record.so_total).toFixed(4),\n    outstanding_amount: parseFloat(record.so_total).toFixed(4),\n    myr_invoice_total: parseFloat(record.myr_total_amount).toFixed(4),\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    billing_address_code: record.billing_address_code,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_code: record.shipping_address_code,\n    shipping_address_fax: record.shipping_address_fax,\n  };\n\n  return data;\n};\n\nlet arLineItem = [];\nfor (const item of soData.table_so) {\n  const lineItemPromise = mapLineItem(item, soData);\n  arLineItem.push(lineItemPromise);\n}\nconst arData = mapHeaderData(soData, arLineItem);\n\nreturn { arData };\n"
+                                  "code": "let soData = {{node:get_node_NCJ7taxf.data.data}};\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// An item bundle is ONE line on the order with the bundle's items beneath it.\n// The receivable keeps that shape: the bundle is one line with its items under\n// `children`.\n//\n// The bundle line carries the money. Its gross, discount, tax and amount on the\n// order are already the sum of its items -- that is what so_total is built from\n// -- so mapping the items as receivable lines of their own bills the bundle\n// twice. They come across for what they show and are never added again.\n// Nothing re-sums these lines: tax_total, invoice_total and outstanding_amount\n// all come straight off the order.\n//\n// Note table_so's field names are inverted: item_name holds the item's id and\n// item_id holds its name, so item_name is what tells a bundle line (no item of\n// its own) from an item under it.\n// ==========================================================================\n\nconst mapLineItem = (item, record, index) => {\n  const lineItemPromise = {\n    item_id: item.item_name,\n    item_name: item.item_id,\n    item_description: item.so_desc,\n    item_bundle_id: bundleKey(item),\n    amount: (\n      parseFloat(item.so_gross) - parseFloat(item.so_discount_amount || 0)\n    ).toFixed(4),\n    tax_code: item.so_tax_preference,\n    tax_percent: item.so_tax_percentage,\n    tax_inclusive: item.so_tax_inclusive,\n    tax_tariff_id: item.tariff_id,\n    tax_amount: parseFloat(item.so_tax_amount).toFixed(4),\n    subtotal: parseFloat(item.so_amount).toFixed(4),\n    customer_id: item.customer_id,\n    area_id: item.area_id,\n    agent_id: item.sales_person_id,\n    payment_term_id: item.payment_term_id,\n    plant_id: item.organization_id,\n    organization_id: item.organization_id,\n    project_id: item.project_id ?? null,\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (record, lineItemPromise) => {\n  const data = {\n    payment_status: \"Unpaid\",\n    plant_id: record.organization_id,\n    organization_id: record.organization_id,\n    ar_invoice_no: record.so_no,\n    ar_invoice_no_type: -9999,\n    customer_id: record.customer_name,\n    currency_code: record.so_currency,\n    description: \"Sales\",\n    ar_billing_address: record.cust_billing_address,\n    ar_shipping_address: record.cust_shipping_address,\n    invoice_date: new Date().toISOString().split(\"T\")[0],\n    area_id: record.so_area_id || \"\",\n    agent_id: record.so_sales_person,\n    agent_user_id: record.so_agent_user_id,\n    payment_term_id: record.so_payment_term,\n    due_date: new Date().toISOString().split(\"T\")[0],\n    so_id: record.id,\n    project_id: record.project_id ?? null,\n    table_ar_invoice: lineItemPromise,\n    tax_total_currency: record.so_currency,\n    invoice_total_currency: record.so_currency,\n    outstanding_amount_currency: record.so_currency,\n    tax_total: parseFloat(record.so_total_tax).toFixed(4),\n    invoice_total: parseFloat(record.so_total).toFixed(4),\n    outstanding_amount: parseFloat(record.so_total).toFixed(4),\n    myr_invoice_total: parseFloat(record.myr_total_amount).toFixed(4),\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    billing_address_code: record.billing_address_code,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_code: record.shipping_address_code,\n    shipping_address_fax: record.shipping_address_fax,\n  };\n\n  return data;\n};\n\nconst bundleKey = (row) => {\n  const bundle = row.item_bundle_id;\n\n  if (bundle && typeof bundle === \"object\") {\n    return String(bundle.id || bundle.ib_no || \"\");\n  }\n\n  return String(bundle || \"\");\n};\n\nconst flattenWithParent = (rows, itemKey) => {\n  const flat = [];\n  const positionOf = new Map();\n\n  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];\n  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);\n\n  let openBundle = -1; // bundle line the flat rows below it belong to\n\n  for (const [index, row] of (rows || []).entries()) {\n    const position = flat.length;\n    positionOf.set(index, position);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    // Already a tree: nothing to reattach, and a bundle spelled out this way\n    // ends whatever run was open above it.\n    if (children.length > 0) {\n      openBundle = -1;\n      flat.push({ row, parent: -1, nested: false });\n\n      for (const child of children) {\n        flat.push({ row: child, parent: position, nested: true });\n      }\n\n      continue;\n    }\n\n    if (isBundleRow(row)) {\n      openBundle = position;\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    if (!isBundleItem(row)) {\n      openBundle = -1; // a plain line closes the bundle above it\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    // A flat item: linked to its bundle line by id, or else belonging to the\n    // bundle line it follows, as long as that is the same bundle.\n    let parent = -1;\n\n    for (let candidate = index - 1; candidate >= 0; candidate--) {\n      const candidateRow = rows[candidate];\n\n      if (!isBundleRow(candidateRow)) continue;\n\n      const byId =\n        row.parent_id != null &&\n        candidateRow.id != null &&\n        String(row.parent_id) === String(candidateRow.id);\n      const byKey =\n        row.parent_fm_key != null &&\n        candidateRow.fm_key != null &&\n        String(row.parent_fm_key) === String(candidateRow.fm_key);\n\n      if (byId || byKey) {\n        parent = positionOf.get(candidate);\n        break;\n      }\n    }\n\n    if (\n      parent === -1 &&\n      openBundle !== -1 &&\n      bundleKey(flat[openBundle].row) === bundleKey(row)\n    ) {\n      parent = openBundle;\n    }\n\n    flat.push({ row, parent, nested: false });\n  }\n\n  return flat;\n};\n\n// Which branch AR_SAVE should take. It adds on 'Add' / 'Clone', and on anything\n// else looks the receivable up and updates whatever it finds.\n//\n// A draft order has no receivable: this branch only runs once the order is\n// issued, so nothing was ever raised against a draft. Issuing one arrives as\n// 'Edit', which sent AR_SAVE looking for a record that was never created -- it\n// updated nothing and no receivable appeared.\n//\n// previous_status is the status the order was opened with, stamped onto the\n// form by its mounted handler in edit mode. Everything else passes through\n// untouched: an order already issued and edited again does have a receivable,\n// and that one must go on being updated rather than raised a second time.\nconst pageStatus = {{node:code_node_BtxYhPym.data.entry.page_status}};\nconst previousStatus = {{node:code_node_BtxYhPym.data.entry.previous_status}};\nconst arPageStatus =\n  pageStatus === \"Edit\" && previousStatus === \"Draft\" ? \"Add\" : pageStatus;\n\nconsole.log(\"AR branch\", { pageStatus, previousStatus, arPageStatus });\n\nlet arLineItem = [];\n\n// table_so reaches this node in either shape -- read back from the database it\n// is flat, a bundle's items sitting beside their bundle line; held in memory it\n// is a tree. flattenWithParent reads both.\nconst flat = flattenWithParent(soData.table_so, \"item_name\");\nconst arRowByPosition = new Map();\n\nflat.forEach((entry, position) => {\n  const lineItemPromise = mapLineItem(entry.row, soData);\n\n  if (entry.parent === -1) {\n    arRowByPosition.set(position, lineItemPromise);\n    arLineItem.push(lineItemPromise);\n\n    return;\n  }\n\n  const parentRow = arRowByPosition.get(entry.parent);\n\n  if (!parentRow) return;\n\n  // An item is a row of its bundle, not a row of the receivable.\n  if (!Array.isArray(parentRow.children)) parentRow.children = [];\n\n  parentRow.children.push(lineItemPromise);\n});\n\nconst arData = mapHeaderData(soData, arLineItem);\n\nreturn { arData, arPageStatus };\n"
                                 },
                                 "response_json": [
                                   {
@@ -5109,6 +5253,14 @@
                                     "bsonType": "any",
                                     "isExpand": false,
                                     "children": []
+                                  },
+                                  {
+                                    "key": "ja1cbzum",
+                                    "name": "arPageStatus",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
                                   }
                                 ]
                               },
@@ -5156,15 +5308,17 @@
                                       "valueType": "field",
                                       "valueTypeLabel": "",
                                       "value": "{{node:code_node_dGOktuGa.data.arData}}",
-                                      "valueLabel": ""
+                                      "valueLabel": "",
+                                      "is_negative_number": false
                                     },
                                     {
                                       "prop": "page_status",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_node_BtxYhPym.data.entry.page_status}}",
+                                      "value": "{{node:code_node_dGOktuGa.data.arPageStatus}}",
                                       "valueLabel": "",
-                                      "propLabel": "page_status"
+                                      "propLabel": "page_status",
+                                      "is_negative_number": false
                                     }
                                   ]
                                 }
