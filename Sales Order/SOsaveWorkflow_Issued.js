@@ -17,10 +17,14 @@ const submitForm = async (data) => {
       // platform raises no error toast beside the dialog. Handle it before anything here
       // treats this as a saved order. The error-callback branches below still stand, so a
       // stale workflow deploy keeps working.
-      const gateCode = res?.data?.gateCode;
+      // runWorkflow hands back the whole envelope: {code, data:{data:{...}}} -- the inner
+      // `data` is the end-node's OutputParams prop, so the payload sits one level deeper
+      // than it looks. Tolerate both shapes rather than depending on the wrapping.
+      const payload = res?.data?.data ?? res?.data ?? {};
+      const gateCode = payload.gateCode;
       if (gateCode) {
         this.hideLoading();
-        const gateMsg = `${res.data.message || ""}`;
+        const gateMsg = `${payload.message || ""}`;
         if (gateCode === "414" || gateCode === 414) {
           const addToDelivery = await this.$confirm(gateMsg, `Delivery quantity`, {
             confirmButtonText: "Add to delivery",
@@ -61,8 +65,8 @@ const submitForm = async (data) => {
 
       // What has to be physically put back after a pick reversal, as the delivery
       // reported it.
-      if (res?.data?.pickingReversalNote) {
-        await this.$alert(res.data.pickingReversalNote, "Stock to put back", {
+      if (payload.pickingReversalNote) {
+        await this.$alert(payload.pickingReversalNote, "Stock to put back", {
           confirmButtonText: "OK",
           type: "warning",
           dangerouslyUseHTMLString: true,
