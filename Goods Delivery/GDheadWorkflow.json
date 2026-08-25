@@ -5402,7 +5402,7 @@
                 "name": "TableGD Data",
                 "script": {
                   "type": "javascript",
-                  "code": "const allData = {{node:code_node_IyJHrBst.data.allData}}\n\n// A bundle is ONE row of table_gd with the bundle's items under `children`. The\n// bundle row carries no material of its own and nothing is delivered against it;\n// its items are ordinary delivery lines that simply are not rows of table_gd.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\n// Everything downstream of this node reasons one delivery line at a time -- the\n// quantity check and the delivered_qty written back to the sales order line. A\n// bundle's items are lines in exactly that sense, so the tree is walked flat here\n// and the loop covers them without knowing anything about bundles.\n//\n// The bundle row itself is dropped: it owns no material and its sales order line\n// is a header that never receives a delivered quantity. Whether the order is\n// fully delivered is decided by its items.\nconst tableGD = (allData.table_gd || []).flatMap((row) => [\n  ...(isBundleParentRow(row) ? [] : [row]),\n  ...childrenOf(row),\n]);\n\n// Distinct SO line ids, for the single batch fetch that replaced the per-row\n// get_node_YMto3jtl inside the old loop.\nconst soLineIds = [];\nfor (const row of (tableGD || [])) {\n  const lineId = row.so_line_item_id;\n  if (lineId && soLineIds.indexOf(lineId) === -1) {\n    soLineIds.push(lineId);\n  }\n}\n\nreturn {\n  tableGD: tableGD,\n  soLineIds: soLineIds\n};"
+                  "code": "const allData = {{node:code_node_IyJHrBst.data.allData}}\n\n// A bundle is ONE row of table_gd with the bundle's items under `children`. The\n// bundle row carries no material of its own and nothing is delivered against it;\n// its items are ordinary delivery lines that simply are not rows of table_gd.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\n// Everything downstream of this node reasons one delivery line at a time -- the\n// quantity check and the delivered_qty written back to the sales order line. A\n// bundle's items are lines in exactly that sense, so the tree is walked flat here\n// and the loop covers them without knowing anything about bundles.\n//\n// The bundle row itself is dropped from the delivery lines: it owns no material,\n// so it takes no part in allocation, the item-master check or the stock movement.\n// Whether the order is fully delivered is still decided by its items.\nconst tableGD = (allData.table_gd || []).flatMap((row) => [\n  ...(isBundleParentRow(row) ? [] : [row]),\n  ...childrenOf(row),\n]);\n\n// It IS carried separately, because its sales order line is not inert: the number\n// of bundles already delivered is what the NEXT delivery defaults its quantity\n// from. onConfirm_batchAddItem reads that line's delivered_qty into\n// gd_delivered_qty and offers `gd_order_quantity - gd_delivered_qty` bundles, so\n// leaving it at 0 makes every later delivery re-offer the whole order.\nconst bundleParents = (allData.table_gd || []).filter(isBundleParentRow);\n\n// Distinct SO line ids, for the single batch fetch that replaced the per-row\n// get_node_YMto3jtl inside the old loop. The bundle rows' lines are fetched too,\n// so the quantity check can update them off the same soLineMap as everything else.\nconst soLineIds = [];\nfor (const row of [...(tableGD || []), ...bundleParents]) {\n  const lineId = row.so_line_item_id;\n  if (lineId && soLineIds.indexOf(lineId) === -1) {\n    soLineIds.push(lineId);\n  }\n}\n\nreturn {\n  tableGD: tableGD,\n  bundleParents: bundleParents,\n  soLineIds: soLineIds\n};"
                 },
                 "response_json": [
                   {
@@ -5415,6 +5415,26 @@
                     "children": [
                       {
                         "key": "lz3vvws6",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "hb3bundp",
+                    "name": "bundleParents",
+                    "title": "bundleParents",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "hb4bpitm",
                         "name": "items",
                         "title": "",
                         "description": "",
@@ -5513,7 +5533,7 @@
                 "name": "Validate Quantity & Update SO Table (batch)",
                 "script": {
                   "type": "javascript",
-                  "code": "// Validate Quantity & Update SO Table - BATCH\n// Replaces the old per-row loop (loop_ZVa7Cxf6): code_node_SOBNriDH + get_node_DDcDRdMe\n// + get_node_YMto3jtl + code_node_muzjP26e, one iteration per table_gd row.\n// Item master and SO lines are now read from two batch fetches instead of 2 fetches\n// per row. Control flow is identical to the loop it replaces.\n\nconst tableGD = {{node:code_node_hb8ZWe9c.data.tableGD}} || [];\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}};\nconst saveAs = {{workflowparams:saveAs}};\nconst isGDPP = {{workflowparams:allData.is_select_picking}} || 0;\nconst splitPolicy = {{node:code_picking_defaults.data.splitPolicy}} || \"ALLOW_SPLIT\";\n\n// ID SHAPE: a get-node serialises bigint ids as quoted strings, a search-node as\n// raw numbers (Java Long under GraalJS, so String() is exact). The rows this node\n// replaced came from get-nodes, and the surrounding code compares ids with ===.\n// Everything below therefore normalises ids through String() so the comparisons\n// and the pushed SO rows keep the exact shape the old per-row get-nodes produced.\nconst asId = (v) => (v === null || v === undefined ? v : String(v));\n\n// Item master: already batch-fetched once by search_node_w1NxF9TX (cond_all_gd_fetch).\nconst itemDataRaw = {{node:search_node_w1NxF9TX.data.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\nconst itemMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemMap[asId(it.id)] = it;\n  }\n}\n\n// SO lines: batch-fetched once by search_node_SOLine8kQ2.\nconst soLineRaw = {{node:search_node_SOLine8kQ2.data.data}} || [];\nconst soLineArray = Array.isArray(soLineRaw) ? soLineRaw : [soLineRaw];\nconst soLineMap = {};\nfor (const sl of soLineArray) {\n  if (sl && sl.id) {\n    soLineMap[asId(sl.id)] = sl;\n  }\n}\n\n// Original GD lines. Only referenced when the GD is already Created, which is\n// exactly when get_node_xTRvHWB8 ran.\n// An item under a bundle is a delivery line in its own right and carries its own\n// allocation -- it is just not a row of table_gd. Matched across the whole tree,\n// or on re-save it looks brand new and its quantity is counted twice.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\nlet originalTableGD = [];\nif (gd_status === \"Created\") {\n  originalTableGD = flattenGdRows({{node:get_node_xTRvHWB8.data.data.table_gd}});\n}\n\n// Returns number for calculations/validation\nconst roundQty = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  const num = parseFloat(value);\n  return Math.round(num * 1000) / 1000;\n};\n\n// Returns string for database updates\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst updatedSOTable = [];\nlet validationMessage = null;\nlet itemNotFound = 0;\n\nfor (let index = 0; index < tableGD.length; index++) {\n  const gdItem = tableGD[index];\n  const rowIndex = index + 1;\n  const material_id = gdItem.material_id || \"\";\n\n  // Mirrors if_9DC5Lah8: material_id is set but the Item row is gone -> hard stop.\n  if (material_id !== \"\" && !itemMap[asId(material_id)]) {\n    itemNotFound = 1;\n    break;\n  }\n\n  const itemData = itemMap[asId(material_id)] || {};\n\n  let originalGdItem = null;\n  if (gd_status === \"Created\") {\n    originalGdItem = originalTableGD.find(item => item.so_line_item_id === gdItem.so_line_item_id) || null;\n  }\n\n  // Pristine SO line. Never mutated, so every row reads the same original\n  // delivered_qty/planned_qty the old per-row refetch returned.\n  const soItem = soLineMap[asId(gdItem.so_line_item_id)];\n  if (!soItem) {\n    throw new Error(\"Row \" + rowIndex + \": sales order line \" + gdItem.so_line_item_id + \" was not found.\");\n  }\n\n  // Descriptive (no-stock) line label for error messages\n  const itemLabel = itemData.material_code || gdItem.material_name || gdItem.gd_material_desc || \"(descriptive)\";\n\n  // Description-only and non-stock-non-shown items: no over-delivery tolerance (treat like a descriptive line)\n  const isDescriptiveLike = !gdItem.material_id || gdItem.material_id === \"\" || (itemData.stock_control === 0 && itemData.show_delivery === 0);\n  // asId on both sides: table_uom_conversion now arrives from a search-node, so\n  // alt_uom_id is a number where the old get-node gave a string. A bare === would\n  // silently miss and drop over_delivery_tolerance to 0.\n  const overDeliveryTolerance = isDescriptiveLike ? 0 : (((itemData.table_uom_conversion || []).find((c) => asId(c.alt_uom_id) === asId(gdItem.gd_order_uom_id)) || {}).over_delivery_tolerance || 0);\n  const orderLimit = (gdItem.gd_order_quantity * (100 + overDeliveryTolerance)) / 100;\n  const deliveredQty = soItem.delivered_qty || 0;\n  const plannedQty = soItem.planned_qty || 0;\n\n  const currentGdQty = parseFloat(gdItem.gd_qty) || 0;\n  const origQty = parseFloat(originalGdItem?.gd_qty) || 0;\n\n  let gdQtyChange = currentGdQty;\n  if (originalGdItem) {\n    gdQtyChange = roundQty(currentGdQty - origQty);\n  }\n\n  let totalCommitted;\n  if (isGDPP === 1) {\n    totalCommitted = roundQty(deliveredQty + currentGdQty);\n  } else {\n    totalCommitted = roundQty(deliveredQty + plannedQty + gdQtyChange);\n  }\n\n  let rowMessage = null;\n\n  // Validate order limit (skip for FULL_HU_PICK only - NO_SPLIT enforces tolerance)\n  if (splitPolicy !== \"FULL_HU_PICK\" && totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n    rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: quantity is exceeding the maximum deliverable quantity.`;\n  }\n\n  // Validate planned_qty won't go negative\n  if (!rowMessage) {\n    let projectedPlannedQty = plannedQty;\n\n    if (isGDPP === 1 && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty + currentGdQty);\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    }\n\n    if (projectedPlannedQty < 0) {\n      rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: planned quantity would become negative (${projectedPlannedQty}). Please contact support.`;\n    }\n  }\n\n  // Old behaviour: a failed row is never pushed to updatedSOTable. The save only\n  // aborts when saveAs !== \"Cancelled\" (the old if_ACsN1GZD gate); under\n  // Cancelled the row is silently skipped and the walk continues.\n  if (rowMessage) {\n    if (saveAs !== \"Cancelled\") {\n      validationMessage = rowMessage;\n      break;\n    }\n    continue;\n  }\n\n  // Fresh object to mutate and push, so soLineMap stays pristine for later rows.\n  // Shallow copy on purpose: a JSON round-trip would re-parse the bigint ids as\n  // doubles and silently corrupt updatedSOItem.id, which is the update key of\n  // update_node_wEJC3qKB. Only top-level scalars are written below.\n  const updatedSOItem = Object.assign({}, soItem);\n  // Restore the get-node string shape for the two id fields anything downstream\n  // reads (update_node_wEJC3qKB keys on id; code_node_lwB2FVe0 reads both).\n  updatedSOItem.id = asId(soItem.id);\n  updatedSOItem.sales_order_id = asId(soItem.sales_order_id);\n\n  if (isGDPP === 1) {\n    if (saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n    }\n\n  } else {\n    if (gd_status === \"Draft\" && saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Draft\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty + currentGdQty);\n\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty);\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty + currentGdQty);\n\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n    }\n  }\n\n  if (saveAs === \"Completed\") {\n    if (parseFloat(updatedSOItem.outstanding_quantity) > 0) {\n      updatedSOItem.line_status = \"Processing\";\n    } else {\n      updatedSOItem.line_status = \"Completed\";\n    }\n  }\n\n  updatedSOTable.push(updatedSOItem);\n}\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable,\n  itemNotFound: itemNotFound\n};"
+                  "code": "// Validate Quantity & Update SO Table - BATCH\n// Replaces the old per-row loop (loop_ZVa7Cxf6): code_node_SOBNriDH + get_node_DDcDRdMe\n// + get_node_YMto3jtl + code_node_muzjP26e, one iteration per table_gd row.\n// Item master and SO lines are now read from two batch fetches instead of 2 fetches\n// per row. Control flow is identical to the loop it replaces.\n\nconst tableGD = {{node:code_node_hb8ZWe9c.data.tableGD}} || [];\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}};\nconst saveAs = {{workflowparams:saveAs}};\nconst isGDPP = {{workflowparams:allData.is_select_picking}} || 0;\nconst splitPolicy = {{node:code_picking_defaults.data.splitPolicy}} || \"ALLOW_SPLIT\";\n\n// ID SHAPE: a get-node serialises bigint ids as quoted strings, a search-node as\n// raw numbers (Java Long under GraalJS, so String() is exact). The rows this node\n// replaced came from get-nodes, and the surrounding code compares ids with ===.\n// Everything below therefore normalises ids through String() so the comparisons\n// and the pushed SO rows keep the exact shape the old per-row get-nodes produced.\nconst asId = (v) => (v === null || v === undefined ? v : String(v));\n\n// Item master: already batch-fetched once by search_node_w1NxF9TX (cond_all_gd_fetch).\nconst itemDataRaw = {{node:search_node_w1NxF9TX.data.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\nconst itemMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemMap[asId(it.id)] = it;\n  }\n}\n\n// SO lines: batch-fetched once by search_node_SOLine8kQ2.\nconst soLineRaw = {{node:search_node_SOLine8kQ2.data.data}} || [];\nconst soLineArray = Array.isArray(soLineRaw) ? soLineRaw : [soLineRaw];\nconst soLineMap = {};\nfor (const sl of soLineArray) {\n  if (sl && sl.id) {\n    soLineMap[asId(sl.id)] = sl;\n  }\n}\n\n// Original GD lines. Only referenced when the GD is already Created, which is\n// exactly when get_node_xTRvHWB8 ran.\n// An item under a bundle is a delivery line in its own right and carries its own\n// allocation -- it is just not a row of table_gd. Matched across the whole tree,\n// or on re-save it looks brand new and its quantity is counted twice.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\nlet originalTableGD = [];\nif (gd_status === \"Created\") {\n  originalTableGD = flattenGdRows({{node:get_node_xTRvHWB8.data.data.table_gd}});\n}\n\n// Returns number for calculations/validation\nconst roundQty = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  const num = parseFloat(value);\n  return Math.round(num * 1000) / 1000;\n};\n\n// Returns string for database updates\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst updatedSOTable = [];\nlet validationMessage = null;\nlet itemNotFound = 0;\n\nfor (let index = 0; index < tableGD.length; index++) {\n  const gdItem = tableGD[index];\n  const rowIndex = index + 1;\n  const material_id = gdItem.material_id || \"\";\n\n  // Mirrors if_9DC5Lah8: material_id is set but the Item row is gone -> hard stop.\n  if (material_id !== \"\" && !itemMap[asId(material_id)]) {\n    itemNotFound = 1;\n    break;\n  }\n\n  const itemData = itemMap[asId(material_id)] || {};\n\n  let originalGdItem = null;\n  if (gd_status === \"Created\") {\n    originalGdItem = originalTableGD.find(item => item.so_line_item_id === gdItem.so_line_item_id) || null;\n  }\n\n  // Pristine SO line. Never mutated, so every row reads the same original\n  // delivered_qty/planned_qty the old per-row refetch returned.\n  const soItem = soLineMap[asId(gdItem.so_line_item_id)];\n  if (!soItem) {\n    throw new Error(\"Row \" + rowIndex + \": sales order line \" + gdItem.so_line_item_id + \" was not found.\");\n  }\n\n  // Descriptive (no-stock) line label for error messages\n  const itemLabel = itemData.material_code || gdItem.material_name || gdItem.gd_material_desc || \"(descriptive)\";\n\n  // Description-only and non-stock-non-shown items: no over-delivery tolerance (treat like a descriptive line)\n  const isDescriptiveLike = !gdItem.material_id || gdItem.material_id === \"\" || (itemData.stock_control === 0 && itemData.show_delivery === 0);\n  // asId on both sides: table_uom_conversion now arrives from a search-node, so\n  // alt_uom_id is a number where the old get-node gave a string. A bare === would\n  // silently miss and drop over_delivery_tolerance to 0.\n  const overDeliveryTolerance = isDescriptiveLike ? 0 : (((itemData.table_uom_conversion || []).find((c) => asId(c.alt_uom_id) === asId(gdItem.gd_order_uom_id)) || {}).over_delivery_tolerance || 0);\n  const orderLimit = (gdItem.gd_order_quantity * (100 + overDeliveryTolerance)) / 100;\n  const deliveredQty = soItem.delivered_qty || 0;\n  const plannedQty = soItem.planned_qty || 0;\n\n  const currentGdQty = parseFloat(gdItem.gd_qty) || 0;\n  const origQty = parseFloat(originalGdItem?.gd_qty) || 0;\n\n  let gdQtyChange = currentGdQty;\n  if (originalGdItem) {\n    gdQtyChange = roundQty(currentGdQty - origQty);\n  }\n\n  let totalCommitted;\n  if (isGDPP === 1) {\n    totalCommitted = roundQty(deliveredQty + currentGdQty);\n  } else {\n    totalCommitted = roundQty(deliveredQty + plannedQty + gdQtyChange);\n  }\n\n  let rowMessage = null;\n\n  // Validate order limit (skip for FULL_HU_PICK only - NO_SPLIT enforces tolerance)\n  if (splitPolicy !== \"FULL_HU_PICK\" && totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n    rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: quantity is exceeding the maximum deliverable quantity.`;\n  }\n\n  // Validate planned_qty won't go negative\n  if (!rowMessage) {\n    let projectedPlannedQty = plannedQty;\n\n    if (isGDPP === 1 && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty + currentGdQty);\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    }\n\n    if (projectedPlannedQty < 0) {\n      rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: planned quantity would become negative (${projectedPlannedQty}). Please contact support.`;\n    }\n  }\n\n  // Old behaviour: a failed row is never pushed to updatedSOTable. The save only\n  // aborts when saveAs !== \"Cancelled\" (the old if_ACsN1GZD gate); under\n  // Cancelled the row is silently skipped and the walk continues.\n  if (rowMessage) {\n    if (saveAs !== \"Cancelled\") {\n      validationMessage = rowMessage;\n      break;\n    }\n    continue;\n  }\n\n  // Fresh object to mutate and push, so soLineMap stays pristine for later rows.\n  // Shallow copy on purpose: a JSON round-trip would re-parse the bigint ids as\n  // doubles and silently corrupt updatedSOItem.id, which is the update key of\n  // update_node_wEJC3qKB. Only top-level scalars are written below.\n  const updatedSOItem = Object.assign({}, soItem);\n  // Restore the get-node string shape for the two id fields anything downstream\n  // reads (update_node_wEJC3qKB keys on id; code_node_lwB2FVe0 reads both).\n  updatedSOItem.id = asId(soItem.id);\n  updatedSOItem.sales_order_id = asId(soItem.sales_order_id);\n\n  if (isGDPP === 1) {\n    if (saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n    }\n\n  } else {\n    if (gd_status === \"Draft\" && saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Draft\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty + currentGdQty);\n\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty);\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty + currentGdQty);\n\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n    }\n  }\n\n  if (saveAs === \"Completed\") {\n    if (parseFloat(updatedSOItem.outstanding_quantity) > 0) {\n      updatedSOItem.line_status = \"Processing\";\n    } else {\n      updatedSOItem.line_status = \"Completed\";\n    }\n  }\n\n  updatedSOTable.push(updatedSOItem);\n}\n\n// An item bundle's sales order line is not a delivery line -- it owns no material,\n// so it is not in tableGD and takes no part in the loop above. It still carries the\n// number of bundles delivered, which is what the next delivery defaults its\n// quantity from, so it is updated here: off the same pristine soLineMap, through\n// the same formatNumber/asId, producing a row of exactly the same shape as every\n// other. That last part matters -- update_node_wEJC3qKB writes a fixed set of\n// columns from each row, so a sparse object would blank planned_qty on the line.\n//\n// planned_qty is deliberately left as it stands: the bundle row never went through\n// the Created branch above, so nothing was ever planned against it to release.\nconst bundleParents = {{node:code_node_hb8ZWe9c.data.bundleParents}} || [];\n\nif (saveAs === \"Completed\") {\n  for (const parent of bundleParents) {\n    const soItem = soLineMap[asId(parent.so_line_item_id)];\n    if (!soItem) continue;\n\n    const updatedSOItem = Object.assign({}, soItem);\n    updatedSOItem.id = asId(soItem.id);\n    updatedSOItem.sales_order_id = asId(soItem.sales_order_id);\n\n    const bundlesDelivered = roundQty(\n      (parseFloat(soItem.delivered_qty) || 0) + (parseFloat(parent.gd_qty) || 0)\n    );\n\n    updatedSOItem.delivered_qty = formatNumber(bundlesDelivered);\n    updatedSOItem.outstanding_quantity = formatNumber(\n      Math.max(0, roundQty((parseFloat(soItem.so_quantity) || 0) - bundlesDelivered))\n    );\n    updatedSOItem.line_status =\n      parseFloat(updatedSOItem.outstanding_quantity) > 0 ? \"Processing\" : \"Completed\";\n\n    updatedSOTable.push(updatedSOItem);\n  }\n}\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable,\n  itemNotFound: itemNotFound\n};"
                 },
                 "response_json": [
                   {
@@ -10008,7 +10028,7 @@
                 "name": "Final updatedSOTable",
                 "script": {
                   "type": "javascript",
-                  "code": "let updatedSOTable = {{node:get_cache_node_alhhxRsa.data}};\nif (typeof updatedSOTable === 'string') {\n  try {\n    updatedSOTable = JSON.parse(updatedSOTable)\n  } catch (e) {\n    updatedSOTable = []\n  }\n}\nif (!Array.isArray(updatedSOTable)) {\n  updatedSOTable = []\n}\nconst needSOCleanUp = {{node:code_node_IyJHrBst.data.needSOCleanUp}}\n\nlet finalSOTable = [...updatedSOTable]\n\nif (needSOCleanUp === 1) {\n  const cleanUpSOData = {{node:code_node_GD92d7xU.data.updatedSOData}} || []\n  finalSOTable = [...updatedSOTable, ...cleanUpSOData]\n}\n\nreturn {\n  finalSOTable: finalSOTable,\n  finalSOTableLength: finalSOTable.length\n}\n"
+                  "code": "let updatedSOTable = {{node:get_cache_node_alhhxRsa.data}};\nif (typeof updatedSOTable === 'string') {\n  try {\n    updatedSOTable = JSON.parse(updatedSOTable)\n  } catch (e) {\n    updatedSOTable = []\n  }\n}\nif (!Array.isArray(updatedSOTable)) {\n  updatedSOTable = []\n}\nconst needSOCleanUp = {{node:code_node_IyJHrBst.data.needSOCleanUp}}\n\nlet finalSOTable = [...updatedSOTable]\n\nif (needSOCleanUp === 1) {\n  const cleanUpSOData = {{node:code_node_GD92d7xU.data.updatedSOData}} || []\n  finalSOTable = [...updatedSOTable, ...cleanUpSOData]\n}\n\n// The bundle rows' sales order lines are updated in code_node_QtyCheckBatch, with\n// the rest of them -- it has the fetched sales order lines, so the row it builds\n// carries every column update_node_wEJC3qKB writes rather than just the changed\n// ones, and it goes through the same toFixed formatting.\n\nreturn {\n  finalSOTable: finalSOTable,\n  finalSOTableLength: finalSOTable.length\n}\n"
                 },
                 "response_json": [
                   {
@@ -10120,7 +10140,8 @@
                               "value": "{{node:code_node_UMQapdjk.data.finalSOTable.id}}",
                               "operator": "",
                               "valueLabel": "",
-                              "propLabel": "主键ID"
+                              "propLabel": "主键ID",
+                              "is_negative_number": false
                             },
                             {
                               "prop": "delivered_qty",
@@ -10128,7 +10149,8 @@
                               "valueType": "field",
                               "value": "{{node:code_node_UMQapdjk.data.finalSOTable.delivered_qty}}",
                               "valueLabel": "",
-                              "propLabel": "Delivered Qty"
+                              "propLabel": "Delivered Qty",
+                              "is_negative_number": false
                             },
                             {
                               "prop": "planned_qty",
@@ -10136,7 +10158,8 @@
                               "valueType": "field",
                               "value": "{{node:code_node_UMQapdjk.data.finalSOTable.planned_qty}}",
                               "valueLabel": "",
-                              "propLabel": "Planned Qty"
+                              "propLabel": "Planned Qty",
+                              "is_negative_number": false
                             },
                             {
                               "prop": "outstanding_quantity",
@@ -10144,7 +10167,8 @@
                               "valueType": "field",
                               "value": "{{node:code_node_UMQapdjk.data.finalSOTable.outstanding_quantity}}",
                               "valueLabel": "",
-                              "propLabel": "Outstanding Quantity"
+                              "propLabel": "Outstanding Quantity",
+                              "is_negative_number": false
                             },
                             {
                               "prop": "line_status",
@@ -10152,7 +10176,8 @@
                               "valueType": "field",
                               "value": "{{node:code_node_UMQapdjk.data.finalSOTable.line_status}}",
                               "valueLabel": "",
-                              "propLabel": "Line Status"
+                              "propLabel": "Line Status",
+                              "is_negative_number": false
                             }
                           ]
                         }
@@ -10285,7 +10310,8 @@
                       "value": "{{node:code_node_lwB2FVe0.data.updatedSOList.id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "主键ID"
+                      "propLabel": "主键ID",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "so_status",
@@ -10293,7 +10319,8 @@
                       "valueType": "field",
                       "value": "{{node:code_node_lwB2FVe0.data.updatedSOList.so_status}}",
                       "valueLabel": "",
-                      "propLabel": "SO Status"
+                      "propLabel": "SO Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "gd_status",
@@ -10301,7 +10328,8 @@
                       "valueType": "field",
                       "value": "{{node:code_node_lwB2FVe0.data.updatedSOList.gd_status}}",
                       "valueLabel": "",
-                      "propLabel": "GD Status"
+                      "propLabel": "GD Status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "partially_delivered",
@@ -10309,7 +10337,8 @@
                       "valueType": "field",
                       "value": "{{node:code_node_lwB2FVe0.data.updatedSOList.partially_delivered}}",
                       "valueLabel": "",
-                      "propLabel": "Partially Delivered"
+                      "propLabel": "Partially Delivered",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "fully_delivered",
@@ -10317,7 +10346,8 @@
                       "valueType": "field",
                       "value": "{{node:code_node_lwB2FVe0.data.updatedSOList.fully_delivered}}",
                       "valueLabel": "",
-                      "propLabel": "Fully Delivered"
+                      "propLabel": "Fully Delivered",
+                      "is_negative_number": false
                     }
                   ]
                 }
@@ -11052,7 +11082,7 @@
                       },
                       "blocks": []
                     },
-{
+                    {
                       "id": "if_sGJFlTdX",
                       "type": "if",
                       "data": {
@@ -12110,7 +12140,7 @@
                       },
                       "blocks": []
                     },
-{
+                    {
                       "id": "code_node_5oTXzIic",
                       "type": "code-node",
                       "data": {
