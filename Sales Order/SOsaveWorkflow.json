@@ -1807,6 +1807,468 @@
                         "name": "Get Previous SO Data"
                       },
                       "blocks": []
+                    },
+                    {
+                      "id": "code_node_CascadeGate",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Cascade Gate",
+                        "isValidator": true,
+                        "nodeName": "Cascade Gate",
+                        "name": "Cascade Gate",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Does this edit touch anything a delivery or a picking plan is holding? A cheap\n// id-keyed diff, so an edit that only changed header fields never pays for the\n// cascade call. code_node_rPqQy5CD has already dropped blank and zero-quantity\n// lines, so a line the user cleared arrives here as a removal.\nconst prevRaw = {{node:get_node_rvjWbHBF.data.data}};\nconst nextTable = {{node:code_node_rPqQy5CD.data.table}};\nconst allData = {{workflowparams:allData}};\n\nconst before = Array.isArray(prevRaw) ? prevRaw[0] || {} : prevRaw || {};\nconst flat = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\nconst num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };\n\nconst prevLines = flat(before.table_so).filter((r) => r && r.id);\nconst nextLines = flat(nextTable && nextTable.table_so).filter((r) => r);\nconst nextById = {};\nnextLines.forEach((r) => { if (r.id) nextById[sid(r.id)] = r; });\n\nlet needsCascade = 0;\nprevLines.forEach((r) => {\n  const after = nextById[sid(r.id)];\n  if (!after) { needsCascade = 1; return; }\n  if (sid(after.item_name) !== sid(r.item_name)) { needsCascade = 1; return; }\n  if (Math.abs(num(after.so_quantity) - num(r.so_quantity)) > 0.0005) { needsCascade = 1; }\n});\n\nreturn {\n  needsCascade: needsCascade,\n  soId: sid(before.id || allData.id),\n  prevTableSo: before.table_so || [],\n  nextTableSo: (nextTable && nextTable.table_so) || [],\n  // The confirm answers ride inside allData, the way need_cl and create_si already do.\n  confirmPickReversal: sid(allData.confirmPickReversal),\n  raiseGdQty: sid(allData.raiseGdQty)\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "socasc_needs",
+                            "name": "needsCascade",
+                            "title": "needsCascade",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "socasc_soid",
+                            "name": "soId",
+                            "title": "soId",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "socasc_prev",
+                            "name": "prevTableSo",
+                            "title": "prevTableSo",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "socasc_next",
+                            "name": "nextTableSo",
+                            "title": "nextTableSo",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "socasc_confirm",
+                            "name": "confirmPickReversal",
+                            "title": "confirmPickReversal",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "socasc_raise",
+                            "name": "raiseGdQty",
+                            "title": "raiseGdQty",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_CascadeA",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Cascade Needed",
+                        "isValidator": true,
+                        "nodeName": "IF Cascade Needed",
+                        "name": "IF Cascade Needed",
+                        "condition_type": "ConditionRule",
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 192000000004,
+                              "parentId": 192000000005,
+                              "isTop": true,
+                              "prop": "node.code_node_CascadeGate.data.needsCascade",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "needsCascade",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_CascadeA_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "workflow_node_CascadeA",
+                              "type": "workflow-node",
+                              "data": {
+                                "workflow_id": "",
+                                "workflow_name": "",
+                                "input_params": {},
+                                "title": "Cascade To Delivery",
+                                "isValidator": true,
+                                "nodeName": "Cascade To Delivery",
+                                "name": "Cascade To Delivery",
+                                "workflow": {
+                                  "source": "SO_CASCADE:Workflow:2092097819929858050",
+                                  "rules": {
+                                    "collectionId": "2092097819929858050",
+                                    "list": [
+                                      {
+                                        "id": 192000000002,
+                                        "parentId": 192000000003,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "remote": true,
+                                "remoteType": "innerdatasource",
+                                "body_params": {
+                                  "list": [
+                                    {
+                                      "prop": "mode",
+                                      "propLabel": "mode",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "adjust",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "so_id",
+                                      "propLabel": "so_id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_CascadeGate.data.soId}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "prev_table_so",
+                                      "propLabel": "prev_table_so",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_CascadeGate.data.prevTableSo}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "next_table_so",
+                                      "propLabel": "next_table_so",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_CascadeGate.data.nextTableSo}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "confirmPickReversal",
+                                      "propLabel": "confirmPickReversal",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_CascadeGate.data.confirmPickReversal}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "raiseGdQty",
+                                      "propLabel": "raiseGdQty",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_CascadeGate.data.raiseGdQty}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "organization_id",
+                                      "propLabel": "organization_id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{workflowparams:allData.organization_id}}",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "if_CascadeARaise",
+                              "type": "if",
+                              "data": {
+                                "title": "IF Raise Confirm",
+                                "isValidator": true,
+                                "nodeName": "IF Raise Confirm",
+                                "name": "IF Raise Confirm",
+                                "condition_type": "ConditionRule",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": ""
+                                },
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 192000000006,
+                                      "parentId": 192000000007,
+                                      "isTop": true,
+                                      "prop": "node.workflow_node_CascadeA.data.blockSignal",
+                                      "operator": "numberEqual",
+                                      "valueType": "value",
+                                      "value": 3,
+                                      "type": "leaf",
+                                      "level": 1,
+                                      "propLabel": "blockSignal",
+                                      "valueLabel": "",
+                                      "operatorLabel": "numberEqual"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "if_CascadeARaise_t",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "true"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "end_node_if_CascadeARaise",
+                                      "type": "end-node",
+                                      "data": {
+                                        "title": "结束节点",
+                                        "outputs": {
+                                          "type": "object",
+                                          "properties": {
+                                            "result": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "isValidator": true,
+                                        "nodeName": "结束节点",
+                                        "name": "结束节点",
+                                        "back_data_type": "Default",
+                                        "code": 414,
+                                        "msg": {
+                                          "type": "javascript",
+                                          "code": "{{node:workflow_node_CascadeA.data.message}}"
+                                        }
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "if_CascadeARaise_f",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "false"
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_CascadeAReversal",
+                              "type": "if",
+                              "data": {
+                                "title": "IF Reversal Confirm",
+                                "isValidator": true,
+                                "nodeName": "IF Reversal Confirm",
+                                "name": "IF Reversal Confirm",
+                                "condition_type": "ConditionRule",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": ""
+                                },
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 192000000008,
+                                      "parentId": 192000000009,
+                                      "isTop": true,
+                                      "prop": "node.workflow_node_CascadeA.data.blockSignal",
+                                      "operator": "numberEqual",
+                                      "valueType": "value",
+                                      "value": 2,
+                                      "type": "leaf",
+                                      "level": 1,
+                                      "propLabel": "blockSignal",
+                                      "valueLabel": "",
+                                      "operatorLabel": "numberEqual"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "if_CascadeAReversal_t",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "true"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "end_node_if_CascadeAReversal",
+                                      "type": "end-node",
+                                      "data": {
+                                        "title": "结束节点",
+                                        "outputs": {
+                                          "type": "object",
+                                          "properties": {
+                                            "result": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "isValidator": true,
+                                        "nodeName": "结束节点",
+                                        "name": "结束节点",
+                                        "back_data_type": "Default",
+                                        "code": 413,
+                                        "msg": {
+                                          "type": "javascript",
+                                          "code": "{{node:workflow_node_CascadeA.data.message}}"
+                                        }
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "if_CascadeAReversal_f",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "false"
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_CascadeABlocked",
+                              "type": "if",
+                              "data": {
+                                "title": "IF Cascade Blocked",
+                                "isValidator": true,
+                                "nodeName": "IF Cascade Blocked",
+                                "name": "IF Cascade Blocked",
+                                "condition_type": "ConditionRule",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": ""
+                                },
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 192000000010,
+                                      "parentId": 192000000011,
+                                      "isTop": true,
+                                      "prop": "node.workflow_node_CascadeA.data.blockSignal",
+                                      "operator": "numberEqual",
+                                      "valueType": "value",
+                                      "value": 1,
+                                      "type": "leaf",
+                                      "level": 1,
+                                      "propLabel": "blockSignal",
+                                      "valueLabel": "",
+                                      "operatorLabel": "numberEqual"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "if_CascadeABlocked_t",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "true"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "end_node_if_CascadeABlocked",
+                                      "type": "end-node",
+                                      "data": {
+                                        "title": "结束节点",
+                                        "outputs": {
+                                          "type": "object",
+                                          "properties": {
+                                            "result": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        },
+                                        "isValidator": true,
+                                        "nodeName": "结束节点",
+                                        "name": "结束节点",
+                                        "back_data_type": "Default",
+                                        "code": 406,
+                                        "msg": {
+                                          "type": "javascript",
+                                          "code": "{{node:workflow_node_CascadeA.data.message}}"
+                                        }
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "if_CascadeABlocked_f",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "false"
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_CascadeA_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
                     }
                   ]
                 },
@@ -1952,7 +2414,7 @@
         "name": "Fillback Header Fields",
         "script": {
           "type": "javascript",
-          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:workflow_node_yxaOreDk.data.needApproval}} == 'Yes' ? {{node:workflow_node_yxaOreDk.data.data}} : {{node:code_node_rPqQy5CD.data.table}};\n\n// --- Packing + weight (mirrors SOchangeItem.buildPackingWeightData) ---\n// Only populated for created_source outside Web / Mobile / Internal Trading;\n// otherwise the gated search node never ran and this resolves to null.\nconst packingItemsRaw = {{node:search_node_PkItems.data.data}};\nconst packingItems = Array.isArray(packingItemsRaw) ? packingItemsRaw : (packingItemsRaw ? [packingItemsRaw] : []);\nconst needsPacking = packingItems.length > 0;\n\nconst round3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;\nconst getPackingDetail = (tpd, uom) => (!Array.isArray(tpd) || !tpd.length || !uom) ? null : (tpd.find((c) => c.uom_id === uom) || null);\nconst getBaseQty = (tuc, uom) => {\n  if (!Array.isArray(tuc) || !tuc.length || !uom) return 1;\n  const c = tuc.find((x) => x.alt_uom_id === uom);\n  return c && c.base_qty ? c.base_qty : 1;\n};\nconst buildPackingWeightData = (item, uom, soQuantity) => {\n  const pd = getPackingDetail(item.table_packing_detail, uom);\n  const packingConversion = (pd && pd.quantity) || 1;\n  const weightConversion = round3((Number(item.net_weight) || 0) * getBaseQty(item.table_uom_conversion, uom));\n  const qty = Number(soQuantity) || 0;\n  return {\n    packing_uom: (pd && pd.packing_uom_id) || '',\n    packing_conversion: parseFloat(packingConversion || 0).toFixed(3),\n    packing_qty: (packingConversion ? round3(qty / packingConversion) : 0).toFixed(3),\n    weight_conversion: weightConversion.toFixed(3),\n    net_weight: round3(qty * weightConversion).toFixed(3)\n  };\n};\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  plant_id: entry.plant_name || \"\",\n  customer_id: entry.customer_name || \"\",\n  payment_term_id: entry.so_payment_term || \"\",\n  sales_person_id: entry.so_sales_person || \"\",\n  billing_state_id: entry.billing_address_state || \"\",\n  billing_country_id: entry.billing_address_country || \"\",\n  shipping_state_id: entry.shipping_address_state || \"\",\n  shipping_country_id: entry.shipping_address_country || \"\",\n  area_id: entry.so_area_id || \"\",\n  organization_id: entry.organization_id,\n  access_group: entry.access_group || [],\n  agent_user_id: entry.so_agent_user_id || '',\n};\n\nconst formatLine = (soLineItem) => {\n  const formattedItem = {\n    // Copy all existing properties\n    ...soLineItem,\n\n    // Apply number formatting to numeric fields\n    unrestricted_qty: parseFloat(soLineItem.unrestricted_qty || 0).toFixed(3),\n    base_unrestricted_qty: parseFloat(soLineItem.base_unrestricted_qty || 0).toFixed(3),\n    so_quantity: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    so_item_price: parseFloat(soLineItem.so_item_price || 0).toFixed(4),\n    so_gross: parseFloat(soLineItem.so_gross || 0).toFixed(4),\n    so_discount: parseFloat(soLineItem.so_discount || 0).toFixed(4),\n    so_discount_amount: parseFloat(soLineItem.so_discount_amount || 0).toFixed(4),\n    so_tax_amount: parseFloat(soLineItem.so_tax_amount || 0).toFixed(4),\n    min_price: parseFloat(soLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(soLineItem.max_price || 0).toFixed(4),\n    so_amount: parseFloat(soLineItem.so_amount || 0).toFixed(4),\n    production_planned_qty: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    production_status: \"Not Created\",\n    outstanding_quantity: (parseFloat(soLineItem.so_quantity || 0) - parseFloat(soLineItem.delivered_qty || 0)).toFixed(3),\n\n    so_shipping_date: soLineItem.so_shipping_date ?? entry.so_shipping_date,\n  };\n\n  if (needsPacking && soLineItem.item_name) {\n    const itemData = packingItems.find((d) => String(d.id) === String(soLineItem.item_name));\n    if (itemData) {\n      Object.assign(formattedItem, buildPackingWeightData(itemData, soLineItem.so_item_uom, soLineItem.so_quantity));\n    }\n  }\n\n  return formattedItem;\n};\n\nfor (const [index, soLineItem] of entry.table_so.entries()) {\n  const lineStatus =\n    !soLineItem.line_status ||\n    soLineItem.line_status === '' ||\n    soLineItem.line_status === 'Draft'\n      ? entry.so_status === 'Processing' ? 'Issued' : entry.so_status\n      : soLineItem.line_status;\n\n  const formattedItem = {\n    ...formatLine(soLineItem),\n    ...commonFields,\n    line_index: index + 1,\n    line_status: lineStatus,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(soLineItem.children) && {\n      children: soLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n        line_status: lineStatus,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.need_cl = ''\n\nentry.production_status = !entry.production_status || entry.production_status === '' ? 'Not Created' : entry.production_status;\n\nentry.si_status = !entry.si_status || entry.si_status === '' ? 'Not Created' : entry.si_status;\nentry.so_total_gross = parseFloat(entry.so_total_gross || 0).toFixed(4);\nentry.so_total_discount = parseFloat(entry.so_total_discount || 0).toFixed(4);\nentry.so_total_tax = parseFloat(entry.so_total_tax || 0).toFixed(4);\nentry.so_total = parseFloat(entry.so_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\n\nentry.table_so = updatedLineItem;\n\nreturn { entry };\n"
+          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:workflow_node_yxaOreDk.data.needApproval}} == 'Yes' ? {{node:workflow_node_yxaOreDk.data.data}} : {{node:code_node_rPqQy5CD.data.table}};\n\n// --- Packing + weight (mirrors SOchangeItem.buildPackingWeightData) ---\n// Only populated for created_source outside Web / Mobile / Internal Trading;\n// otherwise the gated search node never ran and this resolves to null.\nconst packingItemsRaw = {{node:search_node_PkItems.data.data}};\nconst packingItems = Array.isArray(packingItemsRaw) ? packingItemsRaw : (packingItemsRaw ? [packingItemsRaw] : []);\nconst needsPacking = packingItems.length > 0;\n\n// --- Authoritative line counters ---\n// planned_qty and delivered_qty are owned by the delivery and the picking plan, not by\n// this page. table_so is written as one whole array, so spreading the browser's copy\n// puts a stale tab's numbers back over whatever they wrote. Take them from the SO as\n// stored, overlaid with whatever the cascade just left behind.\nconst prevSoRaw = {{node:get_node_rvjWbHBF.data.data}};\nconst prevSo = Array.isArray(prevSoRaw) ? prevSoRaw[0] || null : prevSoRaw || null;\nconst cascadeCounters = {{node:workflow_node_CascadeA.data.soLineCounters}};\n\nconst flattenSo = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst storedCounters = {};\nflattenSo(prevSo && prevSo.table_so).forEach((r) => {\n  if (r && r.id) storedCounters[String(r.id)] = r;\n});\nconst cascadedCounters = {};\n(Array.isArray(cascadeCounters) ? cascadeCounters : []).forEach((r) => {\n  if (r && r.id) cascadedCounters[String(r.id)] = r;\n});\n\n// Both maps are empty on Add / Clone / Draft, where a row carries no id and nothing has\n// been planned or delivered yet.\nconst lineCounters = (soLineItem) => {\n  const key = soLineItem.id ? String(soLineItem.id) : \"\";\n  const cascaded = key ? cascadedCounters[key] : null;\n  const stored = key ? storedCounters[key] : null;\n  const pick = (field) =>\n    cascaded ? Number(cascaded[field]) || 0 : stored ? Number(stored[field]) || 0 : 0;\n  return { delivered: pick(\"delivered_qty\"), planned: pick(\"planned_qty\") };\n};\n\nconst round3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;\nconst getPackingDetail = (tpd, uom) => (!Array.isArray(tpd) || !tpd.length || !uom) ? null : (tpd.find((c) => c.uom_id === uom) || null);\nconst getBaseQty = (tuc, uom) => {\n  if (!Array.isArray(tuc) || !tuc.length || !uom) return 1;\n  const c = tuc.find((x) => x.alt_uom_id === uom);\n  return c && c.base_qty ? c.base_qty : 1;\n};\nconst buildPackingWeightData = (item, uom, soQuantity) => {\n  const pd = getPackingDetail(item.table_packing_detail, uom);\n  const packingConversion = (pd && pd.quantity) || 1;\n  const weightConversion = round3((Number(item.net_weight) || 0) * getBaseQty(item.table_uom_conversion, uom));\n  const qty = Number(soQuantity) || 0;\n  return {\n    packing_uom: (pd && pd.packing_uom_id) || '',\n    packing_conversion: parseFloat(packingConversion || 0).toFixed(3),\n    packing_qty: (packingConversion ? round3(qty / packingConversion) : 0).toFixed(3),\n    weight_conversion: weightConversion.toFixed(3),\n    net_weight: round3(qty * weightConversion).toFixed(3)\n  };\n};\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  plant_id: entry.plant_name || \"\",\n  customer_id: entry.customer_name || \"\",\n  payment_term_id: entry.so_payment_term || \"\",\n  sales_person_id: entry.so_sales_person || \"\",\n  billing_state_id: entry.billing_address_state || \"\",\n  billing_country_id: entry.billing_address_country || \"\",\n  shipping_state_id: entry.shipping_address_state || \"\",\n  shipping_country_id: entry.shipping_address_country || \"\",\n  area_id: entry.so_area_id || \"\",\n  organization_id: entry.organization_id,\n  access_group: entry.access_group || [],\n  agent_user_id: entry.so_agent_user_id || '',\n};\n\nconst formatLine = (soLineItem) => {\n  const counters = lineCounters(soLineItem);\n  const formattedItem = {\n    // Copy all existing properties\n    ...soLineItem,\n\n    // Apply number formatting to numeric fields\n    unrestricted_qty: parseFloat(soLineItem.unrestricted_qty || 0).toFixed(3),\n    base_unrestricted_qty: parseFloat(soLineItem.base_unrestricted_qty || 0).toFixed(3),\n    so_quantity: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    so_item_price: parseFloat(soLineItem.so_item_price || 0).toFixed(4),\n    so_gross: parseFloat(soLineItem.so_gross || 0).toFixed(4),\n    so_discount: parseFloat(soLineItem.so_discount || 0).toFixed(4),\n    so_discount_amount: parseFloat(soLineItem.so_discount_amount || 0).toFixed(4),\n    so_tax_amount: parseFloat(soLineItem.so_tax_amount || 0).toFixed(4),\n    min_price: parseFloat(soLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(soLineItem.max_price || 0).toFixed(4),\n    so_amount: parseFloat(soLineItem.so_amount || 0).toFixed(4),\n    production_planned_qty: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    production_status: \"Not Created\",\n    // toFixed strings: both columns are decimal(_, 3) and a raw float trips multipleOf.\n    delivered_qty: counters.delivered.toFixed(3),\n    planned_qty: counters.planned.toFixed(3),\n    // Clamped: over-delivery tolerance drives this negative, which the column rejects.\n    outstanding_quantity: Math.max(0, parseFloat(soLineItem.so_quantity || 0) - counters.delivered).toFixed(3),\n\n    so_shipping_date: soLineItem.so_shipping_date ?? entry.so_shipping_date,\n  };\n\n  if (needsPacking && soLineItem.item_name) {\n    const itemData = packingItems.find((d) => String(d.id) === String(soLineItem.item_name));\n    if (itemData) {\n      Object.assign(formattedItem, buildPackingWeightData(itemData, soLineItem.so_item_uom, soLineItem.so_quantity));\n    }\n  }\n\n  return formattedItem;\n};\n\nfor (const [index, soLineItem] of entry.table_so.entries()) {\n  const lineStatus =\n    !soLineItem.line_status ||\n    soLineItem.line_status === '' ||\n    soLineItem.line_status === 'Draft'\n      ? entry.so_status === 'Processing' ? 'Issued' : entry.so_status\n      : soLineItem.line_status;\n\n  const formattedItem = {\n    ...formatLine(soLineItem),\n    ...commonFields,\n    line_index: index + 1,\n    line_status: lineStatus,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(soLineItem.children) && {\n      children: soLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n        line_status: lineStatus,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.need_cl = ''\n\nentry.production_status = !entry.production_status || entry.production_status === '' ? 'Not Created' : entry.production_status;\n\nentry.si_status = !entry.si_status || entry.si_status === '' ? 'Not Created' : entry.si_status;\nentry.so_total_gross = parseFloat(entry.so_total_gross || 0).toFixed(4);\nentry.so_total_discount = parseFloat(entry.so_total_discount || 0).toFixed(4);\nentry.so_total_tax = parseFloat(entry.so_total_tax || 0).toFixed(4);\nentry.so_total = parseFloat(entry.so_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\n\nentry.table_so = updatedLineItem;\n\nreturn { entry };\n"
         },
         "response_json": [
           {
@@ -4778,6 +5240,298 @@
       "blocks": []
     },
     {
+      "id": "code_node_CascadeB_Gate",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Append Gate",
+        "isValidator": true,
+        "nodeName": "Append Gate",
+        "name": "Append Gate",
+        "script": {
+          "type": "javascript",
+          "code": "// Pass B. A line added during this save had no row id while pass A ran, and GD's\n// code_node_QtyCheckBatch throws outright on a so_line_item_id it cannot resolve -- so\n// the append waits until the sales order row is written and code_node_9wKKlXUI has\n// re-read it with the platform-assigned ids in place.\nconst soDataRaw = {{node:code_node_9wKKlXUI.data.soData}};\nconst prevSoRaw = {{node:get_node_rvjWbHBF.data.data}};\nconst allData = {{workflowparams:allData}};\n\nconst soData = Array.isArray(soDataRaw) ? soDataRaw[0] || null : soDataRaw || null;\nconst prevSo = Array.isArray(prevSoRaw) ? prevSoRaw[0] || null : prevSoRaw || null;\n\nconst flat = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\n\n// No stored SO means this was an Add, and a brand new order has no delivery to join.\nif (!soData || !prevSo) {\n  return { needsAppend: 0, soId: \"\", prevTableSo: [], nextTableSo: [] };\n}\n\nconst prevIds = {};\nflat(prevSo.table_so).forEach((r) => { if (r && r.id) prevIds[sid(r.id)] = 1; });\nconst added = flat(soData.table_so).filter(\n  (r) => r && r.id && !prevIds[sid(r.id)] && r.item_name\n);\n\nreturn {\n  needsAppend: added.length ? 1 : 0,\n  soId: sid(soData.id || allData.id),\n  prevTableSo: prevSo.table_so || [],\n  nextTableSo: soData.table_so || []\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "socascb_needs",
+            "name": "needsAppend",
+            "title": "needsAppend",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "socascb_soid",
+            "name": "soId",
+            "title": "soId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "socascb_prev",
+            "name": "prevTableSo",
+            "title": "prevTableSo",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "socascb_next",
+            "name": "nextTableSo",
+            "title": "nextTableSo",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_CascadeB",
+      "type": "if",
+      "data": {
+        "title": "IF Append Needed",
+        "isValidator": true,
+        "nodeName": "IF Append Needed",
+        "name": "IF Append Needed",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 193000000006,
+              "parentId": 193000000007,
+              "isTop": true,
+              "prop": "node.code_node_CascadeB_Gate.data.needsAppend",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "needsAppend",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_CascadeB_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "workflow_node_CascadeB",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Append New Lines To Delivery",
+                "isValidator": true,
+                "nodeName": "Append New Lines To Delivery",
+                "name": "Append New Lines To Delivery",
+                "workflow": {
+                  "source": "SO_CASCADE:Workflow:2092097819929858050",
+                  "rules": {
+                    "collectionId": "2092097819929858050",
+                    "list": [
+                      {
+                        "id": 193000000002,
+                        "parentId": 193000000003,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "mode",
+                      "propLabel": "mode",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "append",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "so_id",
+                      "propLabel": "so_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_CascadeB_Gate.data.soId}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "prev_table_so",
+                      "propLabel": "prev_table_so",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_CascadeB_Gate.data.prevTableSo}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "next_table_so",
+                      "propLabel": "next_table_so",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_CascadeB_Gate.data.nextTableSo}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "confirmPickReversal",
+                      "propLabel": "confirmPickReversal",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "raiseGdQty",
+                      "propLabel": "raiseGdQty",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "organization_id",
+                      "propLabel": "organization_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{workflowparams:allData.organization_id}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_CascadeBFailed",
+              "type": "if",
+              "data": {
+                "title": "IF Append Failed",
+                "isValidator": true,
+                "nodeName": "IF Append Failed",
+                "name": "IF Append Failed",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 193000000004,
+                      "parentId": 193000000005,
+                      "isTop": true,
+                      "prop": "node.workflow_node_CascadeB.data.blockSignal",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "blockSignal",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_CascadeBFailed_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_node_CascadeBFailed",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 406,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:workflow_node_CascadeB.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_CascadeBFailed_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_CascadeB_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_vpSQ6BEE",
       "type": "if",
       "data": {
@@ -5980,7 +6734,7 @@
         "name": "Map returned data",
         "script": {
           "type": "javascript",
-          "code": "const soData = {{node:code_node_9wKKlXUI.data.soData}};\nconst siData = soData.auto_si === 1 ? {{node:workflow_node_FQlYniVW.data}} : null;\n\nreturn {\n  data: {\n    so_id: soData.id,\n    so_no: soData.so_no,\n    si_id: siData?.id ?? null,\n    si_no: siData?.si_no ?? null\n  }\n}"
+          "code": "const soData = {{node:code_node_9wKKlXUI.data.soData}};\nconst siData = soData.auto_si === 1 ? {{node:workflow_node_FQlYniVW.data}} : null;\n\n// What the delivery says has to be physically put back after a pick reversal. Rides on\n// the success payload (data is typed any) rather than a new response_json field.\nconst noteA = {{node:workflow_node_CascadeA.data.pickingReversalNote}};\nconst noteB = {{node:workflow_node_CascadeB.data.pickingReversalNote}};\nconst pickingReversalNote = [noteA, noteB].filter((n) => n).join(\"<br><br>\");\n\nreturn {\n  data: {\n    so_id: soData.id,\n    so_no: soData.so_no,\n    si_id: siData?.id ?? null,\n    si_no: siData?.si_no ?? null,\n    pickingReversalNote: pickingReversalNote || null\n  }\n}"
         },
         "response_json": [
           {

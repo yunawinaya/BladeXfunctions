@@ -335,15 +335,11 @@ const displayTax = async () => {
 
 const enabledUOMField = async () => {
   const tableSO = this.getValue("table_so");
-  console.log("enabledUOMField", tableSO);
-  console.log("component", this.getComponent("table_so"));
+  // Only a fully delivered line is locked. A line a delivery or picking plan is holding
+  // stays editable: the save cascades the change into them, and the server gate refuses
+  // with a real message what they cannot absorb.
   tableSO.forEach((so, rowIndex) => {
-    if (
-      so.line_status === "Processing" ||
-      so.line_status === "Completed" ||
-      so.planned_qty > 0 ||
-      so.delivered_qty > 0
-    ) {
+    if (so.line_status === "Completed") {
       this.disabled(`table_so.${rowIndex}`, true);
     }
   });

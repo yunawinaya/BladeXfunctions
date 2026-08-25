@@ -12,7 +12,16 @@ const submitForm = async (data) => {
     {
       allData: data,
     },
-    (res) => {
+    async (res) => {
+      // What has to be physically put back after a pick reversal, as the delivery
+      // reported it.
+      if (res?.data?.pickingReversalNote) {
+        await this.$alert(res.data.pickingReversalNote, "Stock to put back", {
+          confirmButtonText: "OK",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        });
+      }
       this.$message.success(`${this.isEdit ? "Update" : "Add"} successfully`);
       closeDialog();
     },
@@ -91,6 +100,54 @@ const submitForm = async (data) => {
         data.create_si = "Yes";
 
         await submitForm(data);
+      } else if (error.data?.code === 414) {
+        // 414 - The order quantity went up. Both answers re-run the save; closing the
+        // dialog counts as "leave outstanding", so nothing extra is ever allocated.
+        const addToDelivery = await this.$confirm(
+          `${error.data.msg}`,
+          `Delivery quantity`,
+          {
+            confirmButtonText: "Add to delivery",
+            cancelButtonText: "Leave outstanding",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          },
+        )
+          .then(() => "Yes")
+          .catch(() => "No");
+
+        this.showLoading("Saving Sales Order...");
+        // Kept on data so a following 413 retry cannot drop the answer.
+        data.raiseGdQty = addToDelivery;
+
+        await submitForm(data);
+      } else if (error.data?.code === 413) {
+        // 413 - Reducing this order reverses quantities already picked.
+        await this.$confirm(`${error.data.msg}`, `Reverse picked quantities`, {
+          confirmButtonText: "Proceed",
+          cancelButtonText: "Cancel",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        }).catch(() => {
+          console.log("User clicked Cancel or closed the dialog");
+          this.hideLoading();
+          throw new Error("Saving sales order cancelled.");
+        });
+        this.showLoading("Saving Sales Order...");
+        data.confirmPickReversal = "Yes";
+
+        await submitForm(data);
+      } else if (error.data?.code === 406) {
+        // 406 - A linked delivery or picking plan refused the change. The message names
+        // each document and says whether the order itself was saved.
+        await this.$alert(`${error.data.msg}`, `Linked documents`, {
+          confirmButtonText: "OK",
+          type: "error",
+          dangerouslyUseHTMLString: true,
+        });
+      } else {
+        // 400 and 401 showed the user nothing at all before this.
+        this.$message.error(error.data?.msg || "Failed to save Sales Order.");
       }
     },
   );
