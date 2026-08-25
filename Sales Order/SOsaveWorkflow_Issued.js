@@ -13,6 +13,52 @@ const submitForm = async (data) => {
       allData: data,
     },
     async (res) => {
+      // A gate (414 / 413 / 406) now returns HTTP 200 with the code in the body, so the
+      // platform raises no error toast beside the dialog. Handle it before anything here
+      // treats this as a saved order. The error-callback branches below still stand, so a
+      // stale workflow deploy keeps working.
+      const gateCode = res?.data?.gateCode;
+      if (gateCode) {
+        this.hideLoading();
+        const gateMsg = `${res.data.message || ""}`;
+        if (gateCode === "414" || gateCode === 414) {
+          const addToDelivery = await this.$confirm(gateMsg, `Delivery quantity`, {
+            confirmButtonText: "Add to delivery",
+            cancelButtonText: "Leave outstanding",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          })
+            .then(() => "Yes")
+            .catch(() => "No");
+
+          this.showLoading("Saving Sales Order...");
+          data.raiseGdQty = addToDelivery;
+          await submitForm(data);
+          return;
+        }
+        if (gateCode === "413" || gateCode === 413) {
+          await this.$confirm(gateMsg, `Reverse picked quantities`, {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          }).catch(() => {
+            this.hideLoading();
+            throw new Error("Saving sales order cancelled.");
+          });
+          this.showLoading("Saving Sales Order...");
+          data.confirmPickReversal = "Yes";
+          await submitForm(data);
+          return;
+        }
+        await this.$alert(gateMsg, `Linked documents`, {
+          confirmButtonText: "OK",
+          type: "error",
+          dangerouslyUseHTMLString: true,
+        });
+        return;
+      }
+
       // What has to be physically put back after a pick reversal, as the delivery
       // reported it.
       if (res?.data?.pickingReversalNote) {

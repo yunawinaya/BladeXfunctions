@@ -2028,6 +2028,35 @@
                               "blocks": []
                             },
                             {
+                              "id": "code_node_CascadeGateOut",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Cascade Gate Payload",
+                                "isValidator": true,
+                                "nodeName": "Cascade Gate Payload",
+                                "name": "Cascade Gate Payload",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// The gates return HTTP 200 with the code in the BODY, the way GDheadWorkflow's\n// return-nodes do. A non-2xx end-node makes runWorkflow REJECT, and the platform then\n// raises its own error toast beside the confirm -- rendering the raw <br> tags, because\n// that toast takes no dangerouslyUseHTMLString. gateCode is what tells the client this\n// is a gate rather than a saved order.\nreturn {\n  gate: {\n    gateCode: {{node:workflow_node_CascadeA.data.code}} || \"\",\n    message: {{node:workflow_node_CascadeA.data.message}} || \"\"\n  }\n};\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "code_node_CascadeGateOut_gate",
+                                    "name": "gate",
+                                    "title": "gate",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
                               "id": "if_CascadeARaise",
                               "type": "if",
                               "data": {
@@ -2083,11 +2112,25 @@
                                         "isValidator": true,
                                         "nodeName": "结束节点",
                                         "name": "结束节点",
-                                        "back_data_type": "Default",
-                                        "code": 414,
+                                        "back_data_type": "OutputParams",
+                                        "code": "",
                                         "msg": {
                                           "type": "javascript",
-                                          "code": "{{node:workflow_node_CascadeA.data.message}}"
+                                          "code": ""
+                                        },
+                                        "response_value": {
+                                          "list": [
+                                            {
+                                              "prop": "data",
+                                              "propLabel": "Data",
+                                              "operator": "",
+                                              "operatorLabel": "",
+                                              "valueType": "field",
+                                              "valueTypeLabel": "",
+                                              "value": "{{node:code_node_CascadeGateOut.data.gate}}",
+                                              "valueLabel": ""
+                                            }
+                                          ]
                                         }
                                       },
                                       "blocks": []
@@ -2160,11 +2203,25 @@
                                         "isValidator": true,
                                         "nodeName": "结束节点",
                                         "name": "结束节点",
-                                        "back_data_type": "Default",
-                                        "code": 413,
+                                        "back_data_type": "OutputParams",
+                                        "code": "",
                                         "msg": {
                                           "type": "javascript",
-                                          "code": "{{node:workflow_node_CascadeA.data.message}}"
+                                          "code": ""
+                                        },
+                                        "response_value": {
+                                          "list": [
+                                            {
+                                              "prop": "data",
+                                              "propLabel": "Data",
+                                              "operator": "",
+                                              "operatorLabel": "",
+                                              "valueType": "field",
+                                              "valueTypeLabel": "",
+                                              "value": "{{node:code_node_CascadeGateOut.data.gate}}",
+                                              "valueLabel": ""
+                                            }
+                                          ]
                                         }
                                       },
                                       "blocks": []
@@ -2237,11 +2294,25 @@
                                         "isValidator": true,
                                         "nodeName": "结束节点",
                                         "name": "结束节点",
-                                        "back_data_type": "Default",
-                                        "code": 406,
+                                        "back_data_type": "OutputParams",
+                                        "code": "",
                                         "msg": {
                                           "type": "javascript",
-                                          "code": "{{node:workflow_node_CascadeA.data.message}}"
+                                          "code": ""
+                                        },
+                                        "response_value": {
+                                          "list": [
+                                            {
+                                              "prop": "data",
+                                              "propLabel": "Data",
+                                              "operator": "",
+                                              "operatorLabel": "",
+                                              "valueType": "field",
+                                              "valueTypeLabel": "",
+                                              "value": "{{node:code_node_CascadeGateOut.data.gate}}",
+                                              "valueLabel": ""
+                                            }
+                                          ]
                                         }
                                       },
                                       "blocks": []
@@ -5443,6 +5514,35 @@
               "blocks": []
             },
             {
+              "id": "code_node_CascadeBOut",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Append Gate Payload",
+                "isValidator": true,
+                "nodeName": "Append Gate Payload",
+                "name": "Append Gate Payload",
+                "script": {
+                  "type": "javascript",
+                  "code": "// The gates return HTTP 200 with the code in the BODY, the way GDheadWorkflow's\n// return-nodes do. A non-2xx end-node makes runWorkflow REJECT, and the platform then\n// raises its own error toast beside the confirm -- rendering the raw <br> tags, because\n// that toast takes no dangerouslyUseHTMLString. gateCode is what tells the client this\n// is a gate rather than a saved order.\nreturn {\n  gate: {\n    gateCode: {{node:workflow_node_CascadeB.data.code}} || \"\",\n    message: {{node:workflow_node_CascadeB.data.message}} || \"\"\n  }\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "code_node_CascadeBOut_gate",
+                    "name": "gate",
+                    "title": "gate",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
               "id": "if_CascadeBFailed",
               "type": "if",
               "data": {
@@ -5498,11 +5598,25 @@
                         "isValidator": true,
                         "nodeName": "结束节点",
                         "name": "结束节点",
-                        "back_data_type": "Default",
-                        "code": 406,
+                        "back_data_type": "OutputParams",
+                        "code": "",
                         "msg": {
                           "type": "javascript",
-                          "code": "{{node:workflow_node_CascadeB.data.message}}"
+                          "code": ""
+                        },
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "data",
+                              "propLabel": "Data",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CascadeBOut.data.gate}}",
+                              "valueLabel": ""
+                            }
+                          ]
                         }
                       },
                       "blocks": []
