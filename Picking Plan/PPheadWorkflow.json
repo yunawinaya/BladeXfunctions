@@ -7632,6 +7632,106 @@
                       "blocks": []
                     },
                     {
+                      "id": "if_pp_plan_completed",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Plan Fully Picked",
+                        "isValidator": true,
+                        "nodeName": "IF Plan Fully Picked",
+                        "name": "IF Plan Fully Picked",
+                        "condition_type": "ConditionRule",
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1787920000002,
+                              "parentId": 1787920000001,
+                              "isTop": true,
+                              "prop": "node.code_pp_pick_reconcile.data.headerPickingStatus",
+                              "operator": "equal",
+                              "valueType": "value",
+                              "value": "Completed",
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "Header Picking Status",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_pp_plan_completed_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_pp_plan_completed",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Picking Plan:Table:1982744224777474050",
+                                  "rules": {
+                                    "collectionId": "1982744224777474050",
+                                    "list": [
+                                      {
+                                        "id": 1787920000003,
+                                        "parentId": 1787920000004,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_furAo9AM.data.ppId}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Update PP Completed",
+                                "isValidator": true,
+                                "nodeName": "Update PP Completed",
+                                "name": "Update PP Completed",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "to_status",
+                                      "valueType": "value",
+                                      "value": "Completed",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "TO Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_pp_plan_completed_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
                       "id": "code_node_Y1TAR0U4",
                       "type": "code-node",
                       "data": {
