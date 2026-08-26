@@ -404,6 +404,69 @@ const resolveRow = (rows, key) => {
     }
   }
 
+  // Whatever is already off the shelf has to stay covered by this selection.
+  // PPconvertToPicking works out what is left to pick by subtracting
+  // picked_temp_qty_data from temp_qty_data key by key, so a picked bin dropped
+  // here comes back as quantity to pick a second time -- stock that has already
+  // been taken, offered again. The save refuses it; refusing here means the
+  // operator finds out while the dialog is still open.
+  //
+  // Planning BELOW what is picked is allowed -- the save unwinds the surplus
+  // behind a confirm -- so the test is whether an unwind COULD cover every
+  // shortfall, not whether each bin is covered outright. It can only remove
+  // (picked - planned) in total, so the selection is impossible exactly when the
+  // shortfalls add up to more than that. Stated as a total rather than a
+  // simulated unwind, this never refuses something the save would have accepted.
+  const allocationKey = (entry) =>
+    [
+      entry.location_id || "",
+      entry.batch_id || "",
+      entry.handling_unit_id || "",
+    ].join("|");
+
+  let pickedEntries = [];
+  try {
+    const parsed = JSON.parse(currentRow.picked_temp_qty_data || "[]");
+    if (Array.isArray(parsed)) pickedEntries = parsed;
+  } catch (error) {
+    pickedEntries = [];
+  }
+
+  const pickedByKey = {};
+  let pickedTotal = 0;
+  pickedEntries.forEach((entry) => {
+    const qty = roundQty(entry.to_quantity);
+    if (qty <= 0) return;
+    const key = allocationKey(entry);
+    pickedByKey[key] = roundQty((pickedByKey[key] || 0) + qty);
+    pickedTotal = roundQty(pickedTotal + qty);
+  });
+
+  if (pickedTotal > 0) {
+    const plannedByKey = {};
+    let plannedTotal = 0;
+    filteredData.forEach((item) => {
+      const qty = roundQty(item.to_quantity);
+      if (qty <= 0) return;
+      const key = allocationKey(item);
+      plannedByKey[key] = roundQty((plannedByKey[key] || 0) + qty);
+      plannedTotal = roundQty(plannedTotal + qty);
+    });
+
+    const shortfalls = Object.keys(pickedByKey).map((key) =>
+      Math.max(0, roundQty(pickedByKey[key] - (plannedByKey[key] || 0))),
+    );
+    const needed = roundQty(shortfalls.reduce((sum, qty) => sum + qty, 0));
+    const canUnwind = Math.max(0, roundQty(pickedTotal - plannedTotal));
+
+    if (needed > canUnwind + 0.0005) {
+      alert(
+        `${pickedTotal} ${toUOM} has already been picked for this line, and this selection leaves ${roundQty(needed - canUnwind)} ${toUOM} of it in a bin or batch it no longer covers. Allocate that quantity back to the same bin, or cancel or revert the Picking first.`,
+      );
+      return;
+    }
+  }
+
   const formatFilteredData = async (filteredData) => {
     // Get unique location IDs
     const locationIds = [

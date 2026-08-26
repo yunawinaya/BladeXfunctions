@@ -5,7 +5,7 @@ const closeDialog = () => {
   }
 };
 
-const runPPWorkflow = async (data, continueZero) => {
+const runPPWorkflow = async (data, answers) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
       "2021431201147527170",
@@ -13,7 +13,8 @@ const runPPWorkflow = async (data, continueZero) => {
         allData: data,
         saveAs: "Created",
         pageStatus: data.page_status,
-        continueZero: continueZero,
+        continueZero: answers.continueZero || "",
+        confirmPickReversal: answers.confirmPickReversal || "",
       },
       (res) => {
         console.log("Picking Plan workflow response:", res);
@@ -27,7 +28,7 @@ const runPPWorkflow = async (data, continueZero) => {
   });
 };
 
-const handleWorkflowResult = async (workflowResult, data) => {
+const handleWorkflowResult = async (workflowResult, data, answers) => {
   if (!workflowResult || !workflowResult.data) {
     this.hideLoading();
     this.$message.error("No response from workflow");
@@ -54,10 +55,38 @@ const handleWorkflowResult = async (workflowResult, data) => {
 
       // User clicked Proceed - re-run workflow with continueZero = "Yes"
       this.showLoading("Saving Picking Plan as Created...");
-      const retryResult = await runPPWorkflow(data, "Yes");
-      await handleWorkflowResult(retryResult, data);
+      const nextAnswers = { ...answers, continueZero: "Yes" };
+      const retryResult = await runPPWorkflow(data, nextAnswers);
+      await handleWorkflowResult(retryResult, data, nextAnswers);
     } catch (e) {
       console.log("User clicked Cancel or closed the dialog");
+      this.hideLoading();
+    }
+    return;
+  }
+
+  // Handle 413 - the reduction unwinds quantity already picked
+  if (resultCode === "413" || resultCode === 413) {
+    this.hideLoading();
+    const message =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "This change reverses quantities already picked. Proceed?";
+
+    try {
+      await this.$confirm(message, "Reverse picked quantity?", {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: true,
+      });
+
+      this.showLoading("Saving Picking Plan as Created...");
+      const nextAnswers = { ...answers, confirmPickReversal: "Yes" };
+      const retryResult = await runPPWorkflow(data, nextAnswers);
+      await handleWorkflowResult(retryResult, data, nextAnswers);
+    } catch (e) {
+      console.log("User cancelled the pick reversal");
       this.hideLoading();
     }
     return;
@@ -91,6 +120,17 @@ const handleWorkflowResult = async (workflowResult, data) => {
       workflowResult.data.msg ||
       "Picking Plan saved successfully";
     this.$message.success(successMessage);
+    const note = workflowResult.data.pickingReversalNote;
+    if (note) {
+      try {
+        await this.$alert(note, "Stock to put back", {
+          confirmButtonText: "OK",
+          dangerouslyUseHTMLString: true,
+        });
+      } catch (e) {
+        console.log("Reversal note dismissed");
+      }
+    }
     closeDialog();
   } else {
     this.hideLoading();
@@ -105,8 +145,9 @@ const handleWorkflowResult = async (workflowResult, data) => {
     const data = this.getValues();
     console.log("data", data);
 
-    const workflowResult = await runPPWorkflow(data, "");
-    await handleWorkflowResult(workflowResult, data);
+    const answers = {};
+    const workflowResult = await runPPWorkflow(data, answers);
+    await handleWorkflowResult(workflowResult, data, answers);
   } catch (error) {
     this.hideLoading();
     console.error("Error:", error);

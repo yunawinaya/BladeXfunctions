@@ -178,15 +178,13 @@ for (let i = 0; i < allRows.length; i++) {
         storedRows.find((row) => row.so_line_item_id === soLineItemId) ||
         null;
 
-      // A picked line cannot be planned below what has already been taken off the
-      // shelf -- the Picking that took it could then never be closed. Refused here
-      // so the message lands on the field; the save refuses it again server-side.
+      // Reducing below what is already picked used to be refused here. The save
+      // now unwinds the surplus instead, behind a confirm that names the bins to
+      // put stock back to, so the field only warns.
       const pickedQty = parseFloat(storedRow?.picked_qty || 0);
       if (pickedQty > 0 && quantity < pickedQty) {
-        window.validationState[index] = false;
-        callback(
-          `${pickedQty} already picked. Cancel or revert the Picking before reducing this line.`,
-        );
+        window.validationState[index] = true;
+        callback();
         return;
       }
 

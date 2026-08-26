@@ -95,11 +95,26 @@
     );
     const freshKey = allocationKey(fresh);
 
-    // Below what is already picked there is no allocation that both covers the
-    // picked stock and totals the requested quantity. Keep the picked floors --
-    // the save refuses the reduction and names the shortfall.
     const remainder = roundQty(quantity - pickedTotal);
-    if (remainder < 0) return { allocation: floors, preserved: pickedTotal };
+
+    // Below what is already picked. The save unwinds the surplus behind a confirm,
+    // so the allocation has to total the NEW quantity -- pinning it at the picked
+    // total would leave temp_qty_data disagreeing with to_qty and the save would
+    // reject it before the reconcile ever ran. Trimmed from the end, because that
+    // is the order the server unwinds pick records in: newest first.
+    if (remainder < 0) {
+      let over = roundQty(pickedTotal - quantity);
+      for (let i = floors.length - 1; i >= 0 && over > 0.0005; i--) {
+        const cut = Math.min(floors[i].to_quantity, over);
+        floors[i].to_quantity = roundQty(floors[i].to_quantity - cut);
+        over = roundQty(over - cut);
+      }
+      return {
+        allocation: floors.filter((entry) => entry.to_quantity > 0),
+        preserved: quantity,
+        reversing: roundQty(pickedTotal - quantity),
+      };
+    }
 
     if (byKey[freshKey]) {
       Object.assign(byKey[freshKey], fresh, {
@@ -108,7 +123,7 @@
     } else if (remainder > 0) {
       floors.push(Object.assign({}, fresh, { to_quantity: remainder }));
     }
-    return { allocation: floors, preserved: pickedTotal };
+    return { allocation: floors, preserved: pickedTotal, reversing: 0 };
   };
 
   // A reference is an object in the form model and a plain id once stored.
@@ -551,9 +566,11 @@
       }
 
       // Update data
-      const { allocation, preserved } =
+      const { allocation, preserved, reversing } =
         allocationRespectingPicked(temporaryData);
-      if (preserved > 0) {
+      if (reversing > 0) {
+        summary += `\n\nNote: ${reversing} ${uomName} already picked will be put back when you save.`;
+      } else if (preserved > 0) {
         summary += `\n\nNote: ${preserved} ${uomName} already picked is kept in this allocation.`;
       }
 
@@ -688,9 +705,11 @@
       }
 
       // Update data
-      const { allocation, preserved } =
+      const { allocation, preserved, reversing } =
         allocationRespectingPicked(temporaryData);
-      if (preserved > 0) {
+      if (reversing > 0) {
+        summary += `\n\nNote: ${reversing} ${uomName} already picked will be put back when you save.`;
+      } else if (preserved > 0) {
         summary += `\n\nNote: ${preserved} ${uomName} already picked is kept in this allocation.`;
       }
 

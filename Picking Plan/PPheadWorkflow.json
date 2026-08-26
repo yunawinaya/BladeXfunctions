@@ -10,6 +10,15 @@
       "children": []
     },
     {
+      "key": "ppcpr001",
+      "name": "confirmPickReversal",
+      "title": "confirmPickReversal",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
       "key": "trftcrfe",
       "name": "saveAs",
       "title": "saveAs",
@@ -56,6 +65,14 @@
       "key": "k806e8fl",
       "name": "code",
       "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ppprn001",
+      "name": "pickingReversalNote",
+      "title": "pickingReversalNote",
       "description": "",
       "bsonType": "string",
       "isExpand": false
@@ -1952,7 +1969,7 @@
                 "name": "Plan PP Edit Gate",
                 "script": {
                   "type": "javascript",
-                  "code": "// Can this plan be edited now that picking has started?\n//\n// The plan is NOT reconciled against its Picking the way a delivery is. Raising a\n// quantity leaves the existing Picking alone and the outstanding balance is picked\n// by converting a second one -- PPconvertToPicking already subtracts\n// picked_temp_qty_data and offers only the remainder. Everything that cannot be\n// expressed that way is refused rather than unwound.\nconst saveAs = {{workflowparams:saveAs}};\nconst isPicking = {{workflowparams:isPicking}};\nconst allData = {{workflowparams:allData}};\n\nconst rawBefore = {{node:get_node_zG6KDDEF.data.data}};\nconst before = Array.isArray(rawBefore)\n  ? rawBefore[0] || null\n  : rawBefore || null;\n\nconst rawRes = {{node:search_node_pp_reserved.data.data}};\nconst reservations = Array.isArray(rawRes) ? rawRes : rawRes ? [rawRes] : [];\n\nconst rawPick = {{node:search_node_pp_pickings.data.data}};\nconst pickings = Array.isArray(rawPick) ? rawPick : rawPick ? [rawPick] : [];\n\nconst rawGd = {{node:search_node_pp_gd_claims.data.data}};\nconst gdClaims = Array.isArray(rawGd) ? rawGd : rawGd ? [rawGd] : [];\n\nconst OFF = {\n  blockEdit: 0,\n  blockMessage: \"\",\n  lineStatusOverrides: {},\n  headerPickingStatus: \"\"\n};\n\n// The Picking re-invokes this workflow with isPicking set; it must pass straight\n// through, exactly as the old guard allowed.\nif (saveAs !== \"Created\" || isPicking || !before || !allData) {\n  return OFF;\n}\n\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst ppId = String(before.id || \"\");\n\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\n\n// Read the STORED plan, not the submitted one. A page opened before the picker\n// started carries a stale picking_status -- the guard this replaces read\n// allData.picking_status and could be talked out of firing.\nconst beforeLines = flattenRows(before.table_to).filter((r) => r && r.material_id);\nconst afterLines = flattenRows(allData.table_to).filter((r) => r && r.material_id);\n\nconst afterById = {};\nfor (const row of afterLines) {\n  if (row.id) afterById[String(row.id)] = row;\n}\n\nconst anyPicked = beforeLines.some((r) => roundQty(r.picked_qty) > 0);\nconst priorStatus = String(before.picking_status || \"\");\nconst started =\n  priorStatus === \"In Progress\" || priorStatus === \"Completed\" || anyPicked;\n\n// A Picking that exists but has not been picked yet is just as dangerous as a\n// picked one for removals and reductions: nothing ever updates an existing\n// Picking's qty_to_pick, so the row is left describing a plan line that no longer\n// says that -- production already holds 8 picking rows pointing at plan lines that\n// were deleted. Worse, reducing below an open Picking's quantity makes that Picking\n// permanently unclosable, because code_node_AGoxWP7x refuses \"Picked quantity\n// cannot exceed plan quantity\" before it writes anything.\nconst openPicking = pickings.some(\n  (p) => String(p.to_status || \"\") === \"Created\"\n);\n\nif (!started && !openPicking) {\n  return OFF;\n}\n\nconst pickingNo = pickings.length\n  ? String(pickings[0].to_id || pickings[0].id)\n  : \"the Picking\";\n\nconst block = (message) => ({\n  blockEdit: 1,\n  blockMessage: message,\n  lineStatusOverrides: {},\n  headerPickingStatus: \"\"\n});\n\n// A Picking mid-confirm is writing these very lines from the other side. Only an\n// open Picking can be mid-confirm; the flag leaks on terminal ones (8 stale rows in\n// production, all Completed or Cancelled) and honouring those would lock a plan for\n// good with no way to clear it.\nfor (const p of pickings) {\n  if (String(p.to_status || \"\") === \"Created\" && Number(p.is_processing || 0) !== 0) {\n    return block(\n      \"Picking \" +\n        String(p.to_id || p.id) +\n        \" is being processed on a device right now. Try again in a moment.\"\n    );\n  }\n}\n\n// A delivery built from this plan takes the reservation over: doc_type stays\n// \"Picking Plan\" but target_gd_id is restamped to the delivery. Once that has\n// happened the delivery also holds picking_record_id references into the pick\n// records, so changing the plan underneath it would leave the delivery describing\n// stock that no longer adds up.\nconst claimedByLine = {};\nfor (const res of reservations) {\n  const line = String(res.doc_line_id || \"\");\n  if (!line) continue;\n  const status = String(res.status || \"\");\n  const target = String(res.target_gd_id || \"\");\n  if (status === \"Delivered\" || (target && target !== ppId)) {\n    claimedByLine[line] = 1;\n  }\n}\n\n// Reservations alone are not enough. A delivery built from this plan and saved as\n// Created is a deliberate no-inventory middle state -- code_node_b71wypDJ returns\n// early and writes no reservation row at all -- so its claim is invisible above\n// while it holds picking_record_id references into the pick records. Production has\n// 64 such delivery lines. The delivery line itself is the only evidence.\nfor (const g of gdClaims) {\n  const line = String(g.pp_line_item_id || \"\");\n  if (line) claimedByLine[line] = 1;\n}\n\nconst lineStatusOverrides = {};\nlet allDone = true;\nlet anyProgress = false;\nlet anyLive = false;\n\nfor (const line of beforeLines) {\n  const id = String(line.id || \"\");\n  if (!id) continue;\n  const picked = roundQty(line.picked_qty);\n  const label = line.material_name || line.to_material_desc || id;\n  const after = afterById[id];\n\n  if (picked > 0 && claimedByLine[id]) {\n    return block(\n      \"Item \" +\n        label +\n        \" has already been taken by a Goods Delivery, so this plan can no longer be changed. Revert and cancel that delivery first.\"\n    );\n  }\n\n  if ((picked > 0 || openPicking) && !after) {\n    return block(\n      picked > 0\n        ? \"Item \" + label + \" already has \" + picked + \" picked on \" + pickingNo +\n          \" and cannot be removed. Cancel or revert the Picking first.\"\n        : \"Item \" + label + \" is on Picking \" + pickingNo +\n          \", which is still open, so it cannot be removed. Cancel that Picking first.\"\n    );\n  }\n\n  if (\n    (picked > 0 || openPicking) &&\n    after &&\n    String(after.material_id || \"\") !== String(line.material_id || \"\")\n  ) {\n    return block(\n      \"Item \" +\n        label +\n        \" already has \" +\n        picked +\n        \" picked on \" +\n        pickingNo +\n        \", so the item on that row cannot be changed. Cancel or revert the Picking first.\"\n    );\n  }\n\n  if (!after) continue;\n\n  const desired = roundQty(after.to_qty);\n  const floor = openPicking ? Math.max(picked, roundQty(line.to_qty)) : picked;\n  if (desired < floor) {\n    return block(\n      picked > 0\n        ? \"Item \" + label + \" has \" + picked + \" picked on \" + pickingNo +\n          \" but the plan now asks for \" + desired +\n          \". Cancel or revert the Picking before reducing it.\"\n        : \"Item \" + label + \" is planned as \" + floor + \" on Picking \" + pickingNo +\n          \", which is still open. Reducing it to \" + desired +\n          \" would leave that Picking impossible to close. Cancel it first.\"\n    );\n  }\n\n  // The allocation may have been rewritten since the pick -- the quantity handler\n  // and the stock dialog both rebuild temp_qty_data and neither knows what has\n  // been picked. PPconvertToPicking works out what is left to pick by subtracting\n  // picked_temp_qty_data from temp_qty_data key by key, so a key dropped here\n  // comes back as quantity to pick a second time: stock already off the shelf.\n  if (picked > 0) {\n    const parseAlloc = (raw) => {\n      if (Array.isArray(raw)) return raw;\n      if (!raw) return [];\n      try {\n        const parsed = JSON.parse(raw);\n        return Array.isArray(parsed) ? parsed : [];\n      } catch (e) {\n        return [];\n      }\n    };\n    const allocKey = (e) =>\n      String(e.location_id || \"\") +\n      \"|\" +\n      String(e.batch_id || \"\") +\n      \"|\" +\n      String(e.handling_unit_id || \"\");\n\n    const pickedBy = {};\n    for (const e of parseAlloc(line.picked_temp_qty_data)) {\n      const q = roundQty(e.to_quantity);\n      if (q > 0) {\n        const k = allocKey(e);\n        pickedBy[k] = roundQty((pickedBy[k] || 0) + q);\n      }\n    }\n\n    const pickedKeys = Object.keys(pickedBy);\n    if (pickedKeys.length) {\n      const plannedBy = {};\n      for (const e of parseAlloc(after.temp_qty_data)) {\n        const q = roundQty(e.to_quantity);\n        if (q > 0) {\n          const k = allocKey(e);\n          plannedBy[k] = roundQty((plannedBy[k] || 0) + q);\n        }\n      }\n      for (const key of pickedKeys) {\n        if (roundQty(plannedBy[key]) < pickedBy[key]) {\n          return block(\n            \"Item \" +\n              label +\n              \" has \" +\n              pickedBy[key] +\n              \" already picked from a bin and batch the plan no longer allocates. Allocate that quantity back to the same bin, or cancel or revert Picking \" +\n              pickingNo +\n              \" first.\"\n          );\n        }\n      }\n    }\n  }\n\n  // A line delivered straight to a Goods Delivery without ever being picked reads\n  // Completed with nothing picked. Recomputing would send it back to Created and\n  // re-offer it for picking, so leave it exactly as it is.\n  if (picked === 0 && String(line.picking_status || \"\") === \"Completed\") {\n    continue;\n  }\n\n  // Recompute the line's picking_status against the NEW quantity. Without this a\n  // raised line still reads Completed from when the quantity was lower, and\n  // PPconvertToPicking skips Completed lines -- so the outstanding balance could\n  // never be converted.\n  if (desired > 0) {\n    anyLive = true;\n    if (picked >= desired) {\n      lineStatusOverrides[id] = \"Completed\";\n    } else if (picked > 0) {\n      lineStatusOverrides[id] = \"In Progress\";\n      allDone = false;\n      anyProgress = true;\n    } else {\n      lineStatusOverrides[id] = \"Created\";\n      allDone = false;\n    }\n    if (picked > 0) anyProgress = true;\n  }\n}\n\nconst headerPickingStatus = !anyLive\n  ? \"\"\n  : allDone\n    ? \"Completed\"\n    : anyProgress\n      ? \"In Progress\"\n      : \"Created\";\n\nreturn {\n  blockEdit: 0,\n  blockMessage: \"\",\n  lineStatusOverrides: lineStatusOverrides,\n  headerPickingStatus: headerPickingStatus\n};\n"
+                  "code": "// Can this plan be edited now that picking has started?\n//\n// Ownership and mutex only. Reductions, removals and item swaps used to be refused\n// here; code_pp_pick_reconcile now unwinds them instead, and owns the line statuses\n// this node used to compute. What stays is what a reversal must never touch: a\n// Picking mid-confirm, and a line a Goods Delivery has already taken over.\nconst saveAs = {{workflowparams:saveAs}};\nconst isPicking = {{workflowparams:isPicking}};\nconst allData = {{workflowparams:allData}};\n\nconst rawBefore = {{node:get_node_zG6KDDEF.data.data}};\nconst before = Array.isArray(rawBefore)\n  ? rawBefore[0] || null\n  : rawBefore || null;\n\nconst rawRes = {{node:search_node_pp_reserved.data.data}};\nconst reservations = Array.isArray(rawRes) ? rawRes : rawRes ? [rawRes] : [];\n\nconst rawPick = {{node:search_node_pp_pickings.data.data}};\nconst pickings = Array.isArray(rawPick) ? rawPick : rawPick ? [rawPick] : [];\n\nconst rawGd = {{node:search_node_pp_gd_claims.data.data}};\nconst gdClaims = Array.isArray(rawGd) ? rawGd : rawGd ? [rawGd] : [];\n\nconst OFF = { blockEdit: 0, blockMessage: \"\" };\n\n// The Picking re-invokes this workflow with isPicking set; it must pass straight\n// through, exactly as the old guard allowed.\nif (saveAs !== \"Created\" || isPicking || !before || !allData) {\n  return OFF;\n}\n\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst ppId = String(before.id || \"\");\n\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\n\n// Read the STORED plan, not the submitted one. A page opened before the picker\n// started carries a stale picking_status.\nconst beforeLines = flattenRows(before.table_to).filter((r) => r && r.material_id);\n\nconst anyPicked = beforeLines.some((r) => roundQty(r.picked_qty) > 0);\nconst priorStatus = String(before.picking_status || \"\");\nconst started =\n  priorStatus === \"In Progress\" || priorStatus === \"Completed\" || anyPicked;\nconst openPicking = pickings.some(\n  (p) => String(p.to_status || \"\") === \"Created\"\n);\n\nif (!started && !openPicking) {\n  return OFF;\n}\n\nconst block = (message) => ({ blockEdit: 1, blockMessage: message });\n\n// A Picking mid-confirm is writing these very lines from the other side. Only an\n// open Picking can be mid-confirm; the flag leaks on terminal ones (8 stale rows in\n// production, all Completed or Cancelled) and honouring those would lock a plan for\n// good with no way to clear it.\nfor (const p of pickings) {\n  if (String(p.to_status || \"\") === \"Created\" && Number(p.is_processing || 0) !== 0) {\n    return block(\n      \"Picking \" +\n        String(p.to_id || p.id) +\n        \" is being processed on a device right now. Try again in a moment.\"\n    );\n  }\n}\n\n// A delivery built from this plan takes the reservation over: doc_type stays\n// \"Picking Plan\" but target_gd_id is restamped to the delivery. Once that has\n// happened the delivery also holds picking_record_id references into the pick\n// records, so unwinding a pick underneath it would leave the delivery describing\n// stock that no longer adds up. This is the one thing the reconcile must never do.\nconst claimedByLine = {};\nfor (const res of reservations) {\n  const line = String(res.doc_line_id || \"\");\n  if (!line) continue;\n  const status = String(res.status || \"\");\n  const target = String(res.target_gd_id || \"\");\n  if (status === \"Delivered\" || (target && target !== ppId)) {\n    claimedByLine[line] = 1;\n  }\n}\n\n// Reservations alone are not enough. A delivery built from this plan and saved as\n// Created is a deliberate no-inventory middle state -- code_node_b71wypDJ returns\n// early and writes no reservation row at all -- so its claim is invisible above\n// while it holds picking_record_id references into the pick records. The delivery\n// line itself is the only evidence.\nfor (const g of gdClaims) {\n  const line = String(g.pp_line_item_id || \"\");\n  if (line) claimedByLine[line] = 1;\n}\n\nfor (const line of beforeLines) {\n  const id = String(line.id || \"\");\n  if (!id) continue;\n  if (roundQty(line.picked_qty) > 0 && claimedByLine[id]) {\n    return block(\n      \"Item \" +\n        (line.material_name || line.to_material_desc || id) +\n        \" has already been taken by a Goods Delivery, so this plan can no longer be changed. Revert and cancel that delivery first.\"\n    );\n  }\n}\n\nreturn { blockEdit: 0, blockMessage: \"\" };\n"
                 },
                 "response_json": [
                   {
@@ -1967,22 +1984,6 @@
                     "key": "ppgmsg001",
                     "name": "blockMessage",
                     "title": "blockMessage",
-                    "description": "",
-                    "bsonType": "string",
-                    "isExpand": false
-                  },
-                  {
-                    "key": "ppglso001",
-                    "name": "lineStatusOverrides",
-                    "title": "lineStatusOverrides",
-                    "description": "",
-                    "bsonType": "any",
-                    "isExpand": false
-                  },
-                  {
-                    "key": "ppghdr001",
-                    "name": "headerPickingStatus",
-                    "title": "headerPickingStatus",
                     "description": "",
                     "bsonType": "string",
                     "isExpand": false
@@ -2071,6 +2072,590 @@
                 },
                 {
                   "id": "if_block_pp_gate_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "code_pp_pick_reconcile",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Plan Pick Reconcile",
+                "isValidator": true,
+                "nodeName": "Plan Pick Reconcile",
+                "name": "Plan Pick Reconcile",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Picking reconcile for a Picking Plan -- planning pass.\n//\n// A delivery reconciles its Picking in place; a plan used to refuse instead. This\n// classifies each plan line against the Picking as it stands so the producer can\n// merge rather than rebuild, and unwinds what was over-picked. Nothing is written\n// here: the confirm returns before the first update node.\n//\n// Ported from GDheadWorkflow's code_pick_reconcile, with three PP differences:\n//   - keys are to_id / to_line_id, never gd_id / gd_line_id\n//   - handling_unit_id is NOT part of any key: PP pick records always carry null\n//     (code_node_Q3hWck9R writes item.handling_unit_id and PP picking rows never\n//     set it), so a key including it would match nothing\n//   - qty_to_pick on a PP picking row means \"remaining at conversion\", not the whole\n//     line, so the producer keeps qty_to_pick - pending_process_qty === picked\nconst saveAs = {{workflowparams:saveAs}};\nconst isPicking = {{workflowparams:isPicking}};\nconst confirmReversal = {{workflowparams:confirmPickReversal}};\nconst allData = {{workflowparams:allData}};\n\nconst rawBefore = {{node:get_node_zG6KDDEF.data.data}};\nconst before = Array.isArray(rawBefore) ? rawBefore[0] || null : rawBefore || null;\n\nconst rawPick = {{node:search_node_pp_pickings.data.data}};\nconst pickings = Array.isArray(rawPick) ? rawPick : rawPick ? [rawPick] : [];\n\nconst OFF = {\n  reconcileNeeded: 0,\n  blockEdit: 0,\n  blockMessage: \"\",\n  pickingId: \"\",\n  pickingNo: \"\",\n  targetPickingToStatus: \"\",\n  linePlans: [],\n  lineStatusOverrides: {},\n  lineFieldOverrides: {},\n  headerPickingStatus: \"\",\n  hasReversals: 0,\n  needsReversalConfirm: 0,\n  reversals: [],\n  binIdsToName: [\"0\"],\n  batchIdsToName: [\"0\"],\n  recordAdjustments: [],\n  reversalNote: \"\"\n};\n\n// The Picking re-invokes this workflow with isPicking set; it must pass straight\n// through, exactly as code_node_pp_gate allows.\nif (saveAs !== \"Created\" || isPicking || !before || !allData) {\n  return OFF;\n}\n\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\nconst ppId = sid(before.id);\n\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\nconst parseAlloc = (raw) => {\n  if (Array.isArray(raw)) return raw;\n  if (!raw) return [];\n  try {\n    const parsed = JSON.parse(raw);\n    return Array.isArray(parsed) ? parsed : [];\n  } catch (e) {\n    return [];\n  }\n};\n// picked_temp_qty_data is keyed on where the stock ENDED UP, which is what\n// code_node_AGoxWP7x writes and what PPconvertToPicking subtracts against.\nconst allocKey = (e) =>\n  sid(e.location_id) + \"|\" + sid(e.batch_id) + \"|\" + sid(e.handling_unit_id);\n\nconst beforeLines = flattenRows(before.table_to).filter((r) => r && r.material_id);\nconst afterLines = flattenRows(allData.table_to).filter((r) => r && r.material_id);\nconst afterById = {};\nfor (const row of afterLines) {\n  if (row.id) afterById[sid(row.id)] = row;\n}\nconst beforeById = {};\nfor (const row of beforeLines) {\n  if (row.id) beforeById[sid(row.id)] = row;\n}\n\nconst anyPicked = beforeLines.some((r) => roundQty(r.picked_qty) > 0);\nconst priorStatus = sid(before.picking_status);\nconst started =\n  priorStatus === \"In Progress\" || priorStatus === \"Completed\" || anyPicked;\nconst openPicking = pickings.some((p) => sid(p.to_status) === \"Created\");\nif (!started && !openPicking) {\n  return OFF;\n}\n\nconst blockWith = (message) =>\n  Object.assign({}, OFF, { blockEdit: 1, blockMessage: message });\n\n// --- which lines this edit actually touches --------------------------------\n// Only these decide which Picking is in scope, so an unrelated line on a second\n// Picking never drags the whole plan into a refusal.\nconst affected = {};\nfor (const line of beforeLines) {\n  const id = sid(line.id);\n  if (!id) continue;\n  const after = afterById[id];\n  if (!after) {\n    affected[id] = 1;\n    continue;\n  }\n  if (sid(after.material_id) !== sid(line.material_id)) {\n    affected[id] = 1;\n    continue;\n  }\n  if (Math.abs(roundQty(after.to_qty) - roundQty(line.to_qty)) > 0.0005) {\n    affected[id] = 1;\n    continue;\n  }\n  // A re-allocation at the SAME quantity still matters. PPconvertToPicking works\n  // out what is left to pick by subtracting picked_temp_qty_data from\n  // temp_qty_data key by key, so a picked bin the plan no longer allocates comes\n  // back as quantity to pick a second time. The gate this replaces checked every\n  // picked line for that; testing quantity and material alone would have let it\n  // through. Only broken COVERAGE counts -- a reshuffle that still covers what\n  // was picked changes nothing anyone downstream reads.\n  const pickedHere = {};\n  for (const entry of parseAlloc(line.picked_temp_qty_data)) {\n    const q = roundQty(entry.to_quantity);\n    if (q > 0) {\n      const k = allocKey(entry);\n      pickedHere[k] = roundQty((pickedHere[k] || 0) + q);\n    }\n  }\n  const pickedKeys = Object.keys(pickedHere);\n  if (!pickedKeys.length) continue;\n  const plannedHere = {};\n  for (const entry of parseAlloc(after.temp_qty_data)) {\n    const q = roundQty(entry.to_quantity);\n    if (q > 0) {\n      const k = allocKey(entry);\n      plannedHere[k] = roundQty((plannedHere[k] || 0) + q);\n    }\n  }\n  if (pickedKeys.some((k) => roundQty(plannedHere[k]) < pickedHere[k])) {\n    affected[id] = 1;\n  }\n}\nconst affectedIds = Object.keys(affected);\nif (affectedIds.length === 0) {\n  return OFF;\n}\n\n// --- pick the Picking ------------------------------------------------------\n// A plan legitimately owns several Pickings: each closes wholesale and the\n// remainder converts again. Reconciling across them would hand one Picking the\n// quantity another still plans to pick, so more than one holding an affected line\n// is refused. Rows, not just records -- an unpicked-but-planned row is just as\n// much a claim.\nconst rowsOf = (p) =>\n  flattenRows(p.table_picking_items).filter((r) => r && r.row_type !== \"header\");\nconst holders = pickings.filter((p) =>\n  rowsOf(p).some((r) => affected[sid(r.to_line_id)])\n);\nif (holders.length === 0) {\n  return OFF;\n}\nif (holders.length > 1) {\n  return blockWith(\n    \"This change affects lines that are split across \" +\n      holders.length +\n      \" Pickings (\" +\n      holders.map((p) => sid(p.to_id || p.id)).join(\", \") +\n      \"). Cancel or revert all but one before changing the plan.\"\n  );\n}\nconst picking = holders[0];\nconst pickingNo = sid(picking.to_id || picking.id);\n\n// A Picking mid-confirm is writing these very rows from the other side.\nif (sid(picking.to_status) === \"Created\" && Number(picking.is_processing || 0) !== 0) {\n  return blockWith(\n    \"Picking \" + pickingNo + \" is being processed on a device right now. Try again in a moment.\"\n  );\n}\n\n// --- the Picking as it stands ----------------------------------------------\nconst allPlanRows = rowsOf(picking);\nconst planRows = allPlanRows.filter((r) => sid(r.to_id) === ppId);\nconst otherRows = allPlanRows.filter((r) => sid(r.to_id) !== ppId);\nconst records = (picking.table_picking_records || []).filter(\n  (r) => r && sid(r.to_id) === ppId\n);\n\nconst slotKey = (line, item) => sid(line) + \"|\" + sid(item);\nconst slots = {};\nconst slotFor = (line, item) => {\n  const k = slotKey(line, item);\n  if (!slots[k]) {\n    slots[k] = { key: k, line: sid(line), item: sid(item), picked: 0, planned: 0, pending: 0, desired: 0 };\n  }\n  return slots[k];\n};\n\n// Records are the authority on what was physically picked.\nconst pickedSeen = {};\nfor (const rec of records) {\n  const q = parseFloat(rec.store_out_qty) || 0;\n  if (!rec.to_line_id || q <= 0) continue;\n  const s = slotFor(rec.to_line_id, rec.item_code);\n  s.picked = roundQty(s.picked + q);\n  pickedSeen[s.key] = 1;\n}\n// A force-completed Picking writes no records; fall back to the plan's arithmetic.\nfor (const row of planRows) {\n  if (!row.to_line_id) continue;\n  const s = slotFor(row.to_line_id, row.item_code);\n  if (pickedSeen[s.key]) continue;\n  const done = roundQty(\n    (parseFloat(row.qty_to_pick) || 0) - (parseFloat(row.pending_process_qty) || 0)\n  );\n  if (done > 0) s.picked = roundQty(s.picked + done);\n}\nfor (const row of planRows) {\n  if (!row.to_line_id || row.line_status === \"Cancelled\") continue;\n  const s = slotFor(row.to_line_id, row.item_code);\n  s.planned = roundQty(s.planned + (parseFloat(row.qty_to_pick) || 0));\n  s.pending = roundQty(s.pending + (parseFloat(row.pending_process_qty) || 0));\n}\n\n// --- what the plan now wants -----------------------------------------------\n// Keyed by the row's CURRENT material, so an item swap decomposes into a full\n// reversal of the old item plus a fresh Open row for the new one. to_qty is the\n// authority: code_node_Nj60Z2XF already refuses a temp_qty_data that disagrees.\nfor (const row of afterLines) {\n  const line = sid(row.id);\n  if (!line) continue;\n  const s = slotFor(line, row.material_id);\n  s.desired = roundQty(s.desired + roundQty(row.to_qty));\n}\n\n// --- classify ---------------------------------------------------------------\nconst linePlans = [];\nconst shortfalls = [];\nconst survivingByLine = {};\nfor (const k of Object.keys(slots)) {\n  const s = slots[k];\n  if (s.desired < s.picked) {\n    shortfalls.push(s);\n    continue;\n  }\n  const newPending = roundQty(Math.max(0, s.desired - s.picked));\n  linePlans.push({\n    to_line_id: s.line,\n    item_code: s.item,\n    mode: s.picked === 0 ? \"rebuild\" : s.desired > s.planned ? \"extend\" : s.desired < s.planned ? \"shrink\" : \"hold\",\n    picked: s.picked, planned: s.planned, pending: s.pending, desired: s.desired,\n    newPending: newPending\n  });\n  if (s.desired > 0) {\n    if (!survivingByLine[s.line]) survivingByLine[s.line] = { done: true, progress: false };\n    if (newPending > 0) survivingByLine[s.line].done = false;\n    if (s.picked > 0) survivingByLine[s.line].progress = true;\n  }\n}\n\n// --- unwind what was over-picked -------------------------------------------\nconst recordsBySlot = {};\nfor (const rec of records) {\n  if (!rec.to_line_id) continue;\n  const k = slotKey(rec.to_line_id, rec.item_code);\n  if (!recordsBySlot[k]) recordsBySlot[k] = [];\n  recordsBySlot[k].push(rec);\n}\n\n// Serialised lines cannot be unwound: the records do not say WHICH serial was taken.\nconst serialisedSlots = {};\nfor (const row of planRows) {\n  const isSerial =\n    Number(row.is_serialized_item || 0) === 1 ||\n    (row.serial_numbers !== undefined && row.serial_numbers !== null && sid(row.serial_numbers) !== \"\");\n  if (isSerial) serialisedSlots[slotKey(row.to_line_id, row.item_code)] = 1;\n}\nconst serialShortfall = shortfalls.filter((s) => serialisedSlots[s.key]);\nif (serialShortfall.length > 0) {\n  return blockWith(\n    \"Reducing \" + serialShortfall.length + \" serialised line(s) on \" + pickingNo +\n      \" cannot be reversed automatically, because the pick records do not record which serial numbers were taken. Cancel the Picking first.\"\n  );\n}\n\nconst reversals = [];\nconst recordAdjustments = [];\nconst binIdSet = {};\nconst batchIdSet = {};\n// take-back per (line, picked_temp_qty_data key), so picked_temp_qty_data can be\n// reduced in exactly the places the records came from.\nconst takenByLineKey = {};\n\nfor (const s of shortfalls) {\n  let left = roundQty(s.picked - s.desired);\n  const newestFirst = (recordsBySlot[s.key] || []).slice().sort((a, b) => {\n    const ta = sid(a.confirmed_at);\n    const tb = sid(b.confirmed_at);\n    if (ta !== tb) return ta < tb ? 1 : -1;\n    return sid(a.id) < sid(b.id) ? 1 : -1;\n  });\n\n  for (const rec of newestFirst) {\n    if (left <= 0) break;\n    const have = roundQty(rec.store_out_qty);\n    if (have <= 0) continue;\n\n    // A delivery has already consumed this pick; unwinding it would leave the\n    // delivery describing stock that no longer adds up.\n    if (roundQty(rec.delivered_qty) > 0) {\n      return blockWith(\n        \"Item \" + sid(rec.item_name || rec.item_code) + \" on \" + pickingNo +\n          \" has already been delivered, so the picked quantity cannot be reversed. Revert that delivery first.\"\n      );\n    }\n\n    const take = roundQty(Math.min(left, have));\n    const remain = roundQty(have - take);\n    const alt = roundQty(rec.picked_qty_alt);\n    const newAlt = have > 0 ? roundQty(alt * (remain / have)) : 0;\n\n    recordAdjustments.push({\n      id: sid(rec.id),\n      store_out_qty: remain,\n      picked_qty_alt: newAlt,\n      drop: remain <= 0 ? 1 : 0,\n      qty: take\n    });\n    reversals.push({\n      to_line_id: s.line,\n      item_code: sid(rec.item_code),\n      item_name: sid(rec.item_name),\n      qty: take,\n      return_to: sid(rec.source_bin),\n      currently_at: sid(rec.target_location || rec.source_bin)\n    });\n\n    // The key picked_temp_qty_data used when this record was written.\n    const k = s.line + \"||\" + allocKey({\n      location_id: rec.target_location || rec.source_bin,\n      batch_id: rec.target_batch || rec.batch_no,\n      handling_unit_id: rec.handling_unit_id\n    });\n    takenByLineKey[k] = roundQty((takenByLineKey[k] || 0) + take);\n\n    if (rec.source_bin) binIdSet[sid(rec.source_bin)] = 1;\n    if (rec.target_location) binIdSet[sid(rec.target_location)] = 1;\n    if (rec.batch_no) batchIdSet[sid(rec.batch_no)] = 1;\n    if (rec.target_batch) batchIdSet[sid(rec.target_batch)] = 1;\n    left = roundQty(left - take);\n  }\n\n  if (left > 0) {\n    return blockWith(\n      \"Line \" + s.line + \" on \" + pickingNo + \" shows \" + s.picked +\n        \" picked but has no pick records covering \" + left +\n        \" of it (a force-completed Picking records none), so it cannot be reversed automatically. Cancel the Picking first.\"\n    );\n  }\n\n  linePlans.push({\n    to_line_id: s.line, item_code: s.item, mode: \"reverse\",\n    picked: s.desired, planned: s.planned, pending: s.pending,\n    desired: s.desired, newPending: 0\n  });\n  if (s.desired > 0) {\n    if (!survivingByLine[s.line]) survivingByLine[s.line] = { done: true, progress: true };\n    survivingByLine[s.line].progress = true;\n  }\n}\n\n// --- rebuild each touched line's picked state -------------------------------\nconst lineFieldOverrides = {};\nconst pickedAfterByLine = {};\nfor (const k of Object.keys(slots)) {\n  const line = slots[k].line;\n  if (!line || pickedAfterByLine[line] !== undefined) continue;\n  const stored = beforeById[line];\n  if (!stored) continue;\n\n  const entries = parseAlloc(stored.picked_temp_qty_data)\n    .map((e) => Object.assign({}, e))\n    .filter((e) => roundQty(e.to_quantity) > 0);\n  for (const e of entries) {\n    const take = takenByLineKey[line + \"||\" + allocKey(e)] || 0;\n    if (take > 0) e.to_quantity = roundQty(Math.max(0, roundQty(e.to_quantity) - take));\n  }\n  const kept = entries.filter((e) => roundQty(e.to_quantity) > 0);\n  const pickedNow = roundQty(kept.reduce((sum, e) => sum + roundQty(e.to_quantity), 0));\n  pickedAfterByLine[line] = pickedNow;\n\n  // picked_view_stock needs display names, which a code-node cannot fetch --\n  // code_pp_reversal_msg renders it once the name lookups have run.\n  lineFieldOverrides[line] = {\n    picked_qty: pickedNow,\n    picked_temp_qty_data: JSON.stringify(kept)\n  };\n  for (const e of kept) {\n    if (e.location_id) binIdSet[sid(e.location_id)] = 1;\n    if (e.batch_id) batchIdSet[sid(e.batch_id)] = 1;\n  }\n}\n\n// --- the old refusal 6, now evaluated AFTER the unwind ----------------------\n// A key dropped from temp_qty_data comes back as quantity to pick a second time\n// (PPconvertToPicking subtracts key by key). Checking post-unwind means reducing\n// and re-allocating in one edit is no longer refused.\nfor (const line of Object.keys(lineFieldOverrides)) {\n  const after = afterById[line];\n  if (!after) continue;\n  const pickedBy = {};\n  for (const e of parseAlloc(lineFieldOverrides[line].picked_temp_qty_data)) {\n    const q = roundQty(e.to_quantity);\n    if (q > 0) pickedBy[allocKey(e)] = roundQty((pickedBy[allocKey(e)] || 0) + q);\n  }\n  const keys = Object.keys(pickedBy);\n  if (!keys.length) continue;\n  const plannedBy = {};\n  for (const e of parseAlloc(after.temp_qty_data)) {\n    const q = roundQty(e.to_quantity);\n    if (q > 0) plannedBy[allocKey(e)] = roundQty((plannedBy[allocKey(e)] || 0) + q);\n  }\n  const stored = beforeById[line] || {};\n  const label = stored.material_name || stored.to_material_desc || line;\n  for (const key of keys) {\n    if (roundQty(plannedBy[key]) < pickedBy[key]) {\n      return blockWith(\n        \"Item \" + label + \" has \" + pickedBy[key] +\n          \" already picked from a bin and batch the plan no longer allocates. Allocate that quantity back to the same bin, or cancel or revert Picking \" +\n          pickingNo + \" first.\"\n      );\n    }\n  }\n}\n\n// --- statuses ---------------------------------------------------------------\nconst lineStatusOverrides = {};\nconst touchedLines = {};\nfor (const k of Object.keys(slots)) touchedLines[slots[k].line] = 1;\nfor (const line of Object.keys(touchedLines)) {\n  const stored = beforeById[line];\n  // A line delivered straight to a Goods Delivery without ever being picked reads\n  // Completed with nothing picked; recomputing would re-offer it for picking.\n  if (stored && roundQty(stored.picked_qty) === 0 && sid(stored.picking_status) === \"Completed\") {\n    continue;\n  }\n  const surv = survivingByLine[line];\n  if (!surv) lineStatusOverrides[line] = \"Cancelled\";\n  else if (surv.done) lineStatusOverrides[line] = \"Completed\";\n  else if (surv.progress) lineStatusOverrides[line] = \"In Progress\";\n  else lineStatusOverrides[line] = \"Created\";\n  if (lineFieldOverrides[line]) {\n    lineFieldOverrides[line].picking_status = lineStatusOverrides[line];\n  }\n}\n\nconst binIdsToName = Object.keys(binIdSet);\nif (binIdsToName.length === 0) binIdsToName.push(\"0\");\nconst batchIdsToName = Object.keys(batchIdSet);\nif (batchIdsToName.length === 0) batchIdsToName.push(\"0\");\n\nconst reversalNote = reversals\n  .map((r) => (r.item_name || r.item_code) + \": return \" + r.qty +\n    (r.currently_at && r.currently_at !== r.return_to ? \" (currently staged away from its source bin)\" : \"\"))\n  .join(\"; \");\n\n// --- roll the statuses up ---------------------------------------------------\nlet allDone = true, anyProgress = false, anyLive = false;\nlet ppAllDone = true, ppAnyProgress = false, ppAnyLive = false;\nfor (const p of linePlans) {\n  if (p.desired === 0) continue;\n  anyLive = true; ppAnyLive = true;\n  if (p.newPending > 0) { allDone = false; ppAllDone = false; }\n  if (p.picked > 0) { anyProgress = true; ppAnyProgress = true; }\n}\nfor (const row of otherRows) {\n  if (row.line_status === \"Cancelled\") continue;\n  anyLive = true;\n  if ((parseFloat(row.pending_process_qty) || 0) > 0) allDone = false;\n  if (row.line_status === \"Completed\" || row.line_status === \"In Progress\") anyProgress = true;\n}\nconst rollup = (live, done, progress) =>\n  !live ? \"Created\" : done ? \"Completed\" : progress ? \"In Progress\" : \"Created\";\n\nreturn {\n  reconcileNeeded: 1,\n  blockEdit: 0,\n  blockMessage: \"\",\n  pickingId: sid(picking.id),\n  pickingNo: pickingNo,\n  targetPickingToStatus: rollup(anyLive, allDone, anyProgress),\n  linePlans: linePlans,\n  lineStatusOverrides: lineStatusOverrides,\n  lineFieldOverrides: lineFieldOverrides,\n  headerPickingStatus: rollup(ppAnyLive, ppAllDone, ppAnyProgress),\n  hasReversals: reversals.length > 0 ? 1 : 0,\n  needsReversalConfirm: reversals.length > 0 && confirmReversal !== \"Yes\" ? 1 : 0,\n  reversals: reversals,\n  binIdsToName: binIdsToName,\n  batchIdsToName: batchIdsToName,\n  recordAdjustments: recordAdjustments,\n  reversalNote: reversalNote\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "pprrcn001",
+                    "name": "reconcileNeeded",
+                    "title": "reconcileNeeded",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprblk001",
+                    "name": "blockEdit",
+                    "title": "blockEdit",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprmsg001",
+                    "name": "blockMessage",
+                    "title": "blockMessage",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprpid001",
+                    "name": "pickingId",
+                    "title": "pickingId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprpno001",
+                    "name": "pickingNo",
+                    "title": "pickingNo",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprsts001",
+                    "name": "targetPickingToStatus",
+                    "title": "targetPickingToStatus",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprpln001",
+                    "name": "linePlans",
+                    "title": "linePlans",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprlso001",
+                    "name": "lineStatusOverrides",
+                    "title": "lineStatusOverrides",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprlfo001",
+                    "name": "lineFieldOverrides",
+                    "title": "lineFieldOverrides",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprhdr001",
+                    "name": "headerPickingStatus",
+                    "title": "headerPickingStatus",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprhrv001",
+                    "name": "hasReversals",
+                    "title": "hasReversals",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprnrc001",
+                    "name": "needsReversalConfirm",
+                    "title": "needsReversalConfirm",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprrev001",
+                    "name": "reversals",
+                    "title": "reversals",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprbin001",
+                    "name": "binIdsToName",
+                    "title": "binIdsToName",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprbat001",
+                    "name": "batchIdsToName",
+                    "title": "batchIdsToName",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "ppradj001",
+                    "name": "recordAdjustments",
+                    "title": "recordAdjustments",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "pprnot001",
+                    "name": "reversalNote",
+                    "title": "reversalNote",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_pp_pick_block",
+              "type": "if",
+              "data": {
+                "title": "IF Pick Reconcile Blocked",
+                "isValidator": true,
+                "nodeName": "IF Pick Reconcile Blocked",
+                "name": "IF Pick Reconcile Blocked",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1787900000002,
+                      "parentId": 1787900000001,
+                      "isTop": true,
+                      "prop": "node.code_pp_pick_reconcile.data.blockEdit",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "Block Edit",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_pp_pick_block_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "return_pp_pick_block",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Pick Block",
+                        "isValidator": true,
+                        "nodeName": "Return Pick Block",
+                        "name": "Return Pick Block",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pp_pick_reconcile.data.blockMessage}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_pp_pick_block_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_pp_pick_has_reversal",
+              "type": "if",
+              "data": {
+                "title": "IF Pick Reversal Needed",
+                "isValidator": true,
+                "nodeName": "IF Pick Reversal Needed",
+                "name": "IF Pick Reversal Needed",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1787900000014,
+                      "parentId": 1787900000013,
+                      "isTop": true,
+                      "prop": "node.code_pp_pick_reconcile.data.hasReversals",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "Has Reversals",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_pp_pick_has_reversal_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cond_all_pp_rev_names",
+                      "type": "condition-all-node",
+                      "data": {
+                        "title": "Pick Reversal - Names",
+                        "isValidator": true,
+                        "nodeName": "Pick Reversal - Names",
+                        "name": "Pick Reversal - Names"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cond_item_pp_rev_bins",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 1",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1787900000005,
+                                  "parentId": 1787900000006,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "true",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 1",
+                            "name": "Branch 1",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "search_pp_rev_bins",
+                              "type": "search-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Bin Location:Table:1902282127538507778",
+                                  "rules": {
+                                    "collectionId": "1902282127538507778",
+                                    "list": [
+                                      {
+                                        "id": 1787900000003,
+                                        "parentId": 1787900000004,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "equalAny",
+                                        "valueType": "field",
+                                        "value": "{{node:code_pp_pick_reconcile.data.binIdsToName}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal Any"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "limit": 1000,
+                                "title": "Get Reversal Bin Names",
+                                "isValidator": true,
+                                "nodeName": "Get Reversal Bin Names",
+                                "name": "Get Reversal Bin Names"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cond_item_pp_rev_batches",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 2",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1787900000009,
+                                  "parentId": 1787900000010,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "true",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 2",
+                            "name": "Branch 2",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "search_pp_rev_batches",
+                              "type": "search-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Batch:Table:1902719754154655746",
+                                  "rules": {
+                                    "collectionId": "1902719754154655746",
+                                    "list": [
+                                      {
+                                        "id": 1787900000007,
+                                        "parentId": 1787900000008,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "equalAny",
+                                        "valueType": "field",
+                                        "value": "{{node:code_pp_pick_reconcile.data.batchIdsToName}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal Any"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "limit": 1000,
+                                "title": "Get Reversal Batch Names",
+                                "isValidator": true,
+                                "nodeName": "Get Reversal Batch Names",
+                                "name": "Get Reversal Batch Names"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "code_pp_reversal_msg",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Build Plan Reversal Message",
+                        "isValidator": true,
+                        "nodeName": "Build Plan Reversal Message",
+                        "name": "Build Plan Reversal Message",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Turn the reversal plan into something an operator can act on, and finish the line\n// overrides the reconcile could not: picked_view_stock is a rendered summary of bin\n// and batch NAMES, and a code-node cannot fetch those. This node runs after the name\n// lookups and only when there is something to reverse.\nconst reversals = {{node:code_pp_pick_reconcile.data.reversals}} || [];\nconst pickingNo = {{node:code_pp_pick_reconcile.data.pickingNo}} || \"\";\nconst overrides = {{node:code_pp_pick_reconcile.data.lineFieldOverrides}} || {};\nconst allData = {{workflowparams:allData}};\n\nconst rawBins = {{node:search_pp_rev_bins.data.data}};\nconst bins = Array.isArray(rawBins) ? rawBins : rawBins ? [rawBins] : [];\nconst rawBatches = {{node:search_pp_rev_batches.data.data}};\nconst batches = Array.isArray(rawBatches) ? rawBatches : rawBatches ? [rawBatches] : [];\n\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\nconst round3 = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\n\nconst binName = {};\nfor (const b of bins) {\n  if (b && b.id) binName[sid(b.id)] = b.bin_location_combine || b.bin_name || sid(b.id);\n}\nconst batchName = {};\nfor (const b of batches) {\n  if (b && b.id) batchName[sid(b.id)] = b.batch_number || sid(b.id);\n}\nconst label = (id) => binName[sid(id)] || sid(id) || \"its source bin\";\nconst batchLabel = (id) => batchName[sid(id)] || sid(id);\n\n// --- the operator-facing message -------------------------------------------\n// Merge by item and bin pair so one line does not produce a wall of near-identical\n// bullets when several scans are unwound.\nconst merged = {};\nfor (const r of reversals) {\n  const key = r.item_code + \"|\" + r.return_to + \"|\" + r.currently_at;\n  if (!merged[key]) merged[key] = Object.assign({}, r, { qty: 0 });\n  merged[key].qty = round3(merged[key].qty + (parseFloat(r.qty) || 0));\n}\n\nconst lines = Object.keys(merged).map((k) => {\n  const r = merged[k];\n  const what = r.item_name || r.item_code;\n  // Where the pick moved the stock (a loading bay) the two bins differ, and saying\n  // so is the difference between a paper correction and a physical one. The released\n  // quantity is recorded as unrestricted where it currently sits, not where it came\n  // from, so carrying it back needs a Stock Movement to stay honest.\n  if (r.currently_at && r.currently_at !== r.return_to) {\n    return (\n      \"• \" + what + \": \" + r.qty + \" is staged at \" + label(r.currently_at) +\n      \" — move it back to \" + label(r.return_to) + \" and record it with a Stock Movement\"\n    );\n  }\n  return (\n    \"• \" + what + \": \" + r.qty + \" picked at \" + label(r.return_to) +\n    \" will be released (no physical move needed)\"\n  );\n});\n\nconst body = lines.join(\"\\n\");\n\n// --- picked_view_stock, rendered the way code_node_AGoxWP7x does ------------\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\nconst lineById = {};\nfor (const row of flattenRows(allData && allData.table_to)) {\n  if (row && row.id) lineById[sid(row.id)] = row;\n}\n// The UOM is already spelled out in whatever summary the line carries; reading it\n// back avoids a lookup that would tell us nothing new.\nconst uomOf = (row) => {\n  const m = /Total:\\s*[\\d.]+\\s+(\\S+)/.exec(\n    sid((row && row.picked_view_stock) || (row && row.view_stock) || \"\")\n  );\n  return m ? m[1] : sid(row && row.to_uom_id) || \"PCS\";\n};\nconst buildViewStock = (entries, uom) => {\n  const list = Array.isArray(entries) ? entries : [];\n  const total = round3(list.reduce((s, e) => s + round3(e.to_quantity), 0));\n  if (total <= 0) return \"\";\n  let out = \"Total: \" + total + \" \" + uom + \"\\n\\nDETAILS:\\n\";\n  list.forEach((e, i) => {\n    out += (i + 1) + \". \" + label(e.location_id) + \": \" + round3(e.to_quantity) + \" \" + uom;\n    if (e.batch_id) out += \"\\n[Batch: \" + batchLabel(e.batch_id) + \"]\";\n    out += \"\\n\";\n  });\n  return out;\n};\n\nconst lineFieldOverrides = {};\nfor (const id of Object.keys(overrides)) {\n  const ov = Object.assign({}, overrides[id]);\n  let entries = [];\n  try {\n    const parsed = JSON.parse(ov.picked_temp_qty_data || \"[]\");\n    entries = Array.isArray(parsed) ? parsed : [];\n  } catch (e) {\n    entries = [];\n  }\n  ov.picked_view_stock = buildViewStock(entries, uomOf(lineById[id]));\n  lineFieldOverrides[id] = ov;\n}\n\nreturn {\n  confirmMessage:\n    \"Reducing this plan reverses quantities already picked on \" + pickingNo + \":\\n\\n\" +\n    body +\n    \"\\n\\nThe Picking and the stock reservations will be updated. Proceed?\",\n  noticeMessage:\n    \"Picking \" + pickingNo + \" was adjusted. Stock to put back:\\n\\n\" + body,\n  reversalCount: lines.length,\n  lineFieldOverrides: lineFieldOverrides\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "ppmcnf001",
+                            "name": "confirmMessage",
+                            "title": "confirmMessage",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "ppmnot001",
+                            "name": "noticeMessage",
+                            "title": "noticeMessage",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "ppmcnt001",
+                            "name": "reversalCount",
+                            "title": "reversalCount",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "ppmlfo001",
+                            "name": "lineFieldOverrides",
+                            "title": "lineFieldOverrides",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_pp_reversal_confirm",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Needs Reversal Confirm",
+                        "isValidator": true,
+                        "nodeName": "IF Needs Reversal Confirm",
+                        "name": "IF Needs Reversal Confirm",
+                        "condition_type": "ConditionRule",
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1787900000012,
+                              "parentId": 1787900000011,
+                              "isTop": true,
+                              "prop": "node.code_pp_pick_reconcile.data.needsReversalConfirm",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "Needs Reversal Confirm",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_pp_reversal_confirm_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "return_pp_pick_reversal",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return Reversal Confirm",
+                                "isValidator": true,
+                                "nodeName": "Return Reversal Confirm",
+                                "name": "Return Reversal Confirm",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "propLabel": "code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "413",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pp_reversal_msg.data.confirmMessage}}",
+                                      "valueLabel": "",
+                                      "propLabel": "message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_pp_reversal_confirm_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_pp_pick_has_reversal_f",
                   "type": "ifBlock",
                   "data": {
                     "title": "false"
@@ -3796,7 +4381,7 @@
         "name": "Table TO",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{node:code_node_Nj60Z2XF.data.allData}};\n\n// A line that was fully picked reads picking_status \"Completed\". Raise its quantity\n// and it still reads Completed from when the quantity was lower -- and\n// PPconvertToPicking skips Completed lines, so the outstanding balance could never\n// be converted into a second Picking. The gate works out the real status per line\n// against the new quantity; this is the only node that writes table_to, so it is\n// where the correction has to land. Empty whenever nothing was gated.\nconst ppOverrides = {{node:code_node_pp_gate.data.lineStatusOverrides}} || {};\nconst ppHeaderStatus = {{node:code_node_pp_gate.data.headerPickingStatus}} || \"\";\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// Every decimal column on a line. A bundle keeps its items under `children` and\n// they are stored as lines in their own right, so they need the same treatment\n// -- a decimal left as a raw float is rejected on write.\nconst formatLine = (item) => ({\n  ...item,\n  picking_status:\n    ppOverrides[String(item.id || \"\")] || item.picking_status,\n  to_order_quantity: formatNumber(item.to_order_quantity),\n  to_delivered_qty: formatNumber(item.to_delivered_qty),\n  to_undelivered_qty: formatNumber(item.to_undelivered_qty),\n  to_qty: formatNumber(item.to_qty),\n  to_initial_delivered_qty: formatNumber(item.to_initial_delivered_qty),\n  picked_qty: formatNumber(item.picked_qty),\n  unit_price: formatNumber(item.unit_price),\n  total_price: formatNumber(item.total_price),\n});\n\n// Format table_to fields\nif (allData.table_to && allData.table_to.length > 0) {\n  allData.table_to = allData.table_to.map(item => ({\n    ...formatLine(item),\n    ...(Array.isArray(item.children) && {\n      children: item.children.map(formatLine),\n    }),\n  }));\n}\n\n// The header mirrors its own lines: a plan with an outstanding balance must stop\n// reading Completed, or nothing downstream treats it as still owing stock.\nif (ppHeaderStatus) allData.picking_status = ppHeaderStatus;\n\n// Format top-level fields\nallData.to_total = formatNumber(allData.to_total);\nif (allData.freight_charges) allData.freight_charges = formatNumber(allData.freight_charges);\nif (allData.delivery_cost) allData.delivery_cost = formatNumber(allData.delivery_cost);\n\nreturn {\n  allData: allData\n};\n"
+          "code": "let allData = {{node:code_node_Nj60Z2XF.data.allData}};\n\n// A line that was fully picked reads picking_status \"Completed\". Raise its quantity\n// and it still reads Completed from when the quantity was lower -- and\n// PPconvertToPicking skips Completed lines, so the outstanding balance could never\n// be converted into a second Picking. The gate works out the real status per line\n// against the new quantity; this is the only node that writes table_to, so it is\n// where the correction has to land. Empty whenever nothing was gated.\nconst ppOverrides = {{node:code_pp_pick_reconcile.data.lineStatusOverrides}} || {};\nconst ppHeaderStatus = {{node:code_pp_pick_reconcile.data.headerPickingStatus}} || \"\";\n\n// The reversal branch owns the enriched copy -- it is the only node that has the\n// bin and batch NAMES picked_view_stock has to be rendered from. Null when no\n// pick was unwound, and then nothing here changed anyway.\nconst ppFieldOverrides =\n  {{node:code_pp_reversal_msg.data.lineFieldOverrides}} ||\n  {{node:code_pp_pick_reconcile.data.lineFieldOverrides}} ||\n  {};\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// Every decimal column on a line. A bundle keeps its items under `children` and\n// they are stored as lines in their own right, so they need the same treatment\n// -- a decimal left as a raw float is rejected on write.\nconst formatLine = (item) => {\n  // Merge the reconcile's rewritten picked state in BEFORE formatting, or the\n  // toFixed below runs over the pre-reversal picked_qty and writes it back.\n  const src = { ...item, ...(ppFieldOverrides[String(item.id || \"\")] || {}) };\n  return {\n    ...src,\n    picking_status:\n      ppOverrides[String(item.id || \"\")] || src.picking_status,\n    to_order_quantity: formatNumber(src.to_order_quantity),\n    to_delivered_qty: formatNumber(src.to_delivered_qty),\n    to_undelivered_qty: formatNumber(src.to_undelivered_qty),\n    to_qty: formatNumber(src.to_qty),\n    to_initial_delivered_qty: formatNumber(src.to_initial_delivered_qty),\n    picked_qty: formatNumber(src.picked_qty),\n    gd_delivered_qty: formatNumber(src.gd_delivered_qty),\n    gd_undelivered_qty: formatNumber(src.gd_undelivered_qty),\n    unit_price: formatNumber(src.unit_price),\n    total_price: formatNumber(src.total_price),\n  };\n};\n\n// Format table_to fields\nif (allData.table_to && allData.table_to.length > 0) {\n  allData.table_to = allData.table_to.map(item => ({\n    ...formatLine(item),\n    ...(Array.isArray(item.children) && {\n      children: item.children.map(formatLine),\n    }),\n  }));\n}\n\n// The header mirrors its own lines: a plan with an outstanding balance must stop\n// reading Completed, or nothing downstream treats it as still owing stock.\nif (ppHeaderStatus) allData.picking_status = ppHeaderStatus;\n\n// Format top-level fields\nallData.to_total = formatNumber(allData.to_total);\nif (allData.freight_charges) allData.freight_charges = formatNumber(allData.freight_charges);\nif (allData.delivery_cost) allData.delivery_cost = formatNumber(allData.delivery_cost);\n\nreturn {\n  allData: allData\n};\n"
         },
         "response_json": [
           {
@@ -6329,18 +6914,58 @@
                           "value": 0
                         },
                         {
-                          "id": 1772005602658,
+                          "id": 1787910000010,
                           "parentId": 1770688167638,
                           "isTop": false,
-                          "prop": "node.get_node_MX4rxQLm.data.data.auto_trigger_to",
-                          "operator": "numberEqual",
+                          "prop": "workflowparams.isPicking",
+                          "operator": "isNull",
                           "valueType": "value",
-                          "value": 1,
                           "type": "leaf",
                           "level": 2,
-                          "propLabel": "Auto Trigger To",
+                          "propLabel": "isPicking",
                           "valueLabel": "",
-                          "operatorLabel": "Equal"
+                          "operatorLabel": "Is Null"
+                        },
+                        {
+                          "id": 1787910000001,
+                          "parentId": 1770688167638,
+                          "isTop": false,
+                          "prop": "",
+                          "operator": "any",
+                          "valueType": "",
+                          "value": "",
+                          "type": "branch",
+                          "level": 2,
+                          "children": [
+                            {
+                              "id": 1772005602658,
+                              "parentId": 1787910000001,
+                              "isTop": false,
+                              "prop": "node.get_node_MX4rxQLm.data.data.auto_trigger_to",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 3,
+                              "propLabel": "Auto Trigger To",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            },
+                            {
+                              "id": 1787910000002,
+                              "parentId": 1787910000001,
+                              "isTop": false,
+                              "prop": "node.code_pp_pick_reconcile.data.reconcileNeeded",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 3,
+                              "propLabel": "Reconcile Needed",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -6415,139 +7040,6 @@
                       "blocks": []
                     },
                     {
-                      "id": "if_2jVpjKvE",
-                      "type": "if",
-                      "data": {
-                        "title": "IF Existing Picking Created",
-                        "isValidator": true,
-                        "nodeName": "IF Existing Picking Created",
-                        "name": "IF Existing Picking Created",
-                        "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
-                        "filter": {
-                          "list": [
-                            {
-                              "id": 1770689360381,
-                              "parentId": 1770689360382,
-                              "isTop": true,
-                              "prop": "",
-                              "operator": "all",
-                              "valueType": "",
-                              "value": "",
-                              "type": "branch",
-                              "level": 1,
-                              "children": [
-                                {
-                                  "id": 1736695973613,
-                                  "parentId": 1770689360381,
-                                  "isTop": false,
-                                  "prop": "node.code_node_Nj60Z2XF.data.to_status",
-                                  "operator": "equal",
-                                  "valueType": "value",
-                                  "value": "Created",
-                                  "type": "leaf",
-                                  "level": 2,
-                                  "propLabel": "to_status",
-                                  "valueLabel": "",
-                                  "operatorLabel": "Equal"
-                                },
-                                {
-                                  "id": 1770689360383,
-                                  "parentId": 1770689360381,
-                                  "isTop": false,
-                                  "prop": "workflowparams.pageStatus",
-                                  "operator": "equal",
-                                  "valueType": "value",
-                                  "value": "Edit",
-                                  "type": "leaf",
-                                  "level": 2,
-                                  "propLabel": "pageStatus",
-                                  "valueLabel": "",
-                                  "operatorLabel": "Equal"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      },
-                      "blocks": [
-                        {
-                          "id": "ifBlock_JfFVRSLy",
-                          "type": "ifBlock",
-                          "data": { "title": "true" },
-                          "blocks": [
-                            {
-                              "id": "get_node_XFpQ0B1G",
-                              "type": "get-node",
-                              "data": {
-                                "table_id": {
-                                  "source": "Transfer Order Picking:Table:1935556443668959233",
-                                  "rules": {
-                                    "collectionId": "1935556443668959233",
-                                    "list": [
-                                      {
-                                        "id": 1770087811253,
-                                        "parentId": 1770087811254,
-                                        "isTop": true,
-                                        "type": "branch",
-                                        "operator": "all",
-                                        "prop": "",
-                                        "valueType": "",
-                                        "value": "",
-                                        "level": 1,
-                                        "children": [
-                                          {
-                                            "id": 1770087811258,
-                                            "parentId": 1770087811253,
-                                            "isTop": false,
-                                            "prop": "gd_no",
-                                            "operator": "in",
-                                            "valueType": "field",
-                                            "value": "{{node:code_node_Nj60Z2XF.data.allData.id}}",
-                                            "type": "leaf",
-                                            "level": 2,
-                                            "propLabel": "Reference Doc No",
-                                            "valueLabel": "",
-                                            "operatorLabel": "In"
-                                          },
-                                          {
-                                            "id": 1770087811255,
-                                            "parentId": 1770087811253,
-                                            "isTop": false,
-                                            "prop": "to_status",
-                                            "operator": "notEqual",
-                                            "valueType": "value",
-                                            "value": "Draft",
-                                            "type": "leaf",
-                                            "level": 2,
-                                            "propLabel": "Transfer Order Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Not Equal"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                },
-                                "condition": {},
-                                "title": "Get Picking",
-                                "isValidator": true,
-                                "nodeName": "Get Picking",
-                                "name": "Get Picking"
-                              },
-                              "blocks": []
-                            }
-                          ]
-                        },
-                        {
-                          "id": "ifBlock_NqNieLKp",
-                          "type": "ifBlock",
-                          "data": { "title": "false" },
-                          "blocks": []
-                        }
-                      ]
-                    },
-                    {
                       "id": "code_node_cDgPpyos",
                       "type": "code-node",
                       "data": {
@@ -6560,7 +7052,7 @@
                         "name": "Prepare Picking Data",
                         "script": {
                           "type": "javascript",
-                          "code": "// A bundle is ONE row with its items under `children` -- the same shape the source\n// document is stored in, and the same one the platform reads back. Nesting the\n// items rather than laying them out beside the bundle keeps the two together\n// whatever else reorders the table, and keeps the items out of the handling-unit\n// grouping, which only ever walks top-level rows.\nconst nestBundleRows = (rows) => {\n  const nested = [];\n  const bundleRowByLineId = new Map();\n\n  for (const row of rows) {\n    const parentLineId = row.bundle_parent_line_id;\n    delete row.bundle_parent_line_id;\n\n    if (!parentLineId) {\n      // The bundle row itself, keyed by the source line its items point back at.\n      // It is the only row carrying a bundle id but no item.\n      if (row.item_bundle_id && !row.item_code) {\n        bundleRowByLineId.set(String(row.gd_line_id || row.to_line_id || \"\"), row);\n      }\n\n      nested.push(row);\n      continue;\n    }\n\n    const parentRow = bundleRowByLineId.get(String(parentLineId));\n\n    // A bundle row is only created when its bundle still has something to pick.\n    // An item whose bundle row was never created stays a row of its own rather\n    // than being dropped from the picking altogether.\n    if (!parentRow) {\n      nested.push(row);\n      continue;\n    }\n\n    if (!Array.isArray(parentRow.children)) parentRow.children = [];\n    parentRow.children.push({ ...row, row_type: \"item\" });\n  }\n\n  return nested;\n};\n\nconst parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    console.error(\"JSON parse error:\", error);\n    return defaultValue;\n  }\n};\n\nconst allData = {{node:code_node_l5Y5WSQG.data.toData}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst ppId = allData.id\nconst pickingNoType = {{node:get_node_QQZAg4u9.data.data.id}};\nconst organizationId = allData.organization_id;\n\nconst existingTOData = {{node:get_node_zG6KDDEF.data.data}} || null;\nconst isUpdate = existingTOData && existingTOData.id ? 1 : 0;\nconst existingTO = isUpdate === 1 ? existingTOData : null;\n\n// Process table items with grouping for serialized items\nconst pickingItemGroups = new Map();\n\n// A bundle is ONE row of table_to with the bundle's items under `children`. The\n// bundle row holds no material and nothing is picked against it -- the\n// `item.material_id` guard below steps over it -- while its items are picked\n// like any other line, so the tree is walked flat. A document stored without\n// nesting passes through unchanged.\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\n// A bundle's items each carry item_bundle_id, but only the bundle row carries the\n// bundle's number (its material_name is the ib_no) -- and that row never becomes a\n// picking line, because nothing is picked against a bundle. The number is read off\n// it here so every component line can show which bundle it belongs to, which is what\n// lets the picker see that their quantities are locked together.\nconst bundleNoById = {};\n// The bundle rows themselves, kept whole: the bundle row is a picking line in its\n// own right -- it is the one the picker types on.\nconst bundleRowById = {};\nfor (const row of allData.table_to || []) {\n  if (row && row.item_bundle_id && !row.material_id) {\n    bundleNoById[String(row.item_bundle_id)] = row.material_name || \"\";\n    if (row.id != null) bundleRowById[String(row.id)] = row;\n  }\n}\n\n// Which bundle row each item hangs off. The same bundle can appear twice on one\n// document, and the all-or-nothing check has to judge each occurrence on its own --\n// grouping by the bundle alone would merge them and reject a picker who legitimately\n// completed one and left the other. Both shapes are read: nested under `children`\n// before the document is stored, flat through parent_id afterwards.\nconst bundleParentByLineId = {};\nfor (const row of allData.table_to || []) {\n  if (!row) continue;\n  for (const kid of Array.isArray(row.children) ? row.children : []) {\n    if (kid && kid.id != null) bundleParentByLineId[String(kid.id)] = String(row.id);\n  }\n  if (row.parent_id != null && row.parent_id !== \"\" && row.id != null) {\n    bundleParentByLineId[String(row.id)] = String(row.parent_id);\n  }\n}\n\nflattenRows(allData.table_to).forEach((item, toLineIndex) => {\n  // The bundle row itself, created the moment its first item appears so it lands\n  // directly above them. It holds no stock -- no material, no bin, no batch, no\n  // handling unit -- but it IS the line the picker works on: its quantity is the\n  // number of bundles, and every item under it follows from that by ratio. Only\n  // bundles that still have something to pick get one, which is why it is created\n  // from the surviving items rather than from the source rows.\n  const parentLineId = item.item_bundle_id\n    ? bundleParentByLineId[String(item.id)]\n    : null;\n  if (parentLineId && !pickingItemGroups.has(`bundle_${parentLineId}`)) {\n    const bundleRow = bundleRowById[String(parentLineId)];\n    if (bundleRow) {\n      pickingItemGroups.set(`bundle_${parentLineId}`, {\n        item_bundle_id: bundleRow.item_bundle_id || null,\n        bundle_parent_line_id: null,\n        item_code: \"\",\n        item_name: bundleRow.material_name || \"\",\n        item_desc: bundleRow.to_material_desc || \"\",\n        more_desc: bundleRow.more_desc || \"\",\n        batch_no: null,\n        qty_to_pick: parseFloat(bundleRow.to_qty) || 0,\n        item_uom: \"\",\n        source_bin: \"\",\n        pending_process_qty: parseFloat(bundleRow.to_qty) || 0,\n        line_status: \"Open\",\n        so_no: bundleRow.line_so_no,\n        to_no: allData.to_no,\n        so_id: String(bundleRow.line_so_id || \"\"),\n        so_line_id: String(bundleRow.so_line_item_id || \"\"),\n        to_id: ppId,\n        to_line_id: String(bundleRow.id),\n        serial_numbers: [],\n        is_serialized_item: 0,\n      });\n    }\n  }\n\n  if (item.temp_qty_data && item.material_id) {\n    try {\n      const tempData = parseJsonSafely(item.temp_qty_data);\n\n      tempData.forEach((tempItem) => {\n        const materialId = tempItem.material_id || item.material_id;\n        // Create a grouping key based on item, batch, location, and TO line index to prevent merging separate lines\n        const groupKey = `${materialId}_${tempItem.batch_id || \"no-batch\"}_${tempItem.location_id}_line${toLineIndex}`;\n\n        if (!pickingItemGroups.has(groupKey)) {\n          // Create new group\n          pickingItemGroups.set(groupKey, {\n            item_bundle_id: item.item_bundle_id || null,\n            bundle_parent_line_id: item.item_bundle_id\n              ? bundleParentByLineId[String(item.id)] || null\n              : null,\n            item_code: String(materialId),\n            item_name: item.material_name,\n            item_desc: item.to_material_desc || \"\",\n            more_desc: item.more_desc || \"\",\n            batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            qty_to_pick: 0,\n            item_uom: String(item.to_order_uom_id),\n            pending_process_qty: 0,\n            source_bin: String(tempItem.location_id),\n            line_status: \"Open\",\n            so_no: item.line_so_no,\n            to_no: allData.to_no,\n            so_id: item.line_so_id,\n            so_line_id: item.so_line_item_id,\n            to_id: ppId,\n            to_line_id: item.id,\n            serial_numbers: [],\n          });\n        }\n\n        const group = pickingItemGroups.get(groupKey);\n        group.qty_to_pick += parseFloat(tempItem.to_quantity);\n        group.pending_process_qty += parseFloat(tempItem.to_quantity);\n\n        // Add serial number if exists\n        if (tempItem.serial_number) {\n          group.serial_numbers.push(String(tempItem.serial_number));\n        }\n      });\n    } catch (error) {\n      console.error(`Error parsing temp_qty_data: ${error.message}`);\n    }\n  }\n});\n\n// Convert grouped items to picking items array\nconst tablePickingItems = [];\npickingItemGroups.forEach((group) => {\n  // Format serial numbers with comma if any exist\n  if (group.serial_numbers.length > 0) {\n    group.serial_numbers = group.serial_numbers.join(\", \");\n    group.is_serialized_item = 1;\n  } else {\n    delete group.serial_numbers;\n    group.is_serialized_item = 0;\n  }\n  tablePickingItems.push(group);\n});\n\ntablePickingItems.splice(0, tablePickingItems.length, ...nestBundleRows(tablePickingItems));\n\n// Get SO numbers for display\nconst soNOs = [...new Set(tablePickingItems.map((pi) => pi.so_no).filter(Boolean))];\n\n// Build the transfer order data\nconst transferOrderData = {\n  to_status: \"Created\",\n  to_id: 'issued',\n  to_id_type: pickingNoType,\n  plant_id: allData.plant_id,\n  organization_id: organizationId,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Picking Plan\",\n  to_no: [ppId],\n  so_no: soNOs.join(\", \"),\n  customer_id: allData.customer_name,\n  ref_doc: allData.to_ref_doc,\n  assigned_to: allData.assigned_to,\n  project_id: allData.project_id ?? \"\",\n  table_picking_items: tablePickingItems,\n  is_deleted: 0,\n};\n\n// Notification data\nlet notificationData = null;\nlet removedUsers = [];\nlet addedUsers = [];\n\nif (isUpdate === 1 && existingTO) {\n  // Prepare for update\n  transferOrderData.updated_by = allData.to_created_by;\n  transferOrderData.updated_at = new Date().toISOString();\n\n  // Determine notification recipients for update\n  if (existingTO.assigned_to && allData.assigned_to) {\n    const oldAssigned = Array.isArray(existingTO.assigned_to)\n      ? existingTO.assigned_to\n      : [existingTO.assigned_to];\n\n    const newAssigned = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n\n    // Users who were removed\n    removedUsers = oldAssigned.filter((userId) => !newAssigned.includes(userId));\n\n    // Users who were added\n    addedUsers = newAssigned.filter((userId) => !oldAssigned.includes(userId));\n  }\n} else {\n  // Prepare for create\n  transferOrderData.created_by = allData.to_created_by;\n  transferOrderData.created_at = new Date().toISOString().slice(0, 19).replace(\"T\", \" \");\n\n  // New assignment notification\n  if (allData.assigned_to && allData.assigned_to.length > 0) {\n    addedUsers = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n  }\n}\n\nreturn {\n  isUpdate,\n  existingTOId: existingTO ? existingTO.id : null,\n  existingTONo: existingTO ? existingTO.to_id : null,\n  transferOrderData,\n  ppId,\n  ppNo: allData.to_no,\n  removedUsers,\n  addedUsers,\n  pickingStatus: \"Created\",\n};\n"
+                          "code": "// A bundle is ONE row with its items under `children` -- the same shape the source\n// document is stored in, and the same one the platform reads back. Nesting the\n// items rather than laying them out beside the bundle keeps the two together\n// whatever else reorders the table, and keeps the items out of the handling-unit\n// grouping, which only ever walks top-level rows.\nconst nestBundleRows = (rows) => {\n  const nested = [];\n  const bundleRowByLineId = new Map();\n\n  for (const row of rows) {\n    const parentLineId = row.bundle_parent_line_id;\n    delete row.bundle_parent_line_id;\n\n    if (!parentLineId) {\n      // The bundle row itself, keyed by the source line its items point back at.\n      // It is the only row carrying a bundle id but no item.\n      if (row.item_bundle_id && !row.item_code) {\n        bundleRowByLineId.set(String(row.gd_line_id || row.to_line_id || \"\"), row);\n      }\n\n      nested.push(row);\n      continue;\n    }\n\n    const parentRow = bundleRowByLineId.get(String(parentLineId));\n\n    // A bundle row is only created when its bundle still has something to pick.\n    // An item whose bundle row was never created stays a row of its own rather\n    // than being dropped from the picking altogether.\n    if (!parentRow) {\n      nested.push(row);\n      continue;\n    }\n\n    if (!Array.isArray(parentRow.children)) parentRow.children = [];\n    parentRow.children.push({ ...row, row_type: \"item\" });\n  }\n\n  return nested;\n};\n\nconst parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    console.error(\"JSON parse error:\", error);\n    return defaultValue;\n  }\n};\n\nconst allData = {{node:code_node_l5Y5WSQG.data.toData}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst ppId = allData.id\nconst pickingNoType = {{node:get_node_QQZAg4u9.data.data.id}};\nconst organizationId = allData.organization_id;\n\nconst reconcilePlan = {{node:code_pp_pick_reconcile.data}} || {};\n\n// The Picking, not the plan. This used to read get_node_zG6KDDEF -- the plan's own\n// record -- so update_node_sLiANU7B filtered Picking.id against a plan id and\n// matched nothing: every edit silently left the Picking alone. Resolved out of the\n// same snapshot the reconcile classified against, because a fresh read could hold\n// rows the record adjustments no longer describe.\nconst rawPickings = {{node:search_node_pp_pickings.data.data}};\nconst pickings = Array.isArray(rawPickings)\n  ? rawPickings\n  : rawPickings\n    ? [rawPickings]\n    : [];\nconst targetPickingId = String(reconcilePlan.pickingId || \"\");\nconst existingTOData =\n  (targetPickingId\n    ? pickings.find((p) => String(p.id) === targetPickingId)\n    : pickings.find((p) => String(p.to_status || \"\") === \"Created\")) || null;\n// An edit never CREATES a Picking from here. A plan whose only Picking has closed\n// converts its remainder as a second one -- that is PPconvertToPicking's job, and\n// minting one here would leave the plan owning two. isUpdate stays 1 with a null\n// id, so the update node matches nothing, exactly how this path behaved before the\n// id it filters on was corrected.\nconst isUpdate = existingTOData ? 1 : pageStatus === \"Add\" ? 0 : 1;\nconst existingTO = existingTOData || null;\n\n// Process table items with grouping for serialized items\nconst pickingItemGroups = new Map();\n\n// A bundle is ONE row of table_to with the bundle's items under `children`. The\n// bundle row holds no material and nothing is picked against it -- the\n// `item.material_id` guard below steps over it -- while its items are picked\n// like any other line, so the tree is walked flat. A document stored without\n// nesting passes through unchanged.\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\n// A bundle's items each carry item_bundle_id, but only the bundle row carries the\n// bundle's number (its material_name is the ib_no) -- and that row never becomes a\n// picking line, because nothing is picked against a bundle. The number is read off\n// it here so every component line can show which bundle it belongs to, which is what\n// lets the picker see that their quantities are locked together.\nconst bundleNoById = {};\n// The bundle rows themselves, kept whole: the bundle row is a picking line in its\n// own right -- it is the one the picker types on.\nconst bundleRowById = {};\nfor (const row of allData.table_to || []) {\n  if (row && row.item_bundle_id && !row.material_id) {\n    bundleNoById[String(row.item_bundle_id)] = row.material_name || \"\";\n    if (row.id != null) bundleRowById[String(row.id)] = row;\n  }\n}\n\n// Which bundle row each item hangs off. The same bundle can appear twice on one\n// document, and the all-or-nothing check has to judge each occurrence on its own --\n// grouping by the bundle alone would merge them and reject a picker who legitimately\n// completed one and left the other. Both shapes are read: nested under `children`\n// before the document is stored, flat through parent_id afterwards.\nconst bundleParentByLineId = {};\nfor (const row of allData.table_to || []) {\n  if (!row) continue;\n  for (const kid of Array.isArray(row.children) ? row.children : []) {\n    if (kid && kid.id != null) bundleParentByLineId[String(kid.id)] = String(row.id);\n  }\n  if (row.parent_id != null && row.parent_id !== \"\" && row.id != null) {\n    bundleParentByLineId[String(row.id)] = String(row.parent_id);\n  }\n}\n\nflattenRows(allData.table_to).forEach((item, toLineIndex) => {\n  // The bundle row itself, created the moment its first item appears so it lands\n  // directly above them. It holds no stock -- no material, no bin, no batch, no\n  // handling unit -- but it IS the line the picker works on: its quantity is the\n  // number of bundles, and every item under it follows from that by ratio. Only\n  // bundles that still have something to pick get one, which is why it is created\n  // from the surviving items rather than from the source rows.\n  const parentLineId = item.item_bundle_id\n    ? bundleParentByLineId[String(item.id)]\n    : null;\n  if (parentLineId && !pickingItemGroups.has(`bundle_${parentLineId}`)) {\n    const bundleRow = bundleRowById[String(parentLineId)];\n    if (bundleRow) {\n      pickingItemGroups.set(`bundle_${parentLineId}`, {\n        item_bundle_id: bundleRow.item_bundle_id || null,\n        bundle_parent_line_id: null,\n        item_code: \"\",\n        item_name: bundleRow.material_name || \"\",\n        item_desc: bundleRow.to_material_desc || \"\",\n        more_desc: bundleRow.more_desc || \"\",\n        batch_no: null,\n        qty_to_pick: parseFloat(bundleRow.to_qty) || 0,\n        item_uom: \"\",\n        source_bin: \"\",\n        pending_process_qty: parseFloat(bundleRow.to_qty) || 0,\n        line_status: \"Open\",\n        so_no: bundleRow.line_so_no,\n        to_no: allData.to_no,\n        so_id: String(bundleRow.line_so_id || \"\"),\n        so_line_id: String(bundleRow.so_line_item_id || \"\"),\n        to_id: ppId,\n        to_line_id: String(bundleRow.id),\n        serial_numbers: [],\n        is_serialized_item: 0,\n      });\n    }\n  }\n\n  if (item.temp_qty_data && item.material_id) {\n    try {\n      const tempData = parseJsonSafely(item.temp_qty_data);\n\n      tempData.forEach((tempItem) => {\n        const materialId = tempItem.material_id || item.material_id;\n        // Create a grouping key based on item, batch, location, and TO line index to prevent merging separate lines\n        const groupKey = `${materialId}_${tempItem.batch_id || \"no-batch\"}_${tempItem.location_id}_line${toLineIndex}`;\n\n        if (!pickingItemGroups.has(groupKey)) {\n          // Create new group\n          pickingItemGroups.set(groupKey, {\n            item_bundle_id: item.item_bundle_id || null,\n            bundle_parent_line_id: item.item_bundle_id\n              ? bundleParentByLineId[String(item.id)] || null\n              : null,\n            item_code: String(materialId),\n            item_name: item.material_name,\n            item_desc: item.to_material_desc || \"\",\n            more_desc: item.more_desc || \"\",\n            batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            qty_to_pick: 0,\n            item_uom: String(item.to_order_uom_id),\n            pending_process_qty: 0,\n            source_bin: String(tempItem.location_id),\n            line_status: \"Open\",\n            so_no: item.line_so_no,\n            to_no: allData.to_no,\n            so_id: item.line_so_id,\n            so_line_id: item.so_line_item_id,\n            to_id: ppId,\n            to_line_id: item.id,\n            serial_numbers: [],\n          });\n        }\n\n        const group = pickingItemGroups.get(groupKey);\n        group.qty_to_pick += parseFloat(tempItem.to_quantity);\n        group.pending_process_qty += parseFloat(tempItem.to_quantity);\n\n        // Add serial number if exists\n        if (tempItem.serial_number) {\n          group.serial_numbers.push(String(tempItem.serial_number));\n        }\n      });\n    } catch (error) {\n      console.error(`Error parsing temp_qty_data: ${error.message}`);\n    }\n  }\n});\n\n// Convert grouped items to picking items array\nconst tablePickingItems = [];\npickingItemGroups.forEach((group) => {\n  // Format serial numbers with comma if any exist\n  if (group.serial_numbers.length > 0) {\n    group.serial_numbers = group.serial_numbers.join(\", \");\n    group.is_serialized_item = 1;\n  } else {\n    delete group.serial_numbers;\n    group.is_serialized_item = 0;\n  }\n  tablePickingItems.push(group);\n});\n\n// --- merge into the Picking that already exists ---------------------------\n// Handing back a freshly built array soft-deletes every plan row and re-inserts it\n// under a new id, which detaches whatever the picker has open. Merge instead:\n//   rows belonging to other plans are carried through verbatim -- one Picking can\n//     cover several;\n//   this plan's rows keep their id wherever the line/item/batch/bin key survives;\n//   rows with no counterpart are simply not emitted, which the platform soft-deletes;\n//   quantity already picked on a line is spread over the rows the plan now wants,\n//     so only the remainder is left open.\nconst flattenPlanRows = (rows) =>\n  (rows || []).flatMap((r) => [\n    r,\n    ...(Array.isArray(r.children) ? r.children : [])\n  ]);\n\nconst storedRows = flattenPlanRows(\n  existingTOData && existingTOData.table_picking_items\n).filter((r) => r && r.row_type !== \"header\");\n\nconst carriedRows = storedRows.filter(\n  (r) => String(r.to_id || \"\") !== String(ppId)\n);\n\n// No handling unit in the key: PP pick rows never set one, so including it would\n// stop every row matching its stored counterpart.\nconst planKeyOf = (r) =>\n  [\n    String(r.to_line_id || \"\"),\n    String(r.item_code || \"\"),\n    String(r.batch_no || \"\"),\n    String(r.source_bin || \"\")\n  ].join(\"|\");\n\nconst storedByKey = {};\nfor (const r of storedRows) {\n  if (String(r.to_id || \"\") !== String(ppId)) continue;\n  const k = planKeyOf(r);\n  if (!storedByKey[k]) storedByKey[k] = r;\n}\n\n// Keyed by line AND item: a line whose item was swapped carries two plans, and the\n// old item's picked quantity must not be handed to the new one.\nconst pickedLeft = {};\nfor (const lp of reconcilePlan.linePlans || []) {\n  const k = String(lp.to_line_id || \"\") + \"|\" + String(lp.item_code || \"\");\n  pickedLeft[k] = parseFloat(lp.picked) || 0;\n}\n// The reconcile only runs when the edit actually touches a picked line. On an\n// auto_trigger_to org every other edit reaches this node with no plan at all, and\n// rebuilding from temp_qty_data alone would reset the picker's progress to Open --\n// so read it back off the stored rows instead.\nif (!(reconcilePlan.linePlans || []).length) {\n  for (const r of storedRows) {\n    if (String(r.to_id || \"\") !== String(ppId)) continue;\n    if (r.line_status === \"Cancelled\") continue;\n    const k = String(r.to_line_id || \"\") + \"|\" + String(r.item_code || \"\");\n    const done =\n      (parseFloat(r.qty_to_pick) || 0) - (parseFloat(r.pending_process_qty) || 0);\n    if (done > 0) pickedLeft[k] = Math.round(((pickedLeft[k] || 0) + done) * 1000) / 1000;\n  }\n}\n\n// Rows that already carry progress get first claim on their line's picked quantity,\n// so a row whose bin is unchanged keeps its status rather than the progress landing\n// on a sibling row the picker never touched.\nconst progressOf = (r) => {\n  const s = storedByKey[planKeyOf(r)];\n  if (!s) return 0;\n  return Math.max(\n    0,\n    (parseFloat(s.qty_to_pick) || 0) - (parseFloat(s.pending_process_qty) || 0)\n  );\n};\n\nconst claimOrder = tablePickingItems\n  .slice()\n  .sort((a, b) => progressOf(b) - progressOf(a));\n\nfor (const row of claimOrder) {\n  const stored = storedByKey[planKeyOf(row)];\n  if (stored && stored.id) row.id = stored.id;\n\n  const slot = String(row.to_line_id || \"\") + \"|\" + String(row.item_code || \"\");\n  const want = parseFloat(row.qty_to_pick) || 0;\n  const available = pickedLeft[slot] || 0;\n  const take = Math.min(available, want);\n  if (take > 0) {\n    pickedLeft[slot] = Math.round((available - take) * 1000) / 1000;\n  }\n  row.pending_process_qty = Math.max(\n    0,\n    Math.round((want - take) * 1000) / 1000\n  );\n  row.line_status =\n    row.pending_process_qty <= 0\n      ? \"Completed\"\n      : take > 0\n        ? \"In Progress\"\n        : \"Open\";\n}\n\n// Records the reversal decided to shrink or drop. Everything else passes through\n// untouched, including other plans' records on a shared Picking. A record reduced\n// to zero is simply not emitted, which the platform soft-deletes -- the row\n// survives in the table for audit rather than being destroyed.\nconst storedRecords =\n  (existingTOData && existingTOData.table_picking_records) || [];\nconst recordAdjustments = {};\nfor (const a of reconcilePlan.recordAdjustments || []) {\n  recordAdjustments[String(a.id)] = a;\n}\n\nconst mergedRecords = [];\nfor (const rec of storedRecords) {\n  const adj = recordAdjustments[String(rec.id || \"\")];\n  if (!adj) {\n    mergedRecords.push(rec);\n    continue;\n  }\n  if (Number(adj.drop) === 1) continue;\n  mergedRecords.push({\n    ...rec,\n    store_out_qty: Math.max(\n      0,\n      Math.round((parseFloat(adj.store_out_qty) || 0) * 1000) / 1000\n    ),\n    picked_qty_alt: Math.max(\n      0,\n      Math.round((parseFloat(adj.picked_qty_alt) || 0) * 1000) / 1000\n    )\n  });\n}\n\ntablePickingItems.splice(0, tablePickingItems.length, ...nestBundleRows(tablePickingItems));\n\n// Get SO numbers for display\nconst soNOs = [...new Set(tablePickingItems.map((pi) => pi.so_no).filter(Boolean))];\n\n// Build the transfer order data\nconst transferOrderData = {\n  // On a create this is always \"Created\". On an update it is whatever the\n  // reconcile decided, falling back to the Picking's current status -- writing a\n  // flat \"Created\" here would silently demote a Picking that had moved on.\n  to_status:\n    reconcilePlan.targetPickingToStatus ||\n    (existingTOData && existingTOData.to_status) ||\n    \"Created\",\n  to_id: 'issued',\n  to_id_type: pickingNoType,\n  plant_id: allData.plant_id,\n  organization_id: organizationId,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Picking Plan\",\n  to_no: [ppId],\n  so_no: soNOs.join(\", \"),\n  customer_id: allData.customer_name,\n  ref_doc: allData.to_ref_doc,\n  assigned_to: allData.assigned_to,\n  project_id: allData.project_id ?? \"\",\n  table_picking_items: carriedRows.concat(tablePickingItems),\n  table_picking_records: mergedRecords,\n  is_deleted: 0,\n};\n\n// Notification data\nlet notificationData = null;\nlet removedUsers = [];\nlet addedUsers = [];\n\nif (isUpdate === 1 && existingTO) {\n  // Prepare for update\n  transferOrderData.updated_by = allData.to_created_by;\n  transferOrderData.updated_at = new Date().toISOString();\n\n  // Determine notification recipients for update\n  if (existingTO.assigned_to && allData.assigned_to) {\n    const oldAssigned = Array.isArray(existingTO.assigned_to)\n      ? existingTO.assigned_to\n      : [existingTO.assigned_to];\n\n    const newAssigned = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n\n    // Users who were removed\n    removedUsers = oldAssigned.filter((userId) => !newAssigned.includes(userId));\n\n    // Users who were added\n    addedUsers = newAssigned.filter((userId) => !oldAssigned.includes(userId));\n  }\n} else {\n  // Prepare for create\n  transferOrderData.created_by = allData.to_created_by;\n  transferOrderData.created_at = new Date().toISOString().slice(0, 19).replace(\"T\", \" \");\n\n  // New assignment notification\n  if (allData.assigned_to && allData.assigned_to.length > 0) {\n    addedUsers = Array.isArray(allData.assigned_to)\n      ? allData.assigned_to\n      : [allData.assigned_to];\n  }\n}\n\nreturn {\n  isUpdate,\n  existingTOId: existingTO ? existingTO.id : null,\n  existingTONo: existingTO ? existingTO.to_id : null,\n  transferOrderData,\n  ppId,\n  ppNo: allData.to_no,\n  removedUsers,\n  addedUsers,\n  pickingStatus: reconcilePlan.headerPickingStatus || \"Created\",\n};\n"
                         },
                         "response_json": [
                           {
@@ -6678,7 +7170,7 @@
                         "name": "Picking Create or Update",
                         "script": {
                           "type": "javascript",
-                          "code": "const preparedData = {{node:code_node_cDgPpyos.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n  project_id: transferOrderData.project_id,\n};\n\n// For CREATE operation - use full transferOrderData\n\n// For TO status update\nconst toUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  ppId: preparedData.ppId,\n  ppUpdateData: toUpdateFields,\n  ppNo: preparedData.ppNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
+                          "code": "const preparedData = {{node:code_node_cDgPpyos.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// This write path never carried a decimal allow-list. It got away with it because\n// every quantity was an addition of parseFloat'd values; the reconcile subtracts,\n// which is exactly the operation that yields 1.5999999999999999 and a BigDecimal\n// rejection on a decimal(65,3) column. Clamped at zero too -- a negative pending\n// quantity is rejected the same way.\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst PICKING_DECIMAL_COLS = [\n  \"qty_to_pick\",\n  \"pending_process_qty\",\n  \"picked_qty\",\n  \"packing_qty\",\n  \"packing_conversion\",\n  \"net_weight\",\n  \"weight_conversion\",\n  \"to_pick_alt\",\n  \"pending_alt\",\n  \"order_base_qty\",\n  \"picking_base_qty\",\n  \"delivered_qty_d_wsrys\",\n  \"undelivered_qty_d_xbozi\"\n];\nconst RECORD_DECIMAL_COLS = [\n  \"store_out_qty\",\n  \"picked_qty_alt\",\n  \"delivered_qty\",\n  \"reserved_qty\"\n];\nconst normalizeRow = (row, cols) => {\n  if (!row) return;\n  for (const col of cols) {\n    if (row[col] !== undefined && row[col] !== null && row[col] !== \"\") {\n      row[col] = Math.max(0, roundQty(row[col]));\n    }\n  }\n  if (Array.isArray(row.children)) row.children.forEach((c) => normalizeRow(c, cols));\n};\n(transferOrderData.table_picking_items || []).forEach((r) =>\n  normalizeRow(r, PICKING_DECIMAL_COLS)\n);\n(transferOrderData.table_picking_records || []).forEach((r) =>\n  normalizeRow(r, RECORD_DECIMAL_COLS)\n);\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  to_status: transferOrderData.to_status,\n  table_picking_records: transferOrderData.table_picking_records,\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n  project_id: transferOrderData.project_id,\n};\n\n// For CREATE operation - use full transferOrderData\n\n// For TO status update\nconst toUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  ppId: preparedData.ppId,\n  ppUpdateData: toUpdateFields,\n  ppNo: preparedData.ppNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
                         },
                         "response_json": [
                           {
@@ -6863,6 +7355,22 @@
                                 "props": {
                                   "modelName": "",
                                   "list": [
+                                    {
+                                      "prop": "to_status",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_furAo9AM.data.updateData.to_status}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Transfer Order Status"
+                                    },
+                                    {
+                                      "prop": "table_picking_records",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_furAo9AM.data.updateData.table_picking_records}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Picking Records"
+                                    },
                                     {
                                       "prop": "assigned_to",
                                       "valueType": "field",
@@ -7112,8 +7620,8 @@
                           "list": [
                             {
                               "prop": "picking_status",
-                              "valueType": "value",
-                              "value": "Created",
+                              "valueType": "field",
+                              "value": "{{node:code_node_furAo9AM.data.ppUpdateData.picking_status}}",
                               "operator": "",
                               "valueLabel": "",
                               "propLabel": "Picking Status"
@@ -9234,6 +9742,14 @@
               "value": "{{node:code_node_pcrIVrD3.data.toId}}",
               "valueLabel": "",
               "propLabel": "toId"
+            },
+            {
+              "prop": "pickingReversalNote",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_pp_reversal_msg.data.noticeMessage}}",
+              "valueLabel": "",
+              "propLabel": "pickingReversalNote"
             }
           ]
         },
