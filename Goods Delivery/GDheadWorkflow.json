@@ -228,7 +228,10 @@
         "nodeName": "IF Completed (GR Gate)",
         "name": "IF Completed (GR Gate)",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -279,7 +282,9 @@
         {
           "id": "if_gr_gate_completed_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_gr_soids",
@@ -466,7 +471,10 @@
                 "nodeName": "IF Has Linkage",
                 "name": "IF Has Linkage",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -490,7 +498,9 @@
                 {
                   "id": "if_gr_has_link_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "search_gr_its",
@@ -573,7 +583,9 @@
                 {
                   "id": "if_gr_has_link_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -625,7 +637,10 @@
                 "nodeName": "IF Fetch SO (auto-GR confirmed)",
                 "name": "IF Fetch SO (auto-GR confirmed)",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -649,7 +664,9 @@
                 {
                   "id": "if_gr_fetch_so_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "search_gr_so",
@@ -704,7 +721,9 @@
                 {
                   "id": "if_gr_fetch_so_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -770,7 +789,10 @@
                 "nodeName": "IF GR Gate",
                 "name": "IF GR Gate",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -835,7 +857,9 @@
                 {
                   "id": "if_block_gr_true",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_gr_gate",
@@ -878,7 +902,9 @@
                 {
                   "id": "if_block_gr_false",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -888,7 +914,9 @@
         {
           "id": "if_gr_gate_completed_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -934,7 +962,7 @@
         "name": "Zero Quantity Check",
         "script": {
           "type": "javascript",
-          "code": "const allData = {{workflowparams:allData}}\n\n\n// A bundle is ONE row of table_gd with the bundle's items under `children`. The\n// bundle row carries no material of its own and nothing is delivered against it;\n// its items are ordinary delivery lines that simply are not rows of table_gd.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\nconst zeroQtyArray = [];\nfor (const [index, gd] of allData.table_gd.entries()) {\n  if (isBundleParentRow(gd)) {\n    // The bundle row's own quantity is the number of bundles; what would be\n    // deleted is its items, so they are what is listed. A bundle with nothing\n    // left in it goes across as the bundle.\n    const kids = childrenOf(gd);\n    const zeroKids = [];\n\n    kids.forEach((child, childIndex) => {\n      if (child.gd_qty <= 0) zeroKids.push(`#${index + 1}/${childIndex + 1}`);\n    });\n\n    if (kids.length === 0 || zeroKids.length === kids.length) {\n      zeroQtyArray.push(`#${index + 1}`);\n    } else {\n      zeroQtyArray.push(...zeroKids);\n    }\n\n    continue;\n  }\n\n  if (gd.gd_qty <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\nlet hasZero = 0\nlet message = null;\nif (zeroQtyArray.length > 0) {\n  message = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\n    \", \",\n  )} ha${\n    zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n  } a zero deliver quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 deliver quantity. \\nWould you like to proceed?`;\n  hasZero = 1\n}\n\nlet pickingStatus = {{workflowparams:allData.picking_status}} || 'Not Required'\n\n// Every material on the delivery, bundle items included. The Get Items search\n// used to filter on `allData.table_gd.material_id`, and that projection only\n// reaches top-level rows -- an item under a bundle was never fetched, so the\n// quantity check found no Item for it and stopped the save with \"Material not\n// found\". The same fetch also supplies the stock_control / show_delivery flags\n// the descriptive-line tests rely on.\nconst materialIds = [];\nfor (const row of allData.table_gd || []) {\n  for (const line of [row, ...(Array.isArray(row.children) ? row.children : [])]) {\n    const id = line && line.material_id;\n    if (id && materialIds.indexOf(String(id)) === -1) {\n      materialIds.push(String(id));\n    }\n  }\n}\n\n// An empty `in` list is ambiguous; \"0\" matches nothing, as the GR gate does.\nif (materialIds.length === 0) materialIds.push(\"0\");\n\nreturn {\n  message,\n  hasZero,\n  pickingStatus,\n  materialIds\n};\n"
+          "code": "const allData = {{workflowparams:allData}}\n\n\n// A bundle is ONE row of table_gd with the bundle's items under `children`. The\n// bundle row carries no material of its own and nothing is delivered against it;\n// its items are ordinary delivery lines that simply are not rows of table_gd.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\nconst zeroQtyArray = [];\nfor (const [index, gd] of allData.table_gd.entries()) {\n  if (isBundleParentRow(gd)) {\n    // The bundle row's own quantity is the number of bundles; what would be\n    // deleted is its items, so they are what is listed. A bundle with nothing\n    // left in it goes across as the bundle.\n    const kids = childrenOf(gd);\n    const zeroKids = [];\n\n    kids.forEach((child, childIndex) => {\n      if (child.gd_qty <= 0) zeroKids.push(`#${index + 1}/${childIndex + 1}`);\n    });\n\n    if (kids.length === 0 || zeroKids.length === kids.length) {\n      zeroQtyArray.push(`#${index + 1}`);\n    } else {\n      zeroQtyArray.push(...zeroKids);\n    }\n\n    continue;\n  }\n\n  if (gd.gd_qty <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\nlet hasZero = 0\nlet message = null;\nif (zeroQtyArray.length > 0) {\n  message = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\n    \", \",\n  )} ha${\n    zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n  } a zero deliver quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 deliver quantity. \\nWould you like to proceed?`;\n  hasZero = 1\n}\n\nlet pickingStatus = {{workflowparams:allData.picking_status}} || 'Not Required'\n\n// Every material on the delivery, bundle items included. The Get Items search\n// used to filter on `allData.table_gd.material_id`, and that projection only\n// reaches top-level rows -- an item under a bundle was never fetched, so the\n// quantity check found no Item for it and stopped the save with \"Material not\n// found\". The same fetch also supplies the stock_control / show_delivery flags\n// the descriptive-line tests rely on.\nconst materialIds = [];\nfor (const row of allData.table_gd || []) {\n  for (const line of [row, ...(Array.isArray(row.children) ? row.children : [])]) {\n    const id = line && line.material_id;\n    if (id && materialIds.indexOf(String(id)) === -1) {\n      materialIds.push(String(id));\n    }\n  }\n}\n\n// An empty `in` list is ambiguous; \"0\" matches nothing, as the GR gate does.\nif (materialIds.length === 0) materialIds.push(\"0\");\n\n// Both values are interpolated into sql_node_ItemFlags and come from the\n// caller's payload. These ids are snowflake bigints, so digits-only is an\n// exact filter; a dropped id simply misses, exactly as the old `in` did.\nconst isId = (v) => /^[0-9]+$/.test(String(v));\nconst organizationId = isId(allData.organization_id)\n  ? String(allData.organization_id)\n  : \"0\";\n\n// CSV form of the same ids, for the Get Items sql-node to FIND_IN_SET on.\nconst materialIdCsv = materialIds.filter(isId).join(\",\") || \"0\";\n\nreturn {\n  message,\n  hasZero,\n  pickingStatus,\n  materialIds,\n  materialIdCsv,\n  organizationId\n};\n"
         },
         "response_json": [
           {
@@ -969,6 +997,24 @@
             "description": "",
             "bsonType": "array",
             "isExpand": false
+          },
+          {
+            "key": "zq5midcsv",
+            "name": "materialIdCsv",
+            "title": "materialIdCsv",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "zq6orgid",
+            "name": "organizationId",
+            "title": "organizationId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
@@ -983,7 +1029,10 @@
         "nodeName": "IF Zero Qty",
         "name": "IF Zero Qty",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -1075,7 +1124,9 @@
         {
           "id": "if_block_UupLRRkz",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_NItDUCI2",
@@ -1118,7 +1169,9 @@
         {
           "id": "if_block_32_Wi01g",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1128,8 +1181,12 @@
       "type": "condition-all-node",
       "data": {
         "title": "Fetch Setup & Items",
-        "filter": { "list": [] },
-        "expression": { "code": "" },
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -1153,7 +1210,10 @@
                 }
               ]
             },
-            "expression": { "code": "true", "type": "javascript" },
+            "expression": {
+              "code": "true",
+              "type": "javascript"
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Branch 1",
@@ -1217,7 +1277,10 @@
                 }
               ]
             },
-            "expression": { "code": "true", "type": "javascript" },
+            "expression": {
+              "code": "true",
+              "type": "javascript"
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Branch 2",
@@ -1226,78 +1289,67 @@
           },
           "blocks": [
             {
-              "id": "search_node_w1NxF9TX",
-              "type": "search-node",
+              "id": "sql_node_ItemFlags",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "id": 1779333617849,
-                        "parentId": 1779333617848,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1779333700001,
-                            "parentId": 1779333617849,
-                            "isTop": false,
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_shTWK0Nm.data.materialIds}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "id",
-                            "valueLabel": "",
-                            "operatorLabel": "In"
-                          },
-                          {
-                            "id": 1779333700002,
-                            "parentId": 1779333617849,
-                            "isTop": false,
-                            "prop": "organization_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{workflowparams:allData.organization_id}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Organization",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1779333700003,
-                            "parentId": 1779333617849,
-                            "isTop": false,
-                            "prop": "is_deleted",
-                            "operator": "equal",
-                            "valueType": "value",
-                            "value": 0,
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Is Deleted",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 500,
+                "database_id": "",
+                "sql": "",
+                "params": {},
                 "title": "Get Items",
                 "isValidator": true,
                 "nodeName": "Get Items",
-                "name": "Get Items"
+                "name": "Get Items",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT i.id,\n       i.material_code,\n       i.stock_control,\n       i.show_delivery,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'over_delivery_tolerance', u.over_delivery_tolerance))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM item i\nWHERE FIND_IN_SET(CAST(i.id AS CHAR), '{{node:code_node_shTWK0Nm.data.materialIdCsv}}') > 0\n  AND i.organization_id = '{{node:code_node_shTWK0Nm.data.organizationId}}'\n  AND i.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "if1id000",
+                    "name": "id",
+                    "title": "Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "if2mcode",
+                    "name": "material_code",
+                    "title": "Material Code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "if3sctrl",
+                    "name": "stock_control",
+                    "title": "Stock Control",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "if4shdel",
+                    "name": "show_delivery",
+                    "title": "Show Delivery",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "if5uomjs",
+                    "name": "uom_conversion_json",
+                    "title": "UOM Conversion JSON",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
               },
               "blocks": []
             }
@@ -1323,7 +1375,10 @@
                 }
               ]
             },
-            "expression": { "code": "true", "type": "javascript" },
+            "expression": {
+              "code": "true",
+              "type": "javascript"
+            },
             "displayContent": "sdk.form.setCondition",
             "isValidator": true,
             "nodeName": "Branch 3",
@@ -1529,7 +1584,10 @@
         "nodeName": "IF Auto PickingMode",
         "name": "IF Auto PickingMode",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -1607,7 +1665,9 @@
         {
           "id": "if_block_Sro9Nomv",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_kJx9p9Nh",
@@ -1622,7 +1682,7 @@
                 "name": "prepareAllocationData",
                 "script": {
                   "type": "javascript",
-                  "code": "const allData = {{workflowparams:allData}};\nconst tableGd = allData.table_gd || [];\nconst itemDataRaw = {{node:search_node_w1NxF9TX.data.data}} || [];\n\n// Normalize Get Items output (may be single object when count=1) and build flags lookup\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\nconst itemFlagsMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemFlagsMap[it.id] = {\n      stock_control: it.stock_control,\n      show_delivery: it.show_delivery\n    };\n  }\n}\n\n// Filter rows that need allocation:\n// - gd_qty > 0\n// - no existing allocation (temp_qty_data)\n// - has material_id\n// - not a description-only row (stock_control=0 AND show_delivery=0)\n\n// A bundle is ONE row of table_gd with the bundle's items under `children`. The\n// bundle row owns no stock, so allocation steps over it; its items are allocated\n// like any other line. Rows are numbered by their position in this flat walk --\n// the same numbering the allocation tracker and the cross-line distribution use,\n// so all three agree on what \"line 3\" means.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\n// parentIndex/childIndex is the address that writes the result back into the\n// tree; childIndex is null on a top-level row.\nconst rowsNeedingAllocation = [];\nconst flatRows = [];\n\ntableGd.forEach((row, parentIndex) => {\n  flatRows.push({ row: row, parentIndex: parentIndex, childIndex: null });\n\n  (Array.isArray(row.children) ? row.children : []).forEach((child, childIndex) => {\n    flatRows.push({ row: child, parentIndex: parentIndex, childIndex: childIndex });\n  });\n});\n\nflatRows.forEach((entry, index) => {\n  const row = entry.row;\n  const gdQty = parseFloat(row.gd_qty) || 0;\n  const hasTempData = row.temp_qty_data && \n                      row.temp_qty_data !== \"[]\" && \n                      row.temp_qty_data.trim() !== \"\";\n  \n  if (gdQty <= 0 || hasTempData || !row.material_id) return;\n  \n  const flags = itemFlagsMap[row.material_id];\n  if (flags && flags.stock_control === 0 && flags.show_delivery === 0) {\n    return;\n  }\n  \n  rowsNeedingAllocation.push({\n    rowIndex: index,\n    parentIndex: entry.parentIndex,\n    childIndex: entry.childIndex,\n    materialId: row.material_id,\n    quantity: gdQty,\n    uomId: row.gd_order_uom_id,\n    plantId: allData.plant_id,\n    organizationId: allData.organization_id,\n    soLineItemId: row.so_line_item_id || null\n  });\n});\n\n// Initialize allocation tracker for cross-row deduplication\nconst allocationTracker = {};\n\nreturn {\n  rowsNeedingAllocation,\n  allocationTracker,\n  plantId: allData.plant_id,\n  organizationId: allData.organization_id,\n  totalRowsToAllocate: rowsNeedingAllocation.length\n};\n"
+                  "code": "const allData = {{workflowparams:allData}};\nconst tableGd = allData.table_gd || [];\nconst itemDataRaw = {{node:sql_node_ItemFlags.data}} || [];\n\n// Normalize Get Items output (may be single object when count=1) and build flags lookup\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\n// The sql-node may hand these back as strings; null must stay non-matching.\nconst asFlag = (v) => (v === null || v === undefined || v === \"\" ? null : Number(v));\nconst itemFlagsMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemFlagsMap[it.id] = {\n      stock_control: asFlag(it.stock_control),\n      show_delivery: asFlag(it.show_delivery)\n    };\n  }\n}\n\n// Filter rows that need allocation:\n// - gd_qty > 0\n// - no existing allocation (temp_qty_data)\n// - has material_id\n// - not a description-only row (stock_control=0 AND show_delivery=0)\n\n// A bundle is ONE row of table_gd with the bundle's items under `children`. The\n// bundle row owns no stock, so allocation steps over it; its items are allocated\n// like any other line. Rows are numbered by their position in this flat walk --\n// the same numbering the allocation tracker and the cross-line distribution use,\n// so all three agree on what \"line 3\" means.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\n// parentIndex/childIndex is the address that writes the result back into the\n// tree; childIndex is null on a top-level row.\nconst rowsNeedingAllocation = [];\nconst flatRows = [];\n\ntableGd.forEach((row, parentIndex) => {\n  flatRows.push({ row: row, parentIndex: parentIndex, childIndex: null });\n\n  (Array.isArray(row.children) ? row.children : []).forEach((child, childIndex) => {\n    flatRows.push({ row: child, parentIndex: parentIndex, childIndex: childIndex });\n  });\n});\n\nflatRows.forEach((entry, index) => {\n  const row = entry.row;\n  const gdQty = parseFloat(row.gd_qty) || 0;\n  const hasTempData = row.temp_qty_data && \n                      row.temp_qty_data !== \"[]\" && \n                      row.temp_qty_data.trim() !== \"\";\n  \n  if (gdQty <= 0 || hasTempData || !row.material_id) return;\n  \n  const flags = itemFlagsMap[row.material_id];\n  if (flags && flags.stock_control === 0 && flags.show_delivery === 0) {\n    return;\n  }\n  \n  rowsNeedingAllocation.push({\n    rowIndex: index,\n    parentIndex: entry.parentIndex,\n    childIndex: entry.childIndex,\n    materialId: row.material_id,\n    quantity: gdQty,\n    uomId: row.gd_order_uom_id,\n    plantId: allData.plant_id,\n    organizationId: allData.organization_id,\n    soLineItemId: row.so_line_item_id || null\n  });\n});\n\n// Initialize allocation tracker for cross-row deduplication\nconst allocationTracker = {};\n\nreturn {\n  rowsNeedingAllocation,\n  allocationTracker,\n  plantId: allData.plant_id,\n  organizationId: allData.organization_id,\n  totalRowsToAllocate: rowsNeedingAllocation.length\n};\n"
                 },
                 "response_json": [
                   {
@@ -1692,7 +1752,10 @@
                 "nodeName": "IF has Row to Allocate",
                 "name": "IF has Row to Allocate",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -1716,7 +1779,9 @@
                 {
                   "id": "if_block_jktld0Z7",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_SqL4Tv8v",
@@ -2579,7 +2644,9 @@
                             {
                               "id": "if_block_V381oa7o",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_5P3FRqSV",
@@ -2622,7 +2689,9 @@
                             {
                               "id": "if_block_-wtUEseq",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -2676,7 +2745,10 @@
                             "nodeName": "IF Batch",
                             "name": "IF Batch",
                             "condition_type": "ConditionRule",
-                            "expression": { "type": "javascript", "code": "" },
+                            "expression": {
+                              "type": "javascript",
+                              "code": ""
+                            },
                             "filter": {
                               "list": [
                                 {
@@ -2700,7 +2772,9 @@
                             {
                               "id": "if_block_ypmoTjln",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "search_node_xc9mUWL8",
@@ -2742,7 +2816,9 @@
                             {
                               "id": "if_block_tlhi7oe6",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -2961,7 +3037,9 @@
                 {
                   "id": "if_block_40iztl0D",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3011,7 +3089,9 @@
         {
           "id": "if_block_ZP4fqqZ6",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -3051,7 +3131,9 @@
         {
           "id": "if_block_IV1UFp6I",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_node_xTRvHWB8",
@@ -3171,7 +3253,10 @@
                 "nodeName": "IF Picking Status In Progress",
                 "name": "IF Picking Status In Progress",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -3222,7 +3307,9 @@
                 {
                   "id": "if_block_cCKAvfPa",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "if_o5z3RcOy",
@@ -3233,7 +3320,10 @@
                         "nodeName": "IF save As Created",
                         "name": "IF save As Created",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -3297,7 +3387,9 @@
                         {
                           "id": "if_block_sHADlaZ7",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "return_node_nfXyTYIt",
@@ -3340,7 +3432,9 @@
                         {
                           "id": "if_block_8ewirjXQ",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -3350,7 +3444,9 @@
                 {
                   "id": "if_block_hw7vRxru",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3360,7 +3456,9 @@
         {
           "id": "if_block_jVPR26YY",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -3374,7 +3472,10 @@
         "nodeName": "IF Check Multiple Created Picking",
         "name": "IF Check Multiple Created Picking",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -3477,7 +3578,9 @@
         {
           "id": "if_block_PoEPyLHo",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "search_node_NBAQ9gsj",
@@ -3546,7 +3649,9 @@
         {
           "id": "if_block_iV0Bv6NW",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -3564,7 +3669,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:code_picking_defaults.data.gdSetup}};\nconst pageStatus = {{workflowparams:pageStatus}}\n// skip_picking (internal auto-GR): treat picking as not required across the whole GD\n// lifecycle (incl. Created), so no picking_status is stamped and no picking TO is created.\nconst skipPickingGate = {{node:code_gr_gate.data.skipPicking}} || 0;\nif (skipPickingGate === 1 && pickingSetup) { pickingSetup.picking_required = 0; }\n\n// Cancel gate: a Completed Goods Delivery has already moved inventory and\n// posted downstream. It cannot be cancelled through this save path — it must\n// be reversed via the proper completion-reversal flow. Block the save with a\n// clear error, reusing the invalidData -> 400 path (if_vnwLSl9x).\nif (saveAs === \"Cancelled\" && allData.gd_status === \"Completed\") {\n  return {\n    allData: allData,\n    gd_status: allData.gd_status,\n    needCL: \"not required\",\n    picking_status: allData.picking_status,\n    packing_status: allData.packing_status,\n    needSOCleanUp: 0,\n    invalidData: 1,\n    invalidDataMessage: \"Cannot cancel Goods Delivery \" + (allData.delivery_no || \"\") + \" because it is already Completed. Reverse the completion before cancelling.\"\n  };\n}\n\n// M:N edit gate: when allow_full_picking=1 AND user is editing a GD that has\n// multiple non-terminal Pickings (Created / In Progress), block the save with\n// a clear error. Forces user to cancel or complete those Pickings before\n// modifying the GD upstream of them. Reuses the invalidData -> 400 path\n// (if_vnwLSl9x).\nif (\n  pickingSetup &&\n  pickingSetup.allow_full_picking === 1 &&\n  saveAs === \"Created\" &&\n  pageStatus === \"Edit\"\n) {\n  const activePickings = ({{node:search_node_NBAQ9gsj.data.data}} || [])\n    .filter(function(to) {\n      return to.to_status !== \"Completed\" &&\n             to.to_status !== \"Cancelled\" &&\n             to.to_status !== \"Draft\";\n    });\n  if (activePickings.length > 1) {\n    const list = activePickings\n      .map(function(to) { return to.to_id || to.id; })\n      .slice(0, 5)\n      .join(\", \");\n    const suffix = activePickings.length > 5\n      ? \" (+\" + (activePickings.length - 5) + \" more)\"\n      : \"\";\n    return {\n      allData: allData,\n      gd_status: allData.gd_status,\n      needCL: \"not required\",\n      picking_status: allData.picking_status,\n      packing_status: allData.packing_status,\n      needSOCleanUp: 0,\n      invalidData: 1,\n      invalidDataMessage: \"Cannot edit this Goods Delivery while \" + activePickings.length + \" Pickings are active: \" + list + suffix + \". Cancel or complete those Pickings before editing.\"\n    };\n  }\n}\n\nconst skippedRows = [];\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// A bundle is ONE row of table_gd with the bundle's items under `children`.\n// The bundle row carries no material of its own, so it already falls through\n// the descriptive-line branch below and is never asked for an allocation --\n// which is right, nothing is picked against a bundle. Its items, though, are\n// ordinary delivery lines and must be stamped, quantity-checked and counted\n// like any other row, and they are not rows of table_gd.\n//\n// So the loop below walks a flat view. Survivors are collected flat (which is\n// what hasRealStockRow and the picking rollup need to see) and folded back into\n// the tree at the end, because that is the shape the document is stored in.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\n// Survivors, by identity -- the loop mutates rows in place, so this only has to\n// record which ones made it through.\nconst survived = new Set();\n\nconst roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\n\n// A bundle is delivered as a whole: every item under it is the bundle's own\n// quantity times the number of bundles. Delivering 2 of item A against 1 of item\n// B, when the bundle holds one of each, is not a bundle -- and the form is the\n// only thing stopping it, so anything reaching this workflow by another route\n// (a headless convert, an API call, a stale page) would persist it.\n//\n// The rate comes off the delivery rather than out of the bundle: an item ordered\n// N times the bundle's own ordered quantity is N per bundle. That is the same\n// ratio the bundle defines, already carried on every row, so no lookup is needed.\nconst bundleRatioProblem = (parent, child) => {\n  const bundlesOrdered = parseFloat(parent.gd_order_quantity) || 0;\n\n  // Nothing to derive a rate from -- leave the line alone rather than guess.\n  if (bundlesOrdered <= 0) return null;\n\n  const perBundleQty =\n    (parseFloat(child.gd_order_quantity) || 0) / bundlesOrdered;\n  const expected = roundQty(perBundleQty * (parseFloat(parent.gd_qty) || 0));\n  const actual = roundQty(child.gd_qty);\n\n  return Math.abs(actual - expected) > 0.001 ? { expected, actual } : null;\n};\n\n// Build flags map from Get Items (only populated when picking_mode=Auto ran).\n// Used to detect description-only rows: stock_control=0 AND show_delivery=0.\nconst itemDataRaw = {{node:search_node_w1NxF9TX.data.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\nconst itemFlagsMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemFlagsMap[it.id] = {\n      stock_control: it.stock_control,\n      show_delivery: it.show_delivery\n    };\n  }\n}\n\nif ({{node:code_picking_defaults.data.pickingMode}} === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\n// Flattened AFTER the Auto-picking swap above, not before: that swap replaces\n// table_gd wholesale with the allocated copy, so a view taken any earlier points\n// at the pre-allocation rows -- every line then looks unallocated, and the\n// survivor set below holds objects that are no longer in the tree.\nconst flatEntries = [];\nallData.table_gd.forEach((row, parentIndex) => {\n  flatEntries.push({ row: row, parentIndex: parentIndex, childIndex: null });\n\n  childrenOf(row).forEach((child, childIndex) => {\n    flatEntries.push({ row: child, parentIndex: parentIndex, childIndex: childIndex });\n  });\n});\n\nfor (const entry of flatEntries) {\n  const gdLineItem = entry.row;\n  const index = entry.parentIndex;\n  // A number on a top-level row, `parent/child` on an item under a bundle --\n  // line_index is a text column, so the label is safe to store.\n  const lineLabel =\n    entry.childIndex === null\n      ? index + 1\n      : `${index + 1}/${entry.childIndex + 1}`;\n\n  if (entry.childIndex !== null && saveAs !== \"Draft\") {\n    const bundleParent = allData.table_gd[entry.parentIndex];\n\n    if (bundleParent && isBundleParentRow(bundleParent)) {\n      const ratio = bundleRatioProblem(bundleParent, gdLineItem);\n\n      if (ratio) {\n        skippedRows.push({\n          index: index,\n          line_label: lineLabel,\n          kind: \"bundle\",\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `item bundle quantities must stay in proportion - expected ${ratio.expected}, got ${ratio.actual}`,\n        });\n        continue;\n      }\n    }\n  }\n\n  if (saveAs !== \"Draft\" && (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0)) {\n    continue;\n  }\n\n  // Descriptive (no-stock) line: material_id empty, OR item has stock_control=0 AND show_delivery=0\n  const flags = gdLineItem.material_id ? itemFlagsMap[gdLineItem.material_id] : null;\n  const isNonStockNoShow = flags && flags.stock_control === 0 && flags.show_delivery === 0;\n  const isDescriptive = !gdLineItem.material_id || gdLineItem.material_id === \"\" || isNonStockNoShow;\n  if (isDescriptive) {\n    const hasDescription =\n      (gdLineItem.material_name && gdLineItem.material_name !== \"\") ||\n      (gdLineItem.gd_material_desc && gdLineItem.gd_material_desc !== \"\");\n    if (!hasDescription && saveAs !== \"Draft\") {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: \"(none)\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"row has no material_id and no description\",\n      });\n      continue;\n    }\n    gdLineItem.customer_id = allData.customer_name || null;\n    gdLineItem.organization_id = allData.organization_id;\n    gdLineItem.plant_id = allData.plant_id || null;\n    gdLineItem.billing_state_id = allData.billing_address_state || null;\n    gdLineItem.billing_country_id = allData.billing_address_country || null;\n    gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n    gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n    gdLineItem.assigned_to = allData.assigned_to || null;\n    gdLineItem.area_id = allData.gd_area_id || null;\n    gdLineItem.line_index = lineLabel;\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.picking_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n    }\n    if (\n      pickingSetup &&\n      allData.is_select_picking !== 1 &&\n      (!allData.picking_status || allData.picking_status === \"\") &&\n      saveAs === \"Created\" &&\n      pickingSetup.picking_required === 1\n    ) {\n      // Descriptive lines have no picking item — mark Completed so the GD-level\n      // picking_status can flip to Completed once the real stock rows are picked.\n      gdLineItem.picking_status = \"Completed\";\n    }\n    // Same treatment for packing_status: descriptive lines have no packing item,\n    // so they must be marked Completed for the GD-level rollup to succeed.\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.packing_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.packing_status = gdLineItem.packing_status ? \"Cancelled\" : null;\n    } else if (saveAs === \"Created\" && allData.is_select_picking !== 1) {\n      gdLineItem.packing_status = \"Completed\";\n    }\n    survived.add(gdLineItem);\n    updatedGD.push(gdLineItem);\n    continue;\n  }\n\n  if (saveAs !== \"Draft\") {\n    const tempQtyData = gdLineItem.temp_qty_data;\n    const isEmpty =\n      !tempQtyData ||\n      tempQtyData === \"\" ||\n      tempQtyData === \"[]\" ||\n      tempQtyData === null;\n\n    if (isEmpty) {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data is empty\",\n      });\n      continue;\n    }\n\n    try {\n      const parsedTempQty = JSON.parse(tempQtyData);\n      const totalAllocated = parsedTempQty.reduce(\n        (sum, item) => sum + (parseFloat(item.gd_quantity) || 0),\n        0\n      );\n      const gdQty = parseFloat(gdLineItem.gd_qty) || 0;\n\n      if (Math.abs(totalAllocated - gdQty) > 0.001) {\n        skippedRows.push({\n          index: index,\n          line_label: lineLabel,\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          allocated_qty: totalAllocated,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `temp_qty_data total (${totalAllocated}) != gd_qty (${gdQty})`,\n        });\n        continue;\n      }\n    } catch (e) {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data parse error\",\n      });\n      continue;\n    }\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = lineLabel;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    allData.is_select_picking !== 1 &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  survived.add(gdLineItem);\n  updatedGD.push(gdLineItem);\n}\n\n// Back into the tree. A bundle whose items have all gone takes its bundle row\n// with it -- a bundle with nothing left to deliver is not a line.\nconst rebuiltGD = [];\nallData.table_gd.forEach((row) => {\n  if (!survived.has(row)) return;\n\n  const kids = childrenOf(row);\n\n  if (kids.length > 0) {\n    const keptKids = kids.filter((child) => survived.has(child));\n\n    if (isBundleParentRow(row) && keptKids.length === 0) return;\n\n    row.children = keptKids;\n  }\n\n  rebuiltGD.push(row);\n});\n\nallData.table_gd = rebuiltGD;\n\n// The header's order list is a rollup of the lines but was only ever written on\n// the way in, so dropping an order's last line left it on the header for good --\n// and \"Get SO Datas\" kept fetching it. Left alone when no line carries an order:\n// manual and Picking-Plan deliveries keep whatever the form set.\nconst headerSoIds = [];\nconst headerSoNos = [];\nrebuiltGD.forEach((row) => {\n  [row, ...childrenOf(row)].forEach((line) => {\n    const lineSoId = String(line.line_so_id || \"\");\n    if (!lineSoId || headerSoIds.includes(lineSoId)) return;\n    headerSoIds.push(lineSoId);\n    headerSoNos.push(String(line.line_so_no || \"\"));\n  });\n});\n\nif (headerSoIds.length > 0) {\n  allData.so_id = headerSoIds;\n  allData.so_no = headerSoNos.filter(Boolean).join(\", \");\n}\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\n// All-descriptive GD detection: if every surviving row is either a no-material_id\n// row or a stock_control=0 && show_delivery=0 row, there is nothing to pick.\n// Mark picking as Completed up front so no empty picking record is created.\nconst hasRealStockRow = updatedGD.some(function(row) {\n  if (!row.material_id || row.material_id === \"\") return false;\n  const f = itemFlagsMap[row.material_id];\n  if (f && f.stock_control === 0 && f.show_delivery === 0) return false;\n  return true;\n});\n\nif (\n  pickingSetup &&\n  allData.is_select_picking !== 1 &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (!hasRealStockRow) {\n    allData.picking_status = \"Completed\";\n    updatedGD.forEach(function(row) {\n      if (row.picking_status === \"Created\" || row.picking_status === \"Not Created\") {\n        row.picking_status = \"Completed\";\n      }\n    });\n  } else if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\n// GD-level packing_status: for all-skip-items GDs, mark Completed so the\n// \"IF need Packing\" gate doesn't block subsequent workflow steps.\nif (\n  allData.is_select_picking !== 1 &&\n  (!allData.packing_status || allData.packing_status === \"\") &&\n  saveAs === \"Created\" &&\n  !hasRealStockRow\n) {\n  allData.packing_status = \"Completed\";\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\n// Credit-limit stage gate.\n// Completed always evaluates CL (unchanged). Created evaluates it only when\n// picking_setup.full_cl_check = 1. Defaults to 0 in BOTH gaps: no picking_setup row\n// at all (orgSetup null), and a row whose full_cl_check was never written\n// (null / undefined / \"\"). Only an explicit 1 turns the Created-stage check on.\n// Reads orgSetup, not gdSetup: gdSetup is null for Picking-Plan orgs, which must not\n// silently disable the credit check.\nconst clSetup = {{node:code_picking_defaults.data.orgSetup}};\nconst fullCLCheck = Number(clSetup?.full_cl_check ?? 0) === 1;\n\nconst clStageAllowed =\n  saveAs === \"Completed\" || (saveAs === \"Created\" && fullCLCheck);\n\nif (\n  allData.acc_integration_type !== \"No Accounting\" &&\n  {{workflowparams:needCL}} === \"required\" &&\n  clStageAllowed\n) {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n  // For Created GDs being cancelled, suffix delivery_no with \"-Cancelled\"\n  // so the (still-issued) document number is visually flagged.\n  if (\n    allData.gd_status === \"Created\" &&\n    typeof allData.delivery_no === \"string\" &&\n    allData.delivery_no &&\n    !allData.delivery_no.endsWith(\"-Cancelled\")\n  ) {\n    allData.delivery_no = allData.delivery_no + \"-Cancelled\";\n  }\n}\n\nlet needSOCleanUp = 0;\nlet originalTableGD = [];\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n  originalTableGD = originalGD.table_gd;\n\n  // An item under a bundle is a delivery line in its own right and carries its\n  // own allocation -- it just is not a row of table_gd. Matched across the whole\n  // tree, or on re-save it looks brand new and its quantity is counted twice.\n  const flattenGdRows = (rows) =>\n    (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n  const originalRows = flattenGdRows(originalGD.table_gd);\n\n  flattenGdRows(allData.table_gd).forEach((item) => {\n    const originalItem = originalRows.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  // Set difference, not a length compare: an equal-count item swap left the\n  // departed SO line holding planned_qty, and an append fired the cleanup with an\n  // empty removedItems, whose `id in []` filter matches every SO line.\n  const currentSoLineIds = new Set(\n    flattenGdRows(allData.table_gd).map((r) => String(r.so_line_item_id || \"\"))\n  );\n  if (\n    originalRows.some((o) => !currentSoLineIds.has(String(o.so_line_item_id || \"\")))\n  ) {\n    needSOCleanUp = 1;\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.line_label || row.index + 1}: ${row.material_name} - qty: ${row.gd_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  const hasAllocationProblem = skippedRows.some((row) => row.kind !== \"bundle\");\n\n  const hint = hasAllocationProblem\n    ? \"These rows may need manual allocation or the allocation workflow may have failed.\"\n    : \"Deliver an item bundle by its bundle line - its items follow from it and cannot be delivered on their own.\";\n\n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid data:\\n\\n${rowDetails}\\n\\n${hint}`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage,\n  originalTableGD: originalTableGD\n};\n"
+          "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:code_picking_defaults.data.gdSetup}};\nconst pageStatus = {{workflowparams:pageStatus}}\n// skip_picking (internal auto-GR): treat picking as not required across the whole GD\n// lifecycle (incl. Created), so no picking_status is stamped and no picking TO is created.\nconst skipPickingGate = {{node:code_gr_gate.data.skipPicking}} || 0;\nif (skipPickingGate === 1 && pickingSetup) { pickingSetup.picking_required = 0; }\n\n// Cancel gate: a Completed Goods Delivery has already moved inventory and\n// posted downstream. It cannot be cancelled through this save path — it must\n// be reversed via the proper completion-reversal flow. Block the save with a\n// clear error, reusing the invalidData -> 400 path (if_vnwLSl9x).\nif (saveAs === \"Cancelled\" && allData.gd_status === \"Completed\") {\n  return {\n    allData: allData,\n    gd_status: allData.gd_status,\n    needCL: \"not required\",\n    picking_status: allData.picking_status,\n    packing_status: allData.packing_status,\n    needSOCleanUp: 0,\n    invalidData: 1,\n    invalidDataMessage: \"Cannot cancel Goods Delivery \" + (allData.delivery_no || \"\") + \" because it is already Completed. Reverse the completion before cancelling.\"\n  };\n}\n\n// M:N edit gate: when allow_full_picking=1 AND user is editing a GD that has\n// multiple non-terminal Pickings (Created / In Progress), block the save with\n// a clear error. Forces user to cancel or complete those Pickings before\n// modifying the GD upstream of them. Reuses the invalidData -> 400 path\n// (if_vnwLSl9x).\nif (\n  pickingSetup &&\n  pickingSetup.allow_full_picking === 1 &&\n  saveAs === \"Created\" &&\n  pageStatus === \"Edit\"\n) {\n  const activePickings = ({{node:search_node_NBAQ9gsj.data.data}} || [])\n    .filter(function(to) {\n      return to.to_status !== \"Completed\" &&\n             to.to_status !== \"Cancelled\" &&\n             to.to_status !== \"Draft\";\n    });\n  if (activePickings.length > 1) {\n    const list = activePickings\n      .map(function(to) { return to.to_id || to.id; })\n      .slice(0, 5)\n      .join(\", \");\n    const suffix = activePickings.length > 5\n      ? \" (+\" + (activePickings.length - 5) + \" more)\"\n      : \"\";\n    return {\n      allData: allData,\n      gd_status: allData.gd_status,\n      needCL: \"not required\",\n      picking_status: allData.picking_status,\n      packing_status: allData.packing_status,\n      needSOCleanUp: 0,\n      invalidData: 1,\n      invalidDataMessage: \"Cannot edit this Goods Delivery while \" + activePickings.length + \" Pickings are active: \" + list + suffix + \". Cancel or complete those Pickings before editing.\"\n    };\n  }\n}\n\nconst skippedRows = [];\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// A bundle is ONE row of table_gd with the bundle's items under `children`.\n// The bundle row carries no material of its own, so it already falls through\n// the descriptive-line branch below and is never asked for an allocation --\n// which is right, nothing is picked against a bundle. Its items, though, are\n// ordinary delivery lines and must be stamped, quantity-checked and counted\n// like any other row, and they are not rows of table_gd.\n//\n// So the loop below walks a flat view. Survivors are collected flat (which is\n// what hasRealStockRow and the picking rollup need to see) and folded back into\n// the tree at the end, because that is the shape the document is stored in.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\n// Survivors, by identity -- the loop mutates rows in place, so this only has to\n// record which ones made it through.\nconst survived = new Set();\n\nconst roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\n\n// A bundle is delivered as a whole: every item under it is the bundle's own\n// quantity times the number of bundles. Delivering 2 of item A against 1 of item\n// B, when the bundle holds one of each, is not a bundle -- and the form is the\n// only thing stopping it, so anything reaching this workflow by another route\n// (a headless convert, an API call, a stale page) would persist it.\n//\n// The rate comes off the delivery rather than out of the bundle: an item ordered\n// N times the bundle's own ordered quantity is N per bundle. That is the same\n// ratio the bundle defines, already carried on every row, so no lookup is needed.\nconst bundleRatioProblem = (parent, child) => {\n  const bundlesOrdered = parseFloat(parent.gd_order_quantity) || 0;\n\n  // Nothing to derive a rate from -- leave the line alone rather than guess.\n  if (bundlesOrdered <= 0) return null;\n\n  const perBundleQty =\n    (parseFloat(child.gd_order_quantity) || 0) / bundlesOrdered;\n  const expected = roundQty(perBundleQty * (parseFloat(parent.gd_qty) || 0));\n  const actual = roundQty(child.gd_qty);\n\n  return Math.abs(actual - expected) > 0.001 ? { expected, actual } : null;\n};\n\n// Build flags map from Get Items (only populated when picking_mode=Auto ran).\n// Used to detect description-only rows: stock_control=0 AND show_delivery=0.\nconst itemDataRaw = {{node:sql_node_ItemFlags.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\n// The sql-node may hand these back as strings; null must stay non-matching.\nconst asFlag = (v) => (v === null || v === undefined || v === \"\" ? null : Number(v));\nconst itemFlagsMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemFlagsMap[it.id] = {\n      stock_control: asFlag(it.stock_control),\n      show_delivery: asFlag(it.show_delivery)\n    };\n  }\n}\n\nif ({{node:code_picking_defaults.data.pickingMode}} === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\n// Flattened AFTER the Auto-picking swap above, not before: that swap replaces\n// table_gd wholesale with the allocated copy, so a view taken any earlier points\n// at the pre-allocation rows -- every line then looks unallocated, and the\n// survivor set below holds objects that are no longer in the tree.\nconst flatEntries = [];\nallData.table_gd.forEach((row, parentIndex) => {\n  flatEntries.push({ row: row, parentIndex: parentIndex, childIndex: null });\n\n  childrenOf(row).forEach((child, childIndex) => {\n    flatEntries.push({ row: child, parentIndex: parentIndex, childIndex: childIndex });\n  });\n});\n\nfor (const entry of flatEntries) {\n  const gdLineItem = entry.row;\n  const index = entry.parentIndex;\n  // A number on a top-level row, `parent/child` on an item under a bundle --\n  // line_index is a text column, so the label is safe to store.\n  const lineLabel =\n    entry.childIndex === null\n      ? index + 1\n      : `${index + 1}/${entry.childIndex + 1}`;\n\n  if (entry.childIndex !== null && saveAs !== \"Draft\") {\n    const bundleParent = allData.table_gd[entry.parentIndex];\n\n    if (bundleParent && isBundleParentRow(bundleParent)) {\n      const ratio = bundleRatioProblem(bundleParent, gdLineItem);\n\n      if (ratio) {\n        skippedRows.push({\n          index: index,\n          line_label: lineLabel,\n          kind: \"bundle\",\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `item bundle quantities must stay in proportion - expected ${ratio.expected}, got ${ratio.actual}`,\n        });\n        continue;\n      }\n    }\n  }\n\n  if (saveAs !== \"Draft\" && (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0)) {\n    continue;\n  }\n\n  // Descriptive (no-stock) line: material_id empty, OR item has stock_control=0 AND show_delivery=0\n  const flags = gdLineItem.material_id ? itemFlagsMap[gdLineItem.material_id] : null;\n  const isNonStockNoShow = flags && flags.stock_control === 0 && flags.show_delivery === 0;\n  const isDescriptive = !gdLineItem.material_id || gdLineItem.material_id === \"\" || isNonStockNoShow;\n  if (isDescriptive) {\n    const hasDescription =\n      (gdLineItem.material_name && gdLineItem.material_name !== \"\") ||\n      (gdLineItem.gd_material_desc && gdLineItem.gd_material_desc !== \"\");\n    if (!hasDescription && saveAs !== \"Draft\") {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: \"(none)\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"row has no material_id and no description\",\n      });\n      continue;\n    }\n    gdLineItem.customer_id = allData.customer_name || null;\n    gdLineItem.organization_id = allData.organization_id;\n    gdLineItem.plant_id = allData.plant_id || null;\n    gdLineItem.billing_state_id = allData.billing_address_state || null;\n    gdLineItem.billing_country_id = allData.billing_address_country || null;\n    gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n    gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n    gdLineItem.assigned_to = allData.assigned_to || null;\n    gdLineItem.area_id = allData.gd_area_id || null;\n    gdLineItem.line_index = lineLabel;\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.picking_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n    }\n    if (\n      pickingSetup &&\n      allData.is_select_picking !== 1 &&\n      (!allData.picking_status || allData.picking_status === \"\") &&\n      saveAs === \"Created\" &&\n      pickingSetup.picking_required === 1\n    ) {\n      // Descriptive lines have no picking item — mark Completed so the GD-level\n      // picking_status can flip to Completed once the real stock rows are picked.\n      gdLineItem.picking_status = \"Completed\";\n    }\n    // Same treatment for packing_status: descriptive lines have no packing item,\n    // so they must be marked Completed for the GD-level rollup to succeed.\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.packing_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.packing_status = gdLineItem.packing_status ? \"Cancelled\" : null;\n    } else if (saveAs === \"Created\" && allData.is_select_picking !== 1) {\n      gdLineItem.packing_status = \"Completed\";\n    }\n    survived.add(gdLineItem);\n    updatedGD.push(gdLineItem);\n    continue;\n  }\n\n  if (saveAs !== \"Draft\") {\n    const tempQtyData = gdLineItem.temp_qty_data;\n    const isEmpty =\n      !tempQtyData ||\n      tempQtyData === \"\" ||\n      tempQtyData === \"[]\" ||\n      tempQtyData === null;\n\n    if (isEmpty) {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data is empty\",\n      });\n      continue;\n    }\n\n    try {\n      const parsedTempQty = JSON.parse(tempQtyData);\n      const totalAllocated = parsedTempQty.reduce(\n        (sum, item) => sum + (parseFloat(item.gd_quantity) || 0),\n        0\n      );\n      const gdQty = parseFloat(gdLineItem.gd_qty) || 0;\n\n      if (Math.abs(totalAllocated - gdQty) > 0.001) {\n        skippedRows.push({\n          index: index,\n          line_label: lineLabel,\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          allocated_qty: totalAllocated,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `temp_qty_data total (${totalAllocated}) != gd_qty (${gdQty})`,\n        });\n        continue;\n      }\n    } catch (e) {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data parse error\",\n      });\n      continue;\n    }\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = lineLabel;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    allData.is_select_picking !== 1 &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  survived.add(gdLineItem);\n  updatedGD.push(gdLineItem);\n}\n\n// Back into the tree. A bundle whose items have all gone takes its bundle row\n// with it -- a bundle with nothing left to deliver is not a line.\nconst rebuiltGD = [];\nallData.table_gd.forEach((row) => {\n  if (!survived.has(row)) return;\n\n  const kids = childrenOf(row);\n\n  if (kids.length > 0) {\n    const keptKids = kids.filter((child) => survived.has(child));\n\n    if (isBundleParentRow(row) && keptKids.length === 0) return;\n\n    row.children = keptKids;\n  }\n\n  rebuiltGD.push(row);\n});\n\nallData.table_gd = rebuiltGD;\n\n// The header's order list is a rollup of the lines but was only ever written on\n// the way in, so dropping an order's last line left it on the header for good --\n// and \"Get SO Datas\" kept fetching it. Left alone when no line carries an order:\n// manual and Picking-Plan deliveries keep whatever the form set.\nconst headerSoIds = [];\nconst headerSoNos = [];\nrebuiltGD.forEach((row) => {\n  [row, ...childrenOf(row)].forEach((line) => {\n    const lineSoId = String(line.line_so_id || \"\");\n    if (!lineSoId || headerSoIds.includes(lineSoId)) return;\n    headerSoIds.push(lineSoId);\n    headerSoNos.push(String(line.line_so_no || \"\"));\n  });\n});\n\nif (headerSoIds.length > 0) {\n  allData.so_id = headerSoIds;\n  allData.so_no = headerSoNos.filter(Boolean).join(\", \");\n}\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\n// All-descriptive GD detection: if every surviving row is either a no-material_id\n// row or a stock_control=0 && show_delivery=0 row, there is nothing to pick.\n// Mark picking as Completed up front so no empty picking record is created.\nconst hasRealStockRow = updatedGD.some(function(row) {\n  if (!row.material_id || row.material_id === \"\") return false;\n  const f = itemFlagsMap[row.material_id];\n  if (f && f.stock_control === 0 && f.show_delivery === 0) return false;\n  return true;\n});\n\nif (\n  pickingSetup &&\n  allData.is_select_picking !== 1 &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (!hasRealStockRow) {\n    allData.picking_status = \"Completed\";\n    updatedGD.forEach(function(row) {\n      if (row.picking_status === \"Created\" || row.picking_status === \"Not Created\") {\n        row.picking_status = \"Completed\";\n      }\n    });\n  } else if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\n// GD-level packing_status: for all-skip-items GDs, mark Completed so the\n// \"IF need Packing\" gate doesn't block subsequent workflow steps.\nif (\n  allData.is_select_picking !== 1 &&\n  (!allData.packing_status || allData.packing_status === \"\") &&\n  saveAs === \"Created\" &&\n  !hasRealStockRow\n) {\n  allData.packing_status = \"Completed\";\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\n// Credit-limit stage gate.\n// Completed always evaluates CL (unchanged). Created evaluates it only when\n// picking_setup.full_cl_check = 1. Defaults to 0 in BOTH gaps: no picking_setup row\n// at all (orgSetup null), and a row whose full_cl_check was never written\n// (null / undefined / \"\"). Only an explicit 1 turns the Created-stage check on.\n// Reads orgSetup, not gdSetup: gdSetup is null for Picking-Plan orgs, which must not\n// silently disable the credit check.\nconst clSetup = {{node:code_picking_defaults.data.orgSetup}};\nconst fullCLCheck = Number(clSetup?.full_cl_check ?? 0) === 1;\n\nconst clStageAllowed =\n  saveAs === \"Completed\" || (saveAs === \"Created\" && fullCLCheck);\n\nif (\n  allData.acc_integration_type !== \"No Accounting\" &&\n  {{workflowparams:needCL}} === \"required\" &&\n  clStageAllowed\n) {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n  // For Created GDs being cancelled, suffix delivery_no with \"-Cancelled\"\n  // so the (still-issued) document number is visually flagged.\n  if (\n    allData.gd_status === \"Created\" &&\n    typeof allData.delivery_no === \"string\" &&\n    allData.delivery_no &&\n    !allData.delivery_no.endsWith(\"-Cancelled\")\n  ) {\n    allData.delivery_no = allData.delivery_no + \"-Cancelled\";\n  }\n}\n\nlet needSOCleanUp = 0;\nlet originalTableGD = [];\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n  originalTableGD = originalGD.table_gd;\n\n  // An item under a bundle is a delivery line in its own right and carries its\n  // own allocation -- it just is not a row of table_gd. Matched across the whole\n  // tree, or on re-save it looks brand new and its quantity is counted twice.\n  const flattenGdRows = (rows) =>\n    (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n  const originalRows = flattenGdRows(originalGD.table_gd);\n\n  flattenGdRows(allData.table_gd).forEach((item) => {\n    const originalItem = originalRows.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  // Set difference, not a length compare: an equal-count item swap left the\n  // departed SO line holding planned_qty, and an append fired the cleanup with an\n  // empty removedItems, whose `id in []` filter matches every SO line.\n  const currentSoLineIds = new Set(\n    flattenGdRows(allData.table_gd).map((r) => String(r.so_line_item_id || \"\"))\n  );\n  if (\n    originalRows.some((o) => !currentSoLineIds.has(String(o.so_line_item_id || \"\")))\n  ) {\n    needSOCleanUp = 1;\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.line_label || row.index + 1}: ${row.material_name} - qty: ${row.gd_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  const hasAllocationProblem = skippedRows.some((row) => row.kind !== \"bundle\");\n\n  const hint = hasAllocationProblem\n    ? \"These rows may need manual allocation or the allocation workflow may have failed.\"\n    : \"Deliver an item bundle by its bundle line - its items follow from it and cannot be delivered on their own.\";\n\n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid data:\\n\\n${rowDetails}\\n\\n${hint}`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage,\n  originalTableGD: originalTableGD\n};\n"
         },
         "response_json": [
           {
@@ -3667,7 +3772,10 @@
         "nodeName": "IF invalidData",
         "name": "IF invalidData",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -3691,7 +3799,9 @@
         {
           "id": "if_block_BpGJLXgC",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_8nf1fK5X",
@@ -3734,7 +3844,9 @@
         {
           "id": "if_block_ZXvb2h5i",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -3896,7 +4008,10 @@
         "nodeName": "IF Picking Blocks Edit",
         "name": "IF Picking Blocks Edit",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -3920,7 +4035,9 @@
         {
           "id": "if_block_pick_block_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_pick_block",
@@ -3963,7 +4080,9 @@
         {
           "id": "if_block_pick_block_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -3977,7 +4096,10 @@
         "nodeName": "IF Pick Reversal Needed",
         "name": "IF Pick Reversal Needed",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -4001,7 +4123,9 @@
         {
           "id": "if_block_pick_rev_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "search_bin_names",
@@ -4091,7 +4215,10 @@
                 "nodeName": "IF Needs Reversal Confirm",
                 "name": "IF Needs Reversal Confirm",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -4115,7 +4242,9 @@
                 {
                   "id": "if_block_pick_rev_confirm_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_pick_reversal",
@@ -4158,7 +4287,9 @@
                 {
                   "id": "if_block_pick_rev_confirm_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -4168,7 +4299,9 @@
         {
           "id": "if_block_pick_rev_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -4299,7 +4432,9 @@
         {
           "id": "ifBlock_8PMur6uE",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_MtzWL1CY",
@@ -4342,7 +4477,9 @@
         {
           "id": "ifBlock_9u3HZSSR",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -4417,7 +4554,9 @@
         {
           "id": "ifBlock_ZxdTKrkk",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "workflow_node_sUYtl9dZ",
@@ -4517,7 +4656,9 @@
                 {
                   "id": "ifBlock_mjw7QVEZ",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_60Bp11jY",
@@ -4565,7 +4706,9 @@
                         {
                           "id": "ifBlock_y7HZxi6z",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "return_node_UqkHlra7",
@@ -4608,7 +4751,9 @@
                         {
                           "id": "ifBlock_FkYJzwsc",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "return_node_hhplPnie",
@@ -4655,7 +4800,9 @@
                 {
                   "id": "ifBlock_plaHR8Pb",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -4665,7 +4812,9 @@
         {
           "id": "ifBlock_UjKLOdW5",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -4679,7 +4828,10 @@
         "nodeName": "IF Completed",
         "name": "IF Completed",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -4703,7 +4855,9 @@
         {
           "id": "if_block_4oDEld6R",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "if_uFjpcRq_",
@@ -4714,7 +4868,10 @@
                 "nodeName": "IF Picking Setup",
                 "name": "IF Picking Setup",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -4765,7 +4922,9 @@
                 {
                   "id": "if_block_12jsBoxy",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "if_DOQqD6Aa",
@@ -4776,7 +4935,10 @@
                         "nodeName": "IF No Picking Status",
                         "name": "IF No Picking Status",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -4826,7 +4988,9 @@
                         {
                           "id": "if_block_dTQP3SW4",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "return_node_YpAbusUm",
@@ -4869,7 +5033,9 @@
                         {
                           "id": "if_block_spUJ6i-u",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "if_DDiEWnn5",
@@ -4904,7 +5070,9 @@
                                 {
                                   "id": "if_block_cZhHt4Y4",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "if_c_5OcDvl",
@@ -4942,7 +5110,9 @@
                                         {
                                           "id": "if_block_8Asrj9iR",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "get_node_oU2TK3ms",
@@ -5095,7 +5265,9 @@
                                         {
                                           "id": "if_block_nfdpobGW",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "return_node_vkWvA3QK",
@@ -5142,7 +5314,9 @@
                                 {
                                   "id": "if_block_-SImMXY6",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -5156,7 +5330,9 @@
                 {
                   "id": "if_block_U3ec7Kxp",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5231,7 +5407,10 @@
                 "nodeName": "IF need Packing",
                 "name": "IF need Packing",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -5296,7 +5475,9 @@
                 {
                   "id": "if_block_W7QkLkRk",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_LW1tRvZv",
@@ -5339,7 +5520,9 @@
                 {
                   "id": "if_block_5QDr5HZe",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5349,7 +5532,9 @@
         {
           "id": "if_block_qWIXr_VQ",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -5363,7 +5548,10 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -5387,7 +5575,9 @@
         {
           "id": "ifBlock_8MQHt7L6",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_hb8ZWe9c",
@@ -5480,7 +5670,10 @@
                 "isValidator": true,
                 "nodeName": "Set updatedSOTable",
                 "name": "Set updatedSOTable",
-                "custom_wkbocgni": { "type": "javascript", "code": "[]" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "[]"
+                },
                 "redis_key": "updatedSOTable_{{node:code_node_eOO3RTkR.data.unique}}"
               },
               "blocks": []
@@ -5533,7 +5726,7 @@
                 "name": "Validate Quantity & Update SO Table (batch)",
                 "script": {
                   "type": "javascript",
-                  "code": "// Validate Quantity & Update SO Table - BATCH\n// Replaces the old per-row loop (loop_ZVa7Cxf6): code_node_SOBNriDH + get_node_DDcDRdMe\n// + get_node_YMto3jtl + code_node_muzjP26e, one iteration per table_gd row.\n// Item master and SO lines are now read from two batch fetches instead of 2 fetches\n// per row. Control flow is identical to the loop it replaces.\n\nconst tableGD = {{node:code_node_hb8ZWe9c.data.tableGD}} || [];\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}};\nconst saveAs = {{workflowparams:saveAs}};\nconst isGDPP = {{workflowparams:allData.is_select_picking}} || 0;\nconst splitPolicy = {{node:code_picking_defaults.data.splitPolicy}} || \"ALLOW_SPLIT\";\n\n// ID SHAPE: a get-node serialises bigint ids as quoted strings, a search-node as\n// raw numbers (Java Long under GraalJS, so String() is exact). The rows this node\n// replaced came from get-nodes, and the surrounding code compares ids with ===.\n// Everything below therefore normalises ids through String() so the comparisons\n// and the pushed SO rows keep the exact shape the old per-row get-nodes produced.\nconst asId = (v) => (v === null || v === undefined ? v : String(v));\n\n// Item master: already batch-fetched once by search_node_w1NxF9TX (cond_all_gd_fetch).\nconst itemDataRaw = {{node:search_node_w1NxF9TX.data.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\nconst itemMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemMap[asId(it.id)] = it;\n  }\n}\n\n// SO lines: batch-fetched once by search_node_SOLine8kQ2.\nconst soLineRaw = {{node:search_node_SOLine8kQ2.data.data}} || [];\nconst soLineArray = Array.isArray(soLineRaw) ? soLineRaw : [soLineRaw];\nconst soLineMap = {};\nfor (const sl of soLineArray) {\n  if (sl && sl.id) {\n    soLineMap[asId(sl.id)] = sl;\n  }\n}\n\n// Original GD lines. Only referenced when the GD is already Created, which is\n// exactly when get_node_xTRvHWB8 ran.\n// An item under a bundle is a delivery line in its own right and carries its own\n// allocation -- it is just not a row of table_gd. Matched across the whole tree,\n// or on re-save it looks brand new and its quantity is counted twice.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\nlet originalTableGD = [];\nif (gd_status === \"Created\") {\n  originalTableGD = flattenGdRows({{node:get_node_xTRvHWB8.data.data.table_gd}});\n}\n\n// Returns number for calculations/validation\nconst roundQty = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  const num = parseFloat(value);\n  return Math.round(num * 1000) / 1000;\n};\n\n// Returns string for database updates\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst updatedSOTable = [];\nlet validationMessage = null;\nlet itemNotFound = 0;\n\nfor (let index = 0; index < tableGD.length; index++) {\n  const gdItem = tableGD[index];\n  const rowIndex = index + 1;\n  const material_id = gdItem.material_id || \"\";\n\n  // Mirrors if_9DC5Lah8: material_id is set but the Item row is gone -> hard stop.\n  if (material_id !== \"\" && !itemMap[asId(material_id)]) {\n    itemNotFound = 1;\n    break;\n  }\n\n  const itemData = itemMap[asId(material_id)] || {};\n\n  let originalGdItem = null;\n  if (gd_status === \"Created\") {\n    originalGdItem = originalTableGD.find(item => item.so_line_item_id === gdItem.so_line_item_id) || null;\n  }\n\n  // Pristine SO line. Never mutated, so every row reads the same original\n  // delivered_qty/planned_qty the old per-row refetch returned.\n  const soItem = soLineMap[asId(gdItem.so_line_item_id)];\n  if (!soItem) {\n    throw new Error(\"Row \" + rowIndex + \": sales order line \" + gdItem.so_line_item_id + \" was not found.\");\n  }\n\n  // Descriptive (no-stock) line label for error messages\n  const itemLabel = itemData.material_code || gdItem.material_name || gdItem.gd_material_desc || \"(descriptive)\";\n\n  // Description-only and non-stock-non-shown items: no over-delivery tolerance (treat like a descriptive line)\n  const isDescriptiveLike = !gdItem.material_id || gdItem.material_id === \"\" || (itemData.stock_control === 0 && itemData.show_delivery === 0);\n  // asId on both sides: table_uom_conversion now arrives from a search-node, so\n  // alt_uom_id is a number where the old get-node gave a string. A bare === would\n  // silently miss and drop over_delivery_tolerance to 0.\n  const overDeliveryTolerance = isDescriptiveLike ? 0 : (((itemData.table_uom_conversion || []).find((c) => asId(c.alt_uom_id) === asId(gdItem.gd_order_uom_id)) || {}).over_delivery_tolerance || 0);\n  const orderLimit = (gdItem.gd_order_quantity * (100 + overDeliveryTolerance)) / 100;\n  const deliveredQty = soItem.delivered_qty || 0;\n  const plannedQty = soItem.planned_qty || 0;\n\n  const currentGdQty = parseFloat(gdItem.gd_qty) || 0;\n  const origQty = parseFloat(originalGdItem?.gd_qty) || 0;\n\n  let gdQtyChange = currentGdQty;\n  if (originalGdItem) {\n    gdQtyChange = roundQty(currentGdQty - origQty);\n  }\n\n  let totalCommitted;\n  if (isGDPP === 1) {\n    totalCommitted = roundQty(deliveredQty + currentGdQty);\n  } else {\n    totalCommitted = roundQty(deliveredQty + plannedQty + gdQtyChange);\n  }\n\n  let rowMessage = null;\n\n  // Validate order limit (skip for FULL_HU_PICK only - NO_SPLIT enforces tolerance)\n  if (splitPolicy !== \"FULL_HU_PICK\" && totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n    rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: quantity is exceeding the maximum deliverable quantity.`;\n  }\n\n  // Validate planned_qty won't go negative\n  if (!rowMessage) {\n    let projectedPlannedQty = plannedQty;\n\n    if (isGDPP === 1 && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty + currentGdQty);\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    }\n\n    if (projectedPlannedQty < 0) {\n      rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: planned quantity would become negative (${projectedPlannedQty}). Please contact support.`;\n    }\n  }\n\n  // Old behaviour: a failed row is never pushed to updatedSOTable. The save only\n  // aborts when saveAs !== \"Cancelled\" (the old if_ACsN1GZD gate); under\n  // Cancelled the row is silently skipped and the walk continues.\n  if (rowMessage) {\n    if (saveAs !== \"Cancelled\") {\n      validationMessage = rowMessage;\n      break;\n    }\n    continue;\n  }\n\n  // Fresh object to mutate and push, so soLineMap stays pristine for later rows.\n  // Shallow copy on purpose: a JSON round-trip would re-parse the bigint ids as\n  // doubles and silently corrupt updatedSOItem.id, which is the update key of\n  // update_node_wEJC3qKB. Only top-level scalars are written below.\n  const updatedSOItem = Object.assign({}, soItem);\n  // Restore the get-node string shape for the two id fields anything downstream\n  // reads (update_node_wEJC3qKB keys on id; code_node_lwB2FVe0 reads both).\n  updatedSOItem.id = asId(soItem.id);\n  updatedSOItem.sales_order_id = asId(soItem.sales_order_id);\n\n  if (isGDPP === 1) {\n    if (saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n    }\n\n  } else {\n    if (gd_status === \"Draft\" && saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Draft\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty + currentGdQty);\n\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty);\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty + currentGdQty);\n\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n    }\n  }\n\n  if (saveAs === \"Completed\") {\n    if (parseFloat(updatedSOItem.outstanding_quantity) > 0) {\n      updatedSOItem.line_status = \"Processing\";\n    } else {\n      updatedSOItem.line_status = \"Completed\";\n    }\n  }\n\n  updatedSOTable.push(updatedSOItem);\n}\n\n// An item bundle's sales order line is not a delivery line -- it owns no material,\n// so it is not in tableGD and takes no part in the loop above. It still carries the\n// number of bundles delivered, which is what the next delivery defaults its\n// quantity from, so it is updated here: off the same pristine soLineMap, through\n// the same formatNumber/asId, producing a row of exactly the same shape as every\n// other. That last part matters -- update_node_wEJC3qKB writes a fixed set of\n// columns from each row, so a sparse object would blank planned_qty on the line.\n//\n// planned_qty is deliberately left as it stands: the bundle row never went through\n// the Created branch above, so nothing was ever planned against it to release.\nconst bundleParents = {{node:code_node_hb8ZWe9c.data.bundleParents}} || [];\n\nif (saveAs === \"Completed\") {\n  for (const parent of bundleParents) {\n    const soItem = soLineMap[asId(parent.so_line_item_id)];\n    if (!soItem) continue;\n\n    const updatedSOItem = Object.assign({}, soItem);\n    updatedSOItem.id = asId(soItem.id);\n    updatedSOItem.sales_order_id = asId(soItem.sales_order_id);\n\n    const bundlesDelivered = roundQty(\n      (parseFloat(soItem.delivered_qty) || 0) + (parseFloat(parent.gd_qty) || 0)\n    );\n\n    updatedSOItem.delivered_qty = formatNumber(bundlesDelivered);\n    updatedSOItem.outstanding_quantity = formatNumber(\n      Math.max(0, roundQty((parseFloat(soItem.so_quantity) || 0) - bundlesDelivered))\n    );\n    updatedSOItem.line_status =\n      parseFloat(updatedSOItem.outstanding_quantity) > 0 ? \"Processing\" : \"Completed\";\n\n    updatedSOTable.push(updatedSOItem);\n  }\n}\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable,\n  itemNotFound: itemNotFound\n};"
+                  "code": "// Validate Quantity & Update SO Table - BATCH\n// Replaces the old per-row loop (loop_ZVa7Cxf6): code_node_SOBNriDH + get_node_DDcDRdMe\n// + get_node_YMto3jtl + code_node_muzjP26e, one iteration per table_gd row.\n// Item master and SO lines are now read from two batch fetches instead of 2 fetches\n// per row. Control flow is identical to the loop it replaces.\n\nconst tableGD = {{node:code_node_hb8ZWe9c.data.tableGD}} || [];\nconst gd_status = {{node:code_node_IyJHrBst.data.gd_status}};\nconst saveAs = {{workflowparams:saveAs}};\nconst isGDPP = {{workflowparams:allData.is_select_picking}} || 0;\nconst splitPolicy = {{node:code_picking_defaults.data.splitPolicy}} || \"ALLOW_SPLIT\";\n\n// ID SHAPE: a get-node serialises bigint ids as quoted strings, a search-node as\n// raw numbers (Java Long under GraalJS, so String() is exact). The rows this node\n// replaced came from get-nodes, and the surrounding code compares ids with ===.\n// Everything below therefore normalises ids through String() so the comparisons\n// and the pushed SO rows keep the exact shape the old per-row get-nodes produced.\nconst asId = (v) => (v === null || v === undefined ? v : String(v));\n\n// Item master: already batch-fetched once by sql_node_ItemFlags (cond_all_gd_fetch).\nconst itemDataRaw = {{node:sql_node_ItemFlags.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\n// The sql-node may hand these back as strings; null must stay non-matching.\nconst asFlag = (v) => (v === null || v === undefined || v === \"\" ? null : Number(v));\n// uom_conversion_json arrives as a JSON string from JSON_ARRAYAGG.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (typeof v === \"string\" && v.trim() !== \"\") {\n    try {\n      const parsed = JSON.parse(v);\n      return Array.isArray(parsed) ? parsed : [];\n    } catch (e) {\n      return [];\n    }\n  }\n  return [];\n};\nconst itemMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemMap[asId(it.id)] = {\n      id: it.id,\n      material_code: it.material_code,\n      stock_control: asFlag(it.stock_control),\n      show_delivery: asFlag(it.show_delivery),\n      table_uom_conversion: parseConv(it.uom_conversion_json)\n    };\n  }\n}\n\n// SO lines: batch-fetched once by search_node_SOLine8kQ2.\nconst soLineRaw = {{node:search_node_SOLine8kQ2.data.data}} || [];\nconst soLineArray = Array.isArray(soLineRaw) ? soLineRaw : [soLineRaw];\nconst soLineMap = {};\nfor (const sl of soLineArray) {\n  if (sl && sl.id) {\n    soLineMap[asId(sl.id)] = sl;\n  }\n}\n\n// Original GD lines. Only referenced when the GD is already Created, which is\n// exactly when get_node_xTRvHWB8 ran.\n// An item under a bundle is a delivery line in its own right and carries its own\n// allocation -- it is just not a row of table_gd. Matched across the whole tree,\n// or on re-save it looks brand new and its quantity is counted twice.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\nlet originalTableGD = [];\nif (gd_status === \"Created\") {\n  originalTableGD = flattenGdRows({{node:get_node_xTRvHWB8.data.data.table_gd}});\n}\n\n// Returns number for calculations/validation\nconst roundQty = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  const num = parseFloat(value);\n  return Math.round(num * 1000) / 1000;\n};\n\n// Returns string for database updates\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\nconst updatedSOTable = [];\nlet validationMessage = null;\nlet itemNotFound = 0;\n\nfor (let index = 0; index < tableGD.length; index++) {\n  const gdItem = tableGD[index];\n  const rowIndex = index + 1;\n  const material_id = gdItem.material_id || \"\";\n\n  // Mirrors if_9DC5Lah8: material_id is set but the Item row is gone -> hard stop.\n  if (material_id !== \"\" && !itemMap[asId(material_id)]) {\n    itemNotFound = 1;\n    break;\n  }\n\n  const itemData = itemMap[asId(material_id)] || {};\n\n  let originalGdItem = null;\n  if (gd_status === \"Created\") {\n    originalGdItem = originalTableGD.find(item => item.so_line_item_id === gdItem.so_line_item_id) || null;\n  }\n\n  // Pristine SO line. Never mutated, so every row reads the same original\n  // delivered_qty/planned_qty the old per-row refetch returned.\n  const soItem = soLineMap[asId(gdItem.so_line_item_id)];\n  if (!soItem) {\n    throw new Error(\"Row \" + rowIndex + \": sales order line \" + gdItem.so_line_item_id + \" was not found.\");\n  }\n\n  // Descriptive (no-stock) line label for error messages\n  const itemLabel = itemData.material_code || gdItem.material_name || gdItem.gd_material_desc || \"(descriptive)\";\n\n  // Description-only and non-stock-non-shown items: no over-delivery tolerance (treat like a descriptive line)\n  const isDescriptiveLike = !gdItem.material_id || gdItem.material_id === \"\" || (itemData.stock_control === 0 && itemData.show_delivery === 0);\n  // asId on both sides: table_uom_conversion now arrives from a search-node, so\n  // alt_uom_id is a number where the old get-node gave a string. A bare === would\n  // silently miss and drop over_delivery_tolerance to 0.\n  const overDeliveryTolerance = isDescriptiveLike ? 0 : (((itemData.table_uom_conversion || []).find((c) => asId(c.alt_uom_id) === asId(gdItem.gd_order_uom_id)) || {}).over_delivery_tolerance || 0);\n  const orderLimit = (gdItem.gd_order_quantity * (100 + overDeliveryTolerance)) / 100;\n  const deliveredQty = soItem.delivered_qty || 0;\n  const plannedQty = soItem.planned_qty || 0;\n\n  const currentGdQty = parseFloat(gdItem.gd_qty) || 0;\n  const origQty = parseFloat(originalGdItem?.gd_qty) || 0;\n\n  let gdQtyChange = currentGdQty;\n  if (originalGdItem) {\n    gdQtyChange = roundQty(currentGdQty - origQty);\n  }\n\n  let totalCommitted;\n  if (isGDPP === 1) {\n    totalCommitted = roundQty(deliveredQty + currentGdQty);\n  } else {\n    totalCommitted = roundQty(deliveredQty + plannedQty + gdQtyChange);\n  }\n\n  let rowMessage = null;\n\n  // Validate order limit (skip for FULL_HU_PICK only - NO_SPLIT enforces tolerance)\n  if (splitPolicy !== \"FULL_HU_PICK\" && totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n    rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: quantity is exceeding the maximum deliverable quantity.`;\n  }\n\n  // Validate planned_qty won't go negative\n  if (!rowMessage) {\n    let projectedPlannedQty = plannedQty;\n\n    if (isGDPP === 1 && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty);\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - origQty + currentGdQty);\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      projectedPlannedQty = roundQty(plannedQty - currentGdQty);\n    }\n\n    if (projectedPlannedQty < 0) {\n      rowMessage = `Row ${rowIndex} with Item ${itemLabel} validation failed: planned quantity would become negative (${projectedPlannedQty}). Please contact support.`;\n    }\n  }\n\n  // Old behaviour: a failed row is never pushed to updatedSOTable. The save only\n  // aborts when saveAs !== \"Cancelled\" (the old if_ACsN1GZD gate); under\n  // Cancelled the row is silently skipped and the walk continues.\n  if (rowMessage) {\n    if (saveAs !== \"Cancelled\") {\n      validationMessage = rowMessage;\n      break;\n    }\n    continue;\n  }\n\n  // Fresh object to mutate and push, so soLineMap stays pristine for later rows.\n  // Shallow copy on purpose: a JSON round-trip would re-parse the bigint ids as\n  // doubles and silently corrupt updatedSOItem.id, which is the update key of\n  // update_node_wEJC3qKB. Only top-level scalars are written below.\n  const updatedSOItem = Object.assign({}, soItem);\n  // Restore the get-node string shape for the two id fields anything downstream\n  // reads (update_node_wEJC3qKB keys on id; code_node_lwB2FVe0 reads both).\n  updatedSOItem.id = asId(soItem.id);\n  updatedSOItem.sales_order_id = asId(soItem.sales_order_id);\n\n  if (isGDPP === 1) {\n    if (saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n    }\n\n  } else {\n    if (gd_status === \"Draft\" && saveAs === \"Completed\") {\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Draft\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty + currentGdQty);\n\n    } else if (gd_status === \"Created\" && saveAs === \"Completed\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty);\n      updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentGdQty);\n      updatedSOItem.outstanding_quantity = formatNumber(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty));\n\n    } else if (gd_status === \"Created\" && saveAs === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - origQty + currentGdQty);\n\n    } else if (saveAs === \"Cancelled\" && gd_status === \"Created\") {\n      updatedSOItem.planned_qty = formatNumber(plannedQty - currentGdQty);\n    }\n  }\n\n  if (saveAs === \"Completed\") {\n    if (parseFloat(updatedSOItem.outstanding_quantity) > 0) {\n      updatedSOItem.line_status = \"Processing\";\n    } else {\n      updatedSOItem.line_status = \"Completed\";\n    }\n  }\n\n  updatedSOTable.push(updatedSOItem);\n}\n\n// An item bundle's sales order line is not a delivery line -- it owns no material,\n// so it is not in tableGD and takes no part in the loop above. It still carries the\n// number of bundles delivered, which is what the next delivery defaults its\n// quantity from, so it is updated here: off the same pristine soLineMap, through\n// the same formatNumber/asId, producing a row of exactly the same shape as every\n// other. That last part matters -- update_node_wEJC3qKB writes a fixed set of\n// columns from each row, so a sparse object would blank planned_qty on the line.\n//\n// planned_qty is deliberately left as it stands: the bundle row never went through\n// the Created branch above, so nothing was ever planned against it to release.\nconst bundleParents = {{node:code_node_hb8ZWe9c.data.bundleParents}} || [];\n\nif (saveAs === \"Completed\") {\n  for (const parent of bundleParents) {\n    const soItem = soLineMap[asId(parent.so_line_item_id)];\n    if (!soItem) continue;\n\n    const updatedSOItem = Object.assign({}, soItem);\n    updatedSOItem.id = asId(soItem.id);\n    updatedSOItem.sales_order_id = asId(soItem.sales_order_id);\n\n    const bundlesDelivered = roundQty(\n      (parseFloat(soItem.delivered_qty) || 0) + (parseFloat(parent.gd_qty) || 0)\n    );\n\n    updatedSOItem.delivered_qty = formatNumber(bundlesDelivered);\n    updatedSOItem.outstanding_quantity = formatNumber(\n      Math.max(0, roundQty((parseFloat(soItem.so_quantity) || 0) - bundlesDelivered))\n    );\n    updatedSOItem.line_status =\n      parseFloat(updatedSOItem.outstanding_quantity) > 0 ? \"Processing\" : \"Completed\";\n\n    updatedSOTable.push(updatedSOItem);\n  }\n}\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable,\n  itemNotFound: itemNotFound\n};"
                 },
                 "response_json": [
                   {
@@ -5586,7 +5779,10 @@
                 "nodeName": "IF Item not found",
                 "name": "IF Item not found",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -5610,7 +5806,9 @@
                 {
                   "id": "if_block_l2C6brGB",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_78ucW0dY",
@@ -5653,7 +5851,9 @@
                 {
                   "id": "if_block_Zs_tyyuy",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5667,7 +5867,10 @@
                 "nodeName": "IF !Cancelled",
                 "name": "IF !Cancelled",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -5691,7 +5894,9 @@
                 {
                   "id": "if_block_bgumb9Zv",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "if_I5UTovzN",
@@ -5724,7 +5929,9 @@
                         {
                           "id": "if_block_h538x1JS",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "return_node_SlczsqHg",
@@ -5767,7 +5974,9 @@
                         {
                           "id": "if_block_HCFVgb1r",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -5777,7 +5986,9 @@
                 {
                   "id": "if_block_jXE0qV2S",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5806,7 +6017,9 @@
         {
           "id": "ifBlock_GV0DS9Ou",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -5864,7 +6077,10 @@
         "nodeName": "IF Auto SI Confirm",
         "name": "IF Auto SI Confirm",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -5888,7 +6104,9 @@
         {
           "id": "if_si_gate_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_si_gate",
@@ -5933,7 +6151,9 @@
         {
           "id": "if_si_gate_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -5976,7 +6196,10 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -6000,7 +6223,9 @@
         {
           "id": "ifBlock_BqSSrIXL",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "workflow_node_PreflightChk01",
@@ -6262,7 +6487,9 @@
                 {
                   "id": "if_block_PreflightFailTrue01",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_PreflightRet01",
@@ -6305,7 +6532,9 @@
                 {
                   "id": "if_block_PreflightFailFalse01",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -6328,7 +6557,9 @@
                 {
                   "id": "if_block_g8mhzmgD",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "workflow_node_sL8sEcWU",
@@ -6400,7 +6631,9 @@
                 {
                   "id": "if_block_CxqFBF50",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -6423,7 +6656,9 @@
                 {
                   "id": "if_block_ReorderCreatedTrue",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "workflow_node_ReorderCreated",
@@ -6495,7 +6730,9 @@
                 {
                   "id": "if_block_ReorderCreatedFalse",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -6518,7 +6755,9 @@
                 {
                   "id": "if_block_ReorderCancelledTrue",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "workflow_node_ReorderCancelled",
@@ -6582,7 +6821,9 @@
                 {
                   "id": "if_block_ReorderCancelledFalse",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -6596,7 +6837,10 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -6620,7 +6864,9 @@
                 {
                   "id": "ifBlock_WFd6tf9m",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "if_63JLcYAM",
@@ -6631,7 +6877,10 @@
                         "nodeName": "IF !Draft",
                         "name": "IF !Draft",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -6655,7 +6904,9 @@
                         {
                           "id": "ifBlock_hwFibQVX",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_elLmtlLm",
@@ -7632,7 +7883,9 @@
                         {
                           "id": "ifBlock_I1yMPyDq",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_aJCo6wbf",
@@ -8621,7 +8874,9 @@
                 {
                   "id": "ifBlock_oqbdJAes",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "add_node_ROqbYEI6",
@@ -9678,7 +9933,10 @@
                 "nodeName": "IF Save as Completed (snapshot guard)",
                 "name": "IF Save as Completed (snapshot guard)",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -9702,7 +9960,9 @@
                 {
                   "id": "if_block_P1tbmEI-",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "workflow_node_ChSO94pn",
@@ -9784,7 +10044,9 @@
                         {
                           "id": "if_block_zBKtBW3h",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "return_node_cpICl5gp",
@@ -9827,7 +10089,9 @@
                         {
                           "id": "if_block_5df4xp2A",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -9837,7 +10101,9 @@
                 {
                   "id": "if_block_Kbvyr3rY",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -9851,7 +10117,10 @@
                 "nodeName": "IF needSOCleanUp",
                 "name": "IF needSOCleanUp",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -9875,7 +10144,9 @@
                 {
                   "id": "if_block_T2H3TGt7",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_aq0VGgxs",
@@ -10017,7 +10288,9 @@
                 {
                   "id": "if_block_sSQFH_Vo",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -10133,7 +10406,10 @@
                 "nodeName": "IF finalSOTable",
                 "name": "IF finalSOTable",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -10157,7 +10433,9 @@
                 {
                   "id": "if_block_enJoA88U",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_wEJC3qKB",
@@ -10249,7 +10527,9 @@
                 {
                   "id": "if_block_qRwt2_sF",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -10616,7 +10896,9 @@
                 {
                   "id": "if_block_k4FcBxBQ",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_DsdVYe5J",
@@ -10659,7 +10941,9 @@
                 {
                   "id": "if_block_M-nbn7Ln",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -10673,7 +10957,10 @@
                 "nodeName": "IF Auto Create Picking",
                 "name": "IF Auto Create Picking",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -10833,7 +11120,9 @@
                 {
                   "id": "if_block_agLkP1CO",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_zna6o03F",
@@ -11151,7 +11440,10 @@
                         "nodeName": "IF is Update",
                         "name": "IF is Update",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -11175,7 +11467,9 @@
                         {
                           "id": "if_block_IR8Ulz4L",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_4uzHPx7M",
@@ -11622,7 +11916,9 @@
                         {
                           "id": "if_block_5vH5B4nT",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "add_node_rk182M1q",
@@ -12287,7 +12583,10 @@
                         "nodeName": "IF hasCancellations",
                         "name": "IF hasCancellations",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -12338,7 +12637,9 @@
                         {
                           "id": "if_block_lZOzfmES",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "set_cache_node_pse19Vm5",
@@ -12556,7 +12857,9 @@
                         {
                           "id": "if_block_M8zr7B_k",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -12570,7 +12873,10 @@
                         "nodeName": "IF hasAssignments",
                         "name": "IF hasAssignments",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -12621,7 +12927,9 @@
                         {
                           "id": "ifBlock_jkHzV5HR",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "set_cache_node_BJAH7NPs",
@@ -12839,7 +13147,9 @@
                         {
                           "id": "ifBlock_2B7l9nuW",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -12849,7 +13159,9 @@
                 {
                   "id": "if_block_VSxxX_k4",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -12859,7 +13171,9 @@
         {
           "id": "ifBlock_L3HC4Y5Y",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "if_lyzamd38",
@@ -12870,7 +13184,10 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -12894,7 +13211,9 @@
                 {
                   "id": "ifBlock_CrkHCGMk",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_wq10Ecg3",
@@ -13821,7 +14140,9 @@
                 {
                   "id": "ifBlock_CbklI2Ry",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "add_node_2r51lmua",
@@ -14912,7 +15233,10 @@
         "nodeName": "IF Completed (Auto-GR)",
         "name": "IF Completed (Auto-GR)",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -14936,7 +15260,9 @@
         {
           "id": "if_trigger_completed_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "if_trigger_gr",
@@ -14947,7 +15273,10 @@
                 "nodeName": "IF Do Auto-GR",
                 "name": "IF Do Auto-GR",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -14971,7 +15300,9 @@
                 {
                   "id": "if_trigger_gr_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_gr_trigger_prep",
@@ -15172,7 +15503,10 @@
                         "nodeName": "IF Auto-GR Failed",
                         "name": "IF Auto-GR Failed",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -15196,7 +15530,9 @@
                         {
                           "id": "if_gr_trigger_failed_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "return_gr_trigger_failed",
@@ -15251,7 +15587,9 @@
                         {
                           "id": "if_gr_trigger_failed_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -15261,7 +15599,9 @@
                 {
                   "id": "if_trigger_gr_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -15275,7 +15615,10 @@
                 "nodeName": "IF Do Auto-SI",
                 "name": "IF Do Auto-SI",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -15299,7 +15642,9 @@
                 {
                   "id": "if_trigger_si_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_si_trigger_prep",
@@ -15496,7 +15841,10 @@
                         "nodeName": "IF Auto-SI Failed (interactive only)",
                         "name": "IF Auto-SI Failed (interactive only)",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -15561,7 +15909,9 @@
                         {
                           "id": "if_si_trigger_failed_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "return_si_trigger_failed",
@@ -15626,7 +15976,9 @@
                         {
                           "id": "if_si_trigger_failed_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -15636,7 +15988,9 @@
                 {
                   "id": "if_trigger_si_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -15646,7 +16000,9 @@
         {
           "id": "if_trigger_completed_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -15746,7 +16102,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
