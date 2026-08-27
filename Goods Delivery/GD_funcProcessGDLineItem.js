@@ -1439,33 +1439,33 @@ const createTableGdWithBaseUOM = async (allItems) => {
     },
   }).then(() => {
     this.getComponent("table_gd").hideChildRecord();
-    this.hideLoading();
   });
 
   setTimeout(async () => {
+    let insufficientItems = [];
+
     try {
       const plantId = this.getValue("plant_id");
 
       // Use the enhanced inventory checking function with serialized item support
-      const insufficientItems = await checkInventoryWithDuplicates(
-        allItems,
-        plantId,
-      );
-
-      // Show insufficient dialog if there are any shortfalls
-      if (insufficientItems.length > 0) {
-        console.log(
-          "Materials with insufficient inventory:",
-          insufficientItems,
-        );
-        this.openDialog("dialog_insufficient");
-      }
+      insufficientItems = await checkInventoryWithDuplicates(allItems, plantId);
 
       console.log(
         "Finished populating table_gd items with serialized item support",
       );
     } catch (error) {
       console.error("Error in inventory check:", error);
+    } finally {
+      // Released only here. Allocation runs after setData, so hiding the
+      // overlay with the rest of the body left a window in which Created /
+      // Completed could be pressed against a half-allocated table.
+      this.hideLoading();
+    }
+
+    // Show insufficient dialog if there are any shortfalls
+    if (insufficientItems.length > 0) {
+      console.log("Materials with insufficient inventory:", insufficientItems);
+      this.openDialog("dialog_insufficient");
     }
   }, 200);
 })();

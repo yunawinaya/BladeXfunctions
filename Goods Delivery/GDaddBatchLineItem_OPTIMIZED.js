@@ -1802,6 +1802,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
   await this.setData(headerData);
 
   setTimeout(async () => {
+    let insufficientItems = [];
+
     try {
       const plantId = this.getValue("plant_id");
       const newItems = allItems.filter((item) => {
@@ -1812,25 +1814,25 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
       // Allocation walks the rows flat, and a bundle's items are rows in their
       // own right, so both the entries and the offset are counted that way.
-      const insufficientItems = await checkInventoryWithDuplicates(
+      insufficientItems = await checkInventoryWithDuplicates(
         flattenAllItems(newItems),
         plantId,
         flattenTreeRows(existingGD).length,
       );
 
-      if (insufficientItems.length > 0) {
-        console.log(
-          "Materials with insufficient inventory:",
-          insufficientItems,
-        );
-        this.openDialog("dialog_insufficient");
-      }
-
       console.log("Finished populating table_gd items");
     } catch (error) {
       console.error("Error in inventory check:", error);
+    } finally {
+      // Released only here. Allocation runs after setData, so hiding the
+      // overlay with the rest of the body left a window in which Created /
+      // Completed could be pressed against a half-allocated table.
+      this.hideLoading();
+    }
+
+    if (insufficientItems.length > 0) {
+      console.log("Materials with insufficient inventory:", insufficientItems);
+      this.openDialog("dialog_insufficient");
     }
   }, 200);
-
-  this.hideLoading();
 })();

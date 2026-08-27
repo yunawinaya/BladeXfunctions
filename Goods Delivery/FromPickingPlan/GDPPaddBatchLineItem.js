@@ -1144,7 +1144,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
   ]);
 
   // GDPP: Enable/disable fields based on temp_qty_data length
-  setTimeout(() => {
+  const applyFieldStates = () => {
     // Read the table back: the platform gives each row its fm_key on save, and
     // a subform row is identified by that key rather than by where it sits --
     // which is the only way to reach an item under a bundle, since it is not a
@@ -1223,7 +1223,15 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
       console.log("item bundle rows locked:", bundleParents.size, "bundles");
     }
-  }, 100);
+  };
 
-  this.hideLoading();
+  setTimeout(() => {
+    try {
+      applyFieldStates();
+    } finally {
+      // Released only here, so Created / Completed cannot be pressed while the
+      // deferred field states are still being applied.
+      this.hideLoading();
+    }
+  }, 100);
 })();
