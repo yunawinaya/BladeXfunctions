@@ -832,7 +832,9 @@
                       "propLabel": "message"
                     }
                   ]
-                }
+                },
+                "return_data": {},
+                "status_code": 200
               },
               "blocks": []
             }
@@ -2047,7 +2049,9 @@
               "propLabel": "message"
             }
           ]
-        }
+        },
+        "return_data": {},
+        "status_code": 200
       },
       "blocks": []
     },
