@@ -1,0 +1,2065 @@
+{
+  "request_json": [
+    {
+      "key": "spalldata",
+      "name": "allData",
+      "title": "allData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "spforce",
+      "name": "isForceComplete",
+      "title": "isForceComplete",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "spconfby",
+      "name": "confirmed_by",
+      "title": "confirmed_by",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "spcode",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "spmsg",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_SPprep",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Prepare",
+        "isValidator": true,
+        "nodeName": "Prepare",
+        "name": "Prepare",
+        "script": {
+          "type": "javascript",
+          "code": "const allData = {{workflowparams:allData}} || {};\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\n\nconst refDocType = allData.ref_doc_type || \"\";\nconst isLOT = refDocType === \"Location Transfer\" ? 1 : 0;\nconst isPT = refDocType === \"Plant Transfer\" ? 1 : 0;\nconst isMSI = refDocType === \"Miscellaneous Issue\" ? 1 : 0;\n\n// A bundle-free flat list: the picking subform can arrive nested on an Edit read.\nconst flatten = (rows) =>\n  (rows || []).flatMap((row) => {\n    const { children, ...rest } = row || {};\n    return [rest, ...(Array.isArray(children) ? children : [])];\n  });\nconst items = flatten(allData.table_picking_items).filter(\n  (r) => r && r.row_type !== \"header\"\n);\nconst uniq = (a) => [...new Set(a.filter((v) => v !== null && v !== undefined && v !== \"\"))];\n\nreturn {\n  pickingId: allData.id || \"\",\n  pickingNo: allData.sp_id || \"\",\n  plantId: allData.plant_id || \"\",\n  organizationId: allData.organization_id || \"\",\n  refDocType, isLOT, isPT, isMSI,\n  isForceComplete: isForceComplete ? 1 : 0,\n  items,\n  srcIds: uniq(items.map((i) => i.src_id)),\n  srcLineIds: uniq(items.map((i) => i.src_line_id)),\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "pickingidkey",
+            "name": "pickingId",
+            "title": "pickingId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "pickingnokey",
+            "name": "pickingNo",
+            "title": "pickingNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "plantidkey",
+            "name": "plantId",
+            "title": "plantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "organization",
+            "name": "organizationId",
+            "title": "organizationId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "refdoctypeke",
+            "name": "refDocType",
+            "title": "refDocType",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "islotkey",
+            "name": "isLOT",
+            "title": "isLOT",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "isptkey",
+            "name": "isPT",
+            "title": "isPT",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ismsikey",
+            "name": "isMSI",
+            "title": "isMSI",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "isforcecompl",
+            "name": "isForceComplete",
+            "title": "isForceComplete",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itemskey",
+            "name": "items",
+            "title": "items",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "itemsi",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "srcidskey",
+            "name": "srcIds",
+            "title": "srcIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "srcidsi",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "srclineidske",
+            "name": "srcLineIds",
+            "title": "srcLineIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "srclineidsi",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "get_node_SPsetup",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Picking Setup:Table:1935547845324787714",
+          "rules": {
+            "collectionId": "1935547845324787714",
+            "list": [
+              {
+                "id": 1794000000001,
+                "parentId": 1794000000002,
+                "isTop": true,
+                "type": "branch",
+                "operator": "all",
+                "prop": "",
+                "valueType": "",
+                "value": "",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1794000000002,
+                    "parentId": 1794000000001,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_SPprep.data.organizationId}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization ID",
+                    "valueLabel": "",
+                    "operatorLabel": "equal"
+                  },
+                  {
+                    "id": 1794000000003,
+                    "parentId": 1794000000001,
+                    "isTop": false,
+                    "prop": "plant_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_SPprep.data.plantId}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Plant ID",
+                    "valueLabel": "",
+                    "operatorLabel": "equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Picking Setup",
+        "isValidator": true,
+        "nodeName": "Get Picking Setup",
+        "name": "Get Picking Setup"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_SPrecords",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Create Table Picking Records",
+        "isValidator": true,
+        "nodeName": "Create Table Picking Records",
+        "name": "Create Table Picking Records",
+        "script": {
+          "type": "javascript",
+          "code": "const prep = {{node:code_node_SPprep.data}};\nconst confirmedBy = {{workflowparams:confirmed_by}} || \"\";\nconst setupRaw = {{node:get_node_SPsetup.data}};\nconst setup = Array.isArray(setupRaw) ? setupRaw[0] : setupRaw;\nconst allowFull = setup && setup.sp_allow_full_picking === 1 ? 1 : 0;\n\nconst round3 = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst items = prep.items || [];\n\n// picked_qty is captured in the Pick UOM; store_out_qty is the canonical order-UOM\n// figure the movement consumes, converted with the factors the line already carries.\nconst toOrderUom = (row, qty) => {\n  const ob = parseFloat(row.order_base_qty) || 0;\n  const pb = parseFloat(row.picking_base_qty) || 0;\n  if (!ob || !pb) return qty;\n  return round3((qty * pb) / ob);\n};\n\nconst records = [];\nconst updatedItems = [];\nlet allDone = 1;\nlet anyPicked = 0;\n\nfor (const row of items) {\n  if (row.line_status === \"Cancelled\") { updatedItems.push(row); continue; }\n  const pickedAlt = round3(row.picked_qty);\n  const pickedOrder = toOrderUom(row, pickedAlt);\n  const toPick = round3(row.qty_to_pick);\n  let pending = round3(toPick - pickedOrder);\n  if (pending < 0) pending = 0;\n\n  let status = \"Open\";\n  if (allowFull && pickedOrder > 0) { status = \"Completed\"; pending = 0; }\n  else if (pending === 0) status = \"Completed\";\n  else if (pickedOrder > 0) status = \"In Progress\";\n  if (prep.isForceComplete === 1) { status = \"Completed\"; pending = 0; }\n\n  if (status !== \"Completed\") allDone = 0;\n  if (pickedOrder > 0) {\n    anyPicked = 1;\n    records.push({\n      handling_unit_id: row.handling_unit_id || null,\n      item_code: row.item_code, item_name: row.item_name || \"\",\n      item_desc: row.item_desc || \"\", more_desc: row.more_desc || \"\",\n      batch_no: row.batch_no || null, target_batch: row.target_batch || null,\n      serial_numbers: row.serial_numbers || \"\",\n      store_out_qty: pickedOrder.toFixed(3),\n      picked_qty_alt: pickedAlt.toFixed(3),\n      item_uom: row.item_uom, picked_uom: row.picking_uom || row.item_uom,\n      source_bin: row.source_bin || null, remark: row.remark || \"\",\n      confirmed_by: confirmedBy, confirmed_at: null,\n      src_id: row.src_id || null, src_line_id: row.src_line_id || null,\n      src_no: row.src_no || \"\",\n    });\n  }\n  updatedItems.push(Object.assign({}, row, {\n    line_status: status,\n    pending_process_qty: pending.toFixed(3),\n    picked_qty: pickedAlt.toFixed(3),\n  }));\n}\n\nconst headerStatus = allDone ? \"Completed\" : (anyPicked ? \"In Progress\" : \"Created\");\n\nreturn {\n  records, updatedItems, headerStatus,\n  hasRecords: records.length > 0 ? 1 : 0,\n  autoAdvance: setup && setup.sp_auto_advance === 1 ? 1 : 0,\n  isCompleted: headerStatus === \"Completed\" ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "recordskey",
+            "name": "records",
+            "title": "records",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "recordsi",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "updateditems",
+            "name": "updatedItems",
+            "title": "updatedItems",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "updateditems",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "headerstatus",
+            "name": "headerStatus",
+            "title": "headerStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hasrecordske",
+            "name": "hasRecords",
+            "title": "hasRecords",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "autoadvancek",
+            "name": "autoAdvance",
+            "title": "autoAdvance",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "iscompletedk",
+            "name": "isCompleted",
+            "title": "isCompleted",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_all_SPfetch",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Branch",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_all_item_SPlinesLOT",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 1",
+            "filter": {
+              "list": [
+                {
+                  "id": 1794000000100,
+                  "parentId": 1794000000101,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 1",
+            "name": "Branch 1",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_node_SPlinesLOT",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock Movement Table(Location Transfer):Table:2013831779991814146",
+                  "rules": {
+                    "collectionId": "2013831779991814146",
+                    "list": [
+                      {
+                        "id": 1794000000021,
+                        "parentId": 1794000000022,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000020,
+                            "parentId": 1794000000021,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPprep.data.srcLineIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get LOT Lines",
+                "isValidator": true,
+                "nodeName": "Get LOT Lines",
+                "name": "Get LOT Lines"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_SPlinesPT",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 2",
+            "filter": {
+              "list": [
+                {
+                  "id": 1794000000110,
+                  "parentId": 1794000000111,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 2",
+            "name": "Branch 2",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_node_SPlinesPT",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock movement(Plant Transfer):Table:2025865143356698625",
+                  "rules": {
+                    "collectionId": "2025865143356698625",
+                    "list": [
+                      {
+                        "id": 1794000000026,
+                        "parentId": 1794000000027,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000025,
+                            "parentId": 1794000000026,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPprep.data.srcLineIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get PT Lines",
+                "isValidator": true,
+                "nodeName": "Get PT Lines",
+                "name": "Get PT Lines"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_SPlinesMSI",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 3",
+            "filter": {
+              "list": [
+                {
+                  "id": 1794000000120,
+                  "parentId": 1794000000121,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 3",
+            "name": "Branch 3",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_node_SPlinesMSI",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock movement(Miscellaneous Issue ):Table:2015633434253066241",
+                  "rules": {
+                    "collectionId": "2015633434253066241",
+                    "list": [
+                      {
+                        "id": 1794000000031,
+                        "parentId": 1794000000032,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000030,
+                            "parentId": 1794000000031,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPprep.data.srcLineIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get MSI Lines",
+                "isValidator": true,
+                "nodeName": "Get MSI Lines",
+                "name": "Get MSI Lines"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_SPsrcLines",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Merge Source Lines",
+        "isValidator": true,
+        "nodeName": "Merge Source Lines",
+        "name": "Merge Source Lines",
+        "script": {
+          "type": "javascript",
+          "code": "// The three subtypes live in different collections; only one branch ran.\nconst lot = {{node:search_node_SPlinesLOT.data.data}};\nconst pt = {{node:search_node_SPlinesPT.data.data}};\nconst msi = {{node:search_node_SPlinesMSI.data.data}};\nconst pick = (x) => (Array.isArray(x) ? x : (x ? [x] : []));\nconst rows = pick(lot).concat(pick(pt)).concat(pick(msi));\nreturn { rows, rowCount: rows.length };\n"
+        },
+        "response_json": [
+          {
+            "key": "rowskey",
+            "name": "rows",
+            "title": "rows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "rowsi",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "rowcountkey",
+            "name": "rowCount",
+            "title": "rowCount",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_SPlines",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Source Lines Preparation",
+        "isValidator": true,
+        "nodeName": "Source Lines Preparation",
+        "name": "Source Lines Preparation",
+        "script": {
+          "type": "javascript",
+          "code": "const prep = {{node:code_node_SPprep.data}};\nconst recs = {{node:code_node_SPrecords.data}};\nconst raw = {{node:code_node_SPsrcLines.data.rows}};\nconst srcLines = Array.isArray(raw) ? raw : (raw ? [raw] : []);\n\nconst round3 = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst keyOf = (bin, batch, hu) =>\n  `${bin || \"no-bin\"}|${batch || \"no-batch\"}|${hu || \"no-hu\"}`;\n\n// What was actually picked, per source line and per physical origin.\nconst pickedByLine = {};\nfor (const r of recs.records || []) {\n  const lid = String(r.src_line_id || \"\");\n  if (!lid) continue;\n  pickedByLine[lid] = pickedByLine[lid] || {};\n  const k = keyOf(r.source_bin, r.batch_no, r.handling_unit_id);\n  pickedByLine[lid][k] = round3((pickedByLine[lid][k] || 0) + parseFloat(r.store_out_qty));\n}\n\nconst lineUpdates = [];\nconst errors = [];\n\nfor (const line of srcLines) {\n  const picked = pickedByLine[String(line.id)];\n  if (!picked) continue;\n\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n\n  // Rewrite each staged allocation down to what the picker actually pulled from\n  // that exact bin/batch/HU. The pick never relocates stock, so only the quantity\n  // changes; category, UOM and dates are preserved from the original entry.\n  const rebuilt = [];\n  const remaining = Object.assign({}, picked);\n  for (const e of entries) {\n    const k = keyOf(e.location_id, e.batch_id, e.handling_unit_id);\n    const avail = remaining[k];\n    if (avail === undefined || avail <= 0) continue;\n    const take = Math.min(round3(e.sm_quantity), avail);\n    if (take <= 0) continue;\n    remaining[k] = round3(avail - take);\n    rebuilt.push(Object.assign({}, e, { sm_quantity: take }));\n  }\n  const leftover = Object.keys(remaining).filter((k) => remaining[k] > 0.0005);\n  if (leftover.length > 0) {\n    errors.push({\n      line_id: line.id,\n      message: \"Picked quantity has no matching staged allocation at \" + leftover.join(\", \"),\n    });\n    continue;\n  }\n  if (rebuilt.length === 0) continue;\n\n  lineUpdates.push({\n    id: line.id,\n    temp_qty_data: JSON.stringify(rebuilt),\n    prev_temp_qty_data: line.temp_qty_data || \"\",\n    picking_status: \"Completed\",\n  });\n}\n\nreturn {\n  lineUpdates,\n  hasLineUpdates: lineUpdates.length > 0 ? 1 : 0,\n  errors,\n  hasError: errors.length > 0 ? 1 : 0,\n  errorMessage: errors.length > 0 ? errors[0].message : \"\",\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "lineupdatesk",
+            "name": "lineUpdates",
+            "title": "lineUpdates",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "lineupdatesi",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "haslineupdat",
+            "name": "hasLineUpdates",
+            "title": "hasLineUpdates",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "errorskey",
+            "name": "errors",
+            "title": "errors",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "errorsi",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "haserrorkey",
+            "name": "hasError",
+            "title": "hasError",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "errormessage",
+            "name": "errorMessage",
+            "title": "errorMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_SPerror",
+      "type": "if",
+      "data": {
+        "title": "IF Preparation Failed",
+        "isValidator": true,
+        "nodeName": "IF Preparation Failed",
+        "name": "IF Preparation Failed",
+        "condition_type": "ConditionRule",
+        "filter": {
+          "list": [
+            {
+              "id": 1794000000200,
+              "parentId": 1794000000201,
+              "isTop": true,
+              "prop": "node.code_node_SPlines.data.hasError",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "hasError",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_SPerror_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_node_SPerror",
+              "type": "return-node",
+              "data": {
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.errorMessage}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_SPerror_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_SPpicking",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Stock Picking:Table:2092878390055469058",
+          "rules": {
+            "collectionId": "2092878390055469058",
+            "list": [
+              {
+                "id": 1794000000300,
+                "parentId": 1794000000301,
+                "isTop": true,
+                "type": "branch",
+                "operator": "all",
+                "prop": "",
+                "valueType": "",
+                "value": "",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1794000000302,
+                    "parentId": 1794000000300,
+                    "isTop": false,
+                    "prop": "id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_SPprep.data.pickingId}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update Picking",
+        "isValidator": true,
+        "nodeName": "Update Picking",
+        "name": "Update Picking",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "sp_status",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_SPrecords.data.headerStatus}}",
+              "valueLabel": "",
+              "propLabel": "sp_status"
+            },
+            {
+              "prop": "table_picking_items",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_SPrecords.data.updatedItems}}",
+              "valueLabel": "",
+              "propLabel": "table_picking_items"
+            },
+            {
+              "prop": "table_picking_records",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_SPrecords.data.records}}",
+              "valueLabel": "",
+              "propLabel": "table_picking_records"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_all_SPwrite",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Branch",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_all_item_SPwriteLOT",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 1",
+            "filter": {
+              "list": [
+                {
+                  "id": 1794000000600,
+                  "parentId": 1794000000601,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 1",
+            "name": "Branch 1",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "update_node_SPlinesLOT",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock Movement Table(Location Transfer):Table:2013831779991814146",
+                  "rules": {
+                    "collectionId": "2013831779991814146",
+                    "list": [
+                      {
+                        "id": 1794000000400,
+                        "parentId": 1794000000401,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000402,
+                            "parentId": 1794000000400,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPlines.data.lineUpdates.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update LOT Lines",
+                "isValidator": true,
+                "nodeName": "Update LOT Lines",
+                "name": "Update LOT Lines",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.id}}",
+                      "valueLabel": "",
+                      "propLabel": "id"
+                    },
+                    {
+                      "prop": "temp_qty_data",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.temp_qty_data}}",
+                      "valueLabel": "",
+                      "propLabel": "temp_qty_data"
+                    },
+                    {
+                      "prop": "prev_temp_qty_data",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.prev_temp_qty_data}}",
+                      "valueLabel": "",
+                      "propLabel": "prev_temp_qty_data"
+                    },
+                    {
+                      "prop": "picking_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.picking_status}}",
+                      "valueLabel": "",
+                      "propLabel": "picking_status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_SPheadLOT",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Location Transfer:Table:2013791389687349250",
+                  "rules": {
+                    "collectionId": "2013791389687349250",
+                    "list": [
+                      {
+                        "id": 1794000000500,
+                        "parentId": 1794000000501,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000502,
+                            "parentId": 1794000000500,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPprep.data.srcIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update LOT Picking Status",
+                "isValidator": true,
+                "nodeName": "Update LOT Picking Status",
+                "name": "Update LOT Picking Status",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "picking_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPrecords.data.headerStatus}}",
+                      "valueLabel": "",
+                      "propLabel": "picking_status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_SPwritePT",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 2",
+            "filter": {
+              "list": [
+                {
+                  "id": 1794000000610,
+                  "parentId": 1794000000611,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 2",
+            "name": "Branch 2",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "update_node_SPlinesPT",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock movement(Plant Transfer):Table:2025865143356698625",
+                  "rules": {
+                    "collectionId": "2025865143356698625",
+                    "list": [
+                      {
+                        "id": 1794000000410,
+                        "parentId": 1794000000411,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000412,
+                            "parentId": 1794000000410,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPlines.data.lineUpdates.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update PT Lines",
+                "isValidator": true,
+                "nodeName": "Update PT Lines",
+                "name": "Update PT Lines",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.id}}",
+                      "valueLabel": "",
+                      "propLabel": "id"
+                    },
+                    {
+                      "prop": "temp_qty_data",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.temp_qty_data}}",
+                      "valueLabel": "",
+                      "propLabel": "temp_qty_data"
+                    },
+                    {
+                      "prop": "prev_temp_qty_data",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.prev_temp_qty_data}}",
+                      "valueLabel": "",
+                      "propLabel": "prev_temp_qty_data"
+                    },
+                    {
+                      "prop": "picking_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.picking_status}}",
+                      "valueLabel": "",
+                      "propLabel": "picking_status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_SPheadPT",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Plant Transfer:Table:2025846960482627586",
+                  "rules": {
+                    "collectionId": "2025846960482627586",
+                    "list": [
+                      {
+                        "id": 1794000000510,
+                        "parentId": 1794000000511,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000512,
+                            "parentId": 1794000000510,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPprep.data.srcIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update PT Picking Status",
+                "isValidator": true,
+                "nodeName": "Update PT Picking Status",
+                "name": "Update PT Picking Status",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "picking_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPrecords.data.headerStatus}}",
+                      "valueLabel": "",
+                      "propLabel": "picking_status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_SPwriteMSI",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 3",
+            "filter": {
+              "list": [
+                {
+                  "id": 1794000000620,
+                  "parentId": 1794000000621,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 3",
+            "name": "Branch 3",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "update_node_SPlinesMSI",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock movement(Miscellaneous Issue ):Table:2015633434253066241",
+                  "rules": {
+                    "collectionId": "2015633434253066241",
+                    "list": [
+                      {
+                        "id": 1794000000420,
+                        "parentId": 1794000000421,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000422,
+                            "parentId": 1794000000420,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPlines.data.lineUpdates.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update MSI Lines",
+                "isValidator": true,
+                "nodeName": "Update MSI Lines",
+                "name": "Update MSI Lines",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.id}}",
+                      "valueLabel": "",
+                      "propLabel": "id"
+                    },
+                    {
+                      "prop": "temp_qty_data",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.temp_qty_data}}",
+                      "valueLabel": "",
+                      "propLabel": "temp_qty_data"
+                    },
+                    {
+                      "prop": "prev_temp_qty_data",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.prev_temp_qty_data}}",
+                      "valueLabel": "",
+                      "propLabel": "prev_temp_qty_data"
+                    },
+                    {
+                      "prop": "picking_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPlines.data.lineUpdates.picking_status}}",
+                      "valueLabel": "",
+                      "propLabel": "picking_status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "update_node_SPheadMSI",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Miscellaneous Issue:Table:2015621214538432514",
+                  "rules": {
+                    "collectionId": "2015621214538432514",
+                    "list": [
+                      {
+                        "id": 1794000000520,
+                        "parentId": 1794000000521,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000522,
+                            "parentId": 1794000000520,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPprep.data.srcIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update MSI Picking Status",
+                "isValidator": true,
+                "nodeName": "Update MSI Picking Status",
+                "name": "Update MSI Picking Status",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "picking_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SPrecords.data.headerStatus}}",
+                      "valueLabel": "",
+                      "propLabel": "picking_status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "if_SPautoAdvance",
+      "type": "if",
+      "data": {
+        "title": "IF Auto Advance",
+        "isValidator": true,
+        "nodeName": "IF Auto Advance",
+        "name": "IF Auto Advance",
+        "condition_type": "ConditionRule",
+        "filter": {
+          "list": [
+            {
+              "id": 1794000001000,
+              "parentId": 1794000001001,
+              "isTop": true,
+              "prop": "node.code_node_SPrecords.data.autoAdvance",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "autoAdvance",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_SPautoAdvance_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "if_SPadvCompleted",
+              "type": "if",
+              "data": {
+                "title": "IF Picking Completed",
+                "isValidator": true,
+                "nodeName": "IF Picking Completed",
+                "name": "IF Picking Completed",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1794000001010,
+                      "parentId": 1794000001011,
+                      "isTop": true,
+                      "prop": "node.code_node_SPrecords.data.isCompleted",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "isCompleted",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_SPadvCompleted_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "condition_all_SPadvance",
+                      "type": "condition-all-node",
+                      "data": {
+                        "title": "Parallel Branch",
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "condition_all_item_SPadvLOT",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 1",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1794000000900,
+                                  "parentId": 1794000000901,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "1 == 1",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 1",
+                            "name": "Branch 1",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_SPmoveLOT",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Location Transfer:Table:2013791389687349250",
+                                  "rules": {
+                                    "collectionId": "2013791389687349250",
+                                    "list": [
+                                      {
+                                        "id": 1794000000701,
+                                        "parentId": 1794000000702,
+                                        "isTop": true,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "prop": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1794000000700,
+                                            "parentId": 1794000000701,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_SPprep.data.srcIds}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "in"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get LOT",
+                                "isValidator": true,
+                                "nodeName": "Get LOT",
+                                "name": "Get LOT"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "workflow_node_SPadvLOT",
+                              "type": "workflow-node",
+                              "data": {
+                                "workflow_id": "",
+                                "workflow_name": "",
+                                "input_params": {},
+                                "title": "Advance LOT",
+                                "isValidator": true,
+                                "nodeName": "Advance LOT",
+                                "name": "Advance LOT",
+                                "workflow": {
+                                  "source": "SM_LOCATION_TRANSFER:Workflow:2013133675374927874",
+                                  "rules": {
+                                    "collectionId": "2013133675374927874",
+                                    "list": [
+                                      {
+                                        "id": 1794000000800,
+                                        "parentId": 1794000000801,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "remote": true,
+                                "remoteType": "innerdatasource",
+                                "body_params": {
+                                  "list": [
+                                    {
+                                      "prop": "allData",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:get_node_SPmoveLOT.data}}",
+                                      "valueLabel": "",
+                                      "propLabel": "allData"
+                                    },
+                                    {
+                                      "prop": "saveAs",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "In Progress",
+                                      "valueLabel": "",
+                                      "propLabel": "saveAs"
+                                    },
+                                    {
+                                      "prop": "pageStatus",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "Edit",
+                                      "valueLabel": "",
+                                      "propLabel": "pageStatus"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "condition_all_item_SPadvPT",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 2",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1794000000910,
+                                  "parentId": 1794000000911,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "1 == 1",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 2",
+                            "name": "Branch 2",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_SPmovePT",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Plant Transfer:Table:2025846960482627586",
+                                  "rules": {
+                                    "collectionId": "2025846960482627586",
+                                    "list": [
+                                      {
+                                        "id": 1794000000711,
+                                        "parentId": 1794000000712,
+                                        "isTop": true,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "prop": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1794000000710,
+                                            "parentId": 1794000000711,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_SPprep.data.srcIds}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "in"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get PT",
+                                "isValidator": true,
+                                "nodeName": "Get PT",
+                                "name": "Get PT"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "workflow_node_SPadvPT",
+                              "type": "workflow-node",
+                              "data": {
+                                "workflow_id": "",
+                                "workflow_name": "",
+                                "input_params": {},
+                                "title": "Advance PT",
+                                "isValidator": true,
+                                "nodeName": "Advance PT",
+                                "name": "Advance PT",
+                                "workflow": {
+                                  "source": "SM_PLANT_TRANSFER:Workflow:2025864403783462913",
+                                  "rules": {
+                                    "collectionId": "2025864403783462913",
+                                    "list": [
+                                      {
+                                        "id": 1794000000810,
+                                        "parentId": 1794000000811,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "remote": true,
+                                "remoteType": "innerdatasource",
+                                "body_params": {
+                                  "list": [
+                                    {
+                                      "prop": "allData",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:get_node_SPmovePT.data}}",
+                                      "valueLabel": "",
+                                      "propLabel": "allData"
+                                    },
+                                    {
+                                      "prop": "saveAs",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "In Progress",
+                                      "valueLabel": "",
+                                      "propLabel": "saveAs"
+                                    },
+                                    {
+                                      "prop": "pageStatus",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "Edit",
+                                      "valueLabel": "",
+                                      "propLabel": "pageStatus"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "condition_all_item_SPadvMSI",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 3",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1794000000920,
+                                  "parentId": 1794000000921,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "1 == 1",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 3",
+                            "name": "Branch 3",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_SPmoveMSI",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Miscellaneous Issue:Table:2015621214538432514",
+                                  "rules": {
+                                    "collectionId": "2015621214538432514",
+                                    "list": [
+                                      {
+                                        "id": 1794000000721,
+                                        "parentId": 1794000000722,
+                                        "isTop": true,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "prop": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1794000000720,
+                                            "parentId": 1794000000721,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_SPprep.data.srcIds}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "in"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get MSI",
+                                "isValidator": true,
+                                "nodeName": "Get MSI",
+                                "name": "Get MSI"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "workflow_node_SPadvMSI",
+                              "type": "workflow-node",
+                              "data": {
+                                "workflow_id": "",
+                                "workflow_name": "",
+                                "input_params": {},
+                                "title": "Advance MSI",
+                                "isValidator": true,
+                                "nodeName": "Advance MSI",
+                                "name": "Advance MSI",
+                                "workflow": {
+                                  "source": "SM_MISC_ISSUE:Workflow:2015602242971631618",
+                                  "rules": {
+                                    "collectionId": "2015602242971631618",
+                                    "list": [
+                                      {
+                                        "id": 1794000000820,
+                                        "parentId": 1794000000821,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "remote": true,
+                                "remoteType": "innerdatasource",
+                                "body_params": {
+                                  "list": [
+                                    {
+                                      "prop": "allData",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:get_node_SPmoveMSI.data}}",
+                                      "valueLabel": "",
+                                      "propLabel": "allData"
+                                    },
+                                    {
+                                      "prop": "saveAs",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "In Progress",
+                                      "valueLabel": "",
+                                      "propLabel": "saveAs"
+                                    },
+                                    {
+                                      "prop": "pageStatus",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "Edit",
+                                      "valueLabel": "",
+                                      "propLabel": "pageStatus"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_SPadvCompleted_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_SPautoAdvance_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "return_node_SPok",
+      "type": "return-node",
+      "data": {
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "code",
+              "operator": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": "",
+              "propLabel": "code"
+            },
+            {
+              "prop": "message",
+              "operator": "",
+              "valueType": "value",
+              "value": "Stock Picking processed successfully",
+              "valueLabel": "",
+              "propLabel": "message"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

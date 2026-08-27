@@ -36,6 +36,11 @@
         split_policy: "",
         full_cl_check: 0,
         convert_gd_created: 0,
+        lot_picking_required: 0,
+        pt_picking_required: 0,
+        msi_picking_required: 0,
+        sp_auto_advance: 0,
+        sp_allow_full_picking: 0,
       });
       return;
     }
@@ -61,6 +66,11 @@
       split_policy: resPickingSetup.data[0].split_policy,
       full_cl_check: resPickingSetup.data[0].full_cl_check || 0,
       convert_gd_created: resPickingSetup.data[0].convert_gd_created || 0,
+      lot_picking_required: resPickingSetup.data[0].lot_picking_required || 0,
+      pt_picking_required: resPickingSetup.data[0].pt_picking_required || 0,
+      msi_picking_required: resPickingSetup.data[0].msi_picking_required || 0,
+      sp_auto_advance: resPickingSetup.data[0].sp_auto_advance || 0,
+      sp_allow_full_picking: resPickingSetup.data[0].sp_allow_full_picking || 0,
     });
 
     // Loading Bay staging needs the GD to pass through "Created" so the

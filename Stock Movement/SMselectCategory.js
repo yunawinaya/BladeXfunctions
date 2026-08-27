@@ -17,12 +17,10 @@
         "Quality Inspection",
         "Blocked",
       ],
-      "Location Transfer": [
-        "Unrestricted",
-        "Quality Inspection",
-        "Blocked",
-        "Reserved",
-      ],
+      // "Reserved" is deliberately absent: the loose tab only ever surfaces
+      // Unrestricted/Blocked, and offering it would let a user transfer stock out
+      // from under an open pick hold.
+      "Location Transfer": ["Unrestricted", "Quality Inspection", "Blocked"],
       "Miscellaneous Issue": ["Unrestricted"],
       "Miscellaneous Receipt": [
         "Unrestricted",

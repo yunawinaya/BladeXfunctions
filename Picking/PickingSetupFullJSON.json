@@ -8,7 +8,11 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 1,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "customClass": "",
         "hidden": false,
@@ -33,14 +37,34 @@
           },
           "use": false
         },
-        "padding": ["", "", "", ""],
-        "margin": ["", "", "20px", ""],
+        "padding": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "margin": [
+          "",
+          "",
+          "20px",
+          ""
+        ],
         "boxSizing": "border-box",
         "width": "",
         "height": "",
-        "radius": ["", "", "", ""],
+        "radius": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "position": "",
-        "positions": ["", "", "", ""],
+        "positions": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -94,14 +118,28 @@
           "icon": "icon-wenzishezhi-",
           "group": "Design",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "Picking Setup",
             "customClass": "",
             "hidden": false,
             "isRich": false,
-            "padding": ["", "", "", ""],
-            "margin": ["", "", "", ""],
+            "padding": [
+              "",
+              "",
+              "",
+              ""
+            ],
+            "margin": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "boxSizing": "border-box",
             "width": "",
             "maxWidth": "",
@@ -114,9 +152,19 @@
             "textOverflow": "",
             "whiteSpace": "",
             "lines": 0,
-            "radius": ["", "", "", ""],
+            "radius": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "position": "",
-            "positions": ["", "", "", ""],
+            "positions": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "zIndex": "",
             "flex": "",
             "flexGrow": "",
@@ -155,7 +203,11 @@
       "icon": "icon-RectangleCopy",
       "group": "Layout",
       "groupSort": 0,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "columns": [
         {
           "type": "col",
@@ -179,7 +231,11 @@
               "icon": "icon-shuxuanzeqi",
               "group": "Select",
               "groupSort": 4,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": "",
                 "width": "",
@@ -371,7 +427,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -463,7 +523,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -509,7 +573,11 @@
               "icon": "icon-radio-active",
               "group": "Select",
               "groupSort": 0,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "inline": true,
                 "defaultValue": "",
@@ -595,7 +663,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -641,7 +713,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -687,7 +763,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -733,7 +813,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -779,7 +863,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -825,7 +913,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -871,7 +963,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -917,7 +1013,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1002,7 +1102,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1166,7 +1270,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1345,7 +1453,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -1396,7 +1508,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1496,7 +1612,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1601,7 +1721,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1641,7 +1765,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1687,7 +1815,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1733,7 +1865,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1771,6 +1907,246 @@
               "model": "require_hu_scan",
               "rules": [],
               "novalid": {}
+            },
+            {
+              "type": "switch",
+              "mainIcon": "开关",
+              "typeIcon": "开关",
+              "icon": "icon-switch",
+              "group": "Select",
+              "groupSort": 8,
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
+              "options": {
+                "defaultValue": 0,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "disabled": false,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "width": "",
+                "customProps": {},
+                "tip": "",
+                "booleanValueMode": false,
+                "alignright": false,
+                "checkboxMode": false,
+                "remoteFunc": "func_spklot01",
+                "remoteOption": "option_spklot01",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {},
+              "name": "Location Transfer Picking Required",
+              "key": "spklot01",
+              "model": "lot_picking_required",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "type": "switch",
+              "mainIcon": "开关",
+              "typeIcon": "开关",
+              "icon": "icon-switch",
+              "group": "Select",
+              "groupSort": 8,
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
+              "options": {
+                "defaultValue": 0,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "disabled": false,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "width": "",
+                "customProps": {},
+                "tip": "",
+                "booleanValueMode": false,
+                "alignright": false,
+                "checkboxMode": false,
+                "remoteFunc": "func_spkpt001",
+                "remoteOption": "option_spkpt001",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {},
+              "name": "Plant Transfer Picking Required",
+              "key": "spkpt001",
+              "model": "pt_picking_required",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "type": "switch",
+              "mainIcon": "开关",
+              "typeIcon": "开关",
+              "icon": "icon-switch",
+              "group": "Select",
+              "groupSort": 8,
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
+              "options": {
+                "defaultValue": 0,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "disabled": false,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "width": "",
+                "customProps": {},
+                "tip": "",
+                "booleanValueMode": false,
+                "alignright": false,
+                "checkboxMode": false,
+                "remoteFunc": "func_spkmsi01",
+                "remoteOption": "option_spkmsi01",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {},
+              "name": "Misc Issue Picking Required",
+              "key": "spkmsi01",
+              "model": "msi_picking_required",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "type": "switch",
+              "mainIcon": "开关",
+              "typeIcon": "开关",
+              "icon": "icon-switch",
+              "group": "Select",
+              "groupSort": 8,
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
+              "options": {
+                "defaultValue": 0,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "disabled": false,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "width": "",
+                "customProps": {},
+                "tip": "",
+                "booleanValueMode": false,
+                "alignright": false,
+                "checkboxMode": false,
+                "remoteFunc": "func_spkadv01",
+                "remoteOption": "option_spkadv01",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {},
+              "name": "SP Auto Advance Movement",
+              "key": "spkadv01",
+              "model": "sp_auto_advance",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "type": "switch",
+              "mainIcon": "开关",
+              "typeIcon": "开关",
+              "icon": "icon-switch",
+              "group": "Select",
+              "groupSort": 8,
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
+              "options": {
+                "defaultValue": 0,
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "disabled": false,
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "width": "",
+                "customProps": {},
+                "tip": "",
+                "booleanValueMode": false,
+                "alignright": false,
+                "checkboxMode": false,
+                "remoteFunc": "func_spkfull1",
+                "remoteOption": "option_spkfull1",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {},
+              "name": "SP Allow Full Picking",
+              "key": "spkfull1",
+              "model": "sp_allow_full_picking",
+              "rules": [],
+              "novalid": {}
             }
           ],
           "key": "abeeldyr",
@@ -1798,7 +2174,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -1872,7 +2252,11 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 1,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "customClass": "",
         "hidden": false,
@@ -1897,14 +2281,34 @@
           },
           "use": false
         },
-        "padding": ["", "", "", ""],
-        "margin": ["", "", "", ""],
+        "padding": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "margin": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "boxSizing": "border-box",
         "width": "",
         "height": "",
-        "radius": ["", "", "", ""],
+        "radius": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "position": "",
-        "positions": ["", "", "", ""],
+        "positions": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -1957,7 +2361,11 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -1995,7 +2403,11 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "customClass": "",
             "disabled": false,
@@ -2061,7 +2473,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "(async () => {\n  try {\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    console.log(\"Organization ID:\", organizationId);\n\n    await this.setData({ organization_id: organizationId });\n\n    const resPickingSetup = await db\n      .collection(\"picking_setup\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (!resPickingSetup || resPickingSetup.data.length === 0) {\n      this.setData({\n        picking_setup_id: \"\",\n        movement_type: \"\",\n        picking_required: 0,\n        picking_after: \"\",\n        auto_trigger_to: 0,\n        is_loading_bay: 0,\n        allow_full_picking: 0,\n        picking_mode: \"\",\n        default_strategy_id: \"\",\n        fallback_strategy_id: \"\",\n        auto_completed_gd: 0,\n        auto_completed_si: 0,\n        bin_validation_scope: \"\",\n        require_bin_scan: 0,\n        require_batch_scan: 0,\n        require_item_scan: 0,\n        require_hu_scan: 0,\n        split_policy: \"\",\n        full_cl_check: 0,\n        convert_gd_created: 0,\n      });\n      return;\n    }\n\n    this.setData({\n      picking_setup_id: resPickingSetup.data[0].id,\n      movement_type: resPickingSetup.data[0].movement_type,\n      picking_required: resPickingSetup.data[0].picking_required,\n      picking_after: resPickingSetup.data[0].picking_after,\n      auto_trigger_to: resPickingSetup.data[0].auto_trigger_to,\n      is_loading_bay: resPickingSetup.data[0].is_loading_bay,\n      allow_full_picking: resPickingSetup.data[0].allow_full_picking,\n      picking_mode: resPickingSetup.data[0].picking_mode,\n      default_strategy_id: resPickingSetup.data[0].default_strategy_id,\n      fallback_strategy_id: resPickingSetup.data[0].fallback_strategy_id,\n      auto_completed_gd: resPickingSetup.data[0].auto_completed_gd,\n      auto_completed_si: resPickingSetup.data[0].auto_completed_si,\n      bin_validation_scope: resPickingSetup.data[0].bin_validation_scope,\n      require_bin_scan: resPickingSetup.data[0].require_bin_scan,\n      require_batch_scan: resPickingSetup.data[0].require_batch_scan,\n      require_item_scan: resPickingSetup.data[0].require_item_scan,\n      require_hu_scan: resPickingSetup.data[0].require_hu_scan,\n      split_policy: resPickingSetup.data[0].split_policy,\n      full_cl_check: resPickingSetup.data[0].full_cl_check || 0,\n      convert_gd_created: resPickingSetup.data[0].convert_gd_created || 0,\n    });\n\n    // Loading Bay staging needs the GD to pass through \"Created\" so the\n    // Reserved allocation can be shuttled to the bay bin — Auto Complete GD\n    // skips that state. Keep the two mutually exclusive on load as well as\n    // onChange (see PickingSetupOnChangeLoadingBay.js).\n    if (resPickingSetup.data[0].is_loading_bay === 1) {\n      this.disabled([\"auto_completed_gd\"], true);\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
+        "func": "(async () => {\n  try {\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    console.log(\"Organization ID:\", organizationId);\n\n    await this.setData({ organization_id: organizationId });\n\n    const resPickingSetup = await db\n      .collection(\"picking_setup\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (!resPickingSetup || resPickingSetup.data.length === 0) {\n      this.setData({\n        picking_setup_id: \"\",\n        movement_type: \"\",\n        picking_required: 0,\n        picking_after: \"\",\n        auto_trigger_to: 0,\n        is_loading_bay: 0,\n        allow_full_picking: 0,\n        picking_mode: \"\",\n        default_strategy_id: \"\",\n        fallback_strategy_id: \"\",\n        auto_completed_gd: 0,\n        auto_completed_si: 0,\n        bin_validation_scope: \"\",\n        require_bin_scan: 0,\n        require_batch_scan: 0,\n        require_item_scan: 0,\n        require_hu_scan: 0,\n        split_policy: \"\",\n        full_cl_check: 0,\n        convert_gd_created: 0,\n        lot_picking_required: 0,\n        pt_picking_required: 0,\n        msi_picking_required: 0,\n        sp_auto_advance: 0,\n        sp_allow_full_picking: 0,\n      });\n      return;\n    }\n\n    this.setData({\n      picking_setup_id: resPickingSetup.data[0].id,\n      movement_type: resPickingSetup.data[0].movement_type,\n      picking_required: resPickingSetup.data[0].picking_required,\n      picking_after: resPickingSetup.data[0].picking_after,\n      auto_trigger_to: resPickingSetup.data[0].auto_trigger_to,\n      is_loading_bay: resPickingSetup.data[0].is_loading_bay,\n      allow_full_picking: resPickingSetup.data[0].allow_full_picking,\n      picking_mode: resPickingSetup.data[0].picking_mode,\n      default_strategy_id: resPickingSetup.data[0].default_strategy_id,\n      fallback_strategy_id: resPickingSetup.data[0].fallback_strategy_id,\n      auto_completed_gd: resPickingSetup.data[0].auto_completed_gd,\n      auto_completed_si: resPickingSetup.data[0].auto_completed_si,\n      bin_validation_scope: resPickingSetup.data[0].bin_validation_scope,\n      require_bin_scan: resPickingSetup.data[0].require_bin_scan,\n      require_batch_scan: resPickingSetup.data[0].require_batch_scan,\n      require_item_scan: resPickingSetup.data[0].require_item_scan,\n      require_hu_scan: resPickingSetup.data[0].require_hu_scan,\n      split_policy: resPickingSetup.data[0].split_policy,\n      full_cl_check: resPickingSetup.data[0].full_cl_check || 0,\n      convert_gd_created: resPickingSetup.data[0].convert_gd_created || 0,\n      lot_picking_required: resPickingSetup.data[0].lot_picking_required || 0,\n      pt_picking_required: resPickingSetup.data[0].pt_picking_required || 0,\n      msi_picking_required: resPickingSetup.data[0].msi_picking_required || 0,\n      sp_auto_advance: resPickingSetup.data[0].sp_auto_advance || 0,\n      sp_allow_full_picking: resPickingSetup.data[0].sp_allow_full_picking || 0,\n    });\n\n    // Loading Bay staging needs the GD to pass through \"Created\" so the\n    // Reserved allocation can be shuttled to the bay bin — Auto Complete GD\n    // skips that state. Keep the two mutually exclusive on load as well as\n    // onChange (see PickingSetupOnChangeLoadingBay.js).\n    if (resPickingSetup.data[0].is_loading_bay === 1) {\n      this.disabled([\"auto_completed_gd\"], true);\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -2103,7 +2515,7 @@
       {
         "key": "3saavmmv",
         "name": "onClick_save",
-        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const {\n      picking_setup_id,\n      movement_type,\n      picking_required,\n      picking_after,\n      auto_trigger_to,\n      is_loading_bay,\n      allow_full_picking,\n      picking_mode,\n      default_strategy_id,\n      fallback_strategy_id,\n      auto_completed_gd,\n      auto_completed_si,\n      bin_validation_scope,\n      require_bin_scan,\n      require_batch_scan,\n      require_item_scan,\n      require_hu_scan,\n      organization_id,\n      split_policy,\n      full_cl_check,\n      convert_gd_created,\n    } = data;\n\n    // Loading Bay staging requires the GD to pass through \"Created\" so the\n    // Reserved allocation can be shuttled from the source bin to the bay bin.\n    // Auto Complete GD skips that state entirely, leaving the reservation\n    // stranded at the source while the delivery reads from the bay.\n    if (is_loading_bay === 1 && auto_completed_gd === 1) {\n      this.$message.error(\n        \"Loading Bay cannot be used together with Auto Complete GD. \" +\n          \"Turn off Auto Complete GD so the Goods Delivery passes through Created.\",\n      );\n      return;\n    }\n\n    const entry = {\n      movement_type,\n      picking_required,\n      picking_after,\n      auto_trigger_to,\n      is_loading_bay,\n      allow_full_picking,\n      picking_mode,\n      default_strategy_id,\n      fallback_strategy_id,\n      auto_completed_gd,\n      auto_completed_si,\n      bin_validation_scope,\n      require_bin_scan,\n      require_batch_scan,\n      require_item_scan,\n      require_hu_scan,\n      organization_id,\n      split_policy,\n      full_cl_check: full_cl_check || 0,\n      convert_gd_created: convert_gd_created || 0,\n    };\n\n    if (picking_setup_id !== \"\") {\n      await db.collection(\"picking_setup\").doc(picking_setup_id).update(entry);\n\n      const plantList = await db\n        .collection(\"blade_dept\")\n        .where({ parent_id: entry.organization_id })\n        .get()\n        .then((res) => {\n          return res.data.map((item) => item.id);\n        });\n\n      if (plantList.length === 0) {\n        // No plants exist, use organization_id as plant_id\n        const pickingSetup = await db\n          .collection(\"picking_setup\")\n          .where({\n            plant_id: entry.organization_id,\n            organization_id: entry.organization_id,\n          })\n          .get();\n        if (pickingSetup.data.length > 0) {\n          await db\n            .collection(\"picking_setup\")\n            .doc(pickingSetup.data[0].id)\n            .update(entry);\n        } else {\n          // Create new picking_setup for organization level\n          await db.collection(\"picking_setup\").add({\n            ...entry,\n            plant_id: entry.organization_id,\n            organization_id: entry.organization_id,\n          });\n        }\n      } else {\n        // Plants exist, update or create for each plant\n        for (const plant of plantList) {\n          const pickingSetup = await db\n            .collection(\"picking_setup\")\n            .where({ plant_id: plant, organization_id: entry.organization_id })\n            .get();\n          if (pickingSetup.data.length > 0) {\n            await db\n              .collection(\"picking_setup\")\n              .doc(pickingSetup.data[0].id)\n              .update(entry);\n          } else {\n            // Create new picking_setup for this plant\n            await db.collection(\"picking_setup\").add({\n              ...entry,\n              plant_id: plant,\n              organization_id: entry.organization_id,\n            });\n          }\n        }\n      }\n    } else {\n      await db.collection(\"picking_setup\").add(entry);\n\n      const plantList = await db\n        .collection(\"blade_dept\")\n        .where({ parent_id: entry.organization_id })\n        .get()\n        .then((res) => {\n          return res.data.map((item) => item.id);\n        });\n\n      if (plantList.length === 0) {\n        // No plants exist, use organization_id as plant_id\n        await db.collection(\"picking_setup\").add({\n          ...entry,\n          plant_id: entry.organization_id,\n          organization_id: entry.organization_id,\n        });\n      } else {\n        // Plants exist, create for each plant\n        for (const plant of plantList) {\n          await db.collection(\"picking_setup\").add({\n            ...entry,\n            plant_id: plant || entry.organization_id,\n            organization_id: entry.organization_id,\n          });\n        }\n      }\n    }\n\n    // Fix any existing records with null plant_id for this organization\n    const allOrgRecords = await db\n      .collection(\"picking_setup\")\n      .where({ organization_id: entry.organization_id })\n      .get();\n\n    for (const record of allOrgRecords.data) {\n      if (\n        record.plant_id === null ||\n        record.plant_id === \"\" ||\n        record.plant_id === undefined\n      ) {\n        await db\n          .collection(\"picking_setup\")\n          .doc(record.id)\n          .update({ plant_id: record.organization_id });\n        console.log(`Fixed null plant_id for record ${record.id}`);\n      }\n    }\n\n    closeDialog();\n    this.$message.success(\"Update Successfully\");\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    const {\n      picking_setup_id,\n      movement_type,\n      picking_required,\n      picking_after,\n      auto_trigger_to,\n      is_loading_bay,\n      allow_full_picking,\n      picking_mode,\n      default_strategy_id,\n      fallback_strategy_id,\n      auto_completed_gd,\n      auto_completed_si,\n      bin_validation_scope,\n      require_bin_scan,\n      require_batch_scan,\n      require_item_scan,\n      require_hu_scan,\n      organization_id,\n      split_policy,\n      full_cl_check,\n      convert_gd_created,\n      lot_picking_required,\n      pt_picking_required,\n      msi_picking_required,\n      sp_auto_advance,\n      sp_allow_full_picking,\n    } = data;\n\n    // Loading Bay staging requires the GD to pass through \"Created\" so the\n    // Reserved allocation can be shuttled from the source bin to the bay bin.\n    // Auto Complete GD skips that state entirely, leaving the reservation\n    // stranded at the source while the delivery reads from the bay.\n    if (is_loading_bay === 1 && auto_completed_gd === 1) {\n      this.$message.error(\n        \"Loading Bay cannot be used together with Auto Complete GD. \" +\n          \"Turn off Auto Complete GD so the Goods Delivery passes through Created.\",\n      );\n      return;\n    }\n\n    const entry = {\n      movement_type,\n      picking_required,\n      picking_after,\n      auto_trigger_to,\n      is_loading_bay,\n      allow_full_picking,\n      picking_mode,\n      default_strategy_id,\n      fallback_strategy_id,\n      auto_completed_gd,\n      auto_completed_si,\n      bin_validation_scope,\n      require_bin_scan,\n      require_batch_scan,\n      require_item_scan,\n      require_hu_scan,\n      organization_id,\n      split_policy,\n      full_cl_check: full_cl_check || 0,\n      convert_gd_created: convert_gd_created || 0,\n      // Stock Picking: one master switch per issuing movement type, plus its two\n      // behaviour flags. Kept as columns rather than extra rows because every\n      // picking_setup reader filters on org/plant only and takes data[0].\n      lot_picking_required: lot_picking_required || 0,\n      pt_picking_required: pt_picking_required || 0,\n      msi_picking_required: msi_picking_required || 0,\n      sp_auto_advance: sp_auto_advance || 0,\n      sp_allow_full_picking: sp_allow_full_picking || 0,\n    };\n\n    if (picking_setup_id !== \"\") {\n      await db.collection(\"picking_setup\").doc(picking_setup_id).update(entry);\n\n      const plantList = await db\n        .collection(\"blade_dept\")\n        .where({ parent_id: entry.organization_id })\n        .get()\n        .then((res) => {\n          return res.data.map((item) => item.id);\n        });\n\n      if (plantList.length === 0) {\n        // No plants exist, use organization_id as plant_id\n        const pickingSetup = await db\n          .collection(\"picking_setup\")\n          .where({\n            plant_id: entry.organization_id,\n            organization_id: entry.organization_id,\n          })\n          .get();\n        if (pickingSetup.data.length > 0) {\n          await db\n            .collection(\"picking_setup\")\n            .doc(pickingSetup.data[0].id)\n            .update(entry);\n        } else {\n          // Create new picking_setup for organization level\n          await db.collection(\"picking_setup\").add({\n            ...entry,\n            plant_id: entry.organization_id,\n            organization_id: entry.organization_id,\n          });\n        }\n      } else {\n        // Plants exist, update or create for each plant\n        for (const plant of plantList) {\n          const pickingSetup = await db\n            .collection(\"picking_setup\")\n            .where({ plant_id: plant, organization_id: entry.organization_id })\n            .get();\n          if (pickingSetup.data.length > 0) {\n            await db\n              .collection(\"picking_setup\")\n              .doc(pickingSetup.data[0].id)\n              .update(entry);\n          } else {\n            // Create new picking_setup for this plant\n            await db.collection(\"picking_setup\").add({\n              ...entry,\n              plant_id: plant,\n              organization_id: entry.organization_id,\n            });\n          }\n        }\n      }\n    } else {\n      await db.collection(\"picking_setup\").add(entry);\n\n      const plantList = await db\n        .collection(\"blade_dept\")\n        .where({ parent_id: entry.organization_id })\n        .get()\n        .then((res) => {\n          return res.data.map((item) => item.id);\n        });\n\n      if (plantList.length === 0) {\n        // No plants exist, use organization_id as plant_id\n        await db.collection(\"picking_setup\").add({\n          ...entry,\n          plant_id: entry.organization_id,\n          organization_id: entry.organization_id,\n        });\n      } else {\n        // Plants exist, create for each plant\n        for (const plant of plantList) {\n          await db.collection(\"picking_setup\").add({\n            ...entry,\n            plant_id: plant || entry.organization_id,\n            organization_id: entry.organization_id,\n          });\n        }\n      }\n    }\n\n    // Fix any existing records with null plant_id for this organization\n    const allOrgRecords = await db\n      .collection(\"picking_setup\")\n      .where({ organization_id: entry.organization_id })\n      .get();\n\n    for (const record of allOrgRecords.data) {\n      if (\n        record.plant_id === null ||\n        record.plant_id === \"\" ||\n        record.plant_id === undefined\n      ) {\n        await db\n          .collection(\"picking_setup\")\n          .doc(record.id)\n          .update({ plant_id: record.organization_id });\n        console.log(`Fixed null plant_id for record ${record.id}`);\n      }\n    }\n\n    closeDialog();\n    this.$message.success(\"Update Successfully\");\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
         "type": "js"
       },
       {

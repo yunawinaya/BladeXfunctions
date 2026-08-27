@@ -31,6 +31,11 @@ const closeDialog = () => {
       split_policy,
       full_cl_check,
       convert_gd_created,
+      lot_picking_required,
+      pt_picking_required,
+      msi_picking_required,
+      sp_auto_advance,
+      sp_allow_full_picking,
     } = data;
 
     // Loading Bay staging requires the GD to pass through "Created" so the
@@ -66,6 +71,14 @@ const closeDialog = () => {
       split_policy,
       full_cl_check: full_cl_check || 0,
       convert_gd_created: convert_gd_created || 0,
+      // Stock Picking: one master switch per issuing movement type, plus its two
+      // behaviour flags. Kept as columns rather than extra rows because every
+      // picking_setup reader filters on org/plant only and takes data[0].
+      lot_picking_required: lot_picking_required || 0,
+      pt_picking_required: pt_picking_required || 0,
+      msi_picking_required: msi_picking_required || 0,
+      sp_auto_advance: sp_auto_advance || 0,
+      sp_allow_full_picking: sp_allow_full_picking || 0,
     };
 
     if (picking_setup_id !== "") {

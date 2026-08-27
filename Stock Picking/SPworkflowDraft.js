@@ -1,0 +1,91 @@
+const closeDialog = (data) => {
+  if (this.parentGenerateForm) {
+    this.parentGenerateForm.$refs.SuPageDialogRef.hide();
+    this.parentGenerateForm.refresh();
+    if (data.src_id && (Array.isArray(data.src_id) ? data.src_id.length > 0 : true)) {
+      this.parentGenerateForm.hide("custom_41s73hyl");
+    } else {
+      this.parentGenerateForm.hide("tabs_picking");
+    }
+  }
+};
+
+(async () => {
+  try {
+    this.showLoading("Saving Stock Picking as Draft...");
+
+    const data = this.getValues();
+    console.log("data", data);
+
+    // Header rows in table_picking_items exist for display only — strip them
+    // before sending to the workflow.
+    if (Array.isArray(data.table_picking_items)) {
+      data.table_picking_items = data.table_picking_items.filter(
+        (row) => row.row_type !== "header",
+      );
+    }
+
+    // Ensure data is an array
+    const arrayData = Array.isArray(data) ? data : [data];
+
+    let workflowResult;
+
+    await this.runWorkflow(
+      "2092882318222491650",
+      { arrayData: arrayData, saveAs: "Draft", pageStatus: data.page_status },
+      async (res) => {
+        console.log("Stock Picking saved successfully:", res);
+        workflowResult = res;
+      },
+      (err) => {
+        console.error("Failed to save Stock Picking:", err);
+        this.hideLoading();
+        workflowResult = err;
+      },
+    );
+
+    if (!workflowResult || !workflowResult.data) {
+      this.hideLoading();
+      this.$message.error("No response from workflow");
+      return;
+    }
+
+    // Handle workflow errors
+    if (
+      workflowResult.data.code === "400" ||
+      workflowResult.data.code === 400 ||
+      workflowResult.data.success === false
+    ) {
+      this.hideLoading();
+      const errorMessage =
+        workflowResult.data.msg ||
+        workflowResult.data.message ||
+        "Failed to save Stock Picking";
+      this.$message.error(errorMessage);
+      return;
+    }
+
+    // Handle success
+    if (
+      workflowResult.data.code === "200" ||
+      workflowResult.data.code === 200 ||
+      workflowResult.data.success === true
+    ) {
+      this.hideLoading();
+      const successMessage =
+        workflowResult.data.message ||
+        workflowResult.data.msg ||
+        "Stock Picking saved successfully";
+      this.$message.success(successMessage);
+      closeDialog(arrayData[0]);
+    } else {
+      this.hideLoading();
+      this.$message.error("Unknown workflow status");
+    }
+  } catch (error) {
+    this.hideLoading();
+    console.error("Error:", error);
+    const errorMessage = error.message || "Failed to save Stock Picking";
+    this.$message.error(errorMessage);
+  }
+})();
