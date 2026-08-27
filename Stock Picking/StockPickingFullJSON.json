@@ -1457,7 +1457,7 @@
                                         "prop": "business_type",
                                         "operator": "equal",
                                         "valueType": "formula",
-                                        "value": "() => {\n  var params = this.getComponent('to_id');\n  const { options } = params;\n  return options?.dynamicRuleField;\n}",
+                                        "value": "() => {\n  var params = this.getComponent('sp_id');\n  const { options } = params;\n  return options?.dynamicRuleField;\n}",
                                         "type": "leaf",
                                         "level": 2,
                                         "propLabel": "Document Type",
@@ -7396,13 +7396,13 @@
       {
         "key": "q28j8qar",
         "name": "onReady_q28j8qar",
-        "func": "var params = this.getComponent('to_id');\nconst { options } = params;\nif(options?.canManualInput && this.isEdit) {\n  setTimeout(async()=> {\n    const getOpData = await this.onDropdownVisible('to_id_type', true)||[];\n    const optionsData = this.getOptionData('to_id_type') || [];\n    let newData = getOpData?.length> 0? getOpData:optionsData;\n      const newOptionsData = [{label: 'Manual Input', value: -9999}, ...newData];\n      this.setOptionData(\"sp_id_type\", newOptionsData);\n  }, 200)\n}\n",
+        "func": "var params = this.getComponent('sp_id');\nconst { options } = params;\nif(options?.canManualInput && this.isEdit) {\n  setTimeout(async()=> {\n    const getOpData = await this.onDropdownVisible('sp_id_type', true)||[];\n    const optionsData = this.getOptionData('sp_id_type') || [];\n    let newData = getOpData?.length> 0? getOpData:optionsData;\n      const newOptionsData = [{label: 'Manual Input', value: -9999}, ...newData];\n      this.setOptionData(\"sp_id_type\", newOptionsData);\n  }, 200)\n}\n",
         "type": "js"
       },
       {
         "key": "8ynnpaco",
         "name": "onChange_8ynnpaco",
-        "func": "const { value } = arguments[0];\nthis.setData({\n  to_id: ''\n});\nif(value === -9999) {\n   this.disabled('to_id', false)\n} else {\n   this.disabled('to_id', true)\n}",
+        "func": "const { value } = arguments[0];\nthis.setData({\n  sp_id: ''\n});\nif(value === -9999) {\n   this.disabled('sp_id', false)\n} else {\n   this.disabled('sp_id', true)\n}",
         "type": "js"
       },
       {
