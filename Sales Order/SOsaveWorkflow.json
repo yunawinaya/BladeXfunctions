@@ -66,7 +66,9 @@
         {
           "id": "ifBlock_ZrYeK3O5",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_hVnUCBf3",
@@ -223,7 +225,9 @@
                 {
                   "id": "ifBlock_IFPSRmcO",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_node_myoAsNNk",
@@ -232,7 +236,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -251,7 +259,9 @@
                 {
                   "id": "ifBlock_zd9Jiutk",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -261,7 +271,9 @@
         {
           "id": "ifBlock_GAsYATX9",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "code_node_X4j8BSXd",
@@ -418,7 +430,9 @@
                 {
                   "id": "ifBlock_fita0u1h",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_node_O6pNSGXZ",
@@ -427,7 +441,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -446,7 +464,9 @@
                 {
                   "id": "ifBlock_sOTYkVgf",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_7fbO0wKC",
@@ -575,7 +595,9 @@
                         {
                           "id": "ifBlock_eb2eUcbQ",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "code_node_rPqQy5CD",
@@ -668,7 +690,9 @@
                                 {
                                   "id": "ifBlock_3eWavqXQ",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "end_node_G8VGNcN8",
@@ -678,7 +702,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -698,7 +724,9 @@
                                 {
                                   "id": "ifBlock_v1lUW7ZF",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -736,7 +764,9 @@
                                 {
                                   "id": "ifBlock_zDr8xbtU",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "code_node_01WBgiHb",
@@ -774,7 +804,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -794,7 +826,9 @@
                                 {
                                   "id": "ifBlock_LVhZacsb",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -817,15 +851,21 @@
                                 {
                                   "id": "if_block_t1uaomj1",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "condition_all_node_kr93hyMm",
                                       "type": "condition-all-node",
                                       "data": {
                                         "title": "Check Existing GD and SI",
-                                        "filter": { "list": [] },
-                                        "expression": { "code": "" },
+                                        "filter": {
+                                          "list": []
+                                        },
+                                        "expression": {
+                                          "code": ""
+                                        },
                                         "displayContent": "sdk.form.setCondition"
                                       },
                                       "blocks": [
@@ -1075,7 +1115,9 @@
                                         {
                                           "id": "if_block_4r_QfW-D",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "end_node_Ym8gXLLH",
@@ -1107,7 +1149,9 @@
                                         {
                                           "id": "if_block_H5u-FGus",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -1117,7 +1161,9 @@
                                 {
                                   "id": "if_block_yT1eEA8R",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -1155,7 +1201,9 @@
                                 {
                                   "id": "ifBlock_o5yBvDsw",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "workflow_node_1IYhCFaV",
@@ -1255,7 +1303,9 @@
                                         {
                                           "id": "ifBlock_9G7YF2DD",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "code_node_vqKDnsnD",
@@ -1303,7 +1353,9 @@
                                                 {
                                                   "id": "ifBlock_jHoiEXr3",
                                                   "type": "ifBlock",
-                                                  "data": { "title": "true" },
+                                                  "data": {
+                                                    "title": "true"
+                                                  },
                                                   "blocks": [
                                                     {
                                                       "id": "end_node_YgBo3SVP",
@@ -1335,7 +1387,9 @@
                                                 {
                                                   "id": "ifBlock_sQHDIDQ3",
                                                   "type": "ifBlock",
-                                                  "data": { "title": "false" },
+                                                  "data": {
+                                                    "title": "false"
+                                                  },
                                                   "blocks": []
                                                 }
                                               ]
@@ -1345,7 +1399,9 @@
                                         {
                                           "id": "ifBlock_sp95gEEL",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -1355,7 +1411,9 @@
                                 {
                                   "id": "ifBlock_HZcVmbSa",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -1498,15 +1556,21 @@
                                 {
                                   "id": "if_block_SeVMO4tk",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "condition_or_cuYcg7l3",
                                       "type": "condition-or-node",
                                       "data": {
                                         "title": "Condition",
-                                        "filter": { "list": [] },
-                                        "expression": { "code": "" },
+                                        "filter": {
+                                          "list": []
+                                        },
+                                        "expression": {
+                                          "code": ""
+                                        },
                                         "displayContent": "sdk.form.setCondition"
                                       },
                                       "blocks": [
@@ -1534,7 +1598,9 @@
                                                 }
                                               ]
                                             },
-                                            "expression": { "code": "" },
+                                            "expression": {
+                                              "code": ""
+                                            },
                                             "displayContent": "sdk.form.setCondition",
                                             "isValidator": true,
                                             "nodeName": "IF override",
@@ -1698,8 +1764,12 @@
                                           "data": {
                                             "title": "Other",
                                             "isDefault": true,
-                                            "filter": { "list": [] },
-                                            "expression": { "code": "" },
+                                            "filter": {
+                                              "list": []
+                                            },
+                                            "expression": {
+                                              "code": ""
+                                            },
                                             "displayContent": "sdk.form.otherCondition"
                                           },
                                           "blocks": []
@@ -1711,7 +1781,9 @@
                                 {
                                   "id": "if_block_orI8fRw0",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -1721,7 +1793,9 @@
                         {
                           "id": "ifBlock_y3Q45iNY",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "end_node_qhQYdPtw",
@@ -1731,7 +1805,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -1772,7 +1848,9 @@
                 {
                   "id": "if_block_LvDdU6JU",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_rvjWbHBF",
@@ -2346,7 +2424,9 @@
                 {
                   "id": "if_block_SLDG9m2f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -2421,7 +2501,9 @@
         {
           "id": "if_block_PkGateT",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "search_node_PkItems",
@@ -2467,7 +2549,9 @@
         {
           "id": "if_block_PkGateF",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -2485,7 +2569,7 @@
         "name": "Fillback Header Fields",
         "script": {
           "type": "javascript",
-          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:workflow_node_yxaOreDk.data.needApproval}} == 'Yes' ? {{node:workflow_node_yxaOreDk.data.data}} : {{node:code_node_rPqQy5CD.data.table}};\n\n// --- Packing + weight (mirrors SOchangeItem.buildPackingWeightData) ---\n// Only populated for created_source outside Web / Mobile / Internal Trading;\n// otherwise the gated search node never ran and this resolves to null.\nconst packingItemsRaw = {{node:search_node_PkItems.data.data}};\nconst packingItems = Array.isArray(packingItemsRaw) ? packingItemsRaw : (packingItemsRaw ? [packingItemsRaw] : []);\nconst needsPacking = packingItems.length > 0;\n\n// --- Authoritative line counters ---\n// planned_qty and delivered_qty are owned by the delivery and the picking plan, not by\n// this page. table_so is written as one whole array, so spreading the browser's copy\n// puts a stale tab's numbers back over whatever they wrote. Take them from the SO as\n// stored, overlaid with whatever the cascade just left behind.\nconst prevSoRaw = {{node:get_node_rvjWbHBF.data.data}};\nconst prevSo = Array.isArray(prevSoRaw) ? prevSoRaw[0] || null : prevSoRaw || null;\nconst cascadeCounters = {{node:workflow_node_CascadeA.data.soLineCounters}};\n\nconst flattenSo = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst storedCounters = {};\nflattenSo(prevSo && prevSo.table_so).forEach((r) => {\n  if (r && r.id) storedCounters[String(r.id)] = r;\n});\nconst cascadedCounters = {};\n(Array.isArray(cascadeCounters) ? cascadeCounters : []).forEach((r) => {\n  if (r && r.id) cascadedCounters[String(r.id)] = r;\n});\n\n// Both maps are empty on Add / Clone / Draft, where a row carries no id and nothing has\n// been planned or delivered yet.\nconst lineCounters = (soLineItem) => {\n  const key = soLineItem.id ? String(soLineItem.id) : \"\";\n  const cascaded = key ? cascadedCounters[key] : null;\n  const stored = key ? storedCounters[key] : null;\n  const pick = (field) =>\n    cascaded ? Number(cascaded[field]) || 0 : stored ? Number(stored[field]) || 0 : 0;\n  return { delivered: pick(\"delivered_qty\"), planned: pick(\"planned_qty\") };\n};\n\nconst round3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;\nconst getPackingDetail = (tpd, uom) => (!Array.isArray(tpd) || !tpd.length || !uom) ? null : (tpd.find((c) => c.uom_id === uom) || null);\nconst getBaseQty = (tuc, uom) => {\n  if (!Array.isArray(tuc) || !tuc.length || !uom) return 1;\n  const c = tuc.find((x) => x.alt_uom_id === uom);\n  return c && c.base_qty ? c.base_qty : 1;\n};\nconst buildPackingWeightData = (item, uom, soQuantity) => {\n  const pd = getPackingDetail(item.table_packing_detail, uom);\n  const packingConversion = (pd && pd.quantity) || 1;\n  const weightConversion = round3((Number(item.net_weight) || 0) * getBaseQty(item.table_uom_conversion, uom));\n  const qty = Number(soQuantity) || 0;\n  return {\n    packing_uom: (pd && pd.packing_uom_id) || '',\n    packing_conversion: parseFloat(packingConversion || 0).toFixed(3),\n    packing_qty: (packingConversion ? round3(qty / packingConversion) : 0).toFixed(3),\n    weight_conversion: weightConversion.toFixed(3),\n    net_weight: round3(qty * weightConversion).toFixed(3)\n  };\n};\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  plant_id: entry.plant_name || \"\",\n  customer_id: entry.customer_name || \"\",\n  payment_term_id: entry.so_payment_term || \"\",\n  sales_person_id: entry.so_sales_person || \"\",\n  billing_state_id: entry.billing_address_state || \"\",\n  billing_country_id: entry.billing_address_country || \"\",\n  shipping_state_id: entry.shipping_address_state || \"\",\n  shipping_country_id: entry.shipping_address_country || \"\",\n  area_id: entry.so_area_id || \"\",\n  organization_id: entry.organization_id,\n  access_group: entry.access_group || [],\n  agent_user_id: entry.so_agent_user_id || '',\n};\n\nconst formatLine = (soLineItem) => {\n  const counters = lineCounters(soLineItem);\n  const formattedItem = {\n    // Copy all existing properties\n    ...soLineItem,\n\n    // Apply number formatting to numeric fields\n    unrestricted_qty: parseFloat(soLineItem.unrestricted_qty || 0).toFixed(3),\n    base_unrestricted_qty: parseFloat(soLineItem.base_unrestricted_qty || 0).toFixed(3),\n    so_quantity: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    so_item_price: parseFloat(soLineItem.so_item_price || 0).toFixed(4),\n    so_gross: parseFloat(soLineItem.so_gross || 0).toFixed(4),\n    so_discount: parseFloat(soLineItem.so_discount || 0).toFixed(4),\n    so_discount_amount: parseFloat(soLineItem.so_discount_amount || 0).toFixed(4),\n    so_tax_amount: parseFloat(soLineItem.so_tax_amount || 0).toFixed(4),\n    min_price: parseFloat(soLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(soLineItem.max_price || 0).toFixed(4),\n    so_amount: parseFloat(soLineItem.so_amount || 0).toFixed(4),\n    production_planned_qty: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    production_status: \"Not Created\",\n    // toFixed strings: both columns are decimal(_, 3) and a raw float trips multipleOf.\n    delivered_qty: counters.delivered.toFixed(3),\n    planned_qty: counters.planned.toFixed(3),\n    // Clamped: over-delivery tolerance drives this negative, which the column rejects.\n    outstanding_quantity: Math.max(0, parseFloat(soLineItem.so_quantity || 0) - counters.delivered).toFixed(3),\n\n    so_shipping_date: soLineItem.so_shipping_date ?? entry.so_shipping_date,\n  };\n\n  if (needsPacking && soLineItem.item_name) {\n    const itemData = packingItems.find((d) => String(d.id) === String(soLineItem.item_name));\n    if (itemData) {\n      Object.assign(formattedItem, buildPackingWeightData(itemData, soLineItem.so_item_uom, soLineItem.so_quantity));\n    }\n  }\n\n  return formattedItem;\n};\n\nfor (const [index, soLineItem] of entry.table_so.entries()) {\n  const lineStatus =\n    !soLineItem.line_status ||\n    soLineItem.line_status === '' ||\n    soLineItem.line_status === 'Draft'\n      ? entry.so_status === 'Processing' ? 'Issued' : entry.so_status\n      : soLineItem.line_status;\n\n  const formattedItem = {\n    ...formatLine(soLineItem),\n    ...commonFields,\n    line_index: index + 1,\n    line_status: lineStatus,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(soLineItem.children) && {\n      children: soLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n        line_status: lineStatus,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.need_cl = ''\n\nentry.production_status = !entry.production_status || entry.production_status === '' ? 'Not Created' : entry.production_status;\n\nentry.si_status = !entry.si_status || entry.si_status === '' ? 'Not Created' : entry.si_status;\nentry.so_total_gross = parseFloat(entry.so_total_gross || 0).toFixed(4);\nentry.so_total_discount = parseFloat(entry.so_total_discount || 0).toFixed(4);\nentry.so_total_tax = parseFloat(entry.so_total_tax || 0).toFixed(4);\nentry.so_total = parseFloat(entry.so_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\n\nentry.table_so = updatedLineItem;\n\nreturn { entry };\n"
+          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:workflow_node_yxaOreDk.data.needApproval}} == 'Yes' ? {{node:workflow_node_yxaOreDk.data.data}} : {{node:code_node_rPqQy5CD.data.table}};\n\n// --- Packing + weight (mirrors SOchangeItem.buildPackingWeightData) ---\n// Only populated for created_source outside Web / Mobile / Internal Trading;\n// otherwise the gated search node never ran and this resolves to null.\nconst packingItemsRaw = {{node:search_node_PkItems.data.data}};\nconst packingItems = Array.isArray(packingItemsRaw) ? packingItemsRaw : (packingItemsRaw ? [packingItemsRaw] : []);\nconst needsPacking = packingItems.length > 0;\n\n// --- Authoritative line counters ---\n// planned_qty and delivered_qty are owned by the delivery and the picking plan, not by\n// this page. table_so is written as one whole array, so spreading the browser's copy\n// puts a stale tab's numbers back over whatever they wrote. Take them from the SO as\n// stored, overlaid with whatever the cascade just left behind.\nconst prevSoRaw = {{node:get_node_rvjWbHBF.data.data}};\nconst prevSo = Array.isArray(prevSoRaw) ? prevSoRaw[0] || null : prevSoRaw || null;\nconst cascadeCounters = {{node:workflow_node_CascadeA.data.soLineCounters}};\n\nconst flattenSo = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst storedCounters = {};\nflattenSo(prevSo && prevSo.table_so).forEach((r) => {\n  if (r && r.id) storedCounters[String(r.id)] = r;\n});\nconst cascadedCounters = {};\n(Array.isArray(cascadeCounters) ? cascadeCounters : []).forEach((r) => {\n  if (r && r.id) cascadedCounters[String(r.id)] = r;\n});\n\n// Both maps are empty on Add / Clone / Draft, where a row carries no id and nothing has\n// been planned or delivered yet.\nconst lineCounters = (soLineItem) => {\n  const key = soLineItem.id ? String(soLineItem.id) : \"\";\n  const cascaded = key ? cascadedCounters[key] : null;\n  const stored = key ? storedCounters[key] : null;\n  const pick = (field) =>\n    cascaded ? Number(cascaded[field]) || 0 : stored ? Number(stored[field]) || 0 : 0;\n  return { delivered: pick(\"delivered_qty\"), planned: pick(\"planned_qty\") };\n};\n\n// Owned by the production order, and the cascade never carries it, so the stored row\n// is authoritative. New lines have no stored row and start at Not Created.\nconst storedProductionStatus = (soLineItem, storedMap) => {\n  const stored = soLineItem.id ? storedMap[String(soLineItem.id)] : null;\n  const value = stored ? stored.production_status : soLineItem.production_status;\n  return !value ? \"Not Created\" : value;\n};\n\nconst round3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;\nconst getPackingDetail = (tpd, uom) => (!Array.isArray(tpd) || !tpd.length || !uom) ? null : (tpd.find((c) => c.uom_id === uom) || null);\nconst getBaseQty = (tuc, uom) => {\n  if (!Array.isArray(tuc) || !tuc.length || !uom) return 1;\n  const c = tuc.find((x) => x.alt_uom_id === uom);\n  return c && c.base_qty ? c.base_qty : 1;\n};\nconst buildPackingWeightData = (item, uom, soQuantity) => {\n  const pd = getPackingDetail(item.table_packing_detail, uom);\n  const packingConversion = (pd && pd.quantity) || 1;\n  const weightConversion = round3((Number(item.net_weight) || 0) * getBaseQty(item.table_uom_conversion, uom));\n  const qty = Number(soQuantity) || 0;\n  return {\n    packing_uom: (pd && pd.packing_uom_id) || '',\n    packing_conversion: parseFloat(packingConversion || 0).toFixed(3),\n    packing_qty: (packingConversion ? round3(qty / packingConversion) : 0).toFixed(3),\n    weight_conversion: weightConversion.toFixed(3),\n    net_weight: round3(qty * weightConversion).toFixed(3)\n  };\n};\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  plant_id: entry.plant_name || \"\",\n  customer_id: entry.customer_name || \"\",\n  payment_term_id: entry.so_payment_term || \"\",\n  sales_person_id: entry.so_sales_person || \"\",\n  billing_state_id: entry.billing_address_state || \"\",\n  billing_country_id: entry.billing_address_country || \"\",\n  shipping_state_id: entry.shipping_address_state || \"\",\n  shipping_country_id: entry.shipping_address_country || \"\",\n  area_id: entry.so_area_id || \"\",\n  organization_id: entry.organization_id,\n  access_group: entry.access_group || [],\n  agent_user_id: entry.so_agent_user_id || '',\n};\n\nconst formatLine = (soLineItem) => {\n  const counters = lineCounters(soLineItem);\n  const formattedItem = {\n    // Copy all existing properties\n    ...soLineItem,\n\n    // Apply number formatting to numeric fields\n    unrestricted_qty: parseFloat(soLineItem.unrestricted_qty || 0).toFixed(3),\n    base_unrestricted_qty: parseFloat(soLineItem.base_unrestricted_qty || 0).toFixed(3),\n    so_quantity: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    so_item_price: parseFloat(soLineItem.so_item_price || 0).toFixed(4),\n    so_gross: parseFloat(soLineItem.so_gross || 0).toFixed(4),\n    so_discount: parseFloat(soLineItem.so_discount || 0).toFixed(4),\n    so_discount_amount: parseFloat(soLineItem.so_discount_amount || 0).toFixed(4),\n    so_tax_amount: parseFloat(soLineItem.so_tax_amount || 0).toFixed(4),\n    min_price: parseFloat(soLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(soLineItem.max_price || 0).toFixed(4),\n    so_amount: parseFloat(soLineItem.so_amount || 0).toFixed(4),\n    production_planned_qty: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    production_status: storedProductionStatus(soLineItem, storedCounters),\n    // toFixed strings: both columns are decimal(_, 3) and a raw float trips multipleOf.\n    delivered_qty: counters.delivered.toFixed(3),\n    planned_qty: counters.planned.toFixed(3),\n    // Clamped: over-delivery tolerance drives this negative, which the column rejects.\n    outstanding_quantity: Math.max(0, parseFloat(soLineItem.so_quantity || 0) - counters.delivered).toFixed(3),\n\n    so_shipping_date: soLineItem.so_shipping_date ?? entry.so_shipping_date,\n  };\n\n  if (needsPacking && soLineItem.item_name) {\n    const itemData = packingItems.find((d) => String(d.id) === String(soLineItem.item_name));\n    if (itemData) {\n      Object.assign(formattedItem, buildPackingWeightData(itemData, soLineItem.so_item_uom, soLineItem.so_quantity));\n    }\n  }\n\n  return formattedItem;\n};\n\nfor (const [index, soLineItem] of entry.table_so.entries()) {\n  const lineStatus =\n    !soLineItem.line_status ||\n    soLineItem.line_status === '' ||\n    soLineItem.line_status === 'Draft'\n      ? entry.so_status === 'Processing' ? 'Issued' : entry.so_status\n      : soLineItem.line_status;\n\n  const formattedItem = {\n    ...formatLine(soLineItem),\n    ...commonFields,\n    line_index: index + 1,\n    line_status: lineStatus,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(soLineItem.children) && {\n      children: soLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n        line_status: lineStatus,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.need_cl = ''\n\nentry.production_status = !entry.production_status || entry.production_status === '' ? 'Not Created' : entry.production_status;\n\nentry.si_status = !entry.si_status || entry.si_status === '' ? 'Not Created' : entry.si_status;\nentry.so_total_gross = parseFloat(entry.so_total_gross || 0).toFixed(4);\nentry.so_total_discount = parseFloat(entry.so_total_discount || 0).toFixed(4);\nentry.so_total_tax = parseFloat(entry.so_total_tax || 0).toFixed(4);\nentry.so_total = parseFloat(entry.so_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\n\nentry.table_so = updatedLineItem;\n\nreturn { entry };\n"
         },
         "response_json": [
           {
@@ -2519,7 +2603,9 @@
         {
           "id": "if_block_LtMD4QoB",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "workflow_node_CIDWG583",
@@ -2591,7 +2677,9 @@
         {
           "id": "if_block_q9QVfQrq",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -2614,7 +2702,9 @@
         {
           "id": "if_block_VyzhKOcu",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "update_node_Bw4VsiNH",
@@ -3148,28 +3238,12 @@
                       "propLabel": "Est. Arrival Date"
                     },
                     {
-                      "prop": "si_status",
-                      "valueType": "field",
-                      "value": "{{node:code_node_BtxYhPym.data.entry.si_status}}",
-                      "operator": "",
-                      "valueLabel": "",
-                      "propLabel": "SI Completed Status"
-                    },
-                    {
                       "prop": "so_status",
                       "valueType": "field",
                       "value": "{{node:code_node_BtxYhPym.data.entry.so_status}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "SO Status"
-                    },
-                    {
-                      "prop": "gd_status",
-                      "valueType": "field",
-                      "value": "{{node:code_node_BtxYhPym.data.entry.gd_status}}",
-                      "operator": "",
-                      "valueLabel": "",
-                      "propLabel": "GD Status"
                     },
                     {
                       "prop": "sqt_no",
@@ -3556,14 +3630,6 @@
                       "propLabel": "Contact Number"
                     },
                     {
-                      "prop": "production_status",
-                      "valueType": "field",
-                      "value": "{{node:code_node_BtxYhPym.data.entry.production_status}}",
-                      "operator": "",
-                      "valueLabel": "",
-                      "propLabel": "Production Status"
-                    },
-                    {
                       "prop": "overdue_inv_total_amount",
                       "valueType": "field",
                       "value": "{{node:code_node_BtxYhPym.data.entry.overdue_inv_total_amount}}",
@@ -3855,7 +3921,9 @@
         {
           "id": "if_block_-PWbUv65",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "add_node_ji9E0C1S",
@@ -5654,7 +5722,10 @@
         "nodeName": "IF need approval?",
         "name": "IF need approval?",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -5678,7 +5749,9 @@
         {
           "id": "if_block_y3p3lOJh",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "slot_node_ehX7sDpE",
@@ -5754,7 +5827,9 @@
                 {
                   "id": "if_block_FUU3m2xS",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_9EUEtd8y",
@@ -5848,7 +5923,9 @@
                 {
                   "id": "if_block_3B9ksXHh",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5858,7 +5935,9 @@
         {
           "id": "if_block_6GnRGhZW",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -5991,7 +6070,9 @@
         {
           "id": "ifBlock_jSzg1ZGH",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "if_6MfJ2Oif",
@@ -6026,7 +6107,9 @@
                 {
                   "id": "ifBlock_vmywMD32",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_NCJ7taxf",
@@ -6095,7 +6178,9 @@
                         {
                           "id": "if_block_4_Ts5bgB",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "code_node_dGOktuGa",
@@ -6198,7 +6283,9 @@
                         {
                           "id": "if_block_ACSpIno2",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "get_node_jBUPqNPW",
@@ -6349,7 +6436,9 @@
                 {
                   "id": "ifBlock_l4EzKoos",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_6NZZfFj5",
@@ -6431,15 +6520,21 @@
                         {
                           "id": "if_block_uiAKR_rY",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "condition_or_a9vsi49k",
                               "type": "condition-or-node",
                               "data": {
                                 "title": "Condition",
-                                "filter": { "list": [] },
-                                "expression": { "code": "" },
+                                "filter": {
+                                  "list": []
+                                },
+                                "expression": {
+                                  "code": ""
+                                },
                                 "displayContent": "sdk.form.setCondition"
                               },
                               "blocks": [
@@ -6578,7 +6673,9 @@
                                         }
                                       ]
                                     },
-                                    "expression": { "code": "" },
+                                    "expression": {
+                                      "code": ""
+                                    },
                                     "displayContent": "sdk.form.setCondition",
                                     "__index": 2,
                                     "isDefault": false,
@@ -6707,7 +6804,9 @@
                                         }
                                       ]
                                     },
-                                    "expression": { "code": "" },
+                                    "expression": {
+                                      "code": ""
+                                    },
                                     "displayContent": "sdk.form.setCondition",
                                     "__index": 3,
                                     "isDefault": false,
@@ -6803,8 +6902,12 @@
                                   "data": {
                                     "title": "Other",
                                     "isDefault": true,
-                                    "filter": { "list": [] },
-                                    "expression": { "code": "" },
+                                    "filter": {
+                                      "list": []
+                                    },
+                                    "expression": {
+                                      "code": ""
+                                    },
                                     "displayContent": "sdk.form.otherCondition"
                                   },
                                   "blocks": []
@@ -6816,7 +6919,9 @@
                         {
                           "id": "if_block_S8Sr6iFf",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -6830,7 +6935,9 @@
         {
           "id": "ifBlock_tSLGnltA",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -6874,7 +6981,10 @@
         "name": "End Node",
         "back_data_type": "OutputParams",
         "code": "",
-        "msg": { "type": "javascript", "code": "" },
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
         "response_value": {
           "list": [
             {
