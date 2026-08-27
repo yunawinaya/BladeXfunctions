@@ -215,7 +215,9 @@ const rebuildTree = (rows, flat, refs) => {
 const batchFetchItems = async (materialIds) => {
   if (!materialIds || materialIds.length === 0) return new Map();
   const uniqueIds = [
-    ...new Set(materialIds.filter((id) => id && id !== "undefined" && id !== "null")),
+    ...new Set(
+      materialIds.filter((id) => id && id !== "undefined" && id !== "null"),
+    ),
   ];
   if (uniqueIds.length === 0) return new Map();
 
@@ -264,7 +266,9 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
   }
 
   const uniqueIds = [
-    ...new Set(materialIds.filter((id) => id && id !== "undefined" && id !== "null")),
+    ...new Set(
+      materialIds.filter((id) => id && id !== "undefined" && id !== "null"),
+    ),
   ];
   if (uniqueIds.length === 0) {
     return { serial: new Map(), batch: new Map(), regular: new Map() };
@@ -395,7 +399,11 @@ const fetchPickingSetup = async (plantId) => {
 
 const batchFetchBinLocations = async (locationIds) => {
   if (!locationIds || locationIds.length === 0) return new Map();
-  const uniqueIds = [...new Set(locationIds.filter((id) => id && id !== "undefined" && id !== "null"))];
+  const uniqueIds = [
+    ...new Set(
+      locationIds.filter((id) => id && id !== "undefined" && id !== "null"),
+    ),
+  ];
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -432,7 +440,9 @@ const batchFetchBinLocations = async (locationIds) => {
 const batchFetchBatchData = async (materialIds, plantId) => {
   if (!materialIds || materialIds.length === 0) return new Map();
   const uniqueIds = [
-    ...new Set(materialIds.filter((id) => id && id !== "undefined" && id !== "null")),
+    ...new Set(
+      materialIds.filter((id) => id && id !== "undefined" && id !== "null"),
+    ),
   ];
   if (uniqueIds.length === 0) return new Map();
 
@@ -475,7 +485,9 @@ const batchFetchBatchData = async (materialIds, plantId) => {
 const batchFetchPendingReserved = async (soLineItemIds, plantId) => {
   if (!soLineItemIds || soLineItemIds.length === 0) return new Map();
   const uniqueIds = [
-    ...new Set(soLineItemIds.filter((id) => id && id !== "undefined" && id !== "null")),
+    ...new Set(
+      soLineItemIds.filter((id) => id && id !== "undefined" && id !== "null"),
+    ),
   ];
   if (uniqueIds.length === 0) return new Map();
 
@@ -1159,17 +1171,12 @@ const checkInventoryWithDuplicates = async (
           } else {
             // Non-serialized - fill gd_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
-              flatRows[index].gd_qty =
-                balanceData.length === 1 ? finalQty : 0;
+              flatRows[index].gd_qty = balanceData.length === 1 ? finalQty : 0;
             } else {
               flatRows[index].gd_qty = finalQty;
             }
             flatRows[index].base_qty = roundQty(
-              convertToBaseUOM(
-                flatRows[index].gd_qty,
-                item.altUOM,
-                itemData,
-              ),
+              convertToBaseUOM(flatRows[index].gd_qty, item.altUOM, itemData),
             );
           }
         }
@@ -1230,7 +1237,6 @@ const checkInventoryWithDuplicates = async (
       };
     }
   }
-
 
   // An item bundle is delivered as a whole. The bundle row's quantity is the
   // number of bundles going out, and every item under it follows from that by
@@ -1364,7 +1370,6 @@ if (!window.globalAllocationTracker) {
 // ============================================================================
 
 const createTableGdWithBaseUOM = async (allItems) => {
-
   // A bundle row has no item behind it, so the fields that would describe one --
   // item category, tariff, unit of measure -- come back empty from the sales
   // order. Those columns are id-typed, and the server rejects a null on one with
@@ -1718,13 +1723,32 @@ const createTableGdWithBaseUOM = async (allItems) => {
     }
   }
 
-  allItems = allItems.filter(
-    (gd) =>
-      gd.deliveredQtyFromSource !== gd.orderedQty &&
-      !existingGD.find(
-        (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id,
-      ),
-  );
+  allItems = allItems.filter((gd) => {
+    const alreadyAdded = existingGD.some(
+      (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id,
+    );
+
+    if (alreadyAdded) {
+      return false;
+    }
+
+    const bundleChildren = Array.isArray(gd.bundleChildren)
+      ? gd.bundleChildren
+      : [];
+
+    if (bundleChildren.length > 0) {
+      const allChildrenCompleted = bundleChildren.every((child) => {
+        const orderedQty = parseFloat(child.orderedQty || 0);
+        const deliveredQty = parseFloat(child.deliveredQtyFromSource || 0);
+        return deliveredQty >= orderedQty;
+      });
+      return !allChildrenCompleted;
+    }
+
+    const orderedQty = parseFloat(gd.orderedQty || 0);
+    const deliveredQty = parseFloat(gd.deliveredQtyFromSource || 0);
+    return deliveredQty < orderedQty;
+  });
 
   console.log("allItems after filter", allItems);
 
