@@ -1,6 +1,161 @@
 // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
 const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
 
+// ===========================================================================
+// ITEM BUNDLES
+// ---------------------------------------------------------------------------
+// An item bundle is ONE line on the sales order with the bundle's items beneath
+// it, and it is delivered as a whole. table_gd keeps that shape: the bundle is
+// a row with its items under `children`.
+//
+// Nothing is ever picked against the bundle row itself -- it has no material --
+// so the picking records that reach this handler are all items. The bundle they
+// belong to is recovered from the sales order, which is where the bundle line
+// and its items are recorded.
+//
+// Note table_so's field names are inverted: item_name holds the item's id.
+// ===========================================================================
+
+// A bundle's items reach us in one of three shapes, and all mean the same
+// thing: nested under `children`, flat rows pointing back through parent_id /
+// parent_fm_key, or -- on rows that lost their link -- a bundle row followed by
+// its item rows. Returns childrenOf (a parent's index -> its items' indexes)
+// and claimed (every index now owned by a parent, which the caller skips so a
+// bundle's items are not delivered twice).
+const groupBundleRows = (rows, getItemId) => {
+  const childrenOf = new Map();
+  const claimed = new Set();
+
+  const link = (parentIndex, childIndex) => {
+    if (!childrenOf.has(parentIndex)) childrenOf.set(parentIndex, []);
+
+    childrenOf.get(parentIndex).push(childIndex);
+    claimed.add(childIndex);
+  };
+
+  // PASS 1 -- parent_id, which is the link the database actually stores. A
+  // subform tree is persisted FLAT, each child carrying the row id of its
+  // parent; `children` exists only on a tree still being edited in a form, so a
+  // sales order read back through a query never has it. This pass is what puts
+  // the bundle back together, and it needs nothing else on the row -- not an
+  // item bundle id on the child, not a particular ordering.
+  const indexById = new Map();
+
+  rows.forEach((row, index) => {
+    if (row && row.id != null && row.id !== "") {
+      indexById.set(String(row.id), index);
+    }
+  });
+
+  rows.forEach((row, index) => {
+    if (!row || row.parent_id == null || row.parent_id === "") return;
+
+    const parentIndex = indexById.get(String(row.parent_id));
+
+    if (parentIndex === undefined || parentIndex === index) return;
+
+    link(parentIndex, index);
+  });
+
+  // PASS 2 -- the shapes a row can arrive in when it has no parent_id yet:
+  // nested under `children` (a tree still in the form), linked by
+  // parent_fm_key (added in this session, not saved yet), or -- on rows that
+  // lost their link -- following the bundle row they belong to.
+  const isBundleRow = (row) => !!row.item_bundle_id && !getItemId(row);
+  const isBundleItem = (row) => !!row.item_bundle_id && !!getItemId(row);
+
+  let openParent = null;
+
+  rows.forEach((row, index) => {
+    if (!row) return;
+
+    if (isBundleRow(row)) {
+      // Already a tree, or already reattached by parent_id: nothing to do.
+      if (
+        (Array.isArray(row.children) && row.children.length > 0) ||
+        childrenOf.has(index)
+      ) {
+        openParent = null;
+        return;
+      }
+
+      childrenOf.set(index, []);
+      openParent = index;
+      return;
+    }
+
+    if (claimed.has(index)) return; // parent_id already owns it
+
+    if (!isBundleItem(row)) {
+      openParent = null; // a plain line closes the bundle above it
+      return;
+    }
+
+    let parentIndex = null;
+
+    rows.forEach((candidate, candidateIndex) => {
+      if (parentIndex !== null || !childrenOf.has(candidateIndex)) return;
+
+      const byKey =
+        row.parent_fm_key != null &&
+        candidate.fm_key != null &&
+        String(row.parent_fm_key) === String(candidate.fm_key);
+
+      if (byKey) parentIndex = candidateIndex;
+    });
+
+    // No link on the row: it belongs to the bundle it follows, as long as that
+    // is the same bundle.
+    if (
+      parentIndex === null &&
+      openParent !== null &&
+      String(rows[openParent].item_bundle_id) === String(row.item_bundle_id)
+    ) {
+      parentIndex = openParent;
+    }
+
+    if (parentIndex === null) return; // orphan: delivered as a line of its own
+
+    link(parentIndex, index);
+  });
+
+  // A row opened as a bundle in pass 2 but never given anything is not a bundle
+  // after all -- it drops back to being a line of its own.
+  for (const [parentIndex, children] of [...childrenOf]) {
+    if (children.length === 0) childrenOf.delete(parentIndex);
+  }
+
+  console.log("item bundle grouping", {
+    rows: rows.length,
+    bundles: childrenOf.size,
+    claimed: claimed.size,
+  });
+
+  return { childrenOf, claimed };
+};
+
+// Allocation addresses a row by a single index, but a bundle's items are rows
+// of the tree rather than of table_gd. It therefore works on this flat view and
+// the result is folded back into the tree when it is done.
+const flattenForAllocation = (rows) => {
+  const flat = [];
+  const refs = [];
+
+  (rows || []).forEach((row, parent) => {
+    flat.push(row);
+    refs.push({ parent, child: null });
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    children.forEach((child, childIndex) => {
+      flat.push(child);
+      refs.push({ parent, child: childIndex });
+    });
+  });
+
+  return { flat, refs };
+};
+
 // Helper function to convert quantity from alt UOM to base UOM
 const convertToBaseUOM = (quantity, altUOM, itemData) => {
   if (!altUOM || altUOM === itemData.based_uom) {
@@ -23,6 +178,37 @@ if (!window.globalAllocationTracker) {
 }
 
 const createTableGdWithBaseUOM = async (allItems) => {
+  // A bundle row has no item behind it, so the fields that would describe one --
+  // item category, tariff, unit of measure -- come back empty from the sales
+  // order. Those columns are id-typed, and the server rejects a null on one with
+  // "数据转换BigInt类型失败，原值为: [null]", so they go across blank instead.
+  // Only bundle rows are touched; an ordinary line keeps whatever it carried.
+  const BUNDLE_ID_FIELDS = [
+    "material_id",
+    "gd_order_uom_id",
+    "good_delivery_uom_id",
+    "base_uom_id",
+    "packing_uom",
+    "tariff_id",
+    "item_category_id",
+    "line_pp_id",
+    "pp_line_item_id",
+    "line_to_id",
+    "to_record_id",
+    "packing_no",
+    "hu_no",
+    "project_id",
+  ];
+
+  const blankMissingIds = (row) => {
+    for (const field of BUNDLE_ID_FIELDS) {
+      if (row[field] === null || row[field] === undefined) {
+        row[field] = "";
+      }
+    }
+
+    return row;
+  };
   const processedItems = [];
 
   // Helper function to add gd_quantity to temp_qty_data
@@ -47,7 +233,10 @@ const createTableGdWithBaseUOM = async (allItems) => {
     }
   };
 
-  for (const item of allItems) {
+  // One row from one picked entry. A bundle row has no material -- itemId is
+  // empty on it -- so no item is fetched for it and it takes the plain branch,
+  // leaving its stock fields empty, which is what a bundle row should carry.
+  const buildRow = async (item) => {
     // Check if item is serialized
     let itemData = null;
     if (item.itemId) {
@@ -97,7 +286,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
       );
 
-      processedItems.push({
+      return {
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         gd_material_desc: item.itemDesc || "",
@@ -134,10 +323,11 @@ const createTableGdWithBaseUOM = async (allItems) => {
         customer_id: item.customer_id,
         is_force_complete: item.is_force_complete,
         picking_status: item.picking_status,
-      });
+        item_bundle_id: item.item_bundle_id || "",
+      };
     } else {
       // Non-serialized items keep original UOM
-      processedItems.push({
+      return {
         material_id: item.itemId || "",
         material_name: item.itemName || "",
         gd_material_desc: item.itemDesc || "",
@@ -176,17 +366,39 @@ const createTableGdWithBaseUOM = async (allItems) => {
         customer_id: item.customer_id,
         is_force_complete: item.is_force_complete,
         picking_status: item.picking_status,
-      });
+        item_bundle_id: item.item_bundle_id || "",
+      };
     }
+  };
+
+  for (const item of allItems) {
+    const row = await buildRow(item);
+
+    // A bundle keeps its items under it, so the delivery carries the same shape
+    // the sales order does.
+    const bundleChildren = Array.isArray(item.bundleChildren)
+      ? item.bundleChildren
+      : [];
+
+    if (bundleChildren.length > 0) {
+      blankMissingIds(row);
+      row.children = [];
+
+      for (const child of bundleChildren) {
+        row.children.push(await buildRow(child));
+      }
+    }
+
+    processedItems.push(row);
   }
 
   return processedItems;
 };
 
 (async () => {
-  const referenceType = this.getValue(`dialog_select_picking.reference_type`);
+  const referenceType = arguments[0].referenceType;
   const previousReferenceType = this.getValue("reference_type");
-  const currentItemArray = this.getValue(`dialog_select_picking.item_array`);
+  const currentItemArray = arguments[0].itemArray || [];
   let existingGD = this.getValue("table_gd");
   const customerName = this.getValue("customer_name");
 
@@ -278,7 +490,6 @@ const createTableGdWithBaseUOM = async (allItems) => {
     existingGD = [];
   }
 
-  this.closeDialog("dialog_select_picking");
   this.showLoading();
 
   // ========================================================================
@@ -301,6 +512,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
   }
 
   const soLineMap = new Map(); // Maps so_line_id -> { so_quantity, ... }
+  const soBundleParentOf = new Map(); // Maps an item's so_line_id -> its bundle line
   if (allSoIds.length > 0) {
     const uniqueSoIds = [...new Set(allSoIds)];
     try {
@@ -317,8 +529,31 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
       // Build map from so_line_id to line item data
       (soResult.data || []).forEach((so) => {
-        (so.table_so || []).forEach((line) => {
+        const soLines = so.table_so || [];
+
+        // Index every line, an item nested under a bundle included -- a picking
+        // record points at the item's own SO line whichever shape it is in.
+        soLines.forEach((line) => {
           soLineMap.set(line.id, line);
+
+          (Array.isArray(line.children) ? line.children : []).forEach((child) =>
+            soLineMap.set(child.id, child),
+          );
+        });
+
+        // Nothing is picked against a bundle line, so it never arrives as a
+        // picking record. This is what puts the bundle back over its items.
+        const { childrenOf } = groupBundleRows(soLines, (row) => row.item_name);
+
+        soLines.forEach((line, index) => {
+          const nested = Array.isArray(line.children) ? line.children : [];
+          const regrouped = (childrenOf.get(index) || []).map(
+            (childIndex) => soLines[childIndex],
+          );
+
+          (nested.length > 0 ? nested : regrouped).forEach((child) => {
+            soBundleParentOf.set(child.id, line);
+          });
         });
       });
       console.log(
@@ -760,6 +995,115 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   console.log("allItems after filter", allItems);
 
+  // ==========================================================================
+  // ITEM BUNDLES: fold the picked items back under their bundle
+  // --------------------------------------------------------------------------
+  // Picking happens on a bundle's items, never on the bundle row -- it has no
+  // material -- so what arrives here is a flat list of items. The bundle line is
+  // recreated from the sales order and the items are hung under it, giving the
+  // delivery the same shape the order has.
+  //
+  // How many bundles that comes to is worked back out of the items. Delivering
+  // N of M outstanding bundles delivers the same fraction of each item
+  // (onChange_delivered_qty), so each item implies a bundle count of its own,
+  // and the bundle can only go out as far as its least-picked item allows --
+  // a bundle is delivered whole or not at all.
+  // ==========================================================================
+  if (soBundleParentOf.size > 0) {
+    const outstandingOf = (line) =>
+      roundQty(
+        (parseFloat(line?.so_quantity) || 0) -
+          (parseFloat(line?.delivered_qty) || 0),
+      );
+
+    const bundlesFrom = (parentLine, children) => {
+      const parentOutstanding = outstandingOf(parentLine);
+      if (parentOutstanding <= 0) return 0;
+
+      let ratio = null;
+
+      for (const child of children) {
+        const childLine = soLineMap.get(child.so_line_item_id);
+        const childOutstanding = outstandingOf(childLine);
+        if (childOutstanding <= 0) continue;
+
+        const childRatio =
+          (parseFloat(child.pickedQty) || 0) / childOutstanding;
+
+        ratio = ratio === null ? childRatio : Math.min(ratio, childRatio);
+      }
+
+      return ratio === null ? 0 : roundQty(parentOutstanding * ratio);
+    };
+
+    const grouped = [];
+    const byParent = new Map();
+
+    for (const item of allItems) {
+      const parentLine = soBundleParentOf.get(item.so_line_item_id);
+
+      if (!parentLine) {
+        grouped.push(item); // a plain line, delivered on its own
+        continue;
+      }
+
+      if (!byParent.has(parentLine.id)) {
+        const entry = {
+          itemId: "",
+          itemName: parentLine.item_id || "",
+          itemDesc: parentLine.so_desc || "",
+          moreDesc: parentLine.more_desc || "",
+          orderedQty: parseFloat(parentLine.so_quantity) || 0,
+          pickedQty: 0, // filled once every item of this bundle is in
+          deliveredQty: parseFloat(parentLine.delivered_qty) || 0,
+          reservedQty: 0,
+          altUOM: parentLine.so_item_uom || "",
+          baseUOM: parentLine.so_item_uom || "",
+          sourceItem: parentLine,
+          original_so_id: item.original_so_id,
+          so_no: item.so_no,
+          so_line_item_id: parentLine.id,
+          pp_id: item.pp_id,
+          pp_line_id: item.pp_line_id,
+          picking_id: item.picking_id,
+          picking_no: item.picking_no,
+          customer_id: item.customer_id,
+          temp_qty_data: "[]", // no stock is picked against a bundle row
+          view_stock: "",
+          item_bundle_id: parentLine.item_bundle_id || "",
+          bundleChildren: [],
+        };
+
+        byParent.set(parentLine.id, entry);
+        grouped.push(entry);
+      }
+
+      byParent.get(parentLine.id).bundleChildren.push({
+        ...item,
+        item_bundle_id: parentLine.item_bundle_id || "",
+      });
+    }
+
+    for (const [parentId, entry] of byParent) {
+      const bundles = bundlesFrom(
+        soLineMap.get(parentId),
+        entry.bundleChildren,
+      );
+
+      // createTableGdWithBaseUOM works the line out as picked - delivered -
+      // reserved, so the bundle count is carried in the same shape.
+      entry.pickedQty = roundQty(entry.deliveredQty + bundles);
+
+      console.log("item bundle line", entry.item_bundle_id, {
+        bundles,
+        outstanding: outstandingOf(soLineMap.get(parentId)),
+        items: entry.bundleChildren.length,
+      });
+    }
+
+    allItems = grouped;
+  }
+
   let newTableGd = await createTableGdWithBaseUOM(allItems);
 
   const latestTableGD = [...existingGD, ...newTableGd];
@@ -801,8 +1145,26 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   // GDPP: Enable/disable fields based on temp_qty_data length
   setTimeout(() => {
-    for (let i = 0; i < latestTableGD.length; i++) {
-      const item = latestTableGD[i];
+    // Read the table back: the platform gives each row its fm_key on save, and
+    // a subform row is identified by that key rather than by where it sits --
+    // which is the only way to reach an item under a bundle, since it is not a
+    // row of table_gd at all. Position is the fallback for an unkeyed row.
+    const savedRows = this.getValue("table_gd") || [];
+    const { flat: flatRows, refs: rowRefs } = flattenForAllocation(savedRows);
+
+    const pathOf = (index) => {
+      const row = flatRows[index];
+      if (row && row.fm_key) return `table_gd.${row.fm_key}`;
+
+      const ref = rowRefs[index];
+      if (!ref) return `table_gd.${index}`;
+      return ref.child === null
+        ? `table_gd.${ref.parent}`
+        : `table_gd.${ref.parent}.children.${ref.child}`;
+    };
+
+    for (let i = 0; i < flatRows.length; i++) {
+      const item = flatRows[i];
       const tempQtyData = item.temp_qty_data;
 
       if (!tempQtyData || tempQtyData === "[]" || tempQtyData.trim() === "") {
@@ -814,13 +1176,13 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
         if (tempDataArray.length === 1) {
           // Single location: Disable dialog button, enable gd_qty field
-          this.disabled([`table_gd.${i}.gd_delivery_qty`], true);
-          this.disabled([`table_gd.${i}.gd_qty`], false);
+          this.disabled([`${pathOf(i)}.gd_delivery_qty`], true);
+          this.disabled([`${pathOf(i)}.gd_qty`], false);
           console.log(`Item ${i}: Single location - direct edit enabled`);
         } else {
           // Multiple locations: Enable dialog button, disable gd_qty field
-          this.disabled([`table_gd.${i}.gd_delivery_qty`], false);
-          this.disabled([`table_gd.${i}.gd_qty`], true);
+          this.disabled([`${pathOf(i)}.gd_delivery_qty`], false);
+          this.disabled([`${pathOf(i)}.gd_qty`], true);
           console.log(
             `Item ${i}: Multiple locations (${tempDataArray.length}) - dialog required`,
           );
@@ -828,6 +1190,38 @@ const createTableGdWithBaseUOM = async (allItems) => {
       } catch (error) {
         console.error(`Error parsing temp_qty_data for item ${i}:`, error);
       }
+    }
+
+    // An item bundle is delivered as a whole: the bundle row takes the number
+    // of bundles and every item under it follows by ratio, so the items' own
+    // quantity fields are locked whatever the loop above decided for them. The
+    // bundle row holds no stock, so its dialog button stays shut.
+    const bundleParents = new Set();
+
+    rowRefs.forEach((ref, index) => {
+      if (ref.child !== null) return;
+
+      const row = flatRows[index] || {};
+
+      if (row.item_bundle_id && !row.material_id) {
+        bundleParents.add(ref.parent);
+      }
+    });
+
+    if (bundleParents.size > 0) {
+      rowRefs.forEach((ref, index) => {
+        if (!bundleParents.has(ref.parent)) return;
+
+        if (ref.child === null) {
+          this.disabled([`${pathOf(index)}.gd_qty`], false);
+          this.disabled([`${pathOf(index)}.gd_delivery_qty`], true);
+          return;
+        }
+
+        this.disabled([`${pathOf(index)}.gd_qty`], true);
+      });
+
+      console.log("item bundle rows locked:", bundleParents.size, "bundles");
     }
   }, 100);
 
