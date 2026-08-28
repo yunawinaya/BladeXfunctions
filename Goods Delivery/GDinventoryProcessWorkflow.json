@@ -213,9 +213,18 @@
         "name": "Data Extraction",
         "script": {
           "type": "javascript",
-          "code": "const tableData = {{workflowparams:tableData}} || [];\n\nconst materialIds = [];\nconst seenMaterials = new Set();\nconst parentLineIds = [];\nconst seenParentLines = new Set();\n\nfor (const item of tableData) {\n  if (item.material_id && !seenMaterials.has(item.material_id)) {\n    seenMaterials.add(item.material_id);\n    materialIds.push(item.material_id);\n  }\n  if (item.so_line_item_id && !seenParentLines.has(item.so_line_item_id)) {\n    seenParentLines.add(item.so_line_item_id);\n    parentLineIds.push(item.so_line_item_id);\n  }\n}\n\nreturn {\n  materialIds: materialIds,\n  parentLineIds: parentLineIds,\n};\n"
+          "code": "const tableData = {{workflowparams:tableData}} || [];\n\nconst materialIds = [];\nconst seenMaterials = new Set();\nconst parentLineIds = [];\nconst seenParentLines = new Set();\n\nfor (const item of tableData) {\n  if (item.material_id && !seenMaterials.has(item.material_id)) {\n    seenMaterials.add(item.material_id);\n    materialIds.push(item.material_id);\n  }\n  if (item.so_line_item_id && !seenParentLines.has(item.so_line_item_id)) {\n    seenParentLines.add(item.so_line_item_id);\n    parentLineIds.push(item.so_line_item_id);\n  }\n}\n\n// JSON_TABLE turns this CSV back into BIGINTs so the join hits item's primary\n// key. Digits-only keeps every id exact and leaves nothing else able to reach sql_node_ItemDatas' statement.\nconst materialIdCsv =\n  materialIds\n    .filter((v) => /^[0-9]+$/.test(String(v)))\n    .map(String)\n    .join(\",\") || \"0\";\n\nreturn {\n  materialIds: materialIds,\n  parentLineIds: parentLineIds,\n  materialIdCsv: materialIdCsv,\n};\n"
         },
         "response_json": [
+          {
+            "key": "matidcsv001",
+            "name": "materialIdCsv",
+            "title": "materialIdCsv",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
           {
             "key": "nv7h41yv",
             "name": "materialIds",
@@ -261,37 +270,112 @@
       "blocks": []
     },
     {
-      "id": "search_node_muUXSBRg",
-      "type": "search-node",
+      "id": "sql_node_ItemDatas",
+      "type": "sql-node",
       "data": {
-        "table_id": {
-          "source": "Item:Table:1901546842240438273",
-          "rules": {
-            "collectionId": "1901546842240438273",
-            "list": [
-              {
-                "id": 1772203067451,
-                "parentId": 1772203067450,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_node_SSWylCan.data.materialIds}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 500,
+        "database_id": "",
+        "sql": "",
+        "params": {},
         "title": "Get Item Datas",
         "isValidator": true,
         "nodeName": "Get Item Datas",
-        "name": "Get Item Datas"
+        "name": "Get Item Datas",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(i.id AS CHAR) AS id,\n       i.material_code,\n       i.material_name,\n       i.material_desc,\n       i.item_batch_management,\n       i.stock_control,\n       CAST(i.based_uom AS CHAR) AS based_uom,\n       i.material_costing_method,\n       i.purchase_unit_price,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'base_qty', u.base_qty))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_SSWylCan.data.materialIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0\nLIMIT 500"
+        },
+        "response_json": [
+          {
+            "key": "gi1id0000",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi2mcode0",
+            "name": "material_code",
+            "title": "material_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi3mname0",
+            "name": "material_name",
+            "title": "material_name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi4mdesc0",
+            "name": "material_desc",
+            "title": "material_desc",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi5batch0",
+            "name": "item_batch_management",
+            "title": "item_batch_management",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi6sctrl0",
+            "name": "stock_control",
+            "title": "stock_control",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi7buom00",
+            "name": "based_uom",
+            "title": "based_uom",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi8costm0",
+            "name": "material_costing_method",
+            "title": "material_costing_method",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi9pprice",
+            "name": "purchase_unit_price",
+            "title": "purchase_unit_price",
+            "description": "",
+            "bsonType": "decimal",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gi10uomjs",
+            "name": "uom_conversion_json",
+            "title": "uom_conversion_json",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
       },
       "blocks": []
     },
@@ -832,7 +916,7 @@
         "name": "Batch Fetch",
         "script": {
           "type": "javascript",
-          "code": "/**\n * GDProcessTable_batchFetch.js\n *\n * PURPOSE: Replace multiple database queries inside loops with a SINGLE batch fetch\n * USAGE: Add as a code node BEFORE the Loop Table in GD_PROCESS_TABLE workflow\n *\n * WORKFLOW CHANGES REQUIRED:\n * 1. Add search nodes BEFORE this code node to fetch:\n *    - All Items (using IN clause with all unique material_ids)\n *    - All Allocated records for this GD\n *    - All Pending records (non-GD/PP doc_types)\n * 2. This code node processes the fetched data into Maps for O(1) lookup\n * 3. Remove the individual \"Get itemData\" queries inside the loop\n *\n * INPUT (from workflow params and previous search nodes):\n * - workflowparams:tableData - the table_gd array\n * - node:search_all_items.data.data - all items fetched in batch\n * - node:search_all_allocated.data.data - all allocated records\n * - node:search_all_pending.data.data - all pending records\n *\n * OUTPUT: Pre-processed data ready for batch allocation processing\n */\n\nconst tableData = {{workflowparams:tableData}} || [];\nconst isGDPP = {{workflowparams:isGDPP}} || 0;\nconst docId = {{workflowparams:doc_id}};\nconst docNo = {{workflowparams:doc_no}};\nconst plantId = {{workflowparams:plant_id}};\nconst organizationId = {{workflowparams:organization_id}};\nconst saveAs = {{workflowparams:saveAs}};\nconst docDate = {{workflowparams:doc_date}};\nconst parentId = {{workflowparams:parent_id}};\nconst parentNo = {{workflowparams:parent_no}};\nconst pickingPlanId = {{workflowparams:picking_plan_id}} || \"\";\nconst isPacking = {{workflowparams:isPacking}} || 0;\nconst isLoadingBay = {{workflowparams:isLoadingBay}} || 0;\n\n// Data from batch search nodes (these need to be added to workflow)\nconst allItemsData = {{node:search_node_muUXSBRg.data.data}} || [];\n// Normalize to an array regardless of which branch runs or whether the search\n// returned null/undefined/single-object (the previous `?:` left the `|| []`\n// guarding only the GDPP branch, so a null non-GDPP result could break `.filter`).\nconst _allAllocatedRaw = isGDPP === 0\n  ? {{node:search_node_r3NiR6B7.data.data}}\n  : {{node:search_node_NxFJeRXS.data.data}};\nconst allAllocatedData = Array.isArray(_allAllocatedRaw)\n  ? _allAllocatedRaw\n  : (_allAllocatedRaw ? [_allAllocatedRaw] : []);\nconst allPendingData = {{node:search_node_QdY1FLLA.data.data}} || [];\n\n// Helper function to safely parse JSON\nconst parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    if (typeof jsonString === 'object') return jsonString || defaultValue;\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    return defaultValue;\n  }\n};\n\n// Create item lookup Map (material_id -> itemData) for internal use in this code node\nconst itemDataMap = {};\nfor (const item of allItemsData) {\n  itemDataMap[item.id] = item;\n}\n// Note: We pass allItemsData as array to next node (workflow can't handle object maps)\n\n// Pre-process table data: extract unique material_ids and group temp_qty_data\nconst processedTableData = [];\nconst allGroupKeys = [];\n\nfor (let tableIndex = 0; tableIndex < tableData.length; tableIndex++) {\n  const item = tableData[tableIndex];\n  if (!item.material_id) continue;\n\n  const tempQtyData = parseJsonSafely(item.temp_qty_data);\n  if (tempQtyData.length === 0) {\n    processedTableData.push({\n      tableIndex,\n      item,\n      itemData: itemDataMap[item.material_id] || null,\n      groupedTempData: {},\n      groupKeys: [],\n      skipProcessing: true,\n      skipReason: \"No temp_qty_data\"\n    });\n    continue;\n  }\n\n  const itemData = itemDataMap[item.material_id];\n  if (!itemData) {\n    processedTableData.push({\n      tableIndex,\n      item,\n      itemData: null,\n      groupedTempData: {},\n      groupKeys: [],\n      skipProcessing: true,\n      skipReason: \"Item not found\"\n    });\n    continue;\n  }\n\n  const isBatchManagedItem = itemData.item_batch_management === 1;\n\n  // Group temp_qty_data by location + batch + handling_unit combination\n  const groupedTempData = {};\n  for (const temp of tempQtyData) {\n    let groupKey = isBatchManagedItem && temp.batch_id\n      ? `${temp.location_id}|${temp.batch_id}`\n      : temp.location_id;\n\n    // Include handling_unit_id in key to keep HU and loose separate\n    if (temp.handling_unit_id) {\n      groupKey += `|hu-${temp.handling_unit_id}`;\n    }\n\n    if (!groupedTempData[groupKey]) {\n      groupedTempData[groupKey] = {\n        location_id: temp.location_id,\n        batch_id: temp.batch_id || null,\n        handling_unit_id: temp.handling_unit_id || null,\n        totalQty: 0,\n      };\n    }\n\n    groupedTempData[groupKey].totalQty += parseFloat(\n      temp.gd_quantity || temp.to_quantity || temp.quantity || 0\n    );\n  }\n\n  const groupKeys = Object.keys(groupedTempData);\n\n  // Extract common fields from table item\n  const isPickingPlan = isGDPP === 1;\n  const material_uom = isPickingPlan\n    ? item.to_order_uom_id || item.picking_plan_uom_id || item.gd_order_uom_id\n    : item.gd_order_uom_id || item.good_delivery_uom_id;\n\n  const processedItem = {\n    tableIndex,\n    item,\n    itemData,\n    groupedTempData,\n    groupKeys,\n    skipProcessing: false,\n    // Pre-extracted fields for allocation processing\n    material_id: item.material_id,\n    material_uom,\n    parent_id: item.line_so_id || \"\",\n    parent_line_id: item.so_line_item_id || \"\",\n    doc_line_id: item.id || \"\",\n    remark: item.line_remark_1 || \"\",\n    picking_plan_line_id: item.pp_line_item_id || \"\",\n    line_pp_id: item.line_pp_id || \"\",\n    isBatchManagedItem,\n    // Additional fields for inventory movement records\n    line_so_no: item.line_so_no || item.so_no || \"\",\n    material_code: itemData.material_code || \"\",\n    material_name: itemData.material_name || \"\",\n    // Excess data for whole-HU picks (FULL_HU_PICK/NO_SPLIT)\n    temp_excess_data: item.temp_excess_data || \"[]\"\n  };\n\n  processedTableData.push(processedItem);\n\n  // Collect all group keys for stats\n  for (const gk of groupKeys) {\n    allGroupKeys.push({\n      tableIndex,\n      groupKey: gk,\n      ...groupedTempData[gk]\n    });\n  }\n}\n\n// Summary stats\nconst totalTableItems = tableData.length;\nconst itemsToProcess = processedTableData.filter(p => !p.skipProcessing).length;\nconst totalGroupKeys = allGroupKeys.length;\n\nreturn {\n  code: \"200\",\n  // Pre-fetched data as arrays (workflow platform requires arrays, not objects)\n  allItemsData,\n  allAllocatedData,\n  allPendingData,\n  // Pre-processed table data with groupings\n  processedTableData,\n  // Stats\n  totalTableItems,\n  itemsToProcess,\n  totalGroupKeys,\n  // Workflow params passed through\n  isGDPP,\n  docId,\n  docNo,\n  plantId,\n  organizationId,\n  saveAs,\n  docDate,\n  parentId,\n  parentNo,\n  pickingPlanId,\n  isPacking,\n  isLoadingBay,\n  message: `Batch fetch complete: ${itemsToProcess}/${totalTableItems} items, ${totalGroupKeys} total group keys`\n};\n"
+          "code": "/**\n * GDProcessTable_batchFetch.js\n *\n * PURPOSE: Replace multiple database queries inside loops with a SINGLE batch fetch\n * USAGE: Add as a code node BEFORE the Loop Table in GD_PROCESS_TABLE workflow\n *\n * WORKFLOW CHANGES REQUIRED:\n * 1. Add search nodes BEFORE this code node to fetch:\n *    - All Items (using IN clause with all unique material_ids)\n *    - All Allocated records for this GD\n *    - All Pending records (non-GD/PP doc_types)\n * 2. This code node processes the fetched data into Maps for O(1) lookup\n * 3. Remove the individual \"Get itemData\" queries inside the loop\n *\n * INPUT (from workflow params and previous search nodes):\n * - workflowparams:tableData - the table_gd array\n * - node:search_all_items.data.data - all items fetched in batch\n * - node:search_all_allocated.data.data - all allocated records\n * - node:search_all_pending.data.data - all pending records\n *\n * OUTPUT: Pre-processed data ready for batch allocation processing\n */\n\nconst tableData = {{workflowparams:tableData}} || [];\nconst isGDPP = {{workflowparams:isGDPP}} || 0;\nconst docId = {{workflowparams:doc_id}};\nconst docNo = {{workflowparams:doc_no}};\nconst plantId = {{workflowparams:plant_id}};\nconst organizationId = {{workflowparams:organization_id}};\nconst saveAs = {{workflowparams:saveAs}};\nconst docDate = {{workflowparams:doc_date}};\nconst parentId = {{workflowparams:parent_id}};\nconst parentNo = {{workflowparams:parent_no}};\nconst pickingPlanId = {{workflowparams:picking_plan_id}} || \"\";\nconst isPacking = {{workflowparams:isPacking}} || 0;\nconst isLoadingBay = {{workflowparams:isLoadingBay}} || 0;\n\n// Data from batch search nodes (these need to be added to workflow)\n// \"Get Item Datas\" is a projected sql-node now: the search-node it replaced\n// could not project, so it LEFT JOINed all ten Item subforms -- ~1.9M rows to\n// read nine fields, 11s for 31 items. Rebuild exactly what it used to hand on:\n// bigint ids stay strings, int/decimal columns go back to numbers, and the\n// JSON_ARRAYAGG column goes back to an array.\nconst itemRowsRaw = {{node:sql_node_ItemDatas.data}} || [];\nconst itemRowsList = Array.isArray(itemRowsRaw) ? itemRowsRaw : [itemRowsRaw];\nconst asNum = (v) =>\n  v === null || v === undefined || v === \"\" ? null : Number(v);\nconst asText = (v) => (v === null || v === undefined ? v : String(v));\nconst asRows = (v) => {\n  if (Array.isArray(v)) return v;\n  try {\n    const parsed = v ? JSON.parse(v) : [];\n    return Array.isArray(parsed) ? parsed : [];\n  } catch (e) {\n    return [];\n  }\n};\nconst allItemsData = itemRowsList\n  .filter((r) => r && r.id)\n  .map((r) => ({\n    id: String(r.id),\n    material_code: asText(r.material_code),\n    material_name: asText(r.material_name),\n    material_desc: asText(r.material_desc),\n    item_batch_management: asNum(r.item_batch_management),\n    stock_control: asNum(r.stock_control),\n    based_uom: asText(r.based_uom),\n    material_costing_method: asText(r.material_costing_method),\n    purchase_unit_price: asNum(r.purchase_unit_price),\n    table_uom_conversion: asRows(r.uom_conversion_json),\n  }));\n// Normalize to an array regardless of which branch runs or whether the search\n// returned null/undefined/single-object (the previous `?:` left the `|| []`\n// guarding only the GDPP branch, so a null non-GDPP result could break `.filter`).\nconst _allAllocatedRaw = isGDPP === 0\n  ? {{node:search_node_r3NiR6B7.data.data}}\n  : {{node:search_node_NxFJeRXS.data.data}};\nconst allAllocatedData = Array.isArray(_allAllocatedRaw)\n  ? _allAllocatedRaw\n  : (_allAllocatedRaw ? [_allAllocatedRaw] : []);\nconst allPendingData = {{node:search_node_QdY1FLLA.data.data}} || [];\n\n// Helper function to safely parse JSON\nconst parseJsonSafely = (jsonString, defaultValue = []) => {\n  try {\n    if (typeof jsonString === 'object') return jsonString || defaultValue;\n    return jsonString ? JSON.parse(jsonString) : defaultValue;\n  } catch (error) {\n    return defaultValue;\n  }\n};\n\n// Create item lookup Map (material_id -> itemData) for internal use in this code node\nconst itemDataMap = {};\nfor (const item of allItemsData) {\n  itemDataMap[item.id] = item;\n}\n// Note: We pass allItemsData as array to next node (workflow can't handle object maps)\n\n// Pre-process table data: extract unique material_ids and group temp_qty_data\nconst processedTableData = [];\nconst allGroupKeys = [];\n\nfor (let tableIndex = 0; tableIndex < tableData.length; tableIndex++) {\n  const item = tableData[tableIndex];\n  if (!item.material_id) continue;\n\n  const tempQtyData = parseJsonSafely(item.temp_qty_data);\n  if (tempQtyData.length === 0) {\n    processedTableData.push({\n      tableIndex,\n      item,\n      itemData: itemDataMap[item.material_id] || null,\n      groupedTempData: {},\n      groupKeys: [],\n      skipProcessing: true,\n      skipReason: \"No temp_qty_data\"\n    });\n    continue;\n  }\n\n  const itemData = itemDataMap[item.material_id];\n  if (!itemData) {\n    processedTableData.push({\n      tableIndex,\n      item,\n      itemData: null,\n      groupedTempData: {},\n      groupKeys: [],\n      skipProcessing: true,\n      skipReason: \"Item not found\"\n    });\n    continue;\n  }\n\n  const isBatchManagedItem = itemData.item_batch_management === 1;\n\n  // Group temp_qty_data by location + batch + handling_unit combination\n  const groupedTempData = {};\n  for (const temp of tempQtyData) {\n    let groupKey = isBatchManagedItem && temp.batch_id\n      ? `${temp.location_id}|${temp.batch_id}`\n      : temp.location_id;\n\n    // Include handling_unit_id in key to keep HU and loose separate\n    if (temp.handling_unit_id) {\n      groupKey += `|hu-${temp.handling_unit_id}`;\n    }\n\n    if (!groupedTempData[groupKey]) {\n      groupedTempData[groupKey] = {\n        location_id: temp.location_id,\n        batch_id: temp.batch_id || null,\n        handling_unit_id: temp.handling_unit_id || null,\n        totalQty: 0,\n      };\n    }\n\n    groupedTempData[groupKey].totalQty += parseFloat(\n      temp.gd_quantity || temp.to_quantity || temp.quantity || 0\n    );\n  }\n\n  const groupKeys = Object.keys(groupedTempData);\n\n  // Extract common fields from table item\n  const isPickingPlan = isGDPP === 1;\n  const material_uom = isPickingPlan\n    ? item.to_order_uom_id || item.picking_plan_uom_id || item.gd_order_uom_id\n    : item.gd_order_uom_id || item.good_delivery_uom_id;\n\n  const processedItem = {\n    tableIndex,\n    item,\n    itemData,\n    groupedTempData,\n    groupKeys,\n    skipProcessing: false,\n    // Pre-extracted fields for allocation processing\n    material_id: item.material_id,\n    material_uom,\n    parent_id: item.line_so_id || \"\",\n    parent_line_id: item.so_line_item_id || \"\",\n    doc_line_id: item.id || \"\",\n    remark: item.line_remark_1 || \"\",\n    picking_plan_line_id: item.pp_line_item_id || \"\",\n    line_pp_id: item.line_pp_id || \"\",\n    isBatchManagedItem,\n    // Additional fields for inventory movement records\n    line_so_no: item.line_so_no || item.so_no || \"\",\n    material_code: itemData.material_code || \"\",\n    material_name: itemData.material_name || \"\",\n    // Excess data for whole-HU picks (FULL_HU_PICK/NO_SPLIT)\n    temp_excess_data: item.temp_excess_data || \"[]\"\n  };\n\n  processedTableData.push(processedItem);\n\n  // Collect all group keys for stats\n  for (const gk of groupKeys) {\n    allGroupKeys.push({\n      tableIndex,\n      groupKey: gk,\n      ...groupedTempData[gk]\n    });\n  }\n}\n\n// Summary stats\nconst totalTableItems = tableData.length;\nconst itemsToProcess = processedTableData.filter(p => !p.skipProcessing).length;\nconst totalGroupKeys = allGroupKeys.length;\n\nreturn {\n  code: \"200\",\n  // Pre-fetched data as arrays (workflow platform requires arrays, not objects)\n  allItemsData,\n  allAllocatedData,\n  allPendingData,\n  // Pre-processed table data with groupings\n  processedTableData,\n  // Stats\n  totalTableItems,\n  itemsToProcess,\n  totalGroupKeys,\n  // Workflow params passed through\n  isGDPP,\n  docId,\n  docNo,\n  plantId,\n  organizationId,\n  saveAs,\n  docDate,\n  parentId,\n  parentNo,\n  pickingPlanId,\n  isPacking,\n  isLoadingBay,\n  message: `Batch fetch complete: ${itemsToProcess}/${totalTableItems} items, ${totalGroupKeys} total group keys`\n};\n"
         },
         "response_json": [
           {
@@ -1523,7 +1607,7 @@
                 "name": "Sufficiency Check",
                 "script": {
                   "type": "javascript",
-                  "code": "// CHECK-ONLY sufficiency pre-flight (no inventory writes).\n// Validates that every Unrestricted-category subtract this commit will perform is\n// backed by real item_balance.unrestricted_qty at that (material, bin, batch),\n// netting out same-commit releases (RESERVED_TO_UNRESTRICTED add Unrestricted first).\n// Reserved-category subtracts are backed by this GD's own existing reservation and\n// are intentionally NOT checked here (avoids false-fail on consistent data).\nconst movements = {{node:code_node_QrF4F4Hx.data.inventoryMovements}} || [];\nconst itemBalances = {{node:search_node_ChkItemBal01.data.data}} || [];\nconst batchBalances = {{node:search_node_ChkBatchBal01.data.data}} || [];\nconst allItems = {{node:search_node_muUXSBRg.data.data}} || [];\n\nconst itemMap = {};\nfor (const it of allItems) itemMap[String(it.id)] = it;\n\nconst round = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\n\n// material_uom (order UOM) -> base conversion factor\nconst convFactor = (materialId, uomId) => {\n  const it = itemMap[String(materialId)];\n  if (!it || !Array.isArray(it.table_uom_conversion) || !uomId) return 1;\n  const c = it.table_uom_conversion.find(\n    (x) => String(x.alt_uom_id) === String(uomId)\n  );\n  return c && c.base_qty ? parseFloat(c.base_qty) : 1;\n};\n\nconst balKey = (mat, loc, batch) => `${mat}|${loc}|${batch || \"\"}`;\n\n// current unrestricted by key (base UOM). Batch row preferred when batch present.\nconst unrestrictedByKey = {};\nfor (const b of itemBalances) {\n  unrestrictedByKey[balKey(b.material_id, b.location_id, \"\")] =\n    parseFloat(b.unrestricted_qty) || 0;\n}\nfor (const b of batchBalances) {\n  unrestrictedByKey[balKey(b.material_id, b.location_id, b.batch_id)] =\n    parseFloat(b.unrestricted_qty) || 0;\n}\n\n// net Unrestricted need per key (subtracts - same-commit adds), base UOM\nconst netByKey = {};\nfor (const m of movements) {\n  const f = convFactor(m.material_id, m.material_uom);\n  const qtyBase = round((parseFloat(m.quantity) || 0) * f);\n  let delta = 0;\n  if (m.movement_type === \"UNRESTRICTED_TO_RESERVED\") delta = qtyBase;\n  else if (m.movement_type === \"DELIVERY\" && m.source === \"Unrestricted\") delta = qtyBase;\n  else if (m.movement_type === \"RESERVED_TO_UNRESTRICTED\") delta = -qtyBase;\n  else continue;\n  const key = balKey(m.material_id, m.bin_location, m.batch_id);\n  netByKey[key] = round((netByKey[key] || 0) + delta);\n}\n\n// Aggregate shortages per material (bin/batch are internal IDs, so we roll up to\n// the item level rather than fetch master data just to build a message).\nconst shortByMaterial = {};\nfor (const key of Object.keys(netByKey)) {\n  const need = netByKey[key];\n  if (need <= 0) continue;\n  const avail = unrestrictedByKey[key] || 0;\n  if (need > avail + 0.001) {\n    const matId = key.split(\"|\")[0];\n    if (!shortByMaterial[matId]) shortByMaterial[matId] = { need: 0, avail: 0 };\n    shortByMaterial[matId].need = round(shortByMaterial[matId].need + need);\n    shortByMaterial[matId].avail = round(shortByMaterial[matId].avail + avail);\n  }\n}\n\nconst shortages = [];\nfor (const matId of Object.keys(shortByMaterial)) {\n  const it = itemMap[String(matId)];\n  const label = it ? it.material_code || it.material_name || matId : matId;\n  const s = shortByMaterial[matId];\n  shortages.push(`${label}: need ${s.need}, available ${s.avail}`);\n}\n\nif (shortages.length > 0) {\n  return {\n    code: \"400\",\n    message: \"Insufficient unrestricted stock to commit this delivery:\\n\" + shortages.join(\"\\n\"),\n  };\n}\nreturn { code: \"200\", message: \"Sufficient stock\" };\n"
+                  "code": "// CHECK-ONLY sufficiency pre-flight (no inventory writes).\n// Validates that every Unrestricted-category subtract this commit will perform is\n// backed by real item_balance.unrestricted_qty at that (material, bin, batch),\n// netting out same-commit releases (RESERVED_TO_UNRESTRICTED add Unrestricted first).\n// Reserved-category subtracts are backed by this GD's own existing reservation and\n// are intentionally NOT checked here (avoids false-fail on consistent data).\nconst movements = {{node:code_node_QrF4F4Hx.data.inventoryMovements}} || [];\nconst itemBalances = {{node:search_node_ChkItemBal01.data.data}} || [];\nconst batchBalances = {{node:search_node_ChkBatchBal01.data.data}} || [];\nconst allItems = {{node:code_node_eOMvMZOj.data.allItemsData}} || [];\n\nconst itemMap = {};\nfor (const it of allItems) itemMap[String(it.id)] = it;\n\nconst round = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\n\n// material_uom (order UOM) -> base conversion factor\nconst convFactor = (materialId, uomId) => {\n  const it = itemMap[String(materialId)];\n  if (!it || !Array.isArray(it.table_uom_conversion) || !uomId) return 1;\n  const c = it.table_uom_conversion.find(\n    (x) => String(x.alt_uom_id) === String(uomId)\n  );\n  return c && c.base_qty ? parseFloat(c.base_qty) : 1;\n};\n\nconst balKey = (mat, loc, batch) => `${mat}|${loc}|${batch || \"\"}`;\n\n// current unrestricted by key (base UOM). Batch row preferred when batch present.\nconst unrestrictedByKey = {};\nfor (const b of itemBalances) {\n  unrestrictedByKey[balKey(b.material_id, b.location_id, \"\")] =\n    parseFloat(b.unrestricted_qty) || 0;\n}\nfor (const b of batchBalances) {\n  unrestrictedByKey[balKey(b.material_id, b.location_id, b.batch_id)] =\n    parseFloat(b.unrestricted_qty) || 0;\n}\n\n// net Unrestricted need per key (subtracts - same-commit adds), base UOM\nconst netByKey = {};\nfor (const m of movements) {\n  const f = convFactor(m.material_id, m.material_uom);\n  const qtyBase = round((parseFloat(m.quantity) || 0) * f);\n  let delta = 0;\n  if (m.movement_type === \"UNRESTRICTED_TO_RESERVED\") delta = qtyBase;\n  else if (m.movement_type === \"DELIVERY\" && m.source === \"Unrestricted\") delta = qtyBase;\n  else if (m.movement_type === \"RESERVED_TO_UNRESTRICTED\") delta = -qtyBase;\n  else continue;\n  const key = balKey(m.material_id, m.bin_location, m.batch_id);\n  netByKey[key] = round((netByKey[key] || 0) + delta);\n}\n\n// Aggregate shortages per material (bin/batch are internal IDs, so we roll up to\n// the item level rather than fetch master data just to build a message).\nconst shortByMaterial = {};\nfor (const key of Object.keys(netByKey)) {\n  const need = netByKey[key];\n  if (need <= 0) continue;\n  const avail = unrestrictedByKey[key] || 0;\n  if (need > avail + 0.001) {\n    const matId = key.split(\"|\")[0];\n    if (!shortByMaterial[matId]) shortByMaterial[matId] = { need: 0, avail: 0 };\n    shortByMaterial[matId].need = round(shortByMaterial[matId].need + need);\n    shortByMaterial[matId].avail = round(shortByMaterial[matId].avail + avail);\n  }\n}\n\nconst shortages = [];\nfor (const matId of Object.keys(shortByMaterial)) {\n  const it = itemMap[String(matId)];\n  const label = it ? it.material_code || it.material_name || matId : matId;\n  const s = shortByMaterial[matId];\n  shortages.push(`${label}: need ${s.need}, available ${s.avail}`);\n}\n\nif (shortages.length > 0) {\n  return {\n    code: \"400\",\n    message: \"Insufficient unrestricted stock to commit this delivery:\\n\" + shortages.join(\"\\n\"),\n  };\n}\nreturn { code: \"200\", message: \"Sufficient stock\" };\n"
                 },
                 "response_json": [
                   {
