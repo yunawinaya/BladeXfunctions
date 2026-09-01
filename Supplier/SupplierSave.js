@@ -57,6 +57,45 @@ const validateField = (value, field) => {
   if (typeof value === "object") return Object.keys(value).length === 0;
   return !value;
 };
+
+const AI_AGENT_UPSERT_WORKFLOW_ID = "2094621825355546625";
+
+// Pushes the supplier to the AI agent's external directory. Never let a failure
+// here fail the save — the record is already committed at this point.
+const triggerAIAgentUpsert = async (
+  supplierId,
+  supplierCode,
+  supplierName,
+  supplierStatus,
+) => {
+  if (!supplierId) return;
+  try {
+    let code = supplierCode;
+    // Auto-numbered codes are assigned server-side, so read back the real one.
+    if (code === "issued") {
+      const resSupplier = await db
+        .collection("supplier_head")
+        .doc(supplierId)
+        .get();
+      code = resSupplier?.data?.[0]?.supplier_code || "";
+    }
+
+    await this.runWorkflow(
+      AI_AGENT_UPSERT_WORKFLOW_ID,
+      {
+        id: supplierId,
+        supplier_code: code || "",
+        supplier_name: supplierName || "",
+        supplier_status: supplierStatus || "",
+      },
+      () => {},
+      (error) => console.error("AI agent supplier upsert failed", error),
+    );
+  } catch (error) {
+    console.error("AI agent supplier upsert failed", error);
+  }
+};
+
 const findFieldMessage = (obj) => {
   // Base case: if current object has the structure we want
   if (obj && typeof obj === "object") {
@@ -118,7 +157,14 @@ const findFieldMessage = (obj) => {
       // Add or update based on page status
       if (page_status === "Add" || page_status === "Clone") {
         try {
-          await db.collection("supplier_head").add(entry);
+          const resSupplier = await db.collection("supplier_head").add(entry);
+
+          await triggerAIAgentUpsert(
+            resSupplier?.data?.[0]?.id,
+            entry.supplier_code,
+            entry.supplier_com_name,
+            entry.supplier_status,
+          );
           await closeDialog();
         } catch (error) {
           this.hideLoading();
@@ -130,6 +176,12 @@ const findFieldMessage = (obj) => {
         try {
           await db.collection("supplier_head").doc(supplier_no).update(entry);
 
+          await triggerAIAgentUpsert(
+            supplier_no,
+            entry.supplier_code,
+            entry.supplier_com_name,
+            entry.supplier_status,
+          );
           await closeDialog();
         } catch (error) {
           this.hideLoading();
