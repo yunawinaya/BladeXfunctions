@@ -319,6 +319,9 @@ const buildTablePickingItems = (entries) => {
       split_state: JSON.stringify(state),
       "dialog_assignee.area_name": groupPayloads[0].key,
       "dialog_assignee.assignee": [],
+      // Re-stamped in case the dialog was reopened without going through the
+      // bulk action again; the plant cannot change mid-run.
+      "dialog_assignee.plant_id": state.plant_id || "",
     });
 
     this.hideLoading();

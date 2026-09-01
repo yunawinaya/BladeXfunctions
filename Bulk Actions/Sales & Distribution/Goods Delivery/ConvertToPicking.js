@@ -291,7 +291,13 @@ const handlePicking = async (selectedRecords) => {
             index: 0,
             assignees: [],
           };
-          await this.setData({ split_state: JSON.stringify(splitState) });
+          // plant_id is stamped now rather than when dialog_assignee opens: the
+          // assignee picker filters on it (dept_id contains plant_id), so it has
+          // to be in place before that select resolves its options.
+          await this.setData({
+            split_state: JSON.stringify(splitState),
+            "dialog_assignee.plant_id": splitState.plant_id,
+          });
           await this.openDialog("dialog_split_picking");
         } else {
           await handlePicking(selectedRecords);
