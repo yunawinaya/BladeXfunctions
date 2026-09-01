@@ -656,12 +656,12 @@ const triggerAIAgentUpsert = async (
             entry.batch_config,
             entry.material_code,
           );
-          // await triggerAIAgentUpsert(
-          //   resItem.data[0].id,
-          //   entry.material_code,
-          //   entry.material_name,
-          //   entry.is_active,
-          // );
+          await triggerAIAgentUpsert(
+            resItem.data[0].id,
+            entry.material_code,
+            entry.material_name,
+            entry.is_active,
+          );
           this.$message.success("Add successfully.");
           await closeDialog();
         } catch (error) {
@@ -682,12 +682,12 @@ const triggerAIAgentUpsert = async (
             .update(entry);
           await createBOM(entry);
           await createBatch(entry.id, entry.batch_config, entry.material_code);
-          // await triggerAIAgentUpsert(
-          //   entry.id,
-          //   entry.material_code,
-          //   entry.material_name,
-          //   entry.is_active,
-          // );
+          await triggerAIAgentUpsert(
+            entry.id,
+            entry.material_code,
+            entry.material_name,
+            entry.is_active,
+          );
           this.$message.success("Update successfully.");
           // Close dialog after successful operation
           closeDialog();

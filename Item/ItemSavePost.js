@@ -657,12 +657,12 @@ const triggerAIAgentUpsert = async (
             entry.batch_config,
             entry.material_code,
           );
-          // await triggerAIAgentUpsert(
-          //   resItem.data[0].id,
-          //   entry.material_code,
-          //   entry.material_name,
-          //   entry.is_active,
-          // );
+          await triggerAIAgentUpsert(
+            resItem.data[0].id,
+            entry.material_code,
+            entry.material_name,
+            entry.is_active,
+          );
         } catch (error) {
           console.error("Error adding item:", error);
           this.hideLoading();
@@ -680,12 +680,12 @@ const triggerAIAgentUpsert = async (
           await db.collection("Item").doc(item_no).update(entry);
           await createBOM(entry);
           await createBatch(entry.id, entry.batch_config, entry.material_code);
-          // await triggerAIAgentUpsert(
-          //   entry.id,
-          //   entry.material_code,
-          //   entry.material_name,
-          //   entry.is_active,
-          // );
+          await triggerAIAgentUpsert(
+            entry.id,
+            entry.material_code,
+            entry.material_name,
+            entry.is_active,
+          );
         } catch (error) {
           console.error("Error updating item:", error);
           this.hideLoading();
