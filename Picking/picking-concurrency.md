@@ -17,15 +17,15 @@
 
 ## Status
 
-| Change | State |
-|---|---|
-| Lock released on both graceful early returns (3 workflows) | **Deployed to dev** |
-| Putaway + Stock Picking: acquire moved inside the guard, 900s stale recovery added | **Deployed to dev** |
-| Server-side clamp of picked qty against fresh pending | **Deployed to dev** |
-| Over-pick guard on the GD branch (M:N) | **Deployed to dev** |
-| M:N cumulative recomputed instead of accumulated | **Deployed to dev** |
-| Atomic lock acquisition (the original Part 1a) | **Not possible on this platform** — see below |
-| Mobile pull-to-refresh | Shipped (app repo) |
+| Change                                                                             | State                                         |
+| ---------------------------------------------------------------------------------- | --------------------------------------------- |
+| Lock released on both graceful early returns (3 workflows)                         | **Deployed to dev**                           |
+| Putaway + Stock Picking: acquire moved inside the guard, 900s stale recovery added | **Deployed to dev**                           |
+| Server-side clamp of picked qty against fresh pending                              | **Deployed to dev**                           |
+| Over-pick guard on the GD branch (M:N)                                             | **Deployed to dev**                           |
+| M:N cumulative recomputed instead of accumulated                                   | **Deployed to dev**                           |
+| Atomic lock acquisition (the original Part 1a)                                     | **Not possible on this platform** — see below |
+| Mobile pull-to-refresh                                                             | Shipped (app repo)                            |
 
 Live on dev as of 2026-09-02: `PICKING_LOOP` **v80**, `PICKING` **v121**,
 `PUTAWAY_LOOP` **v14**, `STOCK_PICKING_LOOP` **v4** — all byte-identical to the repo
@@ -69,6 +69,19 @@ existing `TransferOrderPickingUtils.getPickingDocumentsByIds` +
 `[pickingData]` rebuild path already does exactly this for pull-to-refresh. That
 also picks up the recomputed `pending_process_qty` and `line_status`.
 
+> **Mobile reply — the refetch is a no-op; verified 2026-09-02.** On a 200,
+> ConfirmPicking runs
+> `navigation.reset({ index: 0, routes: [{ name: "PickingList" }] })`
+> ([ConfirmPicking.tsx:105](../../src/features/wm/picking/screens/ConfirmPicking.tsx#L105)).
+> Both picking screens are destroyed and PickingList reloads on mount, so there is
+> no surviving view to refresh. In the item-4 scenario it would actively mislead:
+> B lands on a list showing the document **Completed**, which reads as success.
+> That B's 10 became 0 exists only in the response — so **`clampedLines` (or the
+> count folded into `message`) is not the alternative to a refetch, it is the only
+> thing that can work.** Putting it in `message` costs mobile nothing: the app
+> already renders `data.message`, and the root error toast wraps it without
+> clamping.
+
 Keep the client-side clamp (`clampToFreshPendingRef`). The two are complementary,
 not redundant — the client one stops the picker entering an impossible number at
 all, the server one is the authority when the client's view was stale.
@@ -91,10 +104,22 @@ parallel picking should be gated on it — or at minimum the app should not enco
 two pickers onto one document there. If the app cannot see that setting, this has to
 stay an operational convention.
 
+> **Mobile reply — yes, answered.** The app already derives it and fetches Picking
+> Setup keyed on it ([PickingAdd.tsx](../../src/features/wm/picking/screens/PickingAdd.tsx)):
+> `refDocType === "Picking Plan" ? "Sales Order" : "Goods Delivery"`. **But it is not
+> a safe gate yet, because the two lookups disagree:** the app filters
+> `plant_id AND picking_after`
+> ([picking_setup.utils.ts:38](../../src/shared/utils/master/picking_setup.utils.ts#L38)),
+> while `get_node_Uj1uV9PU` filters `organization_id` **OR** `plant_id` with no
+> `picking_after` condition at all. In a tenant holding both setup rows the workflow
+> can resolve a different one than the app did — and that row selects the one-shot
+> branch. Mobile is holding the gate until that lookup is narrowed; shipping it
+> sooner would buy false confidence.
+
 ### 3. "Under processing" should become rare, and now means what it says
 
 Previously a failed confirm stranded the document for the full 900s stale timeout,
-so pickers saw *"The current picking is under processing"* for 15 minutes on a
+so pickers saw _"The current picking is under processing"_ for 15 minutes on a
 document nobody was touching. Both graceful failure paths now release the lock
 immediately. Keep the existing 400 handling as-is.
 
@@ -115,10 +140,18 @@ across sibling Pickings would exceed the delivery line's planned quantity. The
 existing 400 handling will surface it, but the message is new — worth checking it
 reads sensibly on the device.
 
+> **Mobile reply — checked, it reads fine.** The app's root error toast
+> ([App.tsx:121](../../src/App.tsx#L121)) is a custom renderer that puts `text2` in a
+> flex column with **no `numberOfLines`**, full width minus gutters, 5s — so the
+> message wraps in full rather than ellipsising. (The library's own `BaseToast`
+> default _is_ `text2NumberOfLines = 1`, but that renderer is never used here.)
+
 Two more things about that setting, since it changes what a picker can expect:
 
 - **A partial pick closes the line for good.** Picking 3 of 10 finishes the line at
-  3; the picker cannot come back to it on this document.
+  3; the picker cannot come back to it on this document. **Handled in the app:**
+  ConfirmPicking shows a banner above the carousel and requires an explicit
+  "Close Short" confirmation before submitting, since the action is final.
 - **A follow-up Picking usually appears on its own — refresh the list.** Where
   `auto_trigger_to` is also on, confirming re-saves the parent GD, which runs
   `GDheadWorkflow`'s **IF Auto Create Picking** and mints a Picking for the
@@ -126,6 +159,9 @@ Two more things about that setting, since it changes what a picker can expect:
   should re-read the picking list, not just the current document. Where
   `auto_trigger_to` is **off** (28 of the 31 Full Picking plants on dev) nothing is
   created and someone has to run Convert to Picking on the desktop GD list page.
+  **Handled in the app:** `auto_trigger_to` is forwarded to ConfirmPicking and the
+  warning wording switches on it — it promises an automatic follow-up only where
+  the flag is on, and points at desktop Convert to Picking where it is off.
 - **This makes the silent clamp (item 1) routine rather than rare** — because any
   pick closes the line, a second picker on that line hits `pending = 0` and their
   whole submission is dropped with a "success" message. This is the case where
@@ -137,7 +173,7 @@ Two more things about that setting, since it changes what a picker can expect:
   both confirms can acquire the lock (see 1a). Do not rely on the backend to order
   them.
 - **Force complete still double-counts a line two pickers both picked**, for records
-  written *before* this change. Disjoint lines remains the safer convention.
+  written _before_ this change. Disjoint lines remains the safer convention.
 
 ---
 
@@ -163,16 +199,16 @@ document **in the Goods Delivery configuration only** — see the branch split b
 And the client's `saveAs: "Completed"` does **not** force the document complete:
 `IF !Completed` is `saveAs != "Completed"`, so the Loop's own `Update Picking`
 (which would stamp `to_status = saveAs` blindly) is skipped and the Process
-workflow writes the *computed* status instead. `isForceComplete` comes from a
+workflow writes the _computed_ status instead. `isForceComplete` comes from a
 workflow param the mobile client never sends.
 
 So the normal parallel sequence is:
 
-| Step | Result |
-|------|--------|
-| A picks lines 1–50, confirms | Doc → **In Progress**, A's records appended |
-| Lock releases (seconds, not A's 20 minutes in the aisles) | Document free |
-| B picks lines 51–104, confirms | Workflow reads A's work, subtracts B's, appends B's records → **Completed** |
+| Step                                                      | Result                                                                      |
+| --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| A picks lines 1–50, confirms                              | Doc → **In Progress**, A's records appended                                 |
+| Lock releases (seconds, not A's 20 minutes in the aisles) | Document free                                                               |
+| B picks lines 51–104, confirms                            | Workflow reads A's work, subtracts B's, appends B's records → **Completed** |
 
 ### Why it does NOT work on Sales-Order pickings
 
@@ -207,7 +243,7 @@ picked against it.
 
 `PickingLoopWorkflow` holds a mutex on `transfer_order.is_processing`, with a
 900-second stale-lock recovery, and rejects a second concurrent run with
-`code: "400"` / *"The current picking is under processing"*. Mobile already
+`code: "400"` / _"The current picking is under processing"_. Mobile already
 surfaces that message.
 
 ### 1a. Atomic acquisition — NOT POSSIBLE, do not retry
@@ -231,7 +267,7 @@ go only through add/update-nodes.
 
 > Do not be misled by `SU: WIP_CLONE_WORKFLOW` (dev id 1915599629667860481). It is
 > `status='enabled'` and its `sql_node_8wys62ip` contains an `UPDATE
-> su_code_workflow_history …`, but it has **0 runs, ever** — it would fail if
+su_code_workflow_history …`, but it has **0 runs, ever** — it would fail if
 > anyone triggered it. An enabled definition is not evidence a capability works;
 > check `su_code_workflow_inst` for real runs first.
 
@@ -239,7 +275,7 @@ go only through add/update-nodes.
 with a conditional filter** — its `rules.list` supports `all`/`any` branches plus
 `equal`, `numberEqual`, `isNull`, `lessThan`, `greaterThan`, so
 `id = X AND to_status <> 'Completed' AND (is_processing = 0 OR update_time < cutoff)`
-is expressible, and that acquire *would* be atomic. But an update-node reports
+is expressible, and that acquire _would_ be atomic. But an update-node reports
 **nothing** — `{{node:update_node_*}}` has zero references anywhere in the repo,
 and update-nodes are not recorded in `nodes_data` — so a run cannot tell whether
 it won the race.
@@ -260,9 +296,9 @@ actually protects the data in practice.
 `pageStatus == "Edit"` condition, so they pair correctly — but two early
 returns sit between them and skipped the release entirely:
 
-| Node | Return |
-|------|--------|
-| `if_4E6dJynF` (IF Validation Failed) | `return_node_cIY3Ta84` |
+| Node                                                           | Return                 |
+| -------------------------------------------------------------- | ---------------------- |
+| `if_4E6dJynF` (IF Validation Failed)                           | `return_node_cIY3Ta84` |
 | `condition_or_F7anGZ6o` → Completed → `if_4Ixau7QB` (IF Error) | `return_node_yurHh8d6` |
 
 **Consequence.** A failed confirm stranded the document until the 900s stale
@@ -277,10 +313,10 @@ copy of `update_node_y9ZhwG0a` (same table, same
 > The `pageStatus == "Edit"` gate is not optional. Both returns are also reachable
 > in Add mode, where no lock was ever taken.
 
-`if_tNNSBWyU` (IF Invalid) sits *before* the acquire and needs nothing.
+`if_tNNSBWyU` (IF Invalid) sits _before_ the acquire and needs nothing.
 
 **A throw still leaks, and always will.** The claim that sub-workflow failures are
-already covered holds only when the sub-workflow *returns* an error code. When a
+already covered holds only when the sub-workflow _returns_ an error code. When a
 node throws, the instance dies and no return node runs — all 6 failed
 `PICKING_LOOP` runs on dev died this way at `add_node_j6HU6pFP`
 (`数据转换BigInt类型失败`). **Keep the 900s stale recovery as a primary release
@@ -290,13 +326,13 @@ mechanism, not a backstop** — it is the only thing that clears a lock after a 
 
 Both were pre-fix clones of Picking's original shape:
 
-| Workflow | Acquire placement | Stale recovery | Early-return leaks |
-|---|---|---|---|
-| `PICKING_LOOP` | inside `Valid` ✅ | 900s ✅ | 2 (now fixed) |
-| `PUTAWAY_LOOP` | **before the guard** ❌ | **none** ❌ | 2 (now fixed) |
-| `STOCK_PICKING_LOOP` | **before the guard** ❌ | **none** ❌ | 2 (now fixed) |
+| Workflow             | Acquire placement       | Stale recovery | Early-return leaks |
+| -------------------- | ----------------------- | -------------- | ------------------ |
+| `PICKING_LOOP`       | inside `Valid` ✅       | 900s ✅        | 2 (now fixed)      |
+| `PUTAWAY_LOOP`       | **before the guard** ❌ | **none** ❌    | 2 (now fixed)      |
+| `STOCK_PICKING_LOOP` | **before the guard** ❌ | **none** ❌    | 2 (now fixed)      |
 
-They stamped `is_processing = 1` *before* the condition-or decided, so a run that
+They stamped `is_processing = 1` _before_ the condition-or decided, so a run that
 immediately bailed with "under processing" or "already Completed" still took the
 lock — the shape that produced the 71 leaked prod locks on Completed pickings. And
 with no stale recovery, **a leak there was permanent**.
@@ -319,7 +355,7 @@ This is what actually protects parallel picking now that 1a is off the table.
 
 `PickingQuantityValidation.js` validates `picked_qty` against the **form's**
 `pending_process_qty` — client-side, and stale by however long the picker has been
-in the aisles. There was no server-side re-check: the workflow clamped the *line*
+in the aisles. There was no server-side re-check: the workflow clamped the _line_
 (`Math.max(0, pending - picked)`) but appended the record unconditionally at its
 full `store_out_qty`.
 
@@ -334,7 +370,7 @@ so clamping downstream would leave two consumers unclamped.
 
 The PP mirror `code_node_Q3hWck9R` is deliberately untouched — that branch is
 one-shot by design, and `code_node_AGoxWP7x` already rejects over-picking with
-*"Picked quantity cannot exceed plan quantity"*.
+_"Picked quantity cannot exceed plan quantity"_.
 
 ---
 
@@ -352,7 +388,7 @@ Two changes:
 
 - **An over-pick guard** in `code_node_iES7iMKA`, mirroring the PP branch's
   `code_node_AGoxWP7x`: refuses with `400 "Picked quantity cannot exceed plan
-  quantity: …"` rather than over-picking silently. Compared at 3dp — a bare `>` fires
+quantity: …"` rather than over-picking silently. Compared at 3dp — a bare `>` fires
   on `10.000000000000002` from summing 3dp floats and would block a picker who picked
   exactly the plan quantity.
 - **`code_node_MNRecompute`**, gated behind `if_MNGate` (`allow_full_picking == 1`):
@@ -398,7 +434,7 @@ Three details worth knowing when maintaining it:
 - **Merged, not replaced** (`{...doc, ...next}`) — a deep-linked session fetches
   with no field param and holds fields the refresh query does not return.
 - **Allocations are clamped** against the freshly-read pending quantity,
-  cumulatively across a line's plain *and* split locations. Gated behind
+  cumulatively across a line's plain _and_ split locations. Gated behind
   `clampToFreshPendingRef` so ordinary rebuilds (location or batch change) keep
   their previous behaviour exactly.
 - **Manual only.** No refresh on focus or polling — quantities must never move
@@ -412,7 +448,7 @@ Three details worth knowing when maintaining it:
   complete does.** Picking never writes inventory itself; it re-saves the parent GD
   through `GOODS_DELIVERY:Workflow:2017151544868491265` →
   `GDinventoryProcessWorkflow`, which is where stock moves. On a normal confirm
-  `code_node_iES7iMKA` *relocates* quantity inside the GD line's `temp_qty_data`
+  `code_node_iES7iMKA` _relocates_ quantity inside the GD line's `temp_qty_data`
   (total conserved), so two pickers cannot inflate the reservation.
   **At `isForceComplete === 1` it instead rebuilds `gd_qty`, `base_qty`,
   `gd_delivered_qty` and `temp_qty_data` from the whole `combinedRecords` array**,
@@ -421,7 +457,7 @@ Three details worth knowing when maintaining it:
   over-quantity record ever entering the array, which is what force complete
   trusts. Keeping pickers on disjoint lines is still the safer convention.
 - **`allow_full_picking`** (Picking Setup, ON for 31 of 127 plants). Audited
-  2026-09-02. The design is coherent — the setup form hides *and* zeroes the flag on
+  2026-09-02. The design is coherent — the setup form hides _and_ zeroes the flag on
   `picking_after = "Sales Order"`, bundles still cannot be short-picked, Packing has
   an M:N gate blocking completion until every GD line is fully picked, and Convert to
   Picking's split arithmetic is sound (it subtracts `picked_temp_qty_data` from
@@ -442,7 +478,7 @@ Three details worth knowing when maintaining it:
     not a code defect; see `PickingSetupOnChangeAllowFullPicking.js`.
   - **The cumulative was not concurrency-safe.** `picked_qty` /
     `picked_temp_qty_data` were read-modify-written on the GD line, and the mutex is
-    per Picking *document* — it cannot serialise two siblings, which is exactly what
+    per Picking _document_ — it cannot serialise two siblings, which is exactly what
     this feature creates. A lost accumulation then made Convert to Picking mint a
     follow-up for more than really remained. Fixed by Part 3 below.
 - **Putaway is now covered** for lock handling (1c). Its record merge is still
