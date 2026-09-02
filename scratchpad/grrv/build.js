@@ -52,6 +52,10 @@ const liveRows = asArr({{node:code_node_grRvPrep.data.liveRows}}).slice().sort((
 // retry after a half-finished run is not mistaken for corrupted data.
 const cycleRows = asArr({{node:code_node_grRvPrep.data.cycleRows}});
 const huOutRows = asArr({{node:code_node_grRvPrep.data.huOutRows}});
+// Where this receipt's stock actually sits now, after any completed putaway
+// moved it on. Reversals come out of these places, not out of the receiving bin.
+const locations = asArr({{node:code_node_grRvPrep.data.locations}});
+const partialRow = Number({{node:code_node_grRvPrep.data.partialRow}}) || 0;
 const tupleAnchors = {{node:code_node_grRvPrep.data.tupleAnchors}} || {};
 
 const laterRows = asArr({{node:sql_node_grRvLater.data}});
@@ -114,8 +118,12 @@ const isStockControlled = (it) => !it || it.stock_control === null || it.stock_c
 // --- 1. A live purchase invoice, however it was raised ----------------------
 for (const pi of piRows) {
   const st = S(pi.pi_status).trim().toLowerCase();
-  if (st === "cancelled") continue;
-  flag("invoiced", pi.id, "Purchase Invoice " + S(pi.purchase_invoice_no) + " (" + (S(pi.pi_status) || "Draft") + ") refers to this receipt. Cancel it first.");
+  const no = S(pi.purchase_invoice_no).trim();
+  // Cancelling an invoice appends "-Cancelled" to its number and sets its
+  // status, but a posted invoice has been seen keeping its old status, so the
+  // number is the more reliable of the two signals and both are honoured.
+  if (st === "cancelled" || /-cancelled$/i.test(no)) continue;
+  flag("invoiced", pi.id, "Purchase Invoice " + no + " (" + (S(pi.pi_status) || "Draft") + ") refers to this receipt. Cancel it first.");
 }
 
 // --- 2. Integrity: the movement rows must still describe this document ------
@@ -159,14 +167,17 @@ for (const r of liveRows) {
   if (S(r.costing_method_id) && S(it.material_costing_method) && S(r.costing_method_id) !== S(it.material_costing_method)) {
     flag("costing_method_changed", r.item_id, "Item " + nameOf(r.item_id) + " changed costing method from " + S(r.costing_method_id) + " to " + S(it.material_costing_method) + ".");
   }
-  // SUBTRACT re-derives the base quantity from the alternate quantity, so a
-  // changed conversion would take a different amount out than went in.
+  // Stock is taken back out in base units, and SUBTRACT re-derives the base
+  // quantity from whatever unit it is handed, so the item's own base unit has to
+  // convert to itself one for one.
   const convs = Array.isArray(it.table_uom_conversion) ? it.table_uom_conversion : [];
-  const conv = convs.find((c) => S(c.alt_uom_id) === S(r.uom_id));
-  const factor = conv ? num(conv.base_qty) : 1;
-  if (Math.abs(roundQty(num(r.quantity) * factor) - roundQty(num(r.base_qty))) > EPS) {
-    flag("uom_conversion_changed", r.item_id, "The UOM conversion for " + nameOf(r.item_id) + " changed since this receipt.");
+  const baseConv = convs.find((c) => S(c.alt_uom_id) === S(it.based_uom));
+  if (baseConv && Math.abs(num(baseConv.base_qty) - 1) > 0.000001) {
+    flag("uom_conversion_changed", r.item_id, "Item " + nameOf(r.item_id) + " does not convert its own base unit one for one.");
   }
+}
+if (partialRow === 1) {
+  flag("partial_row_state", grId, "An earlier revert stopped part way through a single line of this receipt. It cannot be finished automatically.");
 }
 
 // SUBTRACT_INVENTORY runs a costing-migration branch on every call. It only
@@ -208,32 +219,24 @@ const itemBalBy = {};
 for (const b of itemBalRows) {
   itemBalBy[S(b.material_id) + "|" + S(b.location_id) + "|" + S(b.plant_id)] = b;
 }
-const demand = {};
-for (const r of liveRows) {
-  const k = S(r.item_id) + "|" + S(r.bin_location_id) + "|" + S(r.batch_number_id) + "|" + catField(r.inventory_category);
-  if (!demand[k]) {
-    demand[k] = { item: S(r.item_id), bin: S(r.bin_location_id), batch: S(r.batch_number_id), col: catField(r.inventory_category), qty: 0 };
-  }
-  demand[k].qty = roundQty(demand[k].qty + num(r.base_qty));
-}
-for (const k of Object.keys(demand)) {
-  const d = demand[k];
-  const itemBal = itemBalBy[d.item + "|" + d.bin + "|" + plantId];
+for (const l of locations) {
+  const col = catField(l.inventory_category);
+  const itemBal = itemBalBy[S(l.material_id) + "|" + S(l.location_id) + "|" + plantId];
   if (!itemBal) {
-    flag("balance_missing", d.item, "No stock balance row for " + nameOf(d.item) + " at the receiving bin any more.");
+    flag("balance_missing", l.material_id, "No stock balance row for " + nameOf(l.material_id) + " at the bin this receipt's stock is in.");
     continue;
   }
-  if (num(itemBal[d.col]) < d.qty - EPS) {
-    flag("balance_short", d.item, "Item " + nameOf(d.item) + " only has " + roundQty(itemBal[d.col]) + " left of the " + d.qty + " this receipt brought in.");
+  if (num(itemBal[col]) < num(l.qty) - EPS) {
+    flag("balance_short", l.material_id, "Item " + nameOf(l.material_id) + " only has " + roundQty(itemBal[col]) + " left of the " + roundQty(l.qty) + " this receipt brought in.");
   }
-  if (d.batch) {
-    // SUBTRACT reads the batch balance and dereferences it without a guard, so
-    // a missing row would fail mid-run rather than cleanly.
-    const bb = batchBalBy[d.item + "|" + d.bin + "|" + d.batch + "|" + plantId];
+  if (S(l.batch_id)) {
+    // SUBTRACT reads the batch balance and dereferences it without a guard, so a
+    // missing row would fail mid-run rather than cleanly.
+    const bb = batchBalBy[S(l.material_id) + "|" + S(l.location_id) + "|" + S(l.batch_id) + "|" + plantId];
     if (!bb) {
-      flag("balance_missing", d.item, "No batch balance row for " + nameOf(d.item) + " at the receiving bin any more.");
-    } else if (num(bb[d.col]) < d.qty - EPS) {
-      flag("balance_short", d.item, "Batch of " + nameOf(d.item) + " only has " + roundQty(bb[d.col]) + " left of the " + d.qty + " this receipt brought in.");
+      flag("balance_missing", l.material_id, "No batch balance row for " + nameOf(l.material_id) + " at the bin this receipt's stock is in.");
+    } else if (num(bb[col]) < num(l.qty) - EPS) {
+      flag("balance_short", l.material_id, "The batch of " + nameOf(l.material_id) + " only has " + roundQty(bb[col]) + " left of the " + roundQty(l.qty) + " this receipt brought in.");
     }
   }
 }
@@ -372,7 +375,13 @@ for (const r of liveRows) {
     flag("hu_nested", huId, "Handling unit " + S(hu.handling_no) + " has been nested or packed.");
     continue;
   }
-  if (S(hu.location_id) !== S(r.bin_location_id)) {
+  // A completed putaway moves the handling unit along with its stock, so the
+  // bin to expect it in is wherever the replay says that stock now is.
+  const expectBins = locations
+    .filter((l) => S(l.material_id) === S(r.item_id) && S(l.batch_id) === S(r.batch_number_id))
+    .map((l) => S(l.location_id));
+  if (expectBins.length === 0) expectBins.push(S(r.bin_location_id));
+  if (expectBins.indexOf(S(hu.location_id)) === -1) {
     flag("hu_moved", huId, "Handling unit " + S(hu.handling_no) + " has been moved to another bin.");
     continue;
   }
@@ -439,16 +448,26 @@ for (const r of liveRows) {
 const putawayDeletes = [];
 for (const to of putawayRows) {
   const st = S(to.to_status);
-  const items = flattenTree(asArr(parseJson(to.table_putaway_item) || []));
-  const records = asArr(parseJson(to.table_putaway_records) || []);
-  const started =
-    (st !== "Created" && st !== "Draft") ||
-    Number(to.is_processing) === 1 ||
-    S(to.qi_id) !== "" ||
-    records.length > 0 ||
-    items.some((i) => S(i.line_status) !== "Open" || num(i.putaway_qty) > EPS);
-  if (started) {
-    flag("putaway_progressed", to.id, "Putaway " + S(to.to_id) + " has already been started (" + st + ").");
+  if (Number(to.is_processing) === 1) {
+    flag("putaway_locked", to.id, "Putaway " + S(to.to_id) + " is being processed right now.");
+    continue;
+  }
+  if (S(to.qi_id)) {
+    flag("putaway_progressed", to.id, "Putaway " + S(to.to_id) + " also covers a receiving inspection and cannot be withdrawn here.");
+    continue;
+  }
+  if (st === "Created" || st === "Draft") {
+    const items = flattenTree(asArr(parseJson(to.table_putaway_item) || []));
+    const records = asArr(parseJson(to.table_putaway_records) || []);
+    if (records.length > 0 || items.some((i) => S(i.line_status) !== "Open" || num(i.putaway_qty) > EPS)) {
+      flag("putaway_progressed", to.id, "Putaway " + S(to.to_id) + " has already been started.");
+      continue;
+    }
+  } else if (st !== "Completed") {
+    // In Progress means someone is part way through putting this stock away.
+    // The receipt is still at Received in that state, so there is nothing to
+    // revert until the putaway is either finished or cleared.
+    flag("putaway_progressed", to.id, "Putaway " + S(to.to_id) + " is " + (st || "blank") + ". Finish or clear it before reverting this receipt.");
     continue;
   }
   putawayDeletes.push({ id: S(to.id) });
@@ -465,11 +484,14 @@ for (const lot of qiRows) {
 
 const transitUpdates = [];
 for (const t of transitRows) {
-  if (S(t.status) !== "In Transit") continue;
-  if (Math.abs(num(t.open_qty) - num(t.transit_qty)) > EPS) {
+  const st = S(t.status);
+  if (st === "Cancelled") continue;
+  if (st === "In Transit" && Math.abs(num(t.open_qty) - num(t.transit_qty)) > EPS) {
     flag("transit_consumed", t.id, "Part of the in-transit quantity for " + nameOf(t.material_id) + " has already been put away.");
     continue;
   }
+  // Either still waiting to be put away, or closed by the putaway that is being
+  // withdrawn with this receipt. Both are cancelled.
   transitUpdates.push({ id: S(t.id), status: "Cancelled", open_qty: "0.000" });
 }
 
@@ -594,51 +616,84 @@ for (const po of poRecords) {
 // --- 10. Reverse payload ----------------------------------------------------
 const subtracts = [];
 if (conflicts.length === 0) {
-  for (let i = 0; i < liveRows.length; i++) {
-    const r = liveRows[i];
-    const hu = huActionFor[S(r.id)] || null;
-    const waU = waUpdateFor[S(r.id)] || null;
-    const pack = hu && hu.packaging ? hu.packaging : null;
-    subtracts.push({
-      index: i,
-      material_id: S(r.item_id),
-      quantity: roundQty(r.quantity),
-      material_uom: S(r.uom_id),
-      unit_price: roundPrice(r.unit_price),
-      inventory_category: S(r.inventory_category),
-      location_id: S(r.bin_location_id),
-      batch_id: S(r.batch_number_id) || null,
-      handling_unit_id: S(r.handling_unit_id),
-      parent_trx_no: S(r.parent_trx_no),
-      itemData: itemById[S(r.item_id)] || null,
-      doc_date: docDate,
-      failLabel:
-        "Item " + nameOf(r.item_id) + " (" + roundQty(r.base_qty) + " " + S(r.inventory_category) + ")",
-      fifoDeleteId: fifoDeleteFor[S(r.id)] || "",
-      hasFifoDelete: fifoDeleteFor[S(r.id)] ? 1 : 0,
-      waDeleteId: waDeleteFor[S(r.id)] || "",
-      hasWaDelete: waDeleteFor[S(r.id)] ? 1 : 0,
-      waUpdateId: waU ? waU.id : "",
-      waQuantity: waU ? waU.wa_quantity : "0.000",
-      waCostPrice: waU ? waU.wa_cost_price : "0.0000",
-      hasWaUpdate: waU ? 1 : 0,
-      huId: hu ? hu.huId : "",
-      huHandlingNo: hu ? hu.handlingNo : "",
-      huIsDelete: hu && hu.action === "delete" ? 1 : 0,
-      huIsUnload: hu && hu.action === "unload" ? 1 : 0,
-      huPlantId: hu && hu.plantId ? hu.plantId : plantId,
-      huStorageLocationId: hu && hu.storageLocationId ? hu.storageLocationId : "",
-      huLocationId: hu && hu.locationId ? hu.locationId : "",
-      huItems: hu && hu.items ? hu.items : [],
-      hasHuReadd: pack ? 1 : 0,
-      readdMaterialId: pack ? pack.material_id : "",
-      readdQuantity: pack ? pack.quantity : 0,
-      readdUom: pack ? pack.material_uom : "",
-      readdUnitPrice: pack ? pack.unit_price : 0,
-      readdLocationId: pack ? pack.location_id : "",
-      readdTrxNo: pack ? pack.trx_no : "",
-      readdItemData: pack ? pack.itemData : null,
-    });
+  // Spread each outstanding receipt row across the places its stock now sits. A
+  // putaway can land one line in more than one bin, so a row can need more than
+  // one reversal. The costing and handling-unit work rides on the last of them,
+  // so it only happens once all of that row's stock is back out.
+  const poolByTuple = {};
+  for (const l of locations) {
+    const t = S(l.material_id) + "|" + S(l.batch_id);
+    if (!poolByTuple[t]) poolByTuple[t] = [];
+    poolByTuple[t].push({ loc: l, remaining: num(l.qty) });
+  }
+  let index = 0;
+  for (const r of liveRows) {
+    const pool = poolByTuple[S(r.item_id) + "|" + S(r.batch_number_id)] || [];
+    let need = roundQty(r.base_qty);
+    const parts = [];
+    for (const p of pool) {
+      if (need <= EPS) break;
+      if (p.remaining <= EPS) continue;
+      const take = roundQty(Math.min(need, p.remaining));
+      p.remaining = roundQty(p.remaining - take);
+      need = roundQty(need - take);
+      parts.push({ loc: p.loc, qty: take });
+    }
+    if (need > EPS) {
+      flag("stock_not_found", r.item_id, "Cannot account for " + roundQty(need) + " of " + nameOf(r.item_id) + " from this receipt.");
+      continue;
+    }
+    for (let k = 0; k < parts.length; k++) {
+      const part = parts[k];
+      const last = k === parts.length - 1;
+      const hu = last ? huActionFor[S(r.id)] || null : null;
+      const waU = last ? waUpdateFor[S(r.id)] || null : null;
+      const fifoId = last ? fifoDeleteFor[S(r.id)] || "" : "";
+      const waDelId = last ? waDeleteFor[S(r.id)] || "" : "";
+      const pack = hu && hu.packaging ? hu.packaging : null;
+      subtracts.push({
+        index: index++,
+        material_id: S(r.item_id),
+        // Reversals are made in base units, out of the bin and category the
+        // stock is in now rather than the one the receipt first wrote.
+        quantity: part.qty,
+        material_uom: S(part.loc.base_uom_id) || S(r.base_uom_id),
+        unit_price: roundPrice(r.unit_price),
+        inventory_category: S(part.loc.inventory_category),
+        location_id: S(part.loc.location_id),
+        batch_id: S(part.loc.batch_id) || null,
+        handling_unit_id: S(r.handling_unit_id),
+        parent_trx_no: S(r.parent_trx_no),
+        itemData: itemById[S(r.item_id)] || null,
+        doc_date: docDate,
+        failLabel:
+          "Item " + nameOf(r.item_id) + " (" + part.qty + " " + S(part.loc.inventory_category) + ")",
+        fifoDeleteId: fifoId,
+        hasFifoDelete: fifoId ? 1 : 0,
+        waDeleteId: waDelId,
+        hasWaDelete: waDelId ? 1 : 0,
+        waUpdateId: waU ? waU.id : "",
+        waQuantity: waU ? waU.wa_quantity : "0.000",
+        waCostPrice: waU ? waU.wa_cost_price : "0.0000",
+        hasWaUpdate: waU ? 1 : 0,
+        huId: hu ? hu.huId : "",
+        huHandlingNo: hu ? hu.handlingNo : "",
+        huIsDelete: hu && hu.action === "delete" ? 1 : 0,
+        huIsUnload: hu && hu.action === "unload" ? 1 : 0,
+        huPlantId: hu && hu.plantId ? hu.plantId : plantId,
+        huStorageLocationId: hu && hu.storageLocationId ? hu.storageLocationId : "",
+        huLocationId: hu && hu.locationId ? hu.locationId : "",
+        huItems: hu && hu.items ? hu.items : [],
+        hasHuReadd: pack ? 1 : 0,
+        readdMaterialId: pack ? pack.material_id : "",
+        readdQuantity: pack ? pack.quantity : 0,
+        readdUom: pack ? pack.material_uom : "",
+        readdUnitPrice: pack ? pack.unit_price : 0,
+        readdLocationId: pack ? pack.location_id : "",
+        readdTrxNo: pack ? pack.trx_no : "",
+        readdItemData: pack ? pack.itemData : null,
+      });
+    }
   }
 }
 

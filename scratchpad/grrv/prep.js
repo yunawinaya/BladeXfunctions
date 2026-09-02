@@ -99,51 +99,100 @@ if (!refuse) {
 if (!refuse && postedStatus === "Posted") {
   deny("This Goods Receiving has been posted to accounting and cannot be reverted.");
 }
-if (!refuse && (putawayStatus === "In Progress" || putawayStatus === "Completed")) {
-  deny("Putaway is already " + putawayStatus + ". The stock has been put away and cannot be reverted.");
+// A finished putaway is not a reason to refuse. At a plant where putaway is
+// required the receipt is only ever marked Completed after its putaway
+// finishes, so refusing that would mean no completed receipt there could ever
+// be reverted. The stock is simply somewhere else, and the reversal follows it.
+// A putaway still running is different: the receipt sits at Received, someone
+// is working the document, and there is nothing to unwind until they stop.
+if (!refuse && putawayStatus === "In Progress") {
+  deny("Putaway is in progress. Finish or clear it before reverting this receipt.");
 }
 
-// --- Live GRN rows (pairing) -------------------------------------------------
+// --- What this receipt still owns, and where that stock physically sits ------
 const ownRows = movRows.filter(
   (r) => S(r.trx_no) === grNo && (r.transaction_type === "GRN" || r.transaction_type === "GRN-R")
 );
-const ownGrn = ownRows.filter((r) => r.transaction_type === "GRN").sort((a, b) => cmpId(a.id, b.id));
-const ownRev = ownRows.filter((r) => r.transaction_type === "GRN-R").sort((a, b) => cmpId(a.id, b.id));
+// The putaway's movements belong to this receipt's own chain, so they are
+// replayed rather than read as somebody else having used the stock.
+const paRows = movRows.filter(
+  (r) => r.transaction_type === "TO - PA" && S(r.parent_trx_no) === grNo
+);
 
-const rowKey = (r) =>
-  S(r.item_id) + "|" + S(r.bin_location_id) + "|" + S(r.batch_number_id) + "|" + S(r.inventory_category);
+// Replay this receipt's ledger. It puts stock in the receiving bin, a completed
+// putaway moves it on to its final bin and category, and an earlier revert may
+// already have taken some back out. Whatever is left over is what this run has
+// to remove, and it is removed from wherever the replay says it now is.
+const locMap = {};
+const bump = (r, qty) => {
+  const k =
+    S(r.item_id) + "|" + S(r.batch_number_id) + "|" + S(r.bin_location_id) + "|" + S(r.inventory_category);
+  if (!locMap[k]) {
+    locMap[k] = {
+      material_id: S(r.item_id),
+      batch_id: S(r.batch_number_id),
+      location_id: S(r.bin_location_id),
+      inventory_category: S(r.inventory_category),
+      base_uom_id: S(r.base_uom_id),
+      qty: 0,
+    };
+  }
+  locMap[k].qty = roundQty(locMap[k].qty + qty);
+};
+for (const r of ownRows) bump(r, r.transaction_type === "GRN" ? num(r.base_qty) : -num(r.base_qty));
+for (const r of paRows) bump(r, r.movement === "IN" ? num(r.base_qty) : -num(r.base_qty));
+const locations = [];
+const locSort = (l) => l.material_id + "|" + l.batch_id + "|" + l.location_id + "|" + l.inventory_category;
+for (const k of Object.keys(locMap)) if (locMap[k].qty > EPS) locations.push(locMap[k]);
+locations.sort((a, b) => (locSort(a) < locSort(b) ? -1 : locSort(a) > locSort(b) ? 1 : 0));
 
-// Walk this document's movements oldest first, keeping the receipts that have
-// not been reversed yet. Whenever that set empties the receipt was fully
-// reversed, so the next receipt starts a fresh cycle. `liveRows` is what this
-// run has to undo; `cycleRows` is everything the current cycle posted, which is
-// what the document's own quantities should still add up to even when an
-// earlier run stopped half way.
-const ordered = ownRows.slice().sort((a, b) => cmpId(a.id, b.id));
-let openRows = [];
-let cycleRows = [];
-for (const r of ordered) {
-  if (r.transaction_type === "GRN") {
-    openRows.push(r);
-    cycleRows.push(r);
-    continue;
-  }
-  let matchIdx = -1;
-  for (let i = 0; i < openRows.length; i++) {
-    const g = openRows[i];
-    if (rowKey(g) !== rowKey(r)) continue;
-    if (Math.abs(num(g.base_qty) - num(r.base_qty)) > EPS) continue;
-    matchIdx = i;
-    break;
-  }
-  if (matchIdx === -1) continue;
-  openRows.splice(matchIdx, 1);
-  if (openRows.length === 0) cycleRows = [];
+// Which receipt rows are still outstanding. Rows are reversed oldest first and
+// each is finished before the next begins, so what is left is always a tail of
+// the current cycle. A cycle ends once a whole item and batch has been reversed,
+// which is what stops a receipt that was reverted, completed again and reverted
+// again from undoing the older set a second time.
+const tupleOf = (r) => S(r.item_id) + "|" + S(r.batch_number_id);
+const byTuple = {};
+for (const r of ownRows) {
+  const t = tupleOf(r);
+  if (!byTuple[t]) byTuple[t] = [];
+  byTuple[t].push(r);
 }
-const liveRows = openRows;
+let liveRows = [];
+let cycleRows = [];
+let partialRow = 0;
+for (const t of Object.keys(byTuple)) {
+  const ordered = byTuple[t].slice().sort((a, b) => cmpId(a.id, b.id));
+  let outstanding = 0;
+  let cycle = [];
+  for (const r of ordered) {
+    if (r.transaction_type === "GRN") {
+      outstanding = roundQty(outstanding + num(r.base_qty));
+      cycle.push(r);
+      continue;
+    }
+    outstanding = roundQty(outstanding - num(r.base_qty));
+    if (outstanding <= EPS) {
+      outstanding = 0;
+      cycle = [];
+    }
+  }
+  cycleRows = cycleRows.concat(cycle);
+  let acc = 0;
+  const live = [];
+  for (let i = cycle.length - 1; i >= 0 && acc < outstanding - EPS; i--) {
+    live.unshift(cycle[i]);
+    acc = roundQty(acc + num(cycle[i].base_qty));
+  }
+  // A previous run that stopped between the two halves of a single split line
+  // leaves part of a row reversed. That cannot be finished automatically.
+  if (Math.abs(acc - outstanding) > EPS) partialRow = 1;
+  liveRows = liveRows.concat(live);
+}
+liveRows.sort((a, b) => cmpId(a.id, b.id));
 
-// Packaging deductions the handling-unit workflow made for this GR, minus any
-// already put back by an earlier revert.
+// Packaging deductions the handling-unit workflow made for this receipt, minus
+// any an earlier revert already put back.
 const huOutAll = movRows.filter((r) => r.transaction_type === "HU" && S(r.parent_trx_no) === grNo);
 const huReAll = movRows.filter((r) => r.transaction_type === "HU-R" && S(r.parent_trx_no) === grNo);
 const reCount = {};
@@ -158,12 +207,12 @@ for (const r of huOutAll) {
   huOutRows.push(r);
 }
 
-// Per-tuple anchor: the newest live receipt on that (item, batch). Anything
-// posted on the tuple after it, by anyone else, means the stock moved on.
-const tupleKey = (item, batch) => S(item) + "|" + S(batch);
+// Per-tuple anchor: the newest live receipt on that item and batch. Anything
+// posted on it afterwards, by anyone outside this receipt's own chain, means the
+// stock moved on.
 const tupleAnchors = {};
 for (const r of liveRows) {
-  const k = tupleKey(r.item_id, r.batch_number_id);
+  const k = tupleOf(r);
   if (!tupleAnchors[k] || cmpId(r.id, tupleAnchors[k]) > 0) tupleAnchors[k] = S(r.id);
 }
 let minLiveId = "";
@@ -196,7 +245,7 @@ const orNone = (arr) => (arr.length > 0 ? arr : ["-1"]);
 const itemIdsCsv = itemIds.map(digits).filter((v) => v !== "0").join(",") || "0";
 const plantId = gr ? S(gr.plant_id) : "";
 
-if (!refuse && liveRows.length === 0) {
+if (!refuse && liveRows.length === 0 && locations.length === 0) {
   let needsInventory = 0;
   for (const line of lines) if (addsInventory(line) === 1) needsInventory = 1;
   if (needsInventory === 1) {
@@ -222,6 +271,8 @@ return {
   lines,
   liveRows,
   cycleRows,
+  locations,
+  partialRow,
   huOutRows,
   tupleAnchors,
   itemIds: orNone(itemIds),

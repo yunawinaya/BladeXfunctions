@@ -3,7 +3,7 @@
 // Everything is decided server-side: this only filters out the records the list
 // already shows as ineligible, so the user is not asked to confirm work that is
 // certain to be refused.
-const REVERT_WORKFLOW_ID = "REPLACE_WITH_GR_REVERT_WORKFLOW_ID";
+const REVERT_WORKFLOW_ID = "2095079401411117057";
 
 const runRevertWorkflow = async (gr) => {
   return new Promise((resolve, reject) => {
@@ -56,9 +56,13 @@ const blockingReason = (record) => {
   if (String((record && record.posted_status) || "").trim() === "Posted") {
     return "Already posted to accounting.";
   }
-  const putaway = String((record && record.putaway_status) || "").trim();
-  if (putaway === "In Progress" || putaway === "Completed") {
-    return `Putaway is already ${putaway}. The stock has been put away.`;
+  // A finished putaway is fine: the reversal follows the stock to wherever the
+  // putaway left it, and withdraws the putaway along with the receipt. Only a
+  // putaway someone is still working on is blocked.
+  if (
+    String((record && record.putaway_status) || "").trim() === "In Progress"
+  ) {
+    return "Putaway is in progress. Finish or clear it first.";
   }
   return "";
 };
@@ -189,7 +193,10 @@ const handleWorkflowResult = (workflowResult, grItem) => {
 
     for (const grItem of revertable) {
       try {
-        const data = await db.collection("goods_receiving").doc(grItem.id).get();
+        const data = await db
+          .collection("goods_receiving")
+          .doc(grItem.id)
+          .get();
 
         if (!data.data || data.data.length === 0) {
           results.push({
@@ -212,7 +219,9 @@ const handleWorkflowResult = (workflowResult, grItem) => {
           continue;
         }
 
-        results.push(handleWorkflowResult(await runRevertWorkflow(grData), grItem));
+        results.push(
+          handleWorkflowResult(await runRevertWorkflow(grData), grItem),
+        );
       } catch (error) {
         results.push({
           gr_no: grItem.gr_no,

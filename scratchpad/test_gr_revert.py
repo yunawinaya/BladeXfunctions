@@ -283,6 +283,89 @@ s["movs"].append(dict(grn(3, "PKG", 1, 2, typ="HU-R"), trx_no="HU/001", parent_t
 p, b = go(s)
 ok(b["subtracts"][0]["hasHuReadd"] == 0, "packaging already put back by an earlier revert is not put back twice")
 
+print("COMPLETED PUTAWAY")
+BAY, FINAL, FINAL_B = "BIN1", "BIN_FINAL", "BIN_FINAL_B"
+
+def pa(n, iid, qty, price, src_bin, src_cat, targets, batch=None, to_no="TRF-PA-0001"):
+    """One putaway leg: out of the receiving bin, into one or more final bins."""
+    out = grn(n, iid, qty, price, batch=batch, bin=src_bin, cat=src_cat, typ="TO - PA")
+    out.update({"trx_no": to_no, "parent_trx_no": GR_NO, "movement": "OUT"})
+    rows = [out]
+    for i, (tqty, tbin, tcat) in enumerate(targets):
+        r = grn(n + 1 + i, iid, tqty, price, batch=batch, bin=tbin, cat=tcat, typ="TO - PA")
+        r.update({"trx_no": to_no, "parent_trx_no": GR_NO, "movement": "IN"})
+        rows.append(r)
+    return rows
+
+def bal(bin, qty, col="unrestricted_qty", mid="I1", bid=None):
+    row = {"id": "BAL-" + bin + "-" + str(qty), "material_id": mid, "location_id": bin,
+           "plant_id": PLANT, "unrestricted_qty": 0, "balance_quantity": qty, "reserved_qty": 0,
+           "block_qty": 0, "qualityinsp_qty": 0, "intransit_qty": 0}
+    row[col] = qty
+    if bid is not None:
+        row["batch_id"] = bid
+    return row
+
+def putaway_done(s, targets, qty=10, batch=None):
+    s["movs"] = [grn(1, "I1", qty, 5, batch, bin=BAY, cat="In Transit")] + pa(
+        10, "I1", qty, 5, BAY, "In Transit", targets, batch=batch)
+    s["gr"] = dict(s["gr"], gr_status="Completed", putaway_status="Completed",
+                   table_gr=[line("I1", qty, batch=batch or "", inv_category="In Transit")])
+    s["putaway"] = [{"id": "TO1", "to_id": "TRF-PA-0001", "to_status": "Completed",
+                     "is_processing": 0, "qi_id": "",
+                     "table_putaway_records": json.dumps([{"id": "R1"}]),
+                     "table_putaway_item": json.dumps([{"line_status": "Completed", "putaway_qty": qty}])}]
+    s["transit"] = [{"id": "IT1", "material_id": "I1", "status": "Received",
+                     "open_qty": 0, "transit_qty": qty}]
+    s["itembal"] = [bal(BAY, 0, "intransit_qty")] + [bal(b, q) for (q, b, c) in targets]
+    s["batchbal"] = []
+    s["fifo"] = [{"id": mid(101), "material_id": "I1", "batch_id": batch or "",
+                  "fifo_cost_price": "5.0000", "fifo_initial_quantity": str(qty) + ".000",
+                  "fifo_available_quantity": str(qty) + ".000", "fifo_sequence": "1"}]
+    s["items"] = [item("I1", batch=0 if not batch else 1)]
+    return s
+
+s = putaway_done(scenario(), [(10, FINAL, "Unrestricted")])
+p, b = go(s)
+ok(b["hasConflicts"] == 0, "a receipt whose putaway finished can be reverted (" + str(types(b)) + ")")
+ok(len(b["subtracts"]) == 1 and b["subtracts"][0]["location_id"] == FINAL
+   and b["subtracts"][0]["inventory_category"] == "Unrestricted"
+   and b["subtracts"][0]["quantity"] == 10,
+   "the stock comes out of the final bin the putaway moved it to, not the receiving bin")
+ok(b["putawayDeletes"] == [{"id": "TO1"}], "the finished putaway is cancelled with the receipt")
+ok(b["transitUpdates"] == [{"id": "IT1", "status": "Cancelled", "open_qty": "0.000"}],
+   "the in-transit row the putaway closed is cancelled too")
+ok(b["subtracts"][0]["hasFifoDelete"] == 1, "the costing layer still goes")
+
+s = putaway_done(scenario(), [(6, FINAL, "Unrestricted"), (4, FINAL_B, "Unrestricted")])
+p, b = go(s)
+ok(b["hasConflicts"] == 0 and len(b["subtracts"]) == 2, "a putaway that split one line across two bins")
+ok(sorted((x["location_id"], x["quantity"]) for x in b["subtracts"]) == [(FINAL, 6), (FINAL_B, 4)],
+   "each bin is emptied by what it actually holds")
+ok([x["hasFifoDelete"] for x in b["subtracts"]] == [0, 1],
+   "the costing layer is removed once, after the last of that line is out")
+
+s = putaway_done(scenario(), [(10, FINAL, "Unrestricted")])
+s["itembal"] = [bal(BAY, 0, "intransit_qty"), bal(FINAL, 3)]
+p, b = go(s)
+ok("balance_short" in types(b), "stock partly gone from the final bin refuses")
+
+s = putaway_done(scenario(), [(10, FINAL, "Unrestricted")])
+s["putaway"][0].update({"to_status": "In Progress", "to_id": "TRF-PA-0002"})
+p, b = go(s)
+ok("putaway_progressed" in types(b), "a putaway still in progress refuses")
+
+s = putaway_done(scenario(), [(10, FINAL, "Unrestricted")])
+s["movs"][0]["handling_unit_id"] = "1999999999999999500"
+s["hu"] = [{"id": "1999999999999999500", "handling_no": "HU/001", "hu_status": "Created",
+            "parent_hu_id": "", "packing_id": "", "location_id": FINAL, "plant_id": PLANT,
+            "storage_location_id": "SL1",
+            "table_hu_items": json.dumps([{"material_id": "I1", "batch_id": "", "quantity": 10,
+                                           "balance_id": "BAL1"}])}]
+p, b = go(s)
+ok(b["hasConflicts"] == 0 and b["subtracts"][0]["huIsUnload"] == 1,
+   "a handling unit the putaway carried to the final bin is not treated as moved away")
+
 print("REPEATED AND PARTIAL REVERTS")
 # reverted, completed again, reverted again: only the newest receipt is live
 s = scenario(movs=[grn(1, "I1", 10, 5, "B1"),
@@ -333,8 +416,7 @@ cases = [
                                         {"t": "WA", "material_id": "I1", "cnt": 1}])),
     ("costing_method_changed", dict(items=[item("I1", method="Weighted Average")])),
     ("stock_control_changed", dict(items=[item("I1", stock=0)])),
-    ("uom_conversion_changed", dict(movs=[grn(1, "I1", 10, 5, "B1", uom="BOX", alt=1)],
-                                    items=[item("I1", conv=[{"alt_uom_id": "BOX", "base_qty": 5}])])),
+    ("uom_conversion_changed", dict(items=[item("I1", conv=[{"alt_uom_id": "UOM_BASE", "base_qty": 2}])])),
     ("item_missing", dict(items=[])),
     ("integrity_qty", dict(movs=[grn(1, "I1", 7, 5, "B1")])),
     ("putaway_progressed", dict(putaway=[{"id": "TO1", "to_id": "PA/001", "to_status": "In Progress",
@@ -359,13 +441,15 @@ for want, over in cases:
 
 p, b = go(scenario(putaway=[{"id": "TO1", "to_id": "PA/001", "to_status": "Created", "is_processing": 1,
                              "qi_id": "", "table_putaway_records": "[]", "table_putaway_item": "[]"}]))
-ok("putaway_progressed" in types(b), "a putaway held by a picker refuses")
+ok("putaway_locked" in types(b), "a putaway held by a picker refuses")
 p, b = go(scenario(putaway=[{"id": "TO1", "to_id": "PA/001", "to_status": "Created", "is_processing": 0,
                              "qi_id": "", "table_putaway_records": json.dumps([{"id": "R1"}]),
                              "table_putaway_item": "[]"}]))
 ok("putaway_progressed" in types(b), "a putaway with confirmed picks refuses")
 p, b = go(scenario(pi=[{"id": "PI1", "purchase_invoice_no": "PI/001", "pi_status": "Cancelled"}]))
 ok(b["hasConflicts"] == 0, "a cancelled purchase invoice row is ignored")
+p, b = go(scenario(pi=[{"id": "PI1", "purchase_invoice_no": "PI/001-Cancelled", "pi_status": "Fully Posted"}]))
+ok(b["hasConflicts"] == 0, "a cancelled invoice whose status write lagged is still read as cancelled")
 
 for want, over in [
     ("hu_missing", dict(hu=[])),

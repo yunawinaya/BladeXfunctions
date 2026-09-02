@@ -262,6 +262,7 @@ WHERE m.id > CAST('""" + R + """minLiveIdSql}}' AS UNSIGNED)
   AND m.item_id IN (""" + R + """itemIdsCsv}})
   AND NOT (m.transaction_type IN ('GRN', 'GRN-R') AND m.trx_no = '""" + R + """grNoSql}}')
   AND NOT (m.transaction_type IN ('HU', 'HU-R') AND COALESCE(m.parent_trx_no, '') = '""" + R + """grNoSql}}')
+  AND NOT (m.transaction_type = 'TO - PA' AND COALESCE(m.parent_trx_no, '') = '""" + R + """grNoSql}}')
   AND m.is_deleted = 0
 GROUP BY m.item_id, m.batch_number_id"""
 
@@ -364,7 +365,7 @@ def build():
         ("plantIdSql", "string"), ("minLiveIdSql", "string"), ("grIdSql", "string"),
         ("grNoSql", "string"), ("orgSql", "string"), ("itemIdsCsv", "string"),
         ("previousStatus", "string"), ("lines", "array"), ("liveRows", "array"),
-        ("cycleRows", "array"),
+        ("cycleRows", "array"), ("locations", "array"), ("partialRow", "int"),
         ("huOutRows", "array"), ("tupleAnchors", "any"), ("itemIds", "array"),
         ("batchIds", "array"), ("huIds", "array"), ("poIds", "array"),
         ("poLineIds", "array")]))
