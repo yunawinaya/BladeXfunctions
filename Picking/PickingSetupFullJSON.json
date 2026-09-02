@@ -8,11 +8,7 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 1,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "options": {
         "customClass": "",
         "hidden": false,
@@ -37,34 +33,14 @@
           },
           "use": false
         },
-        "padding": [
-          "",
-          "",
-          "",
-          ""
-        ],
-        "margin": [
-          "",
-          "",
-          "20px",
-          ""
-        ],
+        "padding": ["", "", "", ""],
+        "margin": ["", "", "20px", ""],
         "boxSizing": "border-box",
         "width": "",
         "height": "",
-        "radius": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "radius": ["", "", "", ""],
         "position": "",
-        "positions": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "positions": ["", "", "", ""],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -118,28 +94,14 @@
           "icon": "icon-wenzishezhi-",
           "group": "Design",
           "groupSort": 1,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "defaultValue": "Picking Setup",
             "customClass": "",
             "hidden": false,
             "isRich": false,
-            "padding": [
-              "",
-              "",
-              "",
-              ""
-            ],
-            "margin": [
-              "",
-              "",
-              "",
-              ""
-            ],
+            "padding": ["", "", "", ""],
+            "margin": ["", "", "", ""],
             "boxSizing": "border-box",
             "width": "",
             "maxWidth": "",
@@ -152,19 +114,9 @@
             "textOverflow": "",
             "whiteSpace": "",
             "lines": 0,
-            "radius": [
-              "",
-              "",
-              "",
-              ""
-            ],
+            "radius": ["", "", "", ""],
             "position": "",
-            "positions": [
-              "",
-              "",
-              "",
-              ""
-            ],
+            "positions": ["", "", "", ""],
             "zIndex": "",
             "flex": "",
             "flexGrow": "",
@@ -203,11 +155,7 @@
       "icon": "icon-RectangleCopy",
       "group": "Layout",
       "groupSort": 0,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "columns": [
         {
           "type": "col",
@@ -231,11 +179,7 @@
               "icon": "icon-shuxuanzeqi",
               "group": "Select",
               "groupSort": 4,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": "",
                 "width": "",
@@ -427,11 +371,7 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -523,11 +463,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -573,11 +509,7 @@
               "icon": "icon-radio-active",
               "group": "Select",
               "groupSort": 0,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "inline": true,
                 "defaultValue": "",
@@ -663,11 +595,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -713,11 +641,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -763,11 +687,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -813,11 +733,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -863,11 +779,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -913,11 +825,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -963,11 +871,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1013,11 +917,7 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1102,11 +1002,7 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1270,11 +1166,7 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1453,11 +1345,7 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -1508,11 +1396,7 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1612,11 +1496,7 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1721,11 +1601,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1765,11 +1641,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1815,11 +1687,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1865,11 +1733,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1915,11 +1779,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -1963,11 +1823,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -2011,11 +1867,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -2059,11 +1911,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -2107,11 +1955,7 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -2174,11 +2018,7 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -2252,11 +2092,7 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 1,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "options": {
         "customClass": "",
         "hidden": false,
@@ -2281,34 +2117,14 @@
           },
           "use": false
         },
-        "padding": [
-          "",
-          "",
-          "",
-          ""
-        ],
-        "margin": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "padding": ["", "", "", ""],
+        "margin": ["", "", "", ""],
         "boxSizing": "border-box",
         "width": "",
         "height": "",
-        "radius": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "radius": ["", "", "", ""],
         "position": "",
-        "positions": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "positions": ["", "", "", ""],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -2361,11 +2177,7 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -2403,11 +2215,7 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "customClass": "",
             "disabled": false,

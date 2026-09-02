@@ -22,23 +22,29 @@
 | Lock released on both graceful early returns (3 workflows) | **Deployed to dev** |
 | Putaway + Stock Picking: acquire moved inside the guard, 900s stale recovery added | **Deployed to dev** |
 | Server-side clamp of picked qty against fresh pending | **Deployed to dev** |
+| Over-pick guard on the GD branch (M:N) | **Deployed to dev** |
+| M:N cumulative recomputed instead of accumulated | **Deployed to dev** |
 | Atomic lock acquisition (the original Part 1a) | **Not possible on this platform** — see below |
 | Mobile pull-to-refresh | Shipped (app repo) |
 
-Live on dev as of 2026-09-02: `PICKING_LOOP` **v80**, `PICKING` **v120**,
+Live on dev as of 2026-09-02: `PICKING_LOOP` **v80**, `PICKING` **v121**,
 `PUTAWAY_LOOP` **v14**, `STOCK_PICKING_LOOP` **v4** — all byte-identical to the repo
 files. **Nothing is in prod yet.**
 
-**None of it has been exercised by a real pick.** No run of any of the four has been
-recorded since deployment, so every claim below is verified by code reading, unit
-tests and `EXPLAIN` — not by a live confirm. The behaviour to watch on the first
-real runs:
+**Exercised so far: one happy-path confirm.** PI-20260828-0299 on 2026-09-02 —
+`PICKING_LOOP` and `PICKING` both Complete, `is_processing` back to `0`, document
+correctly left `In Progress` rather than forced Completed, line 1 went 10 → 9, one
+record written at qty 1. That covers the gate, the acquire and the release on the
+happy path. Everything else below is verified by code reading, unit tests and
+`EXPLAIN` only.
 
-- a normal confirm still completes, and `is_processing` returns to `0`
-- a validation failure releases the lock instead of stranding it for 900s
-- a second confirm against an already-picked line records the clamped quantity
+Still unexercised, in rough order of how much it matters:
 
-Stock Picking cannot be exercised at all yet — `stock_picking` has 0 rows on dev.
+- **the lock release on a failure path** — the defect this work exists to fix, and the
+  one thing a happy-path confirm cannot demonstrate
+- **the clamp** — needs two stale sessions on one line
+- **all of Part 3** — no live `allow_full_picking` data on dev
+- **Stock Picking entirely** — `stock_picking` has 0 rows on dev
 
 ---
 
@@ -96,7 +102,36 @@ One case survives: if a workflow node **throws**, the instance dies and the lock
 still only cleared by the 900s timeout. Rarer, but a 15-minute wait is still
 possible after a hard backend failure.
 
-### 4. Two things still to design around
+### 4. A new 400 to handle (only where Full Picking is on)
+
+`PICKING` now refuses with:
+
+```
+400  Picked quantity cannot exceed plan quantity: <item> (Picked: 12, Plan: 10)
+```
+
+It fires only where `allow_full_picking` is on, when the cumulative picked quantity
+across sibling Pickings would exceed the delivery line's planned quantity. The
+existing 400 handling will surface it, but the message is new — worth checking it
+reads sensibly on the device.
+
+Two more things about that setting, since it changes what a picker can expect:
+
+- **A partial pick closes the line for good.** Picking 3 of 10 finishes the line at
+  3; the picker cannot come back to it on this document.
+- **A follow-up Picking usually appears on its own — refresh the list.** Where
+  `auto_trigger_to` is also on, confirming re-saves the parent GD, which runs
+  `GDheadWorkflow`'s **IF Auto Create Picking** and mints a Picking for the
+  remainder. So a new document can show up straight after a confirm and the app
+  should re-read the picking list, not just the current document. Where
+  `auto_trigger_to` is **off** (28 of the 31 Full Picking plants on dev) nothing is
+  created and someone has to run Convert to Picking on the desktop GD list page.
+- **This makes the silent clamp (item 1) routine rather than rare** — because any
+  pick closes the line, a second picker on that line hits `pending = 0` and their
+  whole submission is dropped with a "success" message. This is the case where
+  surfacing `clampedLines` would earn its keep.
+
+### 5. Two things still to design around
 
 - **Two simultaneous taps are still not serialised.** A ~50 ms window remains where
   both confirms can acquire the lock (see 1a). Do not rely on the backend to order
@@ -303,7 +338,50 @@ one-shot by design, and `code_node_AGoxWP7x` already rejects over-picking with
 
 ---
 
-## Part 3 — Mobile (already implemented)
+## Part 3 — M:N cumulative recomputed — DEPLOYED, UNEXERCISED
+
+Only relevant where `allow_full_picking` is on.
+
+`code_node_iES7iMKA` accumulated the GD line's cumulative picked quantity: read
+`picked_temp_qty_data`, merge this session, write back. Two sibling Pickings
+confirmed at the same moment both read the same value and the second write wins, so
+one picker's contribution is lost — and the picking mutex cannot help, because it is
+held per Picking document.
+
+Two changes:
+
+- **An over-pick guard** in `code_node_iES7iMKA`, mirroring the PP branch's
+  `code_node_AGoxWP7x`: refuses with `400 "Picked quantity cannot exceed plan
+  quantity: …"` rather than over-picking silently. Compared at 3dp — a bare `>` fires
+  on `10.000000000000002` from summing 3dp floats and would block a picker who picked
+  exactly the plan quantity.
+- **`code_node_MNRecompute`**, gated behind `if_MNGate` (`allow_full_picking == 1`):
+  counts every picking record for the line across all sibling Pickings plus this
+  session's `combinedRecords`, and writes that total. Counting is idempotent, so a
+  concurrent run can no longer erase an addition. Revert-safe, because
+  `RevertCompleted.js` clears a reverted Picking's `table_picking_records`.
+
+Two placement constraints, both load-bearing:
+
+- It sits **after `update_node_JXfFIqqv` but before `search_node_c7BtNx91`**. Later
+  than that and the GD rollup reads a line transiently marked Completed, and with
+  `auto_completed_gd` on that can complete the whole delivery for a line that is not
+  fully picked.
+- The sibling fetch is **gated**, because `transfer_order_goods_delivery` has only a
+  primary key — no index on either foreign key — so the fetch is a table scan however
+  it is written, and 160 of 171 GDs have exactly one Picking.
+
+The old accumulate is deliberately left in place: it writes first, the recompute
+overwrites it, and it keeps the over-pick guard fed.
+
+**Deployed but never exercised.** Dev has no live `allow_full_picking` data (the 13
+GD lines with `picked_qty > 0` are ~4 months old) and no run has hit this path since
+deployment, so it is still verified by unit tests and code reading only. The first
+real Full Picking confirm is the test.
+
+---
+
+## Part 4 — Mobile (already implemented)
 
 `PickingAdd` loaded its documents once and never refreshed them, so a second
 picker saw pending quantities from whenever the screen was opened and would
@@ -342,10 +420,31 @@ Three details worth knowing when maintaining it:
   pickers × 10 on one 10-qty line became `gd_qty = 20`. Part 2's clamp stops the
   over-quantity record ever entering the array, which is what force complete
   trusts. Keeping pickers on disjoint lines is still the safer convention.
-- **`allow_full_picking`** (Picking Setup): when on, any picked quantity closes
-  the whole line and the remainder spins off via Convert to Picking. Parallel
-  picking across different lines is unaffected; two pickers on the same line
-  will behave surprisingly.
+- **`allow_full_picking`** (Picking Setup, ON for 31 of 127 plants). Audited
+  2026-09-02. The design is coherent — the setup form hides *and* zeroes the flag on
+  `picking_after = "Sales Order"`, bundles still cannot be short-picked, Packing has
+  an M:N gate blocking completion until every GD line is fully picked, and Convert to
+  Picking's split arithmetic is sound (it subtracts `picked_temp_qty_data` from
+  `temp_qty_data` per bin/batch/HU, so the sibling Pickings sum to `gd_qty`). Three
+  things are worth knowing:
+  - **Any picked quantity closes the line permanently.** Picking 3 of 10 is not
+    "3 done, 7 later on this document" — the line is finished at 3.
+  - **The remainder spins off automatically only when `auto_trigger_to` is also on.**
+    `PickingProcessWorkflow` itself never creates a follow-up Picking — but every
+    confirm re-saves the parent GD (`workflow_node_4c98bf8x`, `saveAs = "Created"`),
+    and `GDheadWorkflow`'s `if_9xhwui06` **IF Auto Create Picking**
+    (`pickingRequired == 1` AND `saveAs == "Created"` AND `autoTriggerTo == 1`) then
+    runs `code_node_6L2Ozea8` → `add_node_rk182M1q`. So the chain closes itself.
+    **The two settings are not interlocked**, and on dev 31 setups have
+    `allow_full_picking` on while only 3 have `auto_trigger_to` on — the same 3. On
+    the other 28, a partial pick closes the line and the remainder waits for a manual
+    Convert to Picking on the desktop GD list page. That is a configuration hazard,
+    not a code defect; see `PickingSetupOnChangeAllowFullPicking.js`.
+  - **The cumulative was not concurrency-safe.** `picked_qty` /
+    `picked_temp_qty_data` were read-modify-written on the GD line, and the mutex is
+    per Picking *document* — it cannot serialise two siblings, which is exactly what
+    this feature creates. A lost accumulation then made Convert to Picking mint a
+    follow-up for more than really remained. Fixed by Part 3 below.
 - **Putaway is now covered** for lock handling (1c). Its record merge is still
   client-side, so its merge exposure differs from picking's and has not been audited.
 - **The ~50 ms acquire race is still open.** See 1a.
