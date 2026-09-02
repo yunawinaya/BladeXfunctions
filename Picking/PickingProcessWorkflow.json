@@ -111,45 +111,18 @@
             "collectionId": "1935547845324787714",
             "list": [
               {
-                "id": 1770618029186,
+                "id": 1770618029188,
                 "parentId": 1770618029187,
                 "isTop": true,
-                "type": "branch",
-                "operator": "any",
-                "prop": "",
-                "valueType": "",
-                "value": "",
+                "type": "leaf",
+                "operator": "equal",
+                "prop": "organization_id",
+                "valueType": "field",
+                "value": "{{workflowparams:allData.organization_id}}",
                 "level": 1,
-                "children": [
-                  {
-                    "id": 1770618029188,
-                    "parentId": 1770618029186,
-                    "isTop": false,
-                    "prop": "organization_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{workflowparams:allData.organization_id}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "Organization ID",
-                    "valueLabel": "",
-                    "operatorLabel": "Equal"
-                  },
-                  {
-                    "id": 1770618029188,
-                    "parentId": 1770618029186,
-                    "isTop": false,
-                    "prop": "plant_id",
-                    "operator": "numberEqual",
-                    "valueType": "field",
-                    "value": "{{workflowparams:allData.plant_id}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "Plant ID",
-                    "valueLabel": "",
-                    "operatorLabel": "Equal"
-                  }
-                ]
+                "propLabel": "Organization ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
               }
             ]
           }
