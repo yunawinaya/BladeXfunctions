@@ -823,6 +823,99 @@
               "data": { "title": "true" },
               "blocks": [
                 {
+                  "id": "if_ReleaseLockVF",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Edit",
+                    "isValidator": true,
+                    "nodeName": "IF Edit",
+                    "name": "IF Edit",
+                    "condition_type": "ConditionRule",
+                    "expression": { "type": "javascript", "code": "" },
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1736695973613,
+                          "parentId": 1736695973612,
+                          "isTop": true,
+                          "prop": "workflowparams.pageStatus",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "Edit",
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "pageStatus",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_ReleaseLockVFTrue",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "update_node_ReleaseLockVF",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Transfer Order Picking:Table:1935556443668959233",
+                              "rules": {
+                                "collectionId": "1935556443668959233",
+                                "list": [
+                                  {
+                                    "id": 1772179693343,
+                                    "parentId": 1772179693342,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Release Picking Lock",
+                            "isValidator": true,
+                            "nodeName": "Release Picking Lock",
+                            "name": "Release Picking Lock",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "is_processing",
+                                  "valueType": "value",
+                                  "value": 0,
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "Is Processing"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_ReleaseLockVFFalse",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
                   "id": "return_node_cIY3Ta84",
                   "type": "return-node",
                   "data": {
@@ -2368,6 +2461,99 @@
                       "type": "ifBlock",
                       "data": { "title": "true" },
                       "blocks": [
+                        {
+                          "id": "if_ReleaseLockErr",
+                          "type": "if",
+                          "data": {
+                            "title": "IF Edit",
+                            "isValidator": true,
+                            "nodeName": "IF Edit",
+                            "name": "IF Edit",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1736695973612,
+                                  "isTop": true,
+                                  "prop": "workflowparams.pageStatus",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Edit",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "pageStatus",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_block_ReleaseLockErrTrue",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                                {
+                                  "id": "update_node_ReleaseLockErr",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "Transfer Order Picking:Table:1935556443668959233",
+                                      "rules": {
+                                        "collectionId": "1935556443668959233",
+                                        "list": [
+                                          {
+                                            "id": 1772179693343,
+                                            "parentId": 1772179693342,
+                                            "isTop": true,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                                            "type": "leaf",
+                                            "level": 1,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "condition": {},
+                                    "title": "Release Picking Lock",
+                                    "isValidator": true,
+                                    "nodeName": "Release Picking Lock",
+                                    "name": "Release Picking Lock",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "is_processing",
+                                          "valueType": "value",
+                                          "value": 0,
+                                          "operator": "",
+                                          "valueLabel": "",
+                                          "propLabel": "Is Processing"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_block_ReleaseLockErrFalse",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
+                        },
                         {
                           "id": "return_node_yurHh8d6",
                           "type": "return-node",

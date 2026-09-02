@@ -205,7 +205,7 @@
             "name": "Data Preparation",
             "script": {
               "type": "javascript",
-              "code": "const arrayData = {{workflowparams:arrayData}}\nconst currentIndexRaw = {{node:get_cache_node_hGFbHnzQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isForceComplete = {{workflowparams:isForceComplete}}\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// Validation: For saveAs \"Completed\", at least one item must have picked_qty > 0\nif (saveAs === \"Completed\" && !isForceComplete && isForceComplete !== 1) {\n  const hasPickedQty = data.table_picking_items && data.table_picking_items.length > 0 &&\n    data.table_picking_items.some(item => item.picked_qty > 0);\n  \n  if (!hasPickedQty) {\n    invalidMessage = \"Cannot complete picking. At least one item must have picked quantity greater than 0.\";\n  }\n\n  if (data.sp_status === \"Cancelled\") {\n    invalidMessage = \"Picking is cancelled. Unable to process picking.\"\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.sp_id_type !== -9999 &&\n      (!data.sp_id ||\n        data.sp_id === null ||\n        data.sp_id === \"\")\n    ) {\n      data.sp_id = \"draft\";\n    }\n  } else {\n    if (\n      data.sp_id_type !== -9999 &&\n      (!data.sp_id ||\n        data.sp_id === null ||\n        data.sp_id === \"\" ||\n        data.sp_status === \"Draft\")\n    ) {\n      data.sp_id = \"issued\";\n    }\n  }\n}\n\n// Cancel of a Created picking: flag sp_id so the document number can be reused\nif (\n  saveAs === \"Cancelled\" &&\n  data.sp_status === \"Created\" &&\n  typeof data.sp_id === \"string\" &&\n  data.sp_id &&\n  !data.sp_id.endsWith(\"-Cancelled\")\n) {\n  data.sp_id = data.sp_id + \"-Cancelled\";\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}\n"
+              "code": "const arrayData = {{workflowparams:arrayData}}\nconst currentIndexRaw = {{node:get_cache_node_hGFbHnzQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isForceComplete = {{workflowparams:isForceComplete}}\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// Validation: For saveAs \"Completed\", at least one item must have picked_qty > 0\nif (saveAs === \"Completed\" && !isForceComplete && isForceComplete !== 1) {\n  const hasPickedQty = data.table_picking_items && data.table_picking_items.length > 0 &&\n    data.table_picking_items.some(item => item.picked_qty > 0);\n  \n  if (!hasPickedQty) {\n    invalidMessage = \"Cannot complete picking. At least one item must have picked quantity greater than 0.\";\n  }\n\n  if (data.sp_status === \"Cancelled\") {\n    invalidMessage = \"Picking is cancelled. Unable to process picking.\"\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.sp_id_type !== -9999 &&\n      (!data.sp_id ||\n        data.sp_id === null ||\n        data.sp_id === \"\")\n    ) {\n      data.sp_id = \"draft\";\n    }\n  } else {\n    if (\n      data.sp_id_type !== -9999 &&\n      (!data.sp_id ||\n        data.sp_id === null ||\n        data.sp_id === \"\" ||\n        data.sp_status === \"Draft\")\n    ) {\n      data.sp_id = \"issued\";\n    }\n  }\n}\n\n// Cancel of a Created picking: flag sp_id so the document number can be reused\nif (\n  saveAs === \"Cancelled\" &&\n  data.sp_status === \"Created\" &&\n  typeof data.sp_id === \"string\" &&\n  data.sp_id &&\n  !data.sp_id.endsWith(\"-Cancelled\")\n) {\n  data.sp_id = data.sp_id + \"-Cancelled\";\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\n// Interpolated into sql_node_LockGate, and arrayData is caller-supplied.\n// Picking ids are snowflake bigints, so digits-only is exact, not a guess;\n// \"0\" matches no row, which fails closed as \"under processing\".\nconst lockId = /^[0-9]+$/.test(String(data.id || \"\")) ? String(data.id) : \"0\";\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  lockId,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}\n"
             },
             "response_json": [
               {
@@ -248,6 +248,15 @@
                 "title": "isInvalid",
                 "description": "",
                 "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "dp6lockid",
+                "name": "lockId",
+                "title": "lockId",
+                "description": "",
+                "bsonType": "string",
                 "isExpand": false,
                 "children": []
               }
@@ -384,111 +393,96 @@
               },
               "blocks": [
                 {
-                  "id": "get_node_eYiGyTjB",
-                  "type": "get-node",
+                  "id": "sql_node_LockGate",
+                  "type": "sql-node",
                   "data": {
-                    "table_id": {
-                      "source": "Stock Picking:Table:2092878390055469058",
-                      "rules": {
-                        "collectionId": "2092878390055469058",
-                        "list": [
-                          {
-                            "id": 1773914570685,
-                            "parentId": 1773914570686,
-                            "isTop": true,
-                            "prop": "",
-                            "operator": "all",
-                            "valueType": "",
-                            "value": "",
-                            "type": "branch",
-                            "level": 1,
-                            "children": [
-                              {
-                                "id": 1772179458658,
-                                "parentId": 1773914570685,
-                                "isTop": false,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
-                                "type": "leaf",
-                                "level": 2,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              },
-                              {
-                                "id": 1773914570687,
-                                "parentId": 1773914570685,
-                                "isTop": false,
-                                "prop": "is_processing",
-                                "operator": "numberEqual",
-                                "valueType": "value",
-                                "value": 0,
-                                "type": "leaf",
-                                "level": 2,
-                                "propLabel": "Is Processing",
-                                "valueLabel": "",
-                                "operatorLabel": "Equal"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    },
-                    "condition": {},
+                    "database_id": "",
+                    "sql": "",
+                    "params": {},
                     "title": "Get Updated Picking Data",
                     "isValidator": true,
                     "nodeName": "Get Updated Picking Data",
-                    "name": "Get Updated Picking Data"
+                    "name": "Get Updated Picking Data",
+                    "script": {
+                      "type": "sql",
+                      "code": "SELECT id,\n       sp_status AS to_status,\n       COALESCE(is_processing, 0) AS is_processing,\n       TIMESTAMPDIFF(\n           SECOND,\n           update_time,\n           CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')\n       ) AS lock_age_sec\nFROM stock_picking\nWHERE id = '{{node:code_node_hjAwTKzF.data.lockId}}'\n  AND is_deleted = 0\nLIMIT 1"
+                    },
+                    "response_json": [
+                      {
+                        "key": "lg1id000",
+                        "name": "id",
+                        "title": "Picking ID",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "lg2sts00",
+                        "name": "to_status",
+                        "title": "Picking Status",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "lg3proc0",
+                        "name": "is_processing",
+                        "title": "Is Processing",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "lg4age00",
+                        "name": "lock_age_sec",
+                        "title": "Lock Age Seconds",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ]
                   },
                   "blocks": []
                 },
                 {
-                  "id": "update_node_QvZ8RAFW",
-                  "type": "update-node",
+                  "id": "code_node_LockDecide",
+                  "type": "code-node",
                   "data": {
-                    "table_id": {
-                      "source": "Stock Picking:Table:2092878390055469058",
-                      "rules": {
-                        "collectionId": "2092878390055469058",
-                        "list": [
-                          {
-                            "id": 1772179693343,
-                            "parentId": 1773914362837,
-                            "isTop": true,
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
-                            "type": "leaf",
-                            "level": 1,
-                            "propLabel": "主键ID",
-                            "valueLabel": "",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    },
-                    "fields": [],
-                    "condition": {},
-                    "title": "Update Picking Processing",
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Lock Decision",
                     "isValidator": true,
-                    "nodeName": "Update Picking Processing",
-                    "name": "Update Picking Processing",
-                    "props": {
-                      "modelName": "",
-                      "list": [
-                        {
-                          "prop": "is_processing",
-                          "valueType": "value",
-                          "value": 1,
-                          "operator": "",
-                          "valueLabel": "",
-                          "propLabel": "Is Processing"
-                        }
-                      ]
-                    }
+                    "nodeName": "Lock Decision",
+                    "name": "Lock Decision",
+                    "script": {
+                      "type": "javascript",
+                      "code": "const rows = {{node:sql_node_LockGate.data}} || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst row = list[0];\n\n// A crashed run can never release the mutex in-flow, so a lock this old is\n// treated as abandoned and taken over.\nconst STALE_SEC = 900;\n\n// 0 = free, take the lock   1 = held by a live run   2 = already Completed\nlet lockState = 1;\nlet staleRecovered = 0;\n\nif (row && row.id) {\n  if (row.to_status === \"Completed\") {\n    lockState = 2;\n  } else if (Number(row.is_processing) === 1) {\n    const age = Number(row.lock_age_sec);\n    // A negative or unparseable age means the clock assumption is off; stay\n    // locked rather than risk stealing a lock from a run still in progress.\n    if (isFinite(age) && age > STALE_SEC) {\n      lockState = 0;\n      staleRecovered = 1;\n    }\n  } else {\n    lockState = 0;\n  }\n}\n\nreturn {\n  lockState,\n  staleRecovered\n}\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "ld1state",
+                        "name": "lockState",
+                        "title": "lockState",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "ld2stale",
+                        "name": "staleRecovered",
+                        "title": "staleRecovered",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ]
                   },
                   "blocks": []
                 },
@@ -517,13 +511,13 @@
                               "id": 1773914670079,
                               "parentId": 1773914670078,
                               "isTop": true,
-                              "prop": "node.get_node_eYiGyTjB.data.count",
+                              "prop": "node.code_node_LockDecide.data.lockState",
                               "operator": "numberEqual",
                               "valueType": "value",
-                              "value": 0,
+                              "value": 1,
                               "type": "leaf",
                               "level": 1,
-                              "propLabel": "结果条数",
+                              "propLabel": "lockState",
                               "valueLabel": "",
                               "operatorLabel": "Equal"
                             }
@@ -588,13 +582,13 @@
                               "id": 1772179778531,
                               "parentId": 1772179778530,
                               "isTop": true,
-                              "prop": "node.get_node_eYiGyTjB.data.data.sp_status",
-                              "operator": "equal",
+                              "prop": "node.code_node_LockDecide.data.lockState",
+                              "operator": "numberEqual",
                               "valueType": "value",
-                              "value": "Completed",
+                              "value": 2,
                               "type": "leaf",
                               "level": 1,
-                              "propLabel": "Transfer Order Status",
+                              "propLabel": "lockState",
                               "valueLabel": "",
                               "operatorLabel": "Equal"
                             }
@@ -664,7 +658,56 @@
                         },
                         "displayContent": "sdk.form.otherCondition"
                       },
-                      "blocks": []
+                      "blocks": [
+                        {
+                          "id": "update_node_QvZ8RAFW",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Stock Picking:Table:2092878390055469058",
+                              "rules": {
+                                "collectionId": "2092878390055469058",
+                                "list": [
+                                  {
+                                    "id": 1772179693343,
+                                    "parentId": 1773914362837,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Update Picking Processing",
+                            "isValidator": true,
+                            "nodeName": "Update Picking Processing",
+                            "name": "Update Picking Processing",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "is_processing",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "Is Processing"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
                     }
                   ]
                 }
@@ -810,6 +853,106 @@
                 "title": "true"
               },
               "blocks": [
+                {
+                  "id": "if_ReleaseLockVF",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Edit",
+                    "isValidator": true,
+                    "nodeName": "IF Edit",
+                    "name": "IF Edit",
+                    "condition_type": "ConditionRule",
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1736695973613,
+                          "parentId": 1736695973612,
+                          "isTop": true,
+                          "prop": "workflowparams.pageStatus",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "Edit",
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "pageStatus",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_ReleaseLockVFTrue",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "true"
+                      },
+                      "blocks": [
+                        {
+                          "id": "update_node_ReleaseLockVF",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Stock Picking:Table:2092878390055469058",
+                              "rules": {
+                                "collectionId": "2092878390055469058",
+                                "list": [
+                                  {
+                                    "id": 1772179693343,
+                                    "parentId": 1772179693342,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Release Picking Lock",
+                            "isValidator": true,
+                            "nodeName": "Release Picking Lock",
+                            "name": "Release Picking Lock",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "is_processing",
+                                  "valueType": "value",
+                                  "value": 0,
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "Is Processing"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_ReleaseLockVFFalse",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "false"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
                 {
                   "id": "return_node_cIY3Ta84",
                   "type": "return-node",
@@ -2380,6 +2523,106 @@
                         "title": "true"
                       },
                       "blocks": [
+                        {
+                          "id": "if_ReleaseLockErr",
+                          "type": "if",
+                          "data": {
+                            "title": "IF Edit",
+                            "isValidator": true,
+                            "nodeName": "IF Edit",
+                            "name": "IF Edit",
+                            "condition_type": "ConditionRule",
+                            "expression": {
+                              "type": "javascript",
+                              "code": ""
+                            },
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1736695973612,
+                                  "isTop": true,
+                                  "prop": "workflowparams.pageStatus",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Edit",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "pageStatus",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_block_ReleaseLockErrTrue",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "true"
+                              },
+                              "blocks": [
+                                {
+                                  "id": "update_node_ReleaseLockErr",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "Stock Picking:Table:2092878390055469058",
+                                      "rules": {
+                                        "collectionId": "2092878390055469058",
+                                        "list": [
+                                          {
+                                            "id": 1772179693343,
+                                            "parentId": 1772179693342,
+                                            "isTop": true,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                                            "type": "leaf",
+                                            "level": 1,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "condition": {},
+                                    "title": "Release Picking Lock",
+                                    "isValidator": true,
+                                    "nodeName": "Release Picking Lock",
+                                    "name": "Release Picking Lock",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "is_processing",
+                                          "valueType": "value",
+                                          "value": 0,
+                                          "operator": "",
+                                          "valueLabel": "",
+                                          "propLabel": "Is Processing"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_block_ReleaseLockErrFalse",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "false"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
                         {
                           "id": "return_node_yurHh8d6",
                           "type": "return-node",
