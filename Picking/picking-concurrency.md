@@ -86,11 +86,28 @@ Keep the client-side clamp (`clampToFreshPendingRef`). The two are complementary
 not redundant — the client one stops the picker entering an impossible number at
 all, the server one is the authority when the client's view was stale.
 
-If you would rather have an explicit signal than refetch, say so: the clamp already
-computes a `clampedLines` list (`picking_item_id`, `requested`, `allowed`). Getting
-it into the response means plumbing it out of the Process sub-workflow, through the
-loop's workflow-node, into the return — doable, but it changes the response
-contract, so it is not done.
+**This is now done — the clamp reports itself in `message`.** On a confirm that
+trimmed anything, `message` reads:
+
+```
+Picking processed successfully. 2 line(s) were reduced because the stock had
+already been picked: WIDGET-A 10→4, WIDGET-B 5→0. Check the document before
+picking again.
+```
+
+Nothing else about the response changed: `code` is still `"200"`, the shape is
+still `{ code, message }`, and an untrimmed confirm still returns exactly
+`"Picking processed successfully"`. So no app change is required to _receive_ it —
+the existing `data.message` render surfaces it.
+
+It needed plumbing through both workflows: `code_node_ClampMsg` composes it in
+`PickingProcessWorkflow`, and because the Loop's final return was a hardcoded
+string the message is stashed in a per-run cache key inside the Completed branch
+(`set_cache_node_PickMsg`) and read back after the loop (`code_node_FinalMsg`). A
+direct reference would have been a DIVERGENT one — that node sits in a single
+condition-or branch, and a Draft / Created / Cancelled save runs a different one,
+which would have resolved to null. A save that never enters the Completed branch
+falls back to the plain success line.
 
 ### 2. Parallel picking is unsafe on Sales-Order pickings
 
@@ -104,17 +121,26 @@ parallel picking should be gated on it — or at minimum the app should not enco
 two pickers onto one document there. If the app cannot see that setting, this has to
 stay an operational convention.
 
-> **Mobile reply — yes, answered.** The app already derives it and fetches Picking
-> Setup keyed on it ([PickingAdd.tsx](../../src/features/wm/picking/screens/PickingAdd.tsx)):
-> `refDocType === "Picking Plan" ? "Sales Order" : "Goods Delivery"`. **But it is not
-> a safe gate yet, because the two lookups disagree:** the app filters
-> `plant_id AND picking_after`
-> ([picking_setup.utils.ts:38](../../src/shared/utils/master/picking_setup.utils.ts#L38)),
-> while `get_node_Uj1uV9PU` filters `organization_id` **OR** `plant_id` with no
-> `picking_after` condition at all. In a tenant holding both setup rows the workflow
-> can resolve a different one than the app did — and that row selects the one-shot
-> branch. Mobile is holding the gate until that lookup is narrowed; shipping it
-> sooner would buy false confidence.
+> **Mobile reply — resolved, and it turned up a live bug.** The derivation
+> (`refDocType === "Picking Plan" ? "Sales Order" : "Goods Delivery"`) was not only
+> a bad gate — it was the **query key** for fetching Picking Setup at all:
+> `where: { plant_id, picking_after }`. For the 45 Picking-Plan documents whose org
+> row says "Goods Delivery" that matched no row, and the miss branch was `} else {}`.
+> Every consumer reads `pickingSetup?.X === 1`, so **`require_bin_scan`,
+> `require_item_scan`, `require_batch_scan` and `require_hu_scan` all silently read
+> false** on those documents, along with `is_loading_bay` and
+> `bin_validation_scope`. Scanning was unenforced, with nothing shown to the picker.
+>
+> Fixed by matching the backend: `PickingSetupUtils.getOrgPickingSetup` fetches by
+> `organization_id` alone — no plant, no `picking_after` — mirroring
+> `get_node_Uj1uV9PU` / `get_node_iFPuvJX2`, so the app and the workflow now read
+> the same row by construction. A missing setup (or an unresolvable organization)
+> now raises an error Toast instead of quietly disabling verification.
+>
+> **Residual:** the two orgs whose rows disagree on `allow_full_picking` /
+> `auto_completed_gd` are still ambiguous — org-scoped lookup does not resolve data
+> drift, and app and backend may pick different rows for those 13 documents until
+> the rows are cleaned up.
 
 ### 3. "Under processing" should become rare, and now means what it says
 

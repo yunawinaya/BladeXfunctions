@@ -2599,6 +2599,25 @@
                       "blocks": []
                     }
                   ]
+                },
+                {
+                  "id": "set_cache_node_PickMsg",
+                  "type": "set-cache-node",
+                  "data": {
+                    "cache_key": "",
+                    "cache_value": "",
+                    "expire_time": 3600,
+                    "title": "Set Picking Message",
+                    "isValidator": true,
+                    "nodeName": "Set Picking Message",
+                    "name": "Set Picking Message",
+                    "custom_wkbocgni": {
+                      "type": "javascript",
+                      "code": "{{node:workflow_node_vaDwx6nr.data.message}}"
+                    },
+                    "redis_key": "pickMsg_{{node:code_node_uPSc7Syb.data.unique}}"
+                  },
+                  "blocks": []
                 }
               ]
             },
@@ -4227,6 +4246,48 @@
       ]
     },
     {
+      "id": "get_cache_node_PickMsg",
+      "type": "get-cache-node",
+      "data": {
+        "cache_key": "",
+        "title": "Get Picking Message",
+        "isValidator": true,
+        "nodeName": "Get Picking Message",
+        "name": "Get Picking Message",
+        "redis_key": "pickMsg_{{node:code_node_uPSc7Syb.data.unique}}"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_FinalMsg",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Final Message",
+        "isValidator": true,
+        "nodeName": "Final Message",
+        "name": "Final Message",
+        "script": {
+          "type": "javascript",
+          "code": "// The Completed branch stashes the Picking workflow's message so the clamp note\n// survives out here. A Draft / Created / Cancelled save never runs that branch,\n// so the cache is empty and the plain success line stands.\nconst cached = [{{node:get_cache_node_PickMsg.data}}][0];\n\nconst message =\n  typeof cached === \"string\" && cached.trim() !== \"\"\n    ? cached\n    : \"Picking processed successfully\";\n\nreturn { message }\n"
+        },
+        "response_json": [
+          {
+            "key": "fm1msg00",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "return_node_kbpuCvnr",
       "type": "return-node",
       "data": {
@@ -4251,8 +4312,8 @@
             {
               "prop": "message",
               "operator": "",
-              "valueType": "value",
-              "value": "Picking processed successfully",
+              "valueType": "field",
+              "value": "{{node:code_node_FinalMsg.data.message}}",
               "valueLabel": "",
               "propLabel": "message"
             }
