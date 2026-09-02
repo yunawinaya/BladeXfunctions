@@ -3669,7 +3669,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:code_picking_defaults.data.gdSetup}};\nconst pageStatus = {{workflowparams:pageStatus}}\n// skip_picking (internal auto-GR): treat picking as not required across the whole GD\n// lifecycle (incl. Created), so no picking_status is stamped and no picking TO is created.\nconst skipPickingGate = {{node:code_gr_gate.data.skipPicking}} || 0;\nif (skipPickingGate === 1 && pickingSetup) { pickingSetup.picking_required = 0; }\n\n// Cancel gate: a Completed Goods Delivery has already moved inventory and\n// posted downstream. It cannot be cancelled through this save path — it must\n// be reversed via the proper completion-reversal flow. Block the save with a\n// clear error, reusing the invalidData -> 400 path (if_vnwLSl9x).\nif (saveAs === \"Cancelled\" && allData.gd_status === \"Completed\") {\n  return {\n    allData: allData,\n    gd_status: allData.gd_status,\n    needCL: \"not required\",\n    picking_status: allData.picking_status,\n    packing_status: allData.packing_status,\n    needSOCleanUp: 0,\n    invalidData: 1,\n    invalidDataMessage: \"Cannot cancel Goods Delivery \" + (allData.delivery_no || \"\") + \" because it is already Completed. Reverse the completion before cancelling.\"\n  };\n}\n\n// M:N edit gate: when allow_full_picking=1 AND user is editing a GD that has\n// ANY non-terminal Picking (Created / In Progress), block the save with\n// a clear error. Forces user to cancel or complete those Pickings before\n// modifying the GD upstream of them. Reuses the invalidData -> 400 path\n// (if_vnwLSl9x).\nif (\n  pickingSetup &&\n  pickingSetup.allow_full_picking === 1 &&\n  saveAs === \"Created\" &&\n  pageStatus === \"Edit\"\n) {\n  const activePickings = ({{node:search_node_NBAQ9gsj.data.data}} || [])\n    .filter(function(to) {\n      return to.to_status !== \"Completed\" &&\n             to.to_status !== \"Cancelled\" &&\n             to.to_status !== \"Draft\";\n    });\n  // Not \">1\": Non-Split makes exactly ONE Picking and nothing else updates it\n  // (reconcile is off here, if_9xhwui06 needs auto_trigger_to=1), so it went stale.\n  if (activePickings.length >= 1) {\n    const count = activePickings.length;\n    const list = activePickings\n      .map(function(to) { return to.to_id || to.id; })\n      .slice(0, 5)\n      .join(\", \");\n    const suffix = count > 5\n      ? \" (+\" + (count - 5) + \" more)\"\n      : \"\";\n    return {\n      allData: allData,\n      gd_status: allData.gd_status,\n      needCL: \"not required\",\n      picking_status: allData.picking_status,\n      packing_status: allData.packing_status,\n      needSOCleanUp: 0,\n      invalidData: 1,\n      invalidDataMessage: \"Cannot edit this Goods Delivery while \" + count + (count === 1 ? \" Picking is\" : \" Pickings are\") + \" active: \" + list + suffix + \". Cancel or complete \" + (count === 1 ? \"it\" : \"them\") + \" before editing.\"\n    };\n  }\n}\n\nconst skippedRows = [];\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// A bundle is ONE row of table_gd with the bundle's items under `children`.\n// The bundle row carries no material of its own, so it already falls through\n// the descriptive-line branch below and is never asked for an allocation --\n// which is right, nothing is picked against a bundle. Its items, though, are\n// ordinary delivery lines and must be stamped, quantity-checked and counted\n// like any other row, and they are not rows of table_gd.\n//\n// So the loop below walks a flat view. Survivors are collected flat (which is\n// what hasRealStockRow and the picking rollup need to see) and folded back into\n// the tree at the end, because that is the shape the document is stored in.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\n// Survivors, by identity -- the loop mutates rows in place, so this only has to\n// record which ones made it through.\nconst survived = new Set();\n\nconst roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\n\n// A bundle is delivered as a whole: every item under it is the bundle's own\n// quantity times the number of bundles. Delivering 2 of item A against 1 of item\n// B, when the bundle holds one of each, is not a bundle -- and the form is the\n// only thing stopping it, so anything reaching this workflow by another route\n// (a headless convert, an API call, a stale page) would persist it.\n//\n// The rate comes off the delivery rather than out of the bundle: an item ordered\n// N times the bundle's own ordered quantity is N per bundle. That is the same\n// ratio the bundle defines, already carried on every row, so no lookup is needed.\nconst bundleRatioProblem = (parent, child) => {\n  const bundlesOrdered = parseFloat(parent.gd_order_quantity) || 0;\n\n  // Nothing to derive a rate from -- leave the line alone rather than guess.\n  if (bundlesOrdered <= 0) return null;\n\n  const perBundleQty =\n    (parseFloat(child.gd_order_quantity) || 0) / bundlesOrdered;\n  const expected = roundQty(perBundleQty * (parseFloat(parent.gd_qty) || 0));\n  const actual = roundQty(child.gd_qty);\n\n  return Math.abs(actual - expected) > 0.001 ? { expected, actual } : null;\n};\n\n// Build flags map from Get Items (only populated when picking_mode=Auto ran).\n// Used to detect description-only rows: stock_control=0 AND show_delivery=0.\nconst itemDataRaw = {{node:sql_node_ItemFlags.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\n// The sql-node may hand these back as strings; null must stay non-matching.\nconst asFlag = (v) => (v === null || v === undefined || v === \"\" ? null : Number(v));\nconst itemFlagsMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemFlagsMap[it.id] = {\n      stock_control: asFlag(it.stock_control),\n      show_delivery: asFlag(it.show_delivery)\n    };\n  }\n}\n\nif ({{node:code_picking_defaults.data.pickingMode}} === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\n// Flattened AFTER the Auto-picking swap above, not before: that swap replaces\n// table_gd wholesale with the allocated copy, so a view taken any earlier points\n// at the pre-allocation rows -- every line then looks unallocated, and the\n// survivor set below holds objects that are no longer in the tree.\nconst flatEntries = [];\nallData.table_gd.forEach((row, parentIndex) => {\n  flatEntries.push({ row: row, parentIndex: parentIndex, childIndex: null });\n\n  childrenOf(row).forEach((child, childIndex) => {\n    flatEntries.push({ row: child, parentIndex: parentIndex, childIndex: childIndex });\n  });\n});\n\nfor (const entry of flatEntries) {\n  const gdLineItem = entry.row;\n  const index = entry.parentIndex;\n  // A number on a top-level row, `parent/child` on an item under a bundle --\n  // line_index is a text column, so the label is safe to store.\n  const lineLabel =\n    entry.childIndex === null\n      ? index + 1\n      : `${index + 1}/${entry.childIndex + 1}`;\n\n  if (entry.childIndex !== null && saveAs !== \"Draft\") {\n    const bundleParent = allData.table_gd[entry.parentIndex];\n\n    if (bundleParent && isBundleParentRow(bundleParent)) {\n      const ratio = bundleRatioProblem(bundleParent, gdLineItem);\n\n      if (ratio) {\n        skippedRows.push({\n          index: index,\n          line_label: lineLabel,\n          kind: \"bundle\",\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `item bundle quantities must stay in proportion - expected ${ratio.expected}, got ${ratio.actual}`,\n        });\n        continue;\n      }\n    }\n  }\n\n  if (saveAs !== \"Draft\" && (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0)) {\n    continue;\n  }\n\n  // Descriptive (no-stock) line: material_id empty, OR item has stock_control=0 AND show_delivery=0\n  const flags = gdLineItem.material_id ? itemFlagsMap[gdLineItem.material_id] : null;\n  const isNonStockNoShow = flags && flags.stock_control === 0 && flags.show_delivery === 0;\n  const isDescriptive = !gdLineItem.material_id || gdLineItem.material_id === \"\" || isNonStockNoShow;\n  if (isDescriptive) {\n    const hasDescription =\n      (gdLineItem.material_name && gdLineItem.material_name !== \"\") ||\n      (gdLineItem.gd_material_desc && gdLineItem.gd_material_desc !== \"\");\n    if (!hasDescription && saveAs !== \"Draft\") {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: \"(none)\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"row has no material_id and no description\",\n      });\n      continue;\n    }\n    gdLineItem.customer_id = allData.customer_name || null;\n    gdLineItem.organization_id = allData.organization_id;\n    gdLineItem.plant_id = allData.plant_id || null;\n    gdLineItem.billing_state_id = allData.billing_address_state || null;\n    gdLineItem.billing_country_id = allData.billing_address_country || null;\n    gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n    gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n    gdLineItem.assigned_to = allData.assigned_to || null;\n    gdLineItem.area_id = allData.gd_area_id || null;\n    gdLineItem.line_index = lineLabel;\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.picking_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n    }\n    if (\n      pickingSetup &&\n      allData.is_select_picking !== 1 &&\n      (!allData.picking_status || allData.picking_status === \"\") &&\n      saveAs === \"Created\" &&\n      pickingSetup.picking_required === 1\n    ) {\n      // Descriptive lines have no picking item — mark Completed so the GD-level\n      // picking_status can flip to Completed once the real stock rows are picked.\n      gdLineItem.picking_status = \"Completed\";\n    }\n    // Same treatment for packing_status: descriptive lines have no packing item,\n    // so they must be marked Completed for the GD-level rollup to succeed.\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.packing_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.packing_status = gdLineItem.packing_status ? \"Cancelled\" : null;\n    } else if (saveAs === \"Created\" && allData.is_select_picking !== 1) {\n      gdLineItem.packing_status = \"Completed\";\n    }\n    survived.add(gdLineItem);\n    updatedGD.push(gdLineItem);\n    continue;\n  }\n\n  if (saveAs !== \"Draft\") {\n    const tempQtyData = gdLineItem.temp_qty_data;\n    const isEmpty =\n      !tempQtyData ||\n      tempQtyData === \"\" ||\n      tempQtyData === \"[]\" ||\n      tempQtyData === null;\n\n    if (isEmpty) {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data is empty\",\n      });\n      continue;\n    }\n\n    try {\n      const parsedTempQty = JSON.parse(tempQtyData);\n      const totalAllocated = parsedTempQty.reduce(\n        (sum, item) => sum + (parseFloat(item.gd_quantity) || 0),\n        0\n      );\n      const gdQty = parseFloat(gdLineItem.gd_qty) || 0;\n\n      if (Math.abs(totalAllocated - gdQty) > 0.001) {\n        skippedRows.push({\n          index: index,\n          line_label: lineLabel,\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          allocated_qty: totalAllocated,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `temp_qty_data total (${totalAllocated}) != gd_qty (${gdQty})`,\n        });\n        continue;\n      }\n    } catch (e) {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data parse error\",\n      });\n      continue;\n    }\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = lineLabel;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    allData.is_select_picking !== 1 &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  survived.add(gdLineItem);\n  updatedGD.push(gdLineItem);\n}\n\n// Back into the tree. A bundle whose items have all gone takes its bundle row\n// with it -- a bundle with nothing left to deliver is not a line.\nconst rebuiltGD = [];\nallData.table_gd.forEach((row) => {\n  if (!survived.has(row)) return;\n\n  const kids = childrenOf(row);\n\n  if (kids.length > 0) {\n    const keptKids = kids.filter((child) => survived.has(child));\n\n    if (isBundleParentRow(row) && keptKids.length === 0) return;\n\n    row.children = keptKids;\n  }\n\n  rebuiltGD.push(row);\n});\n\nallData.table_gd = rebuiltGD;\n\n// The header's order list is a rollup of the lines but was only ever written on\n// the way in, so dropping an order's last line left it on the header for good --\n// and \"Get SO Datas\" kept fetching it. Left alone when no line carries an order:\n// manual and Picking-Plan deliveries keep whatever the form set.\nconst headerSoIds = [];\nconst headerSoNos = [];\nrebuiltGD.forEach((row) => {\n  [row, ...childrenOf(row)].forEach((line) => {\n    const lineSoId = String(line.line_so_id || \"\");\n    if (!lineSoId || headerSoIds.includes(lineSoId)) return;\n    headerSoIds.push(lineSoId);\n    headerSoNos.push(String(line.line_so_no || \"\"));\n  });\n});\n\nif (headerSoIds.length > 0) {\n  allData.so_id = headerSoIds;\n  allData.so_no = headerSoNos.filter(Boolean).join(\", \");\n}\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\n// All-descriptive GD detection: if every surviving row is either a no-material_id\n// row or a stock_control=0 && show_delivery=0 row, there is nothing to pick.\n// Mark picking as Completed up front so no empty picking record is created.\nconst hasRealStockRow = updatedGD.some(function(row) {\n  if (!row.material_id || row.material_id === \"\") return false;\n  const f = itemFlagsMap[row.material_id];\n  if (f && f.stock_control === 0 && f.show_delivery === 0) return false;\n  return true;\n});\n\nif (\n  pickingSetup &&\n  allData.is_select_picking !== 1 &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (!hasRealStockRow) {\n    allData.picking_status = \"Completed\";\n    updatedGD.forEach(function(row) {\n      if (row.picking_status === \"Created\" || row.picking_status === \"Not Created\") {\n        row.picking_status = \"Completed\";\n      }\n    });\n  } else if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\n// GD-level packing_status: for all-skip-items GDs, mark Completed so the\n// \"IF need Packing\" gate doesn't block subsequent workflow steps.\nif (\n  allData.is_select_picking !== 1 &&\n  (!allData.packing_status || allData.packing_status === \"\") &&\n  saveAs === \"Created\" &&\n  !hasRealStockRow\n) {\n  allData.packing_status = \"Completed\";\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\n// Credit-limit stage gate.\n// Completed always evaluates CL (unchanged). Created evaluates it only when\n// picking_setup.full_cl_check = 1. Defaults to 0 in BOTH gaps: no picking_setup row\n// at all (orgSetup null), and a row whose full_cl_check was never written\n// (null / undefined / \"\"). Only an explicit 1 turns the Created-stage check on.\n// Reads orgSetup, not gdSetup: gdSetup is null for Picking-Plan orgs, which must not\n// silently disable the credit check.\nconst clSetup = {{node:code_picking_defaults.data.orgSetup}};\nconst fullCLCheck = Number(clSetup?.full_cl_check ?? 0) === 1;\n\nconst clStageAllowed =\n  saveAs === \"Completed\" || (saveAs === \"Created\" && fullCLCheck);\n\nif (\n  allData.acc_integration_type !== \"No Accounting\" &&\n  {{workflowparams:needCL}} === \"required\" &&\n  clStageAllowed\n) {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n  // For Created GDs being cancelled, suffix delivery_no with \"-Cancelled\"\n  // so the (still-issued) document number is visually flagged.\n  if (\n    allData.gd_status === \"Created\" &&\n    typeof allData.delivery_no === \"string\" &&\n    allData.delivery_no &&\n    !allData.delivery_no.endsWith(\"-Cancelled\")\n  ) {\n    allData.delivery_no = allData.delivery_no + \"-Cancelled\";\n  }\n}\n\nlet needSOCleanUp = 0;\nlet originalTableGD = [];\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n  originalTableGD = originalGD.table_gd;\n\n  // An item under a bundle is a delivery line in its own right and carries its\n  // own allocation -- it just is not a row of table_gd. Matched across the whole\n  // tree, or on re-save it looks brand new and its quantity is counted twice.\n  const flattenGdRows = (rows) =>\n    (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n  const originalRows = flattenGdRows(originalGD.table_gd);\n\n  flattenGdRows(allData.table_gd).forEach((item) => {\n    const originalItem = originalRows.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  // Set difference, not a length compare: an equal-count item swap left the\n  // departed SO line holding planned_qty, and an append fired the cleanup with an\n  // empty removedItems, whose `id in []` filter matches every SO line.\n  const currentSoLineIds = new Set(\n    flattenGdRows(allData.table_gd).map((r) => String(r.so_line_item_id || \"\"))\n  );\n  if (\n    originalRows.some((o) => !currentSoLineIds.has(String(o.so_line_item_id || \"\")))\n  ) {\n    needSOCleanUp = 1;\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.line_label || row.index + 1}: ${row.material_name} - qty: ${row.gd_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  const hasAllocationProblem = skippedRows.some((row) => row.kind !== \"bundle\");\n\n  const hint = hasAllocationProblem\n    ? \"These rows may need manual allocation or the allocation workflow may have failed.\"\n    : \"Deliver an item bundle by its bundle line - its items follow from it and cannot be delivered on their own.\";\n\n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid data:\\n\\n${rowDetails}\\n\\n${hint}`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage,\n  originalTableGD: originalTableGD\n};\n"
+          "code": "let allData = {{workflowparams:allData}};\nconst updatedGD = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isForceComplete = {{workflowparams:isForceComplete}};\nconst pickingSetup = {{node:code_picking_defaults.data.gdSetup}};\nconst pageStatus = {{workflowparams:pageStatus}}\n// skip_picking (internal auto-GR): treat picking as not required across the whole GD\n// lifecycle (incl. Created), so no picking_status is stamped and no picking TO is created.\nconst skipPickingGate = {{node:code_gr_gate.data.skipPicking}} || 0;\nif (skipPickingGate === 1 && pickingSetup) { pickingSetup.picking_required = 0; }\n\n// Cancel gate: a Completed Goods Delivery has already moved inventory and\n// posted downstream. It cannot be cancelled through this save path — it must\n// be reversed via the proper completion-reversal flow. Block the save with a\n// clear error, reusing the invalidData -> 400 path (if_vnwLSl9x).\nif (saveAs === \"Cancelled\" && allData.gd_status === \"Completed\") {\n  return {\n    allData: allData,\n    gd_status: allData.gd_status,\n    needCL: \"not required\",\n    picking_status: allData.picking_status,\n    packing_status: allData.packing_status,\n    needSOCleanUp: 0,\n    invalidData: 1,\n    invalidDataMessage: \"Cannot cancel Goods Delivery \" + (allData.delivery_no || \"\") + \" because it is already Completed. Reverse the completion before cancelling.\"\n  };\n}\n\n// M:N edit gate: when allow_full_picking=1 AND user is editing a GD that has\n// ANY non-terminal Picking (Created / In Progress), block the save with\n// a clear error. Forces user to cancel or complete those Pickings before\n// modifying the GD upstream of them. Reuses the invalidData -> 400 path\n// (if_vnwLSl9x).\n// A Picking confirm re-saves its parent GD through this same workflow with\n// saveAs=\"Created\" / pageStatus=\"Edit\", so without this exemption the gate fires\n// on the very save picking depends on. Under allow_full_picking a GD deliberately\n// carries several Pickings, so an active sibling is the normal state and every\n// confirm 400s (PI-20260902-0051 in prod, 2026-09-02: 9 Pickings on one GD,\n// confirms blocked and three lock rows stranded). The >= 1 threshold below makes\n// dev stricter still -- one active Picking is enough to block.\n// The gate still blocks a USER editing the GD; only the picking caller is exempt.\nconst isPickingSave = String({{workflowparams:isPicking}} || \"\") === \"Yes\";\n\nif (\n  pickingSetup &&\n  pickingSetup.allow_full_picking === 1 &&\n  saveAs === \"Created\" &&\n  pageStatus === \"Edit\" &&\n  !isPickingSave\n) {\n  const activePickings = ({{node:search_node_NBAQ9gsj.data.data}} || [])\n    .filter(function(to) {\n      return to.to_status !== \"Completed\" &&\n             to.to_status !== \"Cancelled\" &&\n             to.to_status !== \"Draft\";\n    });\n  // Not \">1\": Non-Split makes exactly ONE Picking and nothing else updates it\n  // (reconcile is off here, if_9xhwui06 needs auto_trigger_to=1), so it went stale.\n  if (activePickings.length >= 1) {\n    const count = activePickings.length;\n    const list = activePickings\n      .map(function(to) { return to.to_id || to.id; })\n      .slice(0, 5)\n      .join(\", \");\n    const suffix = count > 5\n      ? \" (+\" + (count - 5) + \" more)\"\n      : \"\";\n    return {\n      allData: allData,\n      gd_status: allData.gd_status,\n      needCL: \"not required\",\n      picking_status: allData.picking_status,\n      packing_status: allData.packing_status,\n      needSOCleanUp: 0,\n      invalidData: 1,\n      invalidDataMessage: \"Cannot edit this Goods Delivery while \" + count + (count === 1 ? \" Picking is\" : \" Pickings are\") + \" active: \" + list + suffix + \". Cancel or complete \" + (count === 1 ? \"it\" : \"them\") + \" before editing.\"\n    };\n  }\n}\n\nconst skippedRows = [];\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// A bundle is ONE row of table_gd with the bundle's items under `children`.\n// The bundle row carries no material of its own, so it already falls through\n// the descriptive-line branch below and is never asked for an allocation --\n// which is right, nothing is picked against a bundle. Its items, though, are\n// ordinary delivery lines and must be stamped, quantity-checked and counted\n// like any other row, and they are not rows of table_gd.\n//\n// So the loop below walks a flat view. Survivors are collected flat (which is\n// what hasRealStockRow and the picking rollup need to see) and folded back into\n// the tree at the end, because that is the shape the document is stored in.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\n\n// Survivors, by identity -- the loop mutates rows in place, so this only has to\n// record which ones made it through.\nconst survived = new Set();\n\nconst roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\n\n// A bundle is delivered as a whole: every item under it is the bundle's own\n// quantity times the number of bundles. Delivering 2 of item A against 1 of item\n// B, when the bundle holds one of each, is not a bundle -- and the form is the\n// only thing stopping it, so anything reaching this workflow by another route\n// (a headless convert, an API call, a stale page) would persist it.\n//\n// The rate comes off the delivery rather than out of the bundle: an item ordered\n// N times the bundle's own ordered quantity is N per bundle. That is the same\n// ratio the bundle defines, already carried on every row, so no lookup is needed.\nconst bundleRatioProblem = (parent, child) => {\n  const bundlesOrdered = parseFloat(parent.gd_order_quantity) || 0;\n\n  // Nothing to derive a rate from -- leave the line alone rather than guess.\n  if (bundlesOrdered <= 0) return null;\n\n  const perBundleQty =\n    (parseFloat(child.gd_order_quantity) || 0) / bundlesOrdered;\n  const expected = roundQty(perBundleQty * (parseFloat(parent.gd_qty) || 0));\n  const actual = roundQty(child.gd_qty);\n\n  return Math.abs(actual - expected) > 0.001 ? { expected, actual } : null;\n};\n\n// Build flags map from Get Items (only populated when picking_mode=Auto ran).\n// Used to detect description-only rows: stock_control=0 AND show_delivery=0.\nconst itemDataRaw = {{node:sql_node_ItemFlags.data}} || [];\nconst itemDataArray = Array.isArray(itemDataRaw) ? itemDataRaw : [itemDataRaw];\n// The sql-node may hand these back as strings; null must stay non-matching.\nconst asFlag = (v) => (v === null || v === undefined || v === \"\" ? null : Number(v));\nconst itemFlagsMap = {};\nfor (const it of itemDataArray) {\n  if (it && it.id) {\n    itemFlagsMap[it.id] = {\n      stock_control: asFlag(it.stock_control),\n      show_delivery: asFlag(it.show_delivery)\n    };\n  }\n}\n\nif ({{node:code_picking_defaults.data.pickingMode}} === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableGD = {{node:code_node_ymugKpln.data.tableGD}}\n  if (tableGD?.length > 0) {\n    allData.table_gd = tableGD\n  }\n}\n\n// Flattened AFTER the Auto-picking swap above, not before: that swap replaces\n// table_gd wholesale with the allocated copy, so a view taken any earlier points\n// at the pre-allocation rows -- every line then looks unallocated, and the\n// survivor set below holds objects that are no longer in the tree.\nconst flatEntries = [];\nallData.table_gd.forEach((row, parentIndex) => {\n  flatEntries.push({ row: row, parentIndex: parentIndex, childIndex: null });\n\n  childrenOf(row).forEach((child, childIndex) => {\n    flatEntries.push({ row: child, parentIndex: parentIndex, childIndex: childIndex });\n  });\n});\n\nfor (const entry of flatEntries) {\n  const gdLineItem = entry.row;\n  const index = entry.parentIndex;\n  // A number on a top-level row, `parent/child` on an item under a bundle --\n  // line_index is a text column, so the label is safe to store.\n  const lineLabel =\n    entry.childIndex === null\n      ? index + 1\n      : `${index + 1}/${entry.childIndex + 1}`;\n\n  if (entry.childIndex !== null && saveAs !== \"Draft\") {\n    const bundleParent = allData.table_gd[entry.parentIndex];\n\n    if (bundleParent && isBundleParentRow(bundleParent)) {\n      const ratio = bundleRatioProblem(bundleParent, gdLineItem);\n\n      if (ratio) {\n        skippedRows.push({\n          index: index,\n          line_label: lineLabel,\n          kind: \"bundle\",\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `item bundle quantities must stay in proportion - expected ${ratio.expected}, got ${ratio.actual}`,\n        });\n        continue;\n      }\n    }\n  }\n\n  if (saveAs !== \"Draft\" && (!gdLineItem.gd_qty || parseFloat(gdLineItem.gd_qty) === 0)) {\n    continue;\n  }\n\n  // Descriptive (no-stock) line: material_id empty, OR item has stock_control=0 AND show_delivery=0\n  const flags = gdLineItem.material_id ? itemFlagsMap[gdLineItem.material_id] : null;\n  const isNonStockNoShow = flags && flags.stock_control === 0 && flags.show_delivery === 0;\n  const isDescriptive = !gdLineItem.material_id || gdLineItem.material_id === \"\" || isNonStockNoShow;\n  if (isDescriptive) {\n    const hasDescription =\n      (gdLineItem.material_name && gdLineItem.material_name !== \"\") ||\n      (gdLineItem.gd_material_desc && gdLineItem.gd_material_desc !== \"\");\n    if (!hasDescription && saveAs !== \"Draft\") {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: \"(none)\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"row has no material_id and no description\",\n      });\n      continue;\n    }\n    gdLineItem.customer_id = allData.customer_name || null;\n    gdLineItem.organization_id = allData.organization_id;\n    gdLineItem.plant_id = allData.plant_id || null;\n    gdLineItem.billing_state_id = allData.billing_address_state || null;\n    gdLineItem.billing_country_id = allData.billing_address_country || null;\n    gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n    gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n    gdLineItem.assigned_to = allData.assigned_to || null;\n    gdLineItem.area_id = allData.gd_area_id || null;\n    gdLineItem.line_index = lineLabel;\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.picking_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n    }\n    if (\n      pickingSetup &&\n      allData.is_select_picking !== 1 &&\n      (!allData.picking_status || allData.picking_status === \"\") &&\n      saveAs === \"Created\" &&\n      pickingSetup.picking_required === 1\n    ) {\n      // Descriptive lines have no picking item — mark Completed so the GD-level\n      // picking_status can flip to Completed once the real stock rows are picked.\n      gdLineItem.picking_status = \"Completed\";\n    }\n    // Same treatment for packing_status: descriptive lines have no packing item,\n    // so they must be marked Completed for the GD-level rollup to succeed.\n    if (isForceComplete === \"Yes\") {\n      gdLineItem.packing_status = \"Completed\";\n    } else if (saveAs === \"Cancelled\") {\n      gdLineItem.packing_status = gdLineItem.packing_status ? \"Cancelled\" : null;\n    } else if (saveAs === \"Created\" && allData.is_select_picking !== 1) {\n      gdLineItem.packing_status = \"Completed\";\n    }\n    survived.add(gdLineItem);\n    updatedGD.push(gdLineItem);\n    continue;\n  }\n\n  if (saveAs !== \"Draft\") {\n    const tempQtyData = gdLineItem.temp_qty_data;\n    const isEmpty =\n      !tempQtyData ||\n      tempQtyData === \"\" ||\n      tempQtyData === \"[]\" ||\n      tempQtyData === null;\n\n    if (isEmpty) {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data is empty\",\n      });\n      continue;\n    }\n\n    try {\n      const parsedTempQty = JSON.parse(tempQtyData);\n      const totalAllocated = parsedTempQty.reduce(\n        (sum, item) => sum + (parseFloat(item.gd_quantity) || 0),\n        0\n      );\n      const gdQty = parseFloat(gdLineItem.gd_qty) || 0;\n\n      if (Math.abs(totalAllocated - gdQty) > 0.001) {\n        skippedRows.push({\n          index: index,\n          line_label: lineLabel,\n          material_name: gdLineItem.material_name || \"Unknown\",\n          gd_qty: gdLineItem.gd_qty,\n          allocated_qty: totalAllocated,\n          so_no: gdLineItem.so_no || \"\",\n          reason: `temp_qty_data total (${totalAllocated}) != gd_qty (${gdQty})`,\n        });\n        continue;\n      }\n    } catch (e) {\n      skippedRows.push({\n        index: index,\n        line_label: lineLabel,\n        material_name: gdLineItem.material_name || \"Unknown\",\n        gd_qty: gdLineItem.gd_qty,\n        so_no: gdLineItem.so_no || \"\",\n        reason: \"temp_qty_data parse error\",\n      });\n      continue;\n    }\n  }\n\n  gdLineItem.customer_id = allData.customer_name || null;\n  gdLineItem.organization_id = allData.organization_id;\n  gdLineItem.plant_id = allData.plant_id || null;\n  gdLineItem.billing_state_id = allData.billing_address_state || null;\n  gdLineItem.billing_country_id = allData.billing_address_country || null;\n  gdLineItem.shipping_state_id = allData.shipping_address_state || null;\n  gdLineItem.shipping_country_id = allData.shipping_address_country || null;\n  gdLineItem.assigned_to = allData.assigned_to || null;\n  gdLineItem.area_id = allData.gd_area_id || null;\n  gdLineItem.line_index = lineLabel;\n\n  if (isForceComplete === \"Yes\") {\n    gdLineItem.picking_status = \"Completed\";\n  } else if (saveAs === \"Cancelled\") {\n    gdLineItem.picking_status = gdLineItem.picking_status ? \"Cancelled\" : null;\n  }\n\n  if (\n    pickingSetup &&\n    allData.is_select_picking !== 1 &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      gdLineItem.picking_status = \"Created\";\n    } else {\n      gdLineItem.picking_status = \"Not Created\";\n    }\n  }\n\n  survived.add(gdLineItem);\n  updatedGD.push(gdLineItem);\n}\n\n// Back into the tree. A bundle whose items have all gone takes its bundle row\n// with it -- a bundle with nothing left to deliver is not a line.\nconst rebuiltGD = [];\nallData.table_gd.forEach((row) => {\n  if (!survived.has(row)) return;\n\n  const kids = childrenOf(row);\n\n  if (kids.length > 0) {\n    const keptKids = kids.filter((child) => survived.has(child));\n\n    if (isBundleParentRow(row) && keptKids.length === 0) return;\n\n    row.children = keptKids;\n  }\n\n  rebuiltGD.push(row);\n});\n\nallData.table_gd = rebuiltGD;\n\n// The header's order list is a rollup of the lines but was only ever written on\n// the way in, so dropping an order's last line left it on the header for good --\n// and \"Get SO Datas\" kept fetching it. Left alone when no line carries an order:\n// manual and Picking-Plan deliveries keep whatever the form set.\nconst headerSoIds = [];\nconst headerSoNos = [];\nrebuiltGD.forEach((row) => {\n  [row, ...childrenOf(row)].forEach((line) => {\n    const lineSoId = String(line.line_so_id || \"\");\n    if (!lineSoId || headerSoIds.includes(lineSoId)) return;\n    headerSoIds.push(lineSoId);\n    headerSoNos.push(String(line.line_so_no || \"\"));\n  });\n});\n\nif (headerSoIds.length > 0) {\n  allData.so_id = headerSoIds;\n  allData.so_no = headerSoNos.filter(Boolean).join(\", \");\n}\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.gd_status = \"Draft\";\n}\n\n// All-descriptive GD detection: if every surviving row is either a no-material_id\n// row or a stock_control=0 && show_delivery=0 row, there is nothing to pick.\n// Mark picking as Completed up front so no empty picking record is created.\nconst hasRealStockRow = updatedGD.some(function(row) {\n  if (!row.material_id || row.material_id === \"\") return false;\n  const f = itemFlagsMap[row.material_id];\n  if (f && f.stock_control === 0 && f.show_delivery === 0) return false;\n  return true;\n});\n\nif (\n  pickingSetup &&\n  allData.is_select_picking !== 1 &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (!hasRealStockRow) {\n    allData.picking_status = \"Completed\";\n    updatedGD.forEach(function(row) {\n      if (row.picking_status === \"Created\" || row.picking_status === \"Not Created\") {\n        row.picking_status = \"Completed\";\n      }\n    });\n  } else if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\n// GD-level packing_status: for all-skip-items GDs, mark Completed so the\n// \"IF need Packing\" gate doesn't block subsequent workflow steps.\nif (\n  allData.is_select_picking !== 1 &&\n  (!allData.packing_status || allData.packing_status === \"\") &&\n  saveAs === \"Created\" &&\n  !hasRealStockRow\n) {\n  allData.packing_status = \"Completed\";\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\")\n    ) {\n      allData.delivery_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.delivery_no_type !== -9999 &&\n      (!allData.delivery_no ||\n        allData.delivery_no === null ||\n        allData.delivery_no === \"\" ||\n        allData.gd_status === \"Draft\")\n    ) {\n      allData.delivery_no = \"issued\";\n    }\n  }\n}\n\nlet needCL;\n\n// Credit-limit stage gate.\n// Completed always evaluates CL (unchanged). Created evaluates it only when\n// picking_setup.full_cl_check = 1. Defaults to 0 in BOTH gaps: no picking_setup row\n// at all (orgSetup null), and a row whose full_cl_check was never written\n// (null / undefined / \"\"). Only an explicit 1 turns the Created-stage check on.\n// Reads orgSetup, not gdSetup: gdSetup is null for Picking-Plan orgs, which must not\n// silently disable the credit check.\nconst clSetup = {{node:code_picking_defaults.data.orgSetup}};\nconst fullCLCheck = Number(clSetup?.full_cl_check ?? 0) === 1;\n\nconst clStageAllowed =\n  saveAs === \"Completed\" || (saveAs === \"Created\" && fullCLCheck);\n\nif (\n  allData.acc_integration_type !== \"No Accounting\" &&\n  {{workflowparams:needCL}} === \"required\" &&\n  clStageAllowed\n) {\n  needCL = \"required\";\n} else {\n  needCL = \"not required\";\n}\n\nif (isForceComplete === \"Yes\") {\n  allData.picking_status = \"Completed\"\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n  // For Created GDs being cancelled, suffix delivery_no with \"-Cancelled\"\n  // so the (still-issued) document number is visually flagged.\n  if (\n    allData.gd_status === \"Created\" &&\n    typeof allData.delivery_no === \"string\" &&\n    allData.delivery_no &&\n    !allData.delivery_no.endsWith(\"-Cancelled\")\n  ) {\n    allData.delivery_no = allData.delivery_no + \"-Cancelled\";\n  }\n}\n\nlet needSOCleanUp = 0;\nlet originalTableGD = [];\n\nif (allData.gd_status === \"Created\") {\n  const originalGD = {{node:get_node_xTRvHWB8.data.data}};\n  originalTableGD = originalGD.table_gd;\n\n  // An item under a bundle is a delivery line in its own right and carries its\n  // own allocation -- it just is not a row of table_gd. Matched across the whole\n  // tree, or on re-save it looks brand new and its quantity is counted twice.\n  const flattenGdRows = (rows) =>\n    (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n  const originalRows = flattenGdRows(originalGD.table_gd);\n\n  flattenGdRows(allData.table_gd).forEach((item) => {\n    const originalItem = originalRows.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  // Set difference, not a length compare: an equal-count item swap left the\n  // departed SO line holding planned_qty, and an append fired the cleanup with an\n  // empty removedItems, whose `id in []` filter matches every SO line.\n  const currentSoLineIds = new Set(\n    flattenGdRows(allData.table_gd).map((r) => String(r.so_line_item_id || \"\"))\n  );\n  if (\n    originalRows.some((o) => !currentSoLineIds.has(String(o.so_line_item_id || \"\")))\n  ) {\n    needSOCleanUp = 1;\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.line_label || row.index + 1}: ${row.material_name} - qty: ${row.gd_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  const hasAllocationProblem = skippedRows.some((row) => row.kind !== \"bundle\");\n\n  const hint = hasAllocationProblem\n    ? \"These rows may need manual allocation or the allocation workflow may have failed.\"\n    : \"Deliver an item bundle by its bundle line - its items follow from it and cannot be delivered on their own.\";\n\n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid data:\\n\\n${rowDetails}\\n\\n${hint}`;\n}\n\nreturn {\n  allData: allData,\n  gd_status: allData.gd_status,\n  needCL: needCL,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage,\n  originalTableGD: originalTableGD\n};\n"
         },
         "response_json": [
           {
@@ -13158,6 +13158,495 @@
                 },
                 {
                   "id": "if_block_VSxxX_k4",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "code_pick_hdr_sync",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Plan Picking Header Sync",
+                "isValidator": true,
+                "nodeName": "Plan Picking Header Sync",
+                "name": "Plan Picking Header Sync",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Header-only Picking sync.\n//\n// if_9xhwui06 already carries this exact field map, but it only fires when\n// auto_trigger_to = 1 or a quantity reconcile is needed. An organisation that\n// creates its Pickings from the Picking form (auto_trigger_to = 0) therefore had\n// no path at all: editing the delivery method / area / Delivery Info block on a\n// Created delivery left the Picking on its original values. This runs after that\n// branch and stays mutually exclusive with it.\nconst saveAs = {{workflowparams:saveAs}};\nconst pageStatus = {{workflowparams:pageStatus}};\n// Only ever passed as the string \"Yes\", by PickingProcessWorkflow. A Picking\n// confirm re-saves its parent GD through here and owns its own header.\nconst isPickingSave = String({{workflowparams:isPicking}} || \"\") === \"Yes\";\n\n// Same source as code_node_o35eZx2c so both paths map identical values.\nconst allData = {{node:code_node_Pgtw6zFL.data.gdDataFull}} || null;\n\n// When if_9xhwui06 ran it has already written -- and where it CREATED a Picking\n// the fetch below is stale, so these two must never both act in one save.\nconst autoTriggerTo = Number({{node:code_picking_defaults.data.autoTriggerTo}} || 0);\nconst reconcileNeeded = Number({{node:code_pick_reconcile.data.reconcileNeeded}} || 0);\n\n// get_pick_for_reconcile sits inside \"IF Created\", so this is null on every other\n// save -- exactly the cases with no Picking to sync. It reads the Picking as it\n// stood before this save, which is what the diff below needs.\nconst rawPicking = {{node:get_pick_for_reconcile.data.data}};\nconst picking = Array.isArray(rawPicking)\n  ? rawPicking[0] || null\n  : rawPicking || null;\n\nconst OFF = { syncNeeded: 0, pickingId: \"\", headerData: {} };\n\nif (\n  saveAs !== \"Created\" ||\n  pageStatus !== \"Edit\" ||\n  isPickingSave ||\n  autoTriggerTo === 1 ||\n  reconcileNeeded === 1 ||\n  !allData ||\n  !picking ||\n  !picking.id\n) {\n  return OFF;\n}\n\n// PickingLoopWorkflow takes is_processing as a mutex while a picker confirms on a\n// device. Header fields are cosmetic next to a pick confirmation, so stand down.\nif (Number(picking.is_processing || 0) !== 0) {\n  return OFF;\n}\n\n// Mapping below is code_node_o35eZx2c's buildDeliveryFields verbatim -- GD and\n// Picking name some fields differently, and every key is blanked first so that\n// switching delivery method clears the previous method's values.\nconst DELIVERY_FIELD_KEYS = [\n  \"delivery_method\", \"delivery_method_text\", \"area_id\",\n  \"driver_name\", \"ic_no\", \"driver_contact_no\", \"sp_vehicle_no\", \"pickup_date\", \"validity_of_collection\",\n  \"courier_company\", \"shipping_date\", \"tracking_number\", \"est_arrival_date\", \"freight_charges\",\n  \"ct_driver_name\", \"ct_driver_contact_no\", \"ct_ic_no\", \"vehicle_no\", \"est_delivery_date\", \"delivery_cost\",\n  \"shipping_company\", \"ss_shipping_date\", \"ss_freight_charges\", \"shipping_method\", \"ss_est_arrival_date\", \"ss_tracking_number\",\n  \"tpt_vehicle_number\", \"tpt_transport_name\", \"tpt_ic_no\", \"tpt_driver_contact_no\", \"tpt_driver_name\",\n  \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\",\n];\n\nconst buildDeliveryFields = (gd) => {\n  const fields = {};\n  for (const k of DELIVERY_FIELD_KEYS) fields[k] = \"\";\n  const method = gd.gd_delivery_method || \"\";\n  fields.delivery_method = method;\n  fields.delivery_method_text = gd.delivery_method_text || method;\n  fields.area_id = gd.gd_area_id || \"\";\n\n  fields.di_shipping_method = gd.di_shipping_method ?? \"\";\n  fields.di_driver_name = gd.di_driver_name ?? \"\";\n  fields.di_ic_no = gd.di_ic_no ?? \"\";\n  fields.di_driver_contact_no = gd.di_driver_contact_no ?? \"\";\n  fields.di_shipping_company = gd.di_shipping_company ?? \"\";\n  fields.di_transport_name = gd.di_transport_name ?? \"\";\n  fields.di_vehicle_number = gd.di_vehicle_number ?? \"\";\n  fields.di_est_delivery_date = gd.di_est_delivery_date ?? \"\";\n  fields.di_est_arrival_date = gd.di_est_arrival_date ?? \"\";\n  fields.di_pickup_date = gd.di_pickup_date ?? \"\";\n  fields.di_validity_of_collection = gd.di_validity_of_collection ?? \"\";\n  fields.di_tracking_number = gd.di_tracking_number ?? \"\";\n  fields.di_freight_charges = gd.di_freight_charges ?? \"\";\n\n  switch (method) {\n    case \"Self Pickup\":\n      fields.driver_name = gd.driver_name ?? \"\";\n      fields.ic_no = gd.ic_no ?? \"\";\n      fields.driver_contact_no = gd.driver_contact_no ?? \"\";\n      fields.sp_vehicle_no = gd.sp_vehicle_no ?? \"\";\n      fields.pickup_date = gd.pickup_date ?? \"\";\n      fields.validity_of_collection = gd.validity_of_collection ?? \"\";\n      break;\n    case \"Courier Service\":\n      fields.courier_company = gd.courier_company ?? \"\";\n      fields.shipping_date = gd.shipping_date ?? \"\";\n      fields.tracking_number = gd.tracking_number ?? \"\";\n      fields.est_arrival_date = gd.est_arrival_date ?? \"\";\n      fields.freight_charges = gd.freight_charges ?? \"\";\n      break;\n    case \"Company Truck\":\n      fields.ct_driver_name = gd.driver_name ?? \"\";\n      fields.ct_driver_contact_no = gd.driver_contact_no ?? \"\";\n      fields.ct_ic_no = gd.ic_no ?? \"\";\n      fields.vehicle_no = gd.vehicle_no ?? \"\";\n      fields.est_delivery_date = gd.est_delivery_date ?? \"\";\n      fields.delivery_cost = gd.delivery_cost ?? \"\";\n      break;\n    case \"Shipping Service\":\n      fields.shipping_company = gd.shipping_company ?? \"\";\n      fields.ss_shipping_date = gd.shipping_date ?? \"\";\n      fields.ss_freight_charges = gd.freight_charges ?? \"\";\n      fields.shipping_method = gd.shipping_method ?? \"\";\n      fields.ss_est_arrival_date = gd.est_arrival_date ?? \"\";\n      fields.ss_tracking_number = gd.tracking_number ?? \"\";\n      break;\n    case \"3rd Party Transporter\":\n      fields.tpt_vehicle_number = gd.tpt_vehicle_number ?? \"\";\n      fields.tpt_transport_name = gd.tpt_transport_name ?? \"\";\n      fields.tpt_ic_no = gd.tpt_ic_no ?? \"\";\n      fields.tpt_driver_contact_no = gd.tpt_driver_contact_no ?? \"\";\n      fields.tpt_driver_name = gd.tpt_driver_name ?? \"\";\n      break;\n  }\n  return fields;\n};\n\nconst headerData = buildDeliveryFields(allData);\n\n// Diff before writing, so a save that changed only line quantities or an address\n// costs nothing. The comparison has to be type-aware or every save looks changed:\n// a decimal(65,2) reads back 0.00 where the form posted \"\", and a timestamp reads\n// back with a time part the form never sent.\nconst NUMERIC_KEYS = [\n  \"freight_charges\", \"delivery_cost\", \"ss_freight_charges\", \"di_freight_charges\"\n];\nconst DATE_KEYS = [\n  \"pickup_date\", \"validity_of_collection\", \"shipping_date\", \"est_arrival_date\",\n  \"est_delivery_date\", \"ss_shipping_date\", \"ss_est_arrival_date\",\n  \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\",\n  \"di_validity_of_collection\"\n];\n\nconst norm = (v) => (v === null || v === undefined ? \"\" : String(v).trim());\nconst normNum = (v) => String(Math.round((parseFloat(v) || 0) * 100) / 100);\nconst normDate = (v) => norm(v).slice(0, 10);\n\nconst sameValue = (key, a, b) => {\n  if (NUMERIC_KEYS.indexOf(key) !== -1) return normNum(a) === normNum(b);\n  if (DATE_KEYS.indexOf(key) !== -1) return normDate(a) === normDate(b);\n  return norm(a) === norm(b);\n};\n\nlet changed = 0;\nfor (const k of DELIVERY_FIELD_KEYS) {\n  if (!sameValue(k, headerData[k], picking[k])) {\n    changed = 1;\n    break;\n  }\n}\n\nif (changed !== 1) {\n  return OFF;\n}\n\nreturn {\n  syncNeeded: 1,\n  pickingId: String(picking.id),\n  headerData: headerData\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "hdrsync01",
+                    "name": "syncNeeded",
+                    "title": "syncNeeded",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "hdrsync02",
+                    "name": "pickingId",
+                    "title": "pickingId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "hdrsync03",
+                    "name": "headerData",
+                    "title": "headerData",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_pick_hdr_sync",
+              "type": "if",
+              "data": {
+                "title": "IF Picking Header Sync",
+                "isValidator": true,
+                "nodeName": "IF Picking Header Sync",
+                "name": "IF Picking Header Sync",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1787900000004,
+                      "parentId": 1787900000003,
+                      "isTop": true,
+                      "prop": "node.code_pick_hdr_sync.data.syncNeeded",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "syncNeeded",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_pick_hdr_sync_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "update_pick_hdr_sync",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Transfer Order Picking:Table:1935556443668959233",
+                          "rules": {
+                            "collectionId": "1935556443668959233",
+                            "list": [
+                              {
+                                "id": 1787900000002,
+                                "parentId": 1787900000001,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_pick_hdr_sync.data.pickingId}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Sync Picking Header",
+                        "isValidator": true,
+                        "nodeName": "Sync Picking Header",
+                        "name": "Sync Picking Header",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "delivery_method",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.delivery_method}}",
+                              "valueLabel": "",
+                              "propLabel": "Delivery Method"
+                            },
+                            {
+                              "prop": "delivery_method_text",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.delivery_method_text}}",
+                              "valueLabel": "",
+                              "propLabel": "Delivery Method Text"
+                            },
+                            {
+                              "prop": "area_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.area_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Area"
+                            },
+                            {
+                              "prop": "driver_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.driver_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Driver Name"
+                            },
+                            {
+                              "prop": "ic_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.ic_no}}",
+                              "valueLabel": "",
+                              "propLabel": "IC No"
+                            },
+                            {
+                              "prop": "driver_contact_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.driver_contact_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Driver Contact No"
+                            },
+                            {
+                              "prop": "sp_vehicle_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.sp_vehicle_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Vehicle No"
+                            },
+                            {
+                              "prop": "pickup_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.pickup_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Pickup Date"
+                            },
+                            {
+                              "prop": "validity_of_collection",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.validity_of_collection}}",
+                              "valueLabel": "",
+                              "propLabel": "Validity of Collection"
+                            },
+                            {
+                              "prop": "courier_company",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.courier_company}}",
+                              "valueLabel": "",
+                              "propLabel": "Courier Company"
+                            },
+                            {
+                              "prop": "shipping_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.shipping_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Shipping Date"
+                            },
+                            {
+                              "prop": "tracking_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.tracking_number}}",
+                              "valueLabel": "",
+                              "propLabel": "Tracking Number"
+                            },
+                            {
+                              "prop": "est_arrival_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.est_arrival_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Est Arrival Date"
+                            },
+                            {
+                              "prop": "freight_charges",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.freight_charges}}",
+                              "valueLabel": "",
+                              "propLabel": "Freight Charges"
+                            },
+                            {
+                              "prop": "ct_driver_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.ct_driver_name}}",
+                              "valueLabel": "",
+                              "propLabel": "CT Driver Name"
+                            },
+                            {
+                              "prop": "ct_driver_contact_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.ct_driver_contact_no}}",
+                              "valueLabel": "",
+                              "propLabel": "CT Driver Contact No"
+                            },
+                            {
+                              "prop": "ct_ic_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.ct_ic_no}}",
+                              "valueLabel": "",
+                              "propLabel": "CT IC No"
+                            },
+                            {
+                              "prop": "vehicle_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.vehicle_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Vehicle No (CT)"
+                            },
+                            {
+                              "prop": "est_delivery_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.est_delivery_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Est Delivery Date"
+                            },
+                            {
+                              "prop": "delivery_cost",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.delivery_cost}}",
+                              "valueLabel": "",
+                              "propLabel": "Delivery Cost"
+                            },
+                            {
+                              "prop": "shipping_company",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.shipping_company}}",
+                              "valueLabel": "",
+                              "propLabel": "Shipping Company"
+                            },
+                            {
+                              "prop": "ss_shipping_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.ss_shipping_date}}",
+                              "valueLabel": "",
+                              "propLabel": "SS Shipping Date"
+                            },
+                            {
+                              "prop": "ss_freight_charges",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.ss_freight_charges}}",
+                              "valueLabel": "",
+                              "propLabel": "SS Freight Charges"
+                            },
+                            {
+                              "prop": "shipping_method",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.shipping_method}}",
+                              "valueLabel": "",
+                              "propLabel": "Shipping Method"
+                            },
+                            {
+                              "prop": "ss_est_arrival_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.ss_est_arrival_date}}",
+                              "valueLabel": "",
+                              "propLabel": "SS Est Arrival Date"
+                            },
+                            {
+                              "prop": "ss_tracking_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.ss_tracking_number}}",
+                              "valueLabel": "",
+                              "propLabel": "SS Tracking Number"
+                            },
+                            {
+                              "prop": "tpt_vehicle_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.tpt_vehicle_number}}",
+                              "valueLabel": "",
+                              "propLabel": "TPT Vehicle Number"
+                            },
+                            {
+                              "prop": "tpt_transport_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.tpt_transport_name}}",
+                              "valueLabel": "",
+                              "propLabel": "TPT Transport Name"
+                            },
+                            {
+                              "prop": "tpt_ic_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.tpt_ic_no}}",
+                              "valueLabel": "",
+                              "propLabel": "TPT IC No"
+                            },
+                            {
+                              "prop": "tpt_driver_contact_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.tpt_driver_contact_no}}",
+                              "valueLabel": "",
+                              "propLabel": "TPT Driver Contact No"
+                            },
+                            {
+                              "prop": "tpt_driver_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.tpt_driver_name}}",
+                              "valueLabel": "",
+                              "propLabel": "TPT Driver Name"
+                            },
+                            {
+                              "prop": "di_shipping_method",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_shipping_method}}",
+                              "valueLabel": "",
+                              "propLabel": "Shipping Method"
+                            },
+                            {
+                              "prop": "di_driver_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_driver_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Driver Name"
+                            },
+                            {
+                              "prop": "di_ic_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_ic_no}}",
+                              "valueLabel": "",
+                              "propLabel": "IC No"
+                            },
+                            {
+                              "prop": "di_driver_contact_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_driver_contact_no}}",
+                              "valueLabel": "",
+                              "propLabel": "Driver Contact No"
+                            },
+                            {
+                              "prop": "di_shipping_company",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_shipping_company}}",
+                              "valueLabel": "",
+                              "propLabel": "Shipping Company"
+                            },
+                            {
+                              "prop": "di_transport_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_transport_name}}",
+                              "valueLabel": "",
+                              "propLabel": "Transport Name"
+                            },
+                            {
+                              "prop": "di_vehicle_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_vehicle_number}}",
+                              "valueLabel": "",
+                              "propLabel": "Vehicle Number"
+                            },
+                            {
+                              "prop": "di_est_delivery_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_est_delivery_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Est Delivery Date"
+                            },
+                            {
+                              "prop": "di_est_arrival_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_est_arrival_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Est Arrival Date"
+                            },
+                            {
+                              "prop": "di_pickup_date",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_pickup_date}}",
+                              "valueLabel": "",
+                              "propLabel": "Pickup Date"
+                            },
+                            {
+                              "prop": "di_validity_of_collection",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_validity_of_collection}}",
+                              "valueLabel": "",
+                              "propLabel": "Validity of Collection"
+                            },
+                            {
+                              "prop": "di_tracking_number",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_tracking_number}}",
+                              "valueLabel": "",
+                              "propLabel": "Tracking Number"
+                            },
+                            {
+                              "prop": "di_freight_charges",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_pick_hdr_sync.data.headerData.di_freight_charges}}",
+                              "valueLabel": "",
+                              "propLabel": "Freight Charges"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_pick_hdr_sync_f",
                   "type": "ifBlock",
                   "data": {
                     "title": "false"
