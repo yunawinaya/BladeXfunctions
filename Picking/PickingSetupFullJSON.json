@@ -810,7 +810,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": ""
+                "onChange": "afpwarn1"
               },
               "name": "Fully Complete Picking",
               "key": "fqxxiwfh",
@@ -2348,6 +2348,12 @@
         "key": "76by2zu8",
         "name": "onIsLoadingBayChange",
         "func": "// Loading Bay staging and Auto Complete GD are mutually exclusive.\n//\n// With is_loading_bay = 1 the picker moves stock into a staging bin, and the\n// Reserved allocation has to follow it. That shuttle (detectBinHuMigrations in\n// GDProcessTable_batchProcess) only runs on a \"Created\" save, so the GD MUST\n// pass through Created. auto_completed_gd = 1 sends picking straight to a\n// \"Completed\" GD save, the shuttle never fires, and the delivery then tries to\n// take unrestricted stock from a bay bin that was never stocked.\n(async () => {\n  try {\n    const isLoadingBay = arguments[0].value;\n\n    if (isLoadingBay === 1) {\n      await this.setData({ auto_completed_gd: 0 });\n      this.disabled([\"auto_completed_gd\"], true);\n      return;\n    }\n\n    // Only re-enable where the field is meaningful — picking_after\n    // \"Sales Order\" keeps it hidden and forced to 0 on its own.\n    const pickingAfter = await this.getValue(\"picking_after\");\n    if (pickingAfter === \"Goods Delivery\") {\n      this.disabled([\"auto_completed_gd\"], false);\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "afpwarn1",
+        "name": "onAllowFullPickingChange",
+        "func": "// Full Picking splits one delivery line across several Pickings: any picked\n// quantity closes the line, and the leftover only becomes a new Picking because\n// the confirm re-saves the GD and GDheadWorkflow's \"IF Auto Create Picking\"\n// (if_9xhwui06) mints one. That gate also requires auto_trigger_to = 1, so with\n// Full Picking on and Auto Trigger off the leftover is not picked up by anything\n// and waits for a manual Convert to Picking on the desktop GD list page.\n//\n// Warned rather than forced: running the split by hand is a legitimate choice\n// (it is where the assignee and grouping get decided), unlike the Loading Bay\n// interlock, which prevents a state that strands stock.\n(async () => {\n  try {\n    const allowFullPicking = arguments[0].value;\n\n    if (allowFullPicking !== 1) return;\n\n    const autoTriggerTo = await this.getValue(\"auto_trigger_to\");\n\n    if (autoTriggerTo !== 1) {\n      this.$message.warning(\n        \"Full Picking is on but Auto Trigger To is off. A partly picked line closes immediately, and the remaining quantity will not become a new Picking until someone runs Convert to Picking on the Goods Delivery list. Turn on Auto Trigger To to have it created automatically.\",\n      );\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
         "type": "js"
       }
     ],
