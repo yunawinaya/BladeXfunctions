@@ -7874,7 +7874,9 @@
                       "showNumber": "",
                       "viewMode": "",
                       "format": "rmb",
-                      "cacheProp": true
+                      "cacheProp": true,
+                      "precision_rule": 1,
+                      "number_rule": ""
                     },
                     "tip": "",
                     "remoteFunc": "func_os2t9dym",
@@ -7887,7 +7889,7 @@
                     "pad": "*",
                     "desensitization_pattern": "",
                     "desensitization_replace": "",
-                    "fixedColumn": true,
+                    "fixedColumn": false,
                     "fixedColumnPosition": "right"
                   },
                   "events": {
@@ -8014,256 +8016,6 @@
                   "novalid": {},
                   "key": "2fdr1b6a",
                   "model": "picking_base_qty",
-                  "rules": []
-                },
-                {
-                  "type": "select",
-                  "mainIcon": "下拉单选",
-                  "typeIcon": "下拉单选",
-                  "icon": "icon-select",
-                  "group": "Select",
-                  "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-select",
-                  "options": {
-                    "defaultValue": "",
-                    "multiple": false,
-                    "disabled": true,
-                    "clearable": false,
-                    "placeholder": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "width": "",
-                    "options": [
-                      {
-                        "value": "Option 1",
-                        "label": "Option 1"
-                      },
-                      {
-                        "value": "Option 2",
-                        "label": "Option 2"
-                      },
-                      {
-                        "value": "Option 3",
-                        "label": "Option 3"
-                      }
-                    ],
-                    "remote": true,
-                    "remoteType": "innerdatasource",
-                    "remoteOption": "option_fnmc4ypo",
-                    "filterable": false,
-                    "pagingEnabled": true,
-                    "remoteOptions": [],
-                    "props": {
-                      "value": "id",
-                      "label": "uom_name",
-                      "cascade": "",
-                      "children": "",
-                      "image": "",
-                      "icon": "",
-                      "explain": ""
-                    },
-                    "remoteFunc": "func_fnmc4ypo",
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "customProps": {},
-                    "tip": "",
-                    "tableColumn": true,
-                    "subform": false,
-                    "datasource": {
-                      "source": "UOM:Table:1901805375573839874",
-                      "rules": {
-                        "collectionId": "1901805375573839874",
-                        "list": [
-                          {
-                            "id": 1750316826576,
-                            "parentId": 1750316826575,
-                            "isTop": true,
-                            "prop": "",
-                            "operator": "",
-                            "valueType": "",
-                            "value": "",
-                            "type": "leaf",
-                            "level": 1
-                          }
-                        ]
-                      }
-                    },
-                    "more_fields": [],
-                    "auto_refresh": 0,
-                    "auto_refresh_debounce": 100,
-                    "paging_enabled": 1,
-                    "page_size": 10,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": ""
-                  },
-                  "events": {
-                    "onChange": "",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "name": "UOM",
-                  "novalid": {},
-                  "key": "hjfjayml",
-                  "model": "item_uom",
-                  "rules": []
-                },
-                {
-                  "name": "Picking UOM",
-                  "type": "select",
-                  "mainIcon": "下拉单选",
-                  "typeIcon": "下拉单选",
-                  "icon": "icon-select",
-                  "group": "Select",
-                  "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
-                  "el": "fm-select",
-                  "options": {
-                    "defaultValue": "",
-                    "multiple": false,
-                    "disabled": "{{!!arguments[0]?.row?.item_bundle_id}}",
-                    "clearable": false,
-                    "placeholder": "",
-                    "required": false,
-                    "requiredMessage": "",
-                    "validatorCheck": false,
-                    "validator": "",
-                    "width": "",
-                    "options": [
-                      {
-                        "value": "Option 1",
-                        "label": "Option 1"
-                      },
-                      {
-                        "value": "Option 2",
-                        "label": "Option 2"
-                      },
-                      {
-                        "value": "Option 3",
-                        "label": "Option 3"
-                      }
-                    ],
-                    "remote": true,
-                    "remoteType": "innerdatasource",
-                    "remoteOption": "option_421uvj1u",
-                    "filterable": true,
-                    "pagingEnabled": true,
-                    "remoteOptions": [],
-                    "props": {
-                      "value": "alt_uom_id",
-                      "label": "alt_uom_id.uom_name",
-                      "cascade": "",
-                      "children": "",
-                      "image": "",
-                      "icon": "",
-                      "explain": ""
-                    },
-                    "remoteFunc": "func_421uvj1u",
-                    "customClass": "",
-                    "labelWidth": 100,
-                    "isLabelWidth": false,
-                    "hidden": false,
-                    "dataBind": true,
-                    "customProps": {},
-                    "tip": "",
-                    "tableColumn": true,
-                    "subform": false,
-                    "paging_enabled": 1,
-                    "paging_way": "Pagination",
-                    "page_size": 10,
-                    "more_fields": [],
-                    "datasource": {
-                      "source": "Item_mji552rc_sub:Table:1939885252310573057",
-                      "rules": {
-                        "collectionId": "1939885252310573057",
-                        "list": [
-                          {
-                            "id": 1762242790299,
-                            "parentId": 1762242790298,
-                            "isTop": true,
-                            "type": "leaf",
-                            "operator": "numberEqual",
-                            "prop": "Item_id.id",
-                            "valueType": "formula",
-                            "value": "{{value:table_picking_items}}.map(item => item.item_code)[arguments[0].rowIndex]",
-                            "level": 1,
-                            "propLabel": "主键ID",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          }
-                        ]
-                      }
-                    },
-                    "url_params": {
-                      "list": [
-                        {
-                          "prop": "",
-                          "propLabel": "",
-                          "operator": "",
-                          "operatorLabel": "",
-                          "valueType": "value",
-                          "valueTypeLabel": "",
-                          "valueLabel": ""
-                        }
-                      ]
-                    },
-                    "body_params": {
-                      "list": [
-                        {
-                          "prop": "",
-                          "propLabel": "",
-                          "operator": "",
-                          "operatorLabel": "",
-                          "valueType": "value",
-                          "valueTypeLabel": "",
-                          "valueLabel": ""
-                        }
-                      ]
-                    },
-                    "request_params": {
-                      "list": [
-                        {
-                          "prop": "",
-                          "propLabel": "",
-                          "operator": "",
-                          "operatorLabel": "",
-                          "valueType": "value",
-                          "valueTypeLabel": "",
-                          "valueLabel": ""
-                        }
-                      ]
-                    },
-                    "columns": [],
-                    "data_field": "",
-                    "auto_refresh": 1,
-                    "auto_refresh_debounce": 100,
-                    "select-card_n7ge7fmb": [],
-                    "left": 3,
-                    "right": 4,
-                    "pad": "*",
-                    "desensitization_pattern": "",
-                    "desensitization_replace": "",
-                    "sorts": [],
-                    "fixedColumn": true,
-                    "fixedColumnPosition": "right"
-                  },
-                  "events": {
-                    "onChange": "a9nyylol",
-                    "onFocus": "",
-                    "onBlur": ""
-                  },
-                  "novalid": {},
-                  "key": "n94spjtr",
-                  "model": "picking_uom",
                   "rules": []
                 },
                 {
@@ -8743,13 +8495,117 @@
                       "showNumber": "",
                       "viewMode": "",
                       "format": "rmb",
-                      "cacheProp": true
+                      "cacheProp": true,
+                      "precision_rule": 1,
+                      "number_rule": ""
                     },
                     "tip": "",
                     "remoteFunc": "func_os2t9dym",
                     "remoteOption": "option_os2t9dym",
                     "tableColumn": true,
                     "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "fixedColumn": true,
+                    "fixedColumnPosition": "right"
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "2ogpzfsr",
+                  "model": "pending_alt",
+                  "rules": []
+                },
+                {
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": true,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_fnmc4ypo",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "uom_name",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remoteFunc": "func_fnmc4ypo",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": true,
+                    "subform": false,
+                    "datasource": {
+                      "source": "UOM:Table:1901805375573839874",
+                      "rules": {
+                        "collectionId": "1901805375573839874",
+                        "list": [
+                          {
+                            "id": 1750316826576,
+                            "parentId": 1750316826575,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "more_fields": [],
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "paging_enabled": 1,
+                    "page_size": 10,
                     "select-card_n7ge7fmb": [],
                     "left": 3,
                     "right": 4,
@@ -8762,9 +8618,159 @@
                     "onFocus": "",
                     "onBlur": ""
                   },
+                  "name": "UOM",
                   "novalid": {},
-                  "key": "2ogpzfsr",
-                  "model": "pending_alt",
+                  "key": "hjfjayml",
+                  "model": "item_uom",
+                  "rules": []
+                },
+                {
+                  "name": "Picking UOM",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": "{{!!arguments[0]?.row?.item_bundle_id}}",
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_421uvj1u",
+                    "filterable": true,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "alt_uom_id",
+                      "label": "alt_uom_id.uom_name",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remoteFunc": "func_421uvj1u",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": true,
+                    "subform": false,
+                    "paging_enabled": 1,
+                    "paging_way": "Pagination",
+                    "page_size": 10,
+                    "more_fields": [],
+                    "datasource": {
+                      "source": "Item_mji552rc_sub:Table:1939885252310573057",
+                      "rules": {
+                        "collectionId": "1939885252310573057",
+                        "list": [
+                          {
+                            "id": 1762242790299,
+                            "parentId": 1762242790298,
+                            "isTop": true,
+                            "type": "leaf",
+                            "operator": "numberEqual",
+                            "prop": "Item_id.id",
+                            "valueType": "formula",
+                            "value": "{{value:table_picking_items}}.map(item => item.item_code)[arguments[0].rowIndex]",
+                            "level": 1,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                          }
+                        ]
+                      }
+                    },
+                    "url_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "request_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "columns": [],
+                    "data_field": "",
+                    "auto_refresh": 1,
+                    "auto_refresh_debounce": 100,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "sorts": [],
+                    "fixedColumn": true,
+                    "fixedColumnPosition": "right"
+                  },
+                  "events": {
+                    "onChange": "a9nyylol",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "n94spjtr",
+                  "model": "picking_uom",
                   "rules": []
                 },
                 {
