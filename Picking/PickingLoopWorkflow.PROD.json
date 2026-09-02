@@ -124,10 +124,7 @@
         "isValidator": true,
         "nodeName": "Set Index",
         "name": "Set Index",
-        "custom_wkbocgni": {
-          "type": "javascript",
-          "code": "0"
-        },
+        "custom_wkbocgni": { "type": "javascript", "code": "0" },
         "redis_key": "index_{{node:code_node_uPSc7Syb.data.unique}}"
       },
       "blocks": []
@@ -273,10 +270,7 @@
             "nodeName": "IF Invalid",
             "name": "IF Invalid",
             "condition_type": "ConditionRule",
-            "expression": {
-              "type": "javascript",
-              "code": ""
-            },
+            "expression": { "type": "javascript", "code": "" },
             "filter": {
               "list": [
                 {
@@ -300,9 +294,7 @@
             {
               "id": "if_block__cjFmiA8",
               "type": "ifBlock",
-              "data": {
-                "title": "true"
-              },
+              "data": { "title": "true" },
               "blocks": [
                 {
                   "id": "return_node_RAigIr20",
@@ -345,9 +337,7 @@
             {
               "id": "if_block_bEZViAUZ",
               "type": "ifBlock",
-              "data": {
-                "title": "false"
-              },
+              "data": { "title": "false" },
               "blocks": []
             }
           ]
@@ -361,10 +351,7 @@
             "nodeName": "IF Edit",
             "name": "IF Edit",
             "condition_type": "ConditionRule",
-            "expression": {
-              "type": "javascript",
-              "code": ""
-            },
+            "expression": { "type": "javascript", "code": "" },
             "filter": {
               "list": [
                 {
@@ -388,9 +375,7 @@
             {
               "id": "if_block_j_oVWfwQ",
               "type": "ifBlock",
-              "data": {
-                "title": "true"
-              },
+              "data": { "title": "true" },
               "blocks": [
                 {
                   "id": "sql_node_LockGate",
@@ -491,12 +476,8 @@
                   "type": "condition-or-node",
                   "data": {
                     "title": "Condition",
-                    "filter": {
-                      "list": []
-                    },
-                    "expression": {
-                      "code": ""
-                    },
+                    "filter": { "list": [] },
+                    "expression": { "code": "" },
                     "displayContent": "sdk.form.setCondition"
                   },
                   "blocks": [
@@ -523,9 +504,7 @@
                             }
                           ]
                         },
-                        "expression": {
-                          "code": ""
-                        },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition",
                         "isValidator": true,
                         "nodeName": "IF isProcessing",
@@ -594,9 +573,7 @@
                             }
                           ]
                         },
-                        "expression": {
-                          "code": ""
-                        },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.setCondition",
                         "__index": 2,
                         "isDefault": false,
@@ -650,12 +627,8 @@
                       "data": {
                         "title": "Valid",
                         "isDefault": true,
-                        "filter": {
-                          "list": []
-                        },
-                        "expression": {
-                          "code": ""
-                        },
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
                         "displayContent": "sdk.form.otherCondition"
                       },
                       "blocks": [
@@ -716,9 +689,7 @@
             {
               "id": "if_block_TVs2Gx1B",
               "type": "ifBlock",
-              "data": {
-                "title": "false"
-              },
+              "data": { "title": "false" },
               "blocks": []
             }
           ]
@@ -849,10 +820,101 @@
             {
               "id": "ifBlock_WwiaxBCM",
               "type": "ifBlock",
-              "data": {
-                "title": "true"
-              },
+              "data": { "title": "true" },
               "blocks": [
+                {
+                  "id": "if_ReleaseLockVF",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Edit",
+                    "isValidator": true,
+                    "nodeName": "IF Edit",
+                    "name": "IF Edit",
+                    "condition_type": "ConditionRule",
+                    "expression": { "type": "javascript", "code": "" },
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1736695973613,
+                          "parentId": 1736695973612,
+                          "isTop": true,
+                          "prop": "workflowparams.pageStatus",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "Edit",
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "pageStatus",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_ReleaseLockVFTrue",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "update_node_ReleaseLockVF",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Transfer Order Picking:Table:1935556443668959233",
+                              "rules": {
+                                "collectionId": "1935556443668959233",
+                                "list": [
+                                  {
+                                    "id": 1772179693343,
+                                    "parentId": 1772179693342,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Release Picking Lock",
+                            "isValidator": true,
+                            "nodeName": "Release Picking Lock",
+                            "name": "Release Picking Lock",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "is_processing",
+                                  "valueType": "value",
+                                  "value": 0,
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "Is Processing"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_ReleaseLockVFFalse",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                },
                 {
                   "id": "return_node_cIY3Ta84",
                   "type": "return-node",
@@ -894,9 +956,7 @@
             {
               "id": "ifBlock_Yua5biY8",
               "type": "ifBlock",
-              "data": {
-                "title": "false"
-              },
+              "data": { "title": "false" },
               "blocks": []
             }
           ]
@@ -939,10 +999,7 @@
             "nodeName": "IF Add",
             "name": "IF Add",
             "condition_type": "ConditionRule",
-            "expression": {
-              "type": "javascript",
-              "code": ""
-            },
+            "expression": { "type": "javascript", "code": "" },
             "filter": {
               "list": [
                 {
@@ -966,9 +1023,7 @@
             {
               "id": "if_block_cIsY2k6T",
               "type": "ifBlock",
-              "data": {
-                "title": "true"
-              },
+              "data": { "title": "true" },
               "blocks": [
                 {
                   "id": "add_node_j6HU6pFP",
@@ -1590,9 +1645,7 @@
             {
               "id": "if_block_fWkk9fiM",
               "type": "ifBlock",
-              "data": {
-                "title": "false"
-              },
+              "data": { "title": "false" },
               "blocks": [
                 {
                   "id": "if_QbTxMHXx",
@@ -1603,10 +1656,7 @@
                     "nodeName": "IF !Completed",
                     "name": "IF !Completed",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -1630,9 +1680,7 @@
                     {
                       "id": "if_block_XbgX4rRV",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "update_node_LKW2Upgf",
@@ -2249,9 +2297,7 @@
                     {
                       "id": "if_block_vyOtoK-I",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -2265,12 +2311,8 @@
           "type": "condition-or-node",
           "data": {
             "title": "Condition",
-            "filter": {
-              "list": []
-            },
-            "expression": {
-              "code": ""
-            },
+            "filter": { "list": [] },
+            "expression": { "code": "" },
             "displayContent": "sdk.form.setCondition"
           },
           "blocks": [
@@ -2297,9 +2339,7 @@
                     }
                   ]
                 },
-                "expression": {
-                  "code": ""
-                },
+                "expression": { "code": "" },
                 "displayContent": "sdk.form.setCondition",
                 "isValidator": true,
                 "nodeName": "Completed",
@@ -2419,10 +2459,101 @@
                     {
                       "id": "if_block_bcvndzht",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
+                        {
+                          "id": "if_ReleaseLockErr",
+                          "type": "if",
+                          "data": {
+                            "title": "IF Edit",
+                            "isValidator": true,
+                            "nodeName": "IF Edit",
+                            "name": "IF Edit",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1736695973613,
+                                  "parentId": 1736695973612,
+                                  "isTop": true,
+                                  "prop": "workflowparams.pageStatus",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Edit",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "pageStatus",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_block_ReleaseLockErrTrue",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                                {
+                                  "id": "update_node_ReleaseLockErr",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "Transfer Order Picking:Table:1935556443668959233",
+                                      "rules": {
+                                        "collectionId": "1935556443668959233",
+                                        "list": [
+                                          {
+                                            "id": 1772179693343,
+                                            "parentId": 1772179693342,
+                                            "isTop": true,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                                            "type": "leaf",
+                                            "level": 1,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "condition": {},
+                                    "title": "Release Picking Lock",
+                                    "isValidator": true,
+                                    "nodeName": "Release Picking Lock",
+                                    "name": "Release Picking Lock",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "is_processing",
+                                          "valueType": "value",
+                                          "value": 0,
+                                          "operator": "",
+                                          "valueLabel": "",
+                                          "propLabel": "Is Processing"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_block_ReleaseLockErrFalse",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
+                        },
                         {
                           "id": "return_node_yurHh8d6",
                           "type": "return-node",
@@ -2464,12 +2595,29 @@
                     {
                       "id": "if_block_GQ2o9cQP",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
+                },
+                {
+                  "id": "set_cache_node_PickMsg",
+                  "type": "set-cache-node",
+                  "data": {
+                    "cache_key": "",
+                    "cache_value": "",
+                    "expire_time": 3600,
+                    "title": "Set Picking Message",
+                    "isValidator": true,
+                    "nodeName": "Set Picking Message",
+                    "name": "Set Picking Message",
+                    "custom_wkbocgni": {
+                      "type": "javascript",
+                      "code": "{{node:workflow_node_vaDwx6nr.data.message}}"
+                    },
+                    "redis_key": "pickMsg_{{node:code_node_uPSc7Syb.data.unique}}"
+                  },
+                  "blocks": []
                 }
               ]
             },
@@ -2496,9 +2644,7 @@
                     }
                   ]
                 },
-                "expression": {
-                  "code": ""
-                },
+                "expression": { "code": "" },
                 "displayContent": "sdk.form.setCondition",
                 "__index": 2,
                 "isDefault": false,
@@ -2606,10 +2752,7 @@
                     "nodeName": "IF Picking Plan",
                     "name": "IF Picking Plan",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -2633,9 +2776,7 @@
                     {
                       "id": "if_block_zwVUQ-ta",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "update_node_BnFKmzTB",
@@ -2908,9 +3049,7 @@
                     {
                       "id": "if_block_rUGZXsnZ",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": [
                         {
                           "id": "update_node_g7Juvu0X",
@@ -3207,9 +3346,7 @@
                     }
                   ]
                 },
-                "expression": {
-                  "code": ""
-                },
+                "expression": { "code": "" },
                 "displayContent": "sdk.form.setCondition",
                 "__index": 3,
                 "isDefault": false,
@@ -3352,10 +3489,7 @@
                     "nodeName": "IF Created",
                     "name": "IF Created",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
@@ -3379,9 +3513,7 @@
                     {
                       "id": "ifBlock_CancelGateTrue",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "if_CancelPP",
@@ -3392,10 +3524,7 @@
                             "nodeName": "IF Picking Plan",
                             "name": "IF Picking Plan",
                             "condition_type": "ConditionRule",
-                            "expression": {
-                              "type": "javascript",
-                              "code": ""
-                            },
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
@@ -3419,9 +3548,7 @@
                             {
                               "id": "ifBlock_CancelPPTrue",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "search_node_OtherPP",
@@ -3700,9 +3827,7 @@
                             {
                               "id": "ifBlock_CancelPPFalse",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": [
                                 {
                                   "id": "search_node_OtherGD",
@@ -3985,9 +4110,7 @@
                     {
                       "id": "ifBlock_CancelGateFalse",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": []
                     }
                   ]
@@ -4000,12 +4123,8 @@
               "data": {
                 "title": "Draft",
                 "isDefault": true,
-                "filter": {
-                  "list": []
-                },
-                "expression": {
-                  "code": ""
-                },
+                "filter": { "list": [] },
+                "expression": { "code": "" },
                 "displayContent": "sdk.form.otherCondition"
               },
               "blocks": []
@@ -4021,10 +4140,7 @@
             "nodeName": "IF Edit",
             "name": "IF Edit",
             "condition_type": "ConditionRule",
-            "expression": {
-              "type": "javascript",
-              "code": ""
-            },
+            "expression": { "type": "javascript", "code": "" },
             "filter": {
               "list": [
                 {
@@ -4048,9 +4164,7 @@
             {
               "id": "if_block_0lLmn5oa",
               "type": "ifBlock",
-              "data": {
-                "title": "true"
-              },
+              "data": { "title": "true" },
               "blocks": [
                 {
                   "id": "update_node_y9ZhwG0a",
@@ -4105,9 +4219,7 @@
             {
               "id": "if_block_00qk2AHv",
               "type": "ifBlock",
-              "data": {
-                "title": "false"
-              },
+              "data": { "title": "false" },
               "blocks": []
             }
           ]
@@ -4134,6 +4246,48 @@
       ]
     },
     {
+      "id": "get_cache_node_PickMsg",
+      "type": "get-cache-node",
+      "data": {
+        "cache_key": "",
+        "title": "Get Picking Message",
+        "isValidator": true,
+        "nodeName": "Get Picking Message",
+        "name": "Get Picking Message",
+        "redis_key": "pickMsg_{{node:code_node_uPSc7Syb.data.unique}}"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_FinalMsg",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Final Message",
+        "isValidator": true,
+        "nodeName": "Final Message",
+        "name": "Final Message",
+        "script": {
+          "type": "javascript",
+          "code": "// The Completed branch stashes the Picking workflow's message so the clamp note\n// survives out here. A Draft / Created / Cancelled save never runs that branch,\n// so the cache is empty and the plain success line stands.\nconst cached = [{{node:get_cache_node_PickMsg.data}}][0];\n\nconst message =\n  typeof cached === \"string\" && cached.trim() !== \"\"\n    ? cached\n    : \"Picking processed successfully\";\n\nreturn { message }\n"
+        },
+        "response_json": [
+          {
+            "key": "fm1msg00",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "return_node_kbpuCvnr",
       "type": "return-node",
       "data": {
@@ -4158,8 +4312,8 @@
             {
               "prop": "message",
               "operator": "",
-              "valueType": "value",
-              "value": "Picking processed successfully",
+              "valueType": "field",
+              "value": "{{node:code_node_FinalMsg.data.message}}",
               "valueLabel": "",
               "propLabel": "message"
             }
@@ -4172,10 +4326,7 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": {
-        "isValidator": true,
-        "title": "End Node"
-      },
+      "data": { "isValidator": true, "title": "End Node" },
       "blocks": []
     }
   ],
