@@ -1265,6 +1265,14 @@
                           "propLabel": "Area"
                         },
                         {
+                          "prop": "area_name",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_hjAwTKzF.data.data.area_name}}",
+                          "valueLabel": "",
+                          "propLabel": "Area / Zone"
+                        },
+                        {
                           "prop": "driver_name",
                           "operator": "",
                           "valueType": "field",
@@ -1916,6 +1924,14 @@
                                   "value": "{{node:code_node_hjAwTKzF.data.data.area_id}}",
                                   "valueLabel": "",
                                   "propLabel": "Area"
+                                },
+                                {
+                                  "prop": "area_name",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_hjAwTKzF.data.data.area_name}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Area / Zone"
                                 },
                                 {
                                   "prop": "driver_name",

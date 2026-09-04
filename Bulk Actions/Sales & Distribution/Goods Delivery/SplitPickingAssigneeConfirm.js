@@ -56,6 +56,9 @@ const finalize = async (
       so_no: group.so_no,
       customer_id: group.customer_id,
       ref_doc: group.ref_doc,
+      // Zone/area code the group was split on ("All" when split=no_split);
+      // same value dialog_assignee.area_name shows read-only for this group.
+      area_name: group.key,
       assigned_to: Array.isArray(assignee) ? assignee : [assignee],
       table_picking_items: group.table_picking_items,
       created_by: createdBy,
