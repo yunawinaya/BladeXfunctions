@@ -100,6 +100,22 @@ still `{ code, message }`, and an untrimmed confirm still returns exactly
 `"Picking processed successfully"`. So no app change is required to _receive_ it —
 the existing `data.message` render surfaces it.
 
+> **Mobile reply — received, but it needed two app fixes to actually be readable.**
+> Receiving it was indeed free; _displaying_ it was not. The clamp report arrives on
+> a **200**, so it renders through the success toast — and the root config in
+> `App.tsx` defined `chatCopy`, `error` and `warning` but **no `success`**. That fell
+> through to the library's `SuccessToast` → `BaseToast`, whose `text2NumberOfLines`
+> defaults to **1** with `ellipsizeMode="tail"`. The message would have been cut to
+> roughly _"Picking processed successfully. 2 line(s) were re…"_ — losing the items,
+> the quantities and the instruction, i.e. all of it.
+>
+> Fixed app-side: a `success` renderer mirroring the error/warning ones (no line
+> clamp, wraps freely, new `success` tokens in `ColorsByTheme` for both themes), and
+> the confirm toast now scales its visible time with message length (9s instead of
+> 4s past 60 characters) so a long report is readable rather than a flash. The toast
+> renders at the app root, outside the navigator, so it survives the post-confirm
+> stack reset.
+
 It needed plumbing through both workflows: `code_node_ClampMsg` composes it in
 `PickingProcessWorkflow`, and because the Loop's final return was a hardcoded
 string the message is stashed in a per-run cache key inside the Completed branch
