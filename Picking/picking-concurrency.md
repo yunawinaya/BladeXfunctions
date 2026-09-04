@@ -499,30 +499,178 @@ Three details worth knowing when maintaining it:
   over-quantity record ever entering the array, which is what force complete
   trusts. Keeping pickers on disjoint lines is still the safer convention.
 - **`allow_full_picking`** (Picking Setup, ON for 31 of 127 plants). Audited
-  2026-09-02. The design is coherent — the setup form hides _and_ zeroes the flag on
-  `picking_after = "Sales Order"`, bundles still cannot be short-picked, Packing has
-  an M:N gate blocking completion until every GD line is fully picked, and Convert to
-  Picking's split arithmetic is sound (it subtracts `picked_temp_qty_data` from
-  `temp_qty_data` per bin/batch/HU, so the sibling Pickings sum to `gd_qty`). Three
-  things are worth knowing:
-  - **Any picked quantity closes the line permanently.** Picking 3 of 10 is not
-    "3 done, 7 later on this document" — the line is finished at 3.
-  - **The remainder spins off automatically only when `auto_trigger_to` is also on.**
-    `PickingProcessWorkflow` itself never creates a follow-up Picking — but every
-    confirm re-saves the parent GD (`workflow_node_4c98bf8x`, `saveAs = "Created"`),
-    and `GDheadWorkflow`'s `if_9xhwui06` **IF Auto Create Picking**
-    (`pickingRequired == 1` AND `saveAs == "Created"` AND `autoTriggerTo == 1`) then
-    runs `code_node_6L2Ozea8` → `add_node_rk182M1q`. So the chain closes itself.
-    **The two settings are not interlocked**, and on dev 31 setups have
-    `allow_full_picking` on while only 3 have `auto_trigger_to` on — the same 3. On
-    the other 28, a partial pick closes the line and the remainder waits for a manual
-    Convert to Picking on the desktop GD list page. That is a configuration hazard,
-    not a code defect; see `PickingSetupOnChangeAllowFullPicking.js`.
+  2026-09-02, re-audited 2026-09-04 against the workflow JSON, with the mobile side
+  answered by the `sudu-mobile-expo` session (blockquote below). The design is
+  coherent — the setup form
+  hides _and_ zeroes the flag on `picking_after = "Sales Order"`, bundles still
+  cannot be short-picked, Packing has an M:N gate blocking completion until every GD
+  line is fully picked, and Convert to Picking's split arithmetic is sound (it
+  subtracts `picked_temp_qty_data` from `temp_qty_data` per bin/batch/HU, so the
+  sibling Pickings sum to `gd_qty`). Four things are worth knowing:
+  - **A partial pick leaves the line open, not closed.** _(Corrected 2026-09-04 —
+    this bullet used to say "any picked quantity closes the line permanently… the
+    line is finished at 3".)_ `code_node_iES7iMKA`, guarded by
+    `allowFullPicking && isForceComplete !== 1`, sets the GD line to `Completed`
+    only when `totalPickedQty >= planQty`; any smaller non-zero pick sets
+    `In Progress`. Picking 3 of 10 leaves 7 genuinely pickable —
+    `hasPickableLine` in `ConvertToPicking.js` excludes only `Completed` /
+    `Cancelled`, and `lineRemainingPickable` counts the finished Picking's
+    `store_out_qty` as consumed.
+
+    **Verification status (dev, 2026-09-04) — partial.** Four real short-picked lines
+    do sit at `In Progress` with a live remainder: `GD/20260429/309` 10→6,
+    `/310` 10→5, `/313` 20→5, `GD/20260430/317` 10→5. That disproves "any picked
+    quantity closes the line" as a blanket statement. **But all four are in an org with
+    `allow_full_picking = 0`**, so they went through
+    `pickingStatus = lineStatusByGdLineId[...]`, _not_ the `pickedQtyAddon` cumulative
+    block the claim above is actually about. Across every `allow_full_picking = 1` org
+    on dev there are **zero** short-picked lines (7 `Completed`, all picked in full),
+    so the cumulative branch's In-Progress threshold is still **JSON-only and
+    unexercised** — consistent with "no live `allow_full_picking` data on dev" in the
+    Status section. Do not put it in front of a picker as fact until it is exercised
+    against a real Full-Picking record.
+  - **The remainder NEVER spins off automatically, whatever `auto_trigger_to` says.**
+    _(Corrected 2026-09-04 — this bullet used to say the chain closed itself when
+    `auto_trigger_to` was on.)_ `PickingProcessWorkflow` has no add-node on
+    `transfer_order` at all (its only add-node is `Add Packing Data`), and although
+    every confirm does re-save the parent GD (`workflow_node_4c98bf8x`,
+    `saveAs = "Created"`), that call passes `isPicking: "Yes"` — while
+    `GDheadWorkflow`'s `if_9xhwui06` **IF Auto Create Picking** requires `isPicking`
+    to be **null**, alongside `pickingRequired == 1`, `saveAs == "Created"`,
+    `autoTriggerTo == 1 || reconcileNeeded == 1`,
+    `picking_status != "Completed" || reconcileNeeded == 1`, and `skipPicking == 0`.
+    Identical gate in `GDheadWorkflow.json` and `GDheadWorkflow.PROD.json`. So on all
+    31 Full Picking plants the remainder waits for a manual Convert to Picking on the
+    desktop GD list page.
+  - **`auto_trigger_to` governs only the _first_ Picking**, the one minted when the GD
+    is saved as Created — and turning it on alongside Full Picking is worse than
+    leaving it off. That auto Picking covers the whole delivery, so until it completes
+    `buildConsumedQtyMap` sees every line fully consumed and Convert to Picking reports
+    "No selected records have remaining quantity to pick" — the by-area split never
+    opens. And if a split ran first, a later GD save as Created merges the whole
+    delivery into `rawExistingTO[0]` while the sibling Pickings keep their zone
+    subsets, so one quantity is claimed by several Pickings; the `if_o5z3RcOy` hard
+    block only engages at `picking_status` In Progress/Completed, leaving that window
+    open. On dev only 3 setups have `auto_trigger_to` on (2 orgs, both also Full
+    Picking) and no GD in either has more than one Picking.
+    `PickingSetupOnChangeAllowFullPicking.js` now warns on every Full Picking
+    switch-on and no longer advises turning `auto_trigger_to` on.
   - **The cumulative was not concurrency-safe.** `picked_qty` /
     `picked_temp_qty_data` were read-modify-written on the GD line, and the mutex is
     per Picking _document_ — it cannot serialise two siblings, which is exactly what
     this feature creates. A lost accumulation then made Convert to Picking mint a
     follow-up for more than really remained. Fixed by Part 3 below.
+
+> **Mobile reply — the corrections hold, but mobile reaches the same outcome by a
+> different mechanism, and its own copy still states the old claims.**
+> _(From `sudu-mobile-expo`, branch `refactor/picking_enhance`, source-read only —
+> no runtime or DB verification.)_
+>
+> `isPicking` appears **zero** times in the mobile source: `runGDWorkflow`
+> (`goods_delivery.utils.ts:7435`) has no such field, so every mobile call to
+> `GD_MAIN` leaves it null and _does_ satisfy `if_9xhwui06`. But the pick confirm is
+> not one of those calls — `ConfirmPicking.tsx:1498` invokes only
+> `PickingProcessWorkflow` and never writes the GD. So claim 1 holds on mobile too.
+>
+> **Mobile mints `transfer_order` rows client-side, bypassing workflow add-nodes —
+> but at exactly one live site.** `goods_delivery_convert_to_picking.utils.ts:274`,
+> mobile's own Convert to Picking (reached from `GoodsDeliveryListV2.tsx:218`), which
+> runs workflow `1986262284472963073` only to _compute_ the payload and then adds the
+> row itself. _(An earlier report also named `goods_delivery.utils.ts:4836` on the GD
+> save path; that is **dead V1 code** — it sits in `createOrUpdatePicking`, whose only
+> caller `handleCreatedStatus` has zero callers in the tree. The live V2 submit,
+> `useGoodsDeliveryFormSubmitV2.ts:856/:1277`, only calls `runGDWorkflow` and writes no
+> `transfer_order` of its own. So there is no second creator on the GD save path and
+> no ordering race there.)_ See the cross-side duplicate entry below, which is the
+> real exposure.
+>
+> Mobile's `picking_status` writes are all **quantity-blind** — hardcoded `"Created"`
+> or `auto_trigger_to === 1 ? "Created" : "Not Created"`. The single `"Completed"`
+> write is `goods_delivery_picking_helpers.utils.ts:379` in `convertPickingToTableGD`,
+> the picking-first direction where a GD is built _from_ completed picking records; a
+> short pick still lands `"Completed"` there. That is mobile's own logic, the opposite
+> direction from claim 2, and not governed by `code_node_iES7iMKA`.
+>
+> **Open on the app side:** `ConfirmPicking.tsx:134-144` still asserts the old claim 1
+> and feeds a `remainderFate` string promising the picker _"A follow-up picking for the
+> remainder is created automatically"_ — which never arrives; `:84-98` asserts the old
+> claim 2 and drives the short-pick warning. Both were confirmed against the workflow
+> JSON (see below) and flagged to the mobile session's user as a separate bug.
+>
+> **Confirmed for them, repo-wide:** every `workflow-node` targeting `GD_MAIN`
+> (`2017151544868491265`) passes `isPicking: "Yes"` except two SO-driven ones
+> (`SOconvertGDCreatedWorkflow.wf_gd_head`, `SOcascadeDownstreamWorkflow.wf_cd_gd`),
+> which are GD _creation_, not pick confirms. `PickingProcessWorkflow` has exactly
+> three workflow-nodes, all passing `isPicking: "Yes"`, in both the dev and `.PROD`
+> JSON — and `PackingSaveWorkflowJSON.workflow_node_tAWfF7CE` passes it too, so a
+> Packing save after picking cannot trigger auto-create either. Nothing on the
+> pick-confirm path re-saves the GD without `isPicking`.
+
+- **An auto-created Picking never stamped the GD _lines_, so Convert to Picking could
+  mint a duplicate.** Found 2026-09-04 with the `sudu-mobile-expo` session. **Fixed on
+  both sides, neither deployed** — server: `update_node_StampGDLines` added to
+  `GDheadWorkflow.json`; app: mobile's coverage guard (below). The two creation paths
+  used to disagree about what they write:
+
+  | Picking created via                                 | GD header                 | GD lines (`table_gd`)                   |
+  | --------------------------------------------------- | ------------------------- | --------------------------------------- |
+  | `PickingLoopWorkflow` (desktop Convert, split flow) | ✅ `update_node_g7Juvu0X` | ✅ `update_node_CfTrqcLh`               |
+  | `GDheadWorkflow` auto path (`if_9xhwui06`)          | ✅ `update_node_QtTmd6b8` | ✅ `update_node_StampGDLines` _(new)_   |
+
+  Before the fix, all six `picking_status` writes in `GDheadWorkflow` targeted
+  `Goods Delivery:Table:1902054888473481218` and not one targeted
+  `goods_delivery_fwii8mvb_sub:Table:1939904186426433537`. So after `auto_trigger_to`
+  minted a Picking the header read `"Created"` while every line still read
+  `"Not Created"` — and both Convert to Picking guards are **line-level**:
+
+  - Mobile `convertToPicking:50` filters on
+    `gd.table_gd?.some(item => item.picking_status === "Not Created")`, never looks at
+    the header, and never queries `transfer_order`. It will offer the GD again and add
+    a second Picking.
+  - Desktop `ConvertToPicking.js` `hasPickableLine` has the same exposure on its
+    **non**-Full-Picking branch (`gdItem.picking_status === "Not Created"`). Its
+    Full-Picking branch is safe, because `buildConsumedQtyMap` counts the existing
+    Picking's `qty_to_pick` as consumed.
+
+  Desktop is therefore only _accidentally_ protected on dev: all 3 setups with
+  `auto_trigger_to` also have `allow_full_picking` on, which routes to the safe
+  branch. The combination `picking_required = 1, auto_trigger_to = 1,
+  allow_full_picking = 0` has the bug on both clients. The fix belongs server-side —
+  `if_9xhwui06` should stamp the lines the way `PickingLoopWorkflow` does — rather
+  than in either client's guard.
+
+  **Do not "fix" this by checking the GD header status.** That was suggested here and
+  it is wrong: `updateGoodsDeliveryPickingStatus` stamps the header plus only the
+  `gd_line_id`s actually converted, and the conversion workflow can drop lines from its
+  payload — so a GD legitimately sits at header `"Created"` with genuinely unconverted
+  lines still `"Not Created"`, and a header check refuses those forever. Mobile has
+  since shipped the correct shape (2026-09-04): query `transfer_order` by `gd_no`,
+  collect `gd_line_id` from every non-cancelled line of every non-cancelled Picking,
+  and treat a GD line as convertible only when `picking_status === "Not Created"` **and**
+  its id is outside that coverage set — enforced twice, once in the eligibility filter
+  and again on the payload returned by `1986262284472963073`, because the workflow is
+  handed `gd_ids` and picks lines itself. Desktop's Full-Picking branch
+  (`buildConsumedQtyMap`) is the same shape and is the one worth copying to its
+  non-Full-Picking branch. If `if_9xhwui06` ever does stamp the lines, a coverage guard
+  becomes redundant rather than wrong.
+
+  **The server fix (2026-09-04, NOT deployed).** `update_node_StampGDLines`, inserted
+  in the `if_9xhwui06` branch immediately after `update_node_QtTmd6b8`, copied from
+  `PickingLoopWorkflow`'s `update_node_CfTrqcLh` — same target table, same
+  `picking_status = "Created"`, and crucially the same WHERE clause, which only matches
+  rows already at `Not Created` / `Cancelled` / null / empty. That clause is what stops
+  a reconcile demoting an `In Progress` or `Completed` line, so the node is safe on the
+  `reconcileNeeded` path as well as the plain auto-create one. It is driven by a new
+  `gdLineUpdates` key on `code_node_o35eZx2c`: the covered lines are taken from the
+  final `transferOrderData.table_picking_items`, flattened for nested bundle rows,
+  de-duplicated (several bins/batches share one `gd_line_id`), header rows dropped, and
+  filtered to `gd_id === gdId` so `carriedRows` from other deliveries on a shared
+  Picking are excluded. `ConvertToPicking.js` was deliberately **not** changed: with the
+  lines stamped correctly its existing check is right, and making its non-Full-Picking
+  branch coverage-based would add a `transfer_order` fetch to every conversion for a bug
+  that no longer exists. No backfill appears needed — on dev, zero GDs in an
+  `auto_trigger_to = 1` org have unstamped lines under a live Picking.
+
 - **Putaway is now covered** for lock handling (1c). Its record merge is still
   client-side, so its merge exposure differs from picking's and has not been audited.
 - **The ~50 ms acquire race is still open.** See 1a.
