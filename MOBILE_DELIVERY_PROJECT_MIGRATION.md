@@ -219,8 +219,33 @@ The clean-switch decision creates a hard ordering for Delivery Info:
 `project_id` has no such dependency — it is a brand-new field with no legacy column
 to migrate, so mobile can build and ship it independently of step 1.
 
-No column work is required: all 13 `di_*` fields and both `project_id` bindings are
-already `dataBind: true` on every form, so the columns exist on every collection.
+### ⚠️ Release-ordering rule: never name a column before it exists in prod
+
+A client's `fieldParam` is a list of column names sent to the data endpoint. **Do not
+ship a build whose `fieldParam` names a column that has not yet landed in prod.**
+Whether the endpoint silently drops an unknown name or rejects the whole query is
+*unconfirmed* — and that is exactly why this is a rule rather than a judgement call:
+if it rejects, the affected list screen returns nothing at all, which is an outage,
+not a missing field. Order every schema change ahead of the client that reads it.
+
+To settle the behaviour, query any collection in **dev** with a junk name in
+`fieldParam` and see whether rows come back. It is platform behaviour, so it does not
+need prod to test.
+
+### Column status is NOT uniform across environments (checked 2026-09-04)
+
+The earlier claim that "the columns exist on every collection" was true of the
+original seven modules only. Verified against prod:
+
+- **`di_*` — prod has all 13** on `quotation`, `sales_order`, `goods_delivery`,
+  `sales_return`, `transfer_order`, `purchase_return_head`, `picking_plan`.
+- **`packing` has NONE of the 13 in prod** (missing from both the physical table and
+  the enabled form definition v182). Packing is the 8th module, added later — see
+  the Packing read-only rule 3b. Prod is currently safe only because it still runs
+  older workflow versions that do not write them.
+- **`transfer_order.area_name` does not exist in prod** (absent from the table and
+  from enabled form def v177), though it does in dev. Any client naming `area_name`
+  in a Picking `fieldParam` is subject to the rule above.
 
 ---
 
