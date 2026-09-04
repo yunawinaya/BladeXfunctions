@@ -30,7 +30,7 @@ level, so a document and each of its lines can be attributed to a project.
 
 ## Scope
 
-**Delivery Info (6):** SQT, SO, GD, SR, Picking, PRT
+**Delivery Info (7):** SQT, SO, GD, SR, Picking, PRT, Packing
 **`project_id` (18):** SQT, SO, GD, SI, SR, SRR, PREQ, PO, GR, PI, PRT, Picking,
 Putaway, Misc Issue, Misc Receipt, Plant Transfer, Location Transfer, Category Transfer
 
@@ -42,6 +42,7 @@ Putaway, Misc Issue, Misc Receipt, Plant Transfer, Location Transfer, Category T
 | Sales Return (SR) | ✅ | ✅ | `table_sr` |
 | Picking | ✅ | ✅ | `table_picking_items` |
 | Purchase Return (PRT) | ✅ | ✅ | `table_prt` |
+| Packing | ✅ read-only | — | — |
 | Sales Invoice (SI) | — | ✅ | `table_si` |
 | Sales Return Receiving (SRR) | — | ✅ | `table_srr` |
 | Purchase Requisition (PREQ) | — | ✅ | `table_pr` |
@@ -132,6 +133,23 @@ When `di_driver_name` is picked, fill from the selected Driver record:
 
 Desktop does this on the field's onChange. Mirror it — otherwise the id-based picker
 leaves both text fields empty and users have to retype what the master already holds.
+
+**3b. Packing is READ-ONLY — it is the one module that does not own its values.**
+Packing has all 13 `di_*` columns, but every one of them is `disabled` on the desktop
+form. The values are stamped on by the **Picking** that spawns the Packing, and the
+Picking header stays the single source of truth for them.
+
+- **Do not render pickers on Packing.** No Driver / Vehicle / Shipping Method
+  selection, and **do not** mirror the driver auto-fill from rule 3 — the field that
+  triggers it can never be touched.
+- **Do not write `di_*` from a mobile Packing save.** Desktop persists them, but only
+  by echoing back what it loaded.
+- Every Picking save re-stamps them, so a Packing's delivery info can change
+  underneath a stale screen. Re-read on focus rather than caching it.
+- Packing has **neither `area_id` nor `area_name`** — both are Picking-only. Note
+  they are two independent fields, *not* an id/label pair: `area_name` is
+  "Zone / Area", a plain-name field in its own right, and the two carry
+  different values. (In dev, no `transfer_order` row populates both.)
 
 **4. Delete the old bindings.**
 Remove every per-method delivery field mobile currently binds. Picking alone has 39.
