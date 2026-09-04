@@ -408,9 +408,7 @@
                         {
                           "id": "if_block_PkFullChk_t",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "true"
-                          },
+                          "data": { "title": "true" },
                           "blocks": [
                             {
                               "id": "return_node_PkFullChk",
@@ -453,9 +451,7 @@
                         {
                           "id": "if_block_PkFullChk_f",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": []
                         }
                       ]
@@ -993,12 +989,8 @@
                               "type": "condition-all-node",
                               "data": {
                                 "title": "Parallel Lookups",
-                                "filter": {
-                                  "list": []
-                                },
-                                "expression": {
-                                  "code": ""
-                                },
+                                "filter": { "list": [] },
+                                "expression": { "code": "" },
                                 "displayContent": "sdk.form.setCondition"
                               },
                               "blocks": [
@@ -1007,9 +999,7 @@
                                   "type": "condition-all-node-item",
                                   "data": {
                                     "title": "Bin Location",
-                                    "filter": {
-                                      "list": []
-                                    },
+                                    "filter": { "list": [] },
                                     "expression": {
                                       "code": "",
                                       "type": "javascript"
@@ -1021,7 +1011,7 @@
                                     "condition_type": "ConditionRule"
                                   },
                                   "blocks": [
-                                                                {
+                                    {
                                       "id": "search_node_UsQpPGhM",
                                       "type": "search-node",
                                       "data": {
@@ -1063,9 +1053,7 @@
                                   "type": "condition-all-node-item",
                                   "data": {
                                     "title": "Batches",
-                                    "filter": {
-                                      "list": []
-                                    },
+                                    "filter": { "list": [] },
                                     "expression": {
                                       "code": "",
                                       "type": "javascript"
@@ -1116,9 +1104,7 @@
                                   "type": "condition-all-node-item",
                                   "data": {
                                     "title": "HUs",
-                                    "filter": {
-                                      "list": []
-                                    },
+                                    "filter": { "list": [] },
                                     "expression": {
                                       "code": "",
                                       "type": "javascript"
@@ -1169,9 +1155,7 @@
                                   "type": "condition-all-node-item",
                                   "data": {
                                     "title": "UOMs",
-                                    "filter": {
-                                      "list": []
-                                    },
+                                    "filter": { "list": [] },
                                     "expression": {
                                       "code": "",
                                       "type": "javascript"
