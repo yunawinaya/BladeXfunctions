@@ -224,7 +224,7 @@
                 "name": "fillbackHeaderFields",
                 "script": {
                   "type": "javascript",
-                  "code": "let entry = {{workflowparams:entry}};\nconst saveAs = {{workflowparams:saveAs}};\n\nfor (const huLineItem of entry.table_hu || []) {\n  huLineItem.plant_id = entry.plant_id || null;\n  huLineItem.customer_id = entry.customer_id || [];\n  huLineItem.organization_id = entry.organization_id;\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"draft\";\n  }\n} else {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"issued\";\n  }\n}\n\nreturn {\n  table_hu: entry.table_hu || [],\n  packing_no: entry.packing_no,\n};\n"
+                  "code": "let entry = {{workflowparams:entry}};\nconst saveAs = {{workflowparams:saveAs}};\n\nfor (const huLineItem of entry.table_hu || []) {\n  huLineItem.plant_id = entry.plant_id || null;\n  huLineItem.customer_id = entry.customer_id || [];\n  huLineItem.organization_id = entry.organization_id;\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"draft\";\n  }\n} else {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"issued\";\n  }\n}\n\n// di_freight_charges is decimal(65,2) and this workflow has no formatNumber\n// node, so round it here \u2014 a raw float can fail the multipleOf check.\nconst freight = entry.di_freight_charges;\n\nreturn {\n  table_hu: entry.table_hu || [],\n  packing_no: entry.packing_no,\n  di_freight_charges:\n    freight === null || freight === undefined || freight === \"\"\n      ? null\n      : parseFloat(freight).toFixed(2),\n};\n"
                 },
                 "response_json": [
                   {
@@ -253,6 +253,14 @@
                     "title": "packing_no",
                     "description": "",
                     "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "dif2dp01",
+                    "name": "di_freight_charges",
+                    "title": "di_freight_charges",
+                    "description": "",
+                    "bsonType": "any",
                     "isExpand": false
                   }
                 ]
@@ -2165,6 +2173,110 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "di_shipping_method",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_method}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Method"
+                                    },
+                                    {
+                                      "prop": "di_driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Name"
+                                    },
+                                    {
+                                      "prop": "di_ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "IC No"
+                                    },
+                                    {
+                                      "prop": "di_driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "di_shipping_company",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_company}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Company"
+                                    },
+                                    {
+                                      "prop": "di_transport_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_transport_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Transport Name"
+                                    },
+                                    {
+                                      "prop": "di_vehicle_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_vehicle_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Vehicle Number"
+                                    },
+                                    {
+                                      "prop": "di_est_delivery_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_delivery_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Delivery Date"
+                                    },
+                                    {
+                                      "prop": "di_est_arrival_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_arrival_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Arrival Date"
+                                    },
+                                    {
+                                      "prop": "di_pickup_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_pickup_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Pickup Date"
+                                    },
+                                    {
+                                      "prop": "di_validity_of_collection",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_validity_of_collection}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Validity of Collection"
+                                    },
+                                    {
+                                      "prop": "di_tracking_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_tracking_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Tracking Number"
+                                    },
+                                    {
+                                      "prop": "di_freight_charges",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_7u6VSG8X.data.di_freight_charges}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Freight Charges"
                                     }
                                   ]
                                 }
@@ -2445,6 +2557,110 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "di_shipping_method",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_method}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Method"
+                                    },
+                                    {
+                                      "prop": "di_driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Name"
+                                    },
+                                    {
+                                      "prop": "di_ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "IC No"
+                                    },
+                                    {
+                                      "prop": "di_driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "di_shipping_company",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_company}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Company"
+                                    },
+                                    {
+                                      "prop": "di_transport_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_transport_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Transport Name"
+                                    },
+                                    {
+                                      "prop": "di_vehicle_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_vehicle_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Vehicle Number"
+                                    },
+                                    {
+                                      "prop": "di_est_delivery_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_delivery_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Delivery Date"
+                                    },
+                                    {
+                                      "prop": "di_est_arrival_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_arrival_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Arrival Date"
+                                    },
+                                    {
+                                      "prop": "di_pickup_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_pickup_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Pickup Date"
+                                    },
+                                    {
+                                      "prop": "di_validity_of_collection",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_validity_of_collection}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Validity of Collection"
+                                    },
+                                    {
+                                      "prop": "di_tracking_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_tracking_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Tracking Number"
+                                    },
+                                    {
+                                      "prop": "di_freight_charges",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_7u6VSG8X.data.di_freight_charges}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Freight Charges"
                                     }
                                   ]
                                 }
@@ -3421,6 +3637,110 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "di_shipping_method",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_method}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Method"
+                                    },
+                                    {
+                                      "prop": "di_driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Name"
+                                    },
+                                    {
+                                      "prop": "di_ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "IC No"
+                                    },
+                                    {
+                                      "prop": "di_driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "di_shipping_company",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_company}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Company"
+                                    },
+                                    {
+                                      "prop": "di_transport_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_transport_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Transport Name"
+                                    },
+                                    {
+                                      "prop": "di_vehicle_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_vehicle_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Vehicle Number"
+                                    },
+                                    {
+                                      "prop": "di_est_delivery_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_delivery_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Delivery Date"
+                                    },
+                                    {
+                                      "prop": "di_est_arrival_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_arrival_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Arrival Date"
+                                    },
+                                    {
+                                      "prop": "di_pickup_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_pickup_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Pickup Date"
+                                    },
+                                    {
+                                      "prop": "di_validity_of_collection",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_validity_of_collection}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Validity of Collection"
+                                    },
+                                    {
+                                      "prop": "di_tracking_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_tracking_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Tracking Number"
+                                    },
+                                    {
+                                      "prop": "di_freight_charges",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_7u6VSG8X.data.di_freight_charges}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Freight Charges"
                                     }
                                   ]
                                 }
@@ -3701,6 +4021,110 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "di_shipping_method",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_method}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Method"
+                                    },
+                                    {
+                                      "prop": "di_driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Name"
+                                    },
+                                    {
+                                      "prop": "di_ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "IC No"
+                                    },
+                                    {
+                                      "prop": "di_driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "di_shipping_company",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_company}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Company"
+                                    },
+                                    {
+                                      "prop": "di_transport_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_transport_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Transport Name"
+                                    },
+                                    {
+                                      "prop": "di_vehicle_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_vehicle_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Vehicle Number"
+                                    },
+                                    {
+                                      "prop": "di_est_delivery_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_delivery_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Delivery Date"
+                                    },
+                                    {
+                                      "prop": "di_est_arrival_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_arrival_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Arrival Date"
+                                    },
+                                    {
+                                      "prop": "di_pickup_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_pickup_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Pickup Date"
+                                    },
+                                    {
+                                      "prop": "di_validity_of_collection",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_validity_of_collection}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Validity of Collection"
+                                    },
+                                    {
+                                      "prop": "di_tracking_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_tracking_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Tracking Number"
+                                    },
+                                    {
+                                      "prop": "di_freight_charges",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_7u6VSG8X.data.di_freight_charges}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Freight Charges"
                                     }
                                   ]
                                 }
@@ -4079,6 +4503,110 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "di_shipping_method",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_method}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Method"
+                                    },
+                                    {
+                                      "prop": "di_driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Name"
+                                    },
+                                    {
+                                      "prop": "di_ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "IC No"
+                                    },
+                                    {
+                                      "prop": "di_driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "di_shipping_company",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_company}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Company"
+                                    },
+                                    {
+                                      "prop": "di_transport_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_transport_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Transport Name"
+                                    },
+                                    {
+                                      "prop": "di_vehicle_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_vehicle_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Vehicle Number"
+                                    },
+                                    {
+                                      "prop": "di_est_delivery_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_delivery_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Delivery Date"
+                                    },
+                                    {
+                                      "prop": "di_est_arrival_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_arrival_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Arrival Date"
+                                    },
+                                    {
+                                      "prop": "di_pickup_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_pickup_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Pickup Date"
+                                    },
+                                    {
+                                      "prop": "di_validity_of_collection",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_validity_of_collection}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Validity of Collection"
+                                    },
+                                    {
+                                      "prop": "di_tracking_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_tracking_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Tracking Number"
+                                    },
+                                    {
+                                      "prop": "di_freight_charges",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_7u6VSG8X.data.di_freight_charges}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Freight Charges"
                                     }
                                   ]
                                 }
@@ -4375,6 +4903,110 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "di_shipping_method",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_method}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Method"
+                                    },
+                                    {
+                                      "prop": "di_driver_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Name"
+                                    },
+                                    {
+                                      "prop": "di_ic_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_ic_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "IC No"
+                                    },
+                                    {
+                                      "prop": "di_driver_contact_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_driver_contact_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Driver Contact No"
+                                    },
+                                    {
+                                      "prop": "di_shipping_company",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_shipping_company}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Shipping Company"
+                                    },
+                                    {
+                                      "prop": "di_transport_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_transport_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Transport Name"
+                                    },
+                                    {
+                                      "prop": "di_vehicle_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_vehicle_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Vehicle Number"
+                                    },
+                                    {
+                                      "prop": "di_est_delivery_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_delivery_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Delivery Date"
+                                    },
+                                    {
+                                      "prop": "di_est_arrival_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_est_arrival_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Est Arrival Date"
+                                    },
+                                    {
+                                      "prop": "di_pickup_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_pickup_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Pickup Date"
+                                    },
+                                    {
+                                      "prop": "di_validity_of_collection",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_validity_of_collection}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Validity of Collection"
+                                    },
+                                    {
+                                      "prop": "di_tracking_number",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.di_tracking_number}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Tracking Number"
+                                    },
+                                    {
+                                      "prop": "di_freight_charges",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_7u6VSG8X.data.di_freight_charges}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Freight Charges"
                                     }
                                   ]
                                 }
