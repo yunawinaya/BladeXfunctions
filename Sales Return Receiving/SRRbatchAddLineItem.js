@@ -206,6 +206,145 @@ const applySourceBatches = async (rows, sourceMeta) => {
   return { rows: expanded, error: null };
 };
 
+// The SR line records which handling unit each delivered unit sat in. A line
+// delivered out of several units becomes one receiving row per unit -- the same
+// shape applySourceBatches uses for source batches.
+const sourceHUsOf = (tempHuData) => {
+  const byHU = new Map();
+
+  for (const entry of parseTempQtyData(tempHuData)) {
+    if (!entry.handling_unit_id) continue;
+
+    const qty = parseFloat(entry.deliver_quantity ?? entry.item_quantity ?? 0);
+    const existing = byHU.get(entry.handling_unit_id);
+
+    if (existing) existing.qty += qty;
+    else
+      byHU.set(entry.handling_unit_id, {
+        handling_unit_id: entry.handling_unit_id,
+        handling_no: entry.handling_no || "",
+        qty: qty,
+      });
+  }
+
+  return [...byHU.values()];
+};
+
+// Qty already put back per (SR line, handling unit), so a second receipt does
+// not refill a unit an earlier receipt already filled.
+const fetchReceivedByHU = async (srLineIds) => {
+  const received = new Map();
+  if (srLineIds.length === 0) return received;
+
+  const resSRRLine = await db
+    .collection("sales_return_receiving_05z4r94a_sub")
+    .filter(new Filter().in("sr_line_id", srLineIds).build())
+    .get();
+
+  for (const line of resSRRLine?.data || []) {
+    // hu_id records the unit the goods were DELIVERED in and is never cleared,
+    // so a row the receiver took loose or into a new unit still carries it.
+    // Only rows that actually went back into that unit consume its capacity.
+    if (!line.hu_id || line.hu_option !== "Original") continue;
+
+    const key = `${line.sr_line_id}|${line.hu_id}`;
+    received.set(
+      key,
+      (received.get(key) || 0) + parseFloat(line.received_qty || 0),
+    );
+  }
+
+  return received;
+};
+
+// Splits a row per source handling unit and narrows that row's temp_qty_data to
+// the entries belonging to it, so the batch split that runs afterwards resolves
+// the batch of the portion this row actually represents rather than of the whole
+// delivered line.
+const applySourceHUs = async (rows, sourceMeta, huMeta) => {
+  const husPerRow = rows.map((_row, index) => sourceHUsOf(huMeta[index]));
+
+  const multiHuSRLineIds = [
+    ...new Set(
+      rows
+        .filter((_row, index) => husPerRow[index].length > 1)
+        .map((row) => row.sr_line_id)
+        .filter(Boolean),
+    ),
+  ];
+
+  const receivedByHU = await fetchReceivedByHU(multiHuSRLineIds);
+
+  const metaForHU = (meta, huId) => {
+    const entries = parseTempQtyData(meta).filter(
+      (entry) => String(entry.handling_unit_id || "") === String(huId),
+    );
+    return entries.length > 0 ? JSON.stringify(entries) : meta;
+  };
+
+  const pick = (row, hu, overrides) => ({
+    ...row,
+    hu_option: "Original",
+    hu_id: hu.handling_unit_id,
+    hu_no_display: hu.handling_no,
+    ...overrides,
+  });
+
+  const expandedRows = [];
+  const expandedMeta = [];
+
+  rows.forEach((row, index) => {
+    const hus = husPerRow[index];
+
+    if (hus.length === 0) {
+      expandedRows.push(row);
+      expandedMeta.push(sourceMeta[index]);
+      return;
+    }
+
+    if (hus.length === 1) {
+      expandedRows.push(pick(row, hus[0], {}));
+      expandedMeta.push(metaForHU(sourceMeta[index], hus[0].handling_unit_id));
+      return;
+    }
+
+    let outstanding = parseFloat(row.to_receive_qty || 0);
+    const rowsForLine = [];
+    const metaForLine = [];
+
+    for (const hu of hus) {
+      if (!(outstanding > 0)) break;
+
+      const available =
+        hu.qty -
+        (receivedByHU.get(`${row.sr_line_id}|${hu.handling_unit_id}`) || 0);
+      if (!(available > 0)) continue;
+
+      const share = Math.min(available, outstanding);
+      outstanding -= share;
+
+      rowsForLine.push(pick(row, hu, { to_receive_qty: share }));
+      metaForLine.push(metaForHU(sourceMeta[index], hu.handling_unit_id));
+    }
+
+    // Anything the source units cannot account for still has to be receivable,
+    // so it stays on the first unit rather than disappearing.
+    if (outstanding > 0) {
+      if (rowsForLine.length === 0) {
+        rowsForLine.push(pick(row, hus[0], {}));
+        metaForLine.push(metaForHU(sourceMeta[index], hus[0].handling_unit_id));
+      } else {
+        rowsForLine[0].to_receive_qty += outstanding;
+      }
+    }
+
+    expandedRows.push(...rowsForLine);
+    expandedMeta.push(...metaForLine);
+  });
+
+  return { rows: expandedRows, sourceMeta: expandedMeta };
+};
+
 const checkSerialNumber = async (tempData, index) => {
   const serialNumbers = tempData
     .filter(
@@ -248,6 +387,7 @@ const checkSerialNumber = async (tempData, index) => {
 
   let tableSRR = [];
   let sourceMeta = [];
+  let huMeta = [];
   let salesReturnNumber = [];
   let srId = [];
   let salesOrderNumber = [];
@@ -400,10 +540,14 @@ const checkSerialNumber = async (tempData, index) => {
             batch_no: batchNo,
             inventory_category: "Unrestricted",
             serial_numbers: srItem.temp_qty_data,
+            // Settled by applySourceHUs below when the line carries one.
+            hu_option: "None",
+            hu_source: srItem.hu_source || "",
           };
 
           tableSRR.push(newtableSRRRecord);
           sourceMeta.push(srItem.temp_qty_data);
+          huMeta.push(srItem.temp_hu_data);
         }
       }
 
@@ -463,27 +607,40 @@ const checkSerialNumber = async (tempData, index) => {
               : "-",
           inventory_category: "Unrestricted",
           serial_numbers: srItem.temp_qty_data,
+          // Settled by applySourceHUs below when the line carries one.
+          hu_option: "None",
+          hu_source: srItem.hu_source || "",
         };
 
         tableSRR.push(newtableSRRRecord);
         sourceMeta.push(srItem.temp_qty_data);
+        huMeta.push(srItem.temp_hu_data);
       }
       break;
   }
 
   // Filtered with the source breakdown alongside it so the two stay aligned.
   const keptSourceMeta = [];
+  const keptHuMeta = [];
   tableSRR = tableSRR.filter((srr, index) => {
     const keep =
       srr.to_receive_qty !== 0 &&
       !existingSRR.find((srrItem) => srrItem.sr_line_id === srr.sr_line_id);
 
-    if (keep) keptSourceMeta.push(sourceMeta[index]);
+    if (keep) {
+      keptSourceMeta.push(sourceMeta[index]);
+      keptHuMeta.push(huMeta[index]);
+    }
     return keep;
   });
 
+  // Handling units first: it re-aligns temp_qty_data per row, which is what the
+  // batch split below reads.
+  const resolvedHUs = await applySourceHUs(tableSRR, keptSourceMeta, keptHuMeta);
+  tableSRR = resolvedHUs.rows;
+
   if (newBatch === 0) {
-    const resolved = await applySourceBatches(tableSRR, keptSourceMeta);
+    const resolved = await applySourceBatches(tableSRR, resolvedHUs.sourceMeta);
 
     if (resolved.error) {
       this.hideLoading();

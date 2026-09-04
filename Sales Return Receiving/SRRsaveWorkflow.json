@@ -402,7 +402,7 @@
                         "name": "1c. Map SR Line Item IDs List",
                         "script": {
                           "type": "javascript",
-                          "code": "// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each of those items is received against its own sales return\n// line, so the ids are collected over the FLAT view -- a map over the top level\n// alone fetches no line for them, and every check below then has nothing to\n// measure them against.\n//\n// The bundle row is collected too: it is a line of the return in its own right,\n// with its own quantity to receive and its own quantity to advance.\n// ==========================================================================\nconst entry = {{node:code_node_Rr54LMQQ.data.table}};\n\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst srLineIDs = [\n  ...new Set(\n    flattenSRRRows(entry.table_srr)\n      .map((item) => item.sr_line_id)\n      .filter(Boolean),\n  ),\n];\n\nreturn { srLineIDs }\n"
+                          "code": "// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each of those items is received against its own sales return\n// line, so the ids are collected over the FLAT view -- a map over the top level\n// alone fetches no line for them, and every check below then has nothing to\n// measure them against.\n//\n// The bundle row is collected too: it is a line of the return in its own right,\n// with its own quantity to receive and its own quantity to advance.\n// ==========================================================================\nconst entry = {{node:code_node_Rr54LMQQ.data.table}};\n\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst ids = [\n  ...new Set(\n    flattenSRRRows(entry.table_srr)\n      .map((item) => item.sr_line_id)\n      .filter(Boolean),\n  ),\n];\n\n// An empty `in` list matches EVERY row, so an id no record can have is sent\n// instead -- the same guard the other save workflows use.\nconst srLineIDs = ids.length > 0 ? ids : [\"0\"];\n\nreturn { srLineIDs }\n"
                         },
                         "response_json": [
                           {
@@ -476,7 +476,7 @@
                         "name": "1c. Validate available received qty",
                         "script": {
                           "type": "javascript",
-                          "code": "const entry = {{node:code_node_Rr54LMQQ.data.table}};\nconst srLineItemList = {{node:search_node_yBcXo9Ht.data.data}};\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Both checks below run over the FLAT view, because both are about\n// a line of the sales return and every item under a bundle is one.\n//\n// The bundle row is checked for receivable quantity like any other line -- its\n// quantity is the number of bundles, and the return line it sits on carries the\n// number returned -- but it is NOT checked for a source batch: it holds no\n// stock, has no material, and nothing is ever posted against it.\n//\n// Lines are named by the `No` the user reads (1, 1-1, 1-2, 2) rather than by\n// position, which for a bundle's items is not a row number at all.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\nconst lineLabel = (item, index) => `#${item.line_index || index + 1}`;\nconst isBundleRow = (item) => childrenOf(item).length > 0 || parseFloat(item.has_child) === 1;\n\nconst srrLines = flattenSRRRows(entry.table_srr);\n\n// One SR line can span several SRR rows (one per source batch), so the\n// receivable check has to aggregate per SR line instead of per row.\nconst requestedBySRLine = {};\n\nfor (const item of srrLines) {\n  if (!item.sr_line_id) continue;\n  requestedBySRLine[item.sr_line_id] =\n    (requestedBySRLine[item.sr_line_id] || 0) + parseFloat(item.received_qty || 0);\n}\n\nlet invalidReceivedQty = [];\n\nfor (const srLine of srLineItemList) {\n  const maxReceivableQty = parseFloat(srLine.expected_return_qty || 0) - parseFloat(srLine.received_qty || 0);\n  if ((requestedBySRLine[srLine.id] || 0) > maxReceivableQty) {\n    for (const [index, item] of srrLines.entries()) {\n      if (item.sr_line_id === srLine.id) {\n        invalidReceivedQty.push(lineLabel(item, index));\n      }\n    }\n  }\n}\n\nif(invalidReceivedQty.length > 0) {\n  return {\n    status: 'Failed',\n    message: `Line${invalidReceivedQty.length > 1 ? \"s\" : \"\"} ${invalidReceivedQty.join(\n        \", \",\n      )} ha${\n        invalidReceivedQty.length > 1 ? \"ve\" : \"s\"\n      } an expected receive quantity exceeding the maximum receivable quantity.`\n  }\n}\n\n// new_batch = 0 means stock returns into the batch it was delivered from. A\n// batch-managed row that reaches here without a resolved batch_id would\n// otherwise be posted under whatever placeholder batch_no still holds.\nif (parseFloat(entry.new_batch) === 0) {\n  let missingBatch = [];\n\n  for (const [index, item] of srrLines.entries()) {\n    if (isBundleRow(item)) continue;\n\n    if (!item.batch_id && item.batch_no && item.batch_no !== '-') {\n      missingBatch.push(lineLabel(item, index));\n    }\n  }\n\n  if (missingBatch.length > 0) {\n    return {\n      status: 'Failed',\n      message: `Line${missingBatch.length > 1 ? \"s\" : \"\"} ${missingBatch.join(\n          \", \",\n        )} ha${\n          missingBatch.length > 1 ? \"ve\" : \"s\"\n        } no source batch. This plant returns stock into the batch it was delivered from, so please re-add the item(s) to resolve the delivered batch.`\n    }\n  }\n}\n\nreturn {\n  status: 'Success',\n  message: ''\n}\n"
+                          "code": "const entry = {{node:code_node_Rr54LMQQ.data.table}};\nconst srLineItemList = {{node:search_node_yBcXo9Ht.data.data}} || [];\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Both checks below run over the FLAT view, because both are about\n// a line of the sales return and every item under a bundle is one.\n//\n// The bundle row is checked for receivable quantity like any other line -- its\n// quantity is the number of bundles, and the return line it sits on carries the\n// number returned -- but it is NOT checked for a source batch: it holds no\n// stock, has no material, and nothing is ever posted against it.\n//\n// Lines are named by the `No` the user reads (1, 1-1, 1-2, 2) rather than by\n// position, which for a bundle's items is not a row number at all.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\nconst lineLabel = (item, index) => `#${item.line_index || index + 1}`;\nconst isBundleRow = (item) => childrenOf(item).length > 0 || parseFloat(item.has_child) === 1;\n\nconst srrLines = flattenSRRRows(entry.table_srr);\n\n// One SR line can span several SRR rows (one per source batch), so the\n// receivable check has to aggregate per SR line instead of per row.\nconst requestedBySRLine = {};\n\nfor (const item of srrLines) {\n  if (!item.sr_line_id) continue;\n  requestedBySRLine[item.sr_line_id] =\n    (requestedBySRLine[item.sr_line_id] || 0) + parseFloat(item.received_qty || 0);\n}\n\nlet invalidReceivedQty = [];\n\nfor (const srLine of srLineItemList) {\n  const maxReceivableQty = parseFloat(srLine.expected_return_qty || 0) - parseFloat(srLine.received_qty || 0);\n  if ((requestedBySRLine[srLine.id] || 0) > maxReceivableQty) {\n    for (const [index, item] of srrLines.entries()) {\n      if (item.sr_line_id === srLine.id) {\n        invalidReceivedQty.push(lineLabel(item, index));\n      }\n    }\n  }\n}\n\nif(invalidReceivedQty.length > 0) {\n  return {\n    status: 'Failed',\n    message: `Line${invalidReceivedQty.length > 1 ? \"s\" : \"\"} ${invalidReceivedQty.join(\n        \", \",\n      )} ha${\n        invalidReceivedQty.length > 1 ? \"ve\" : \"s\"\n      } an expected receive quantity exceeding the maximum receivable quantity.`\n  }\n}\n\n// new_batch = 0 means stock returns into the batch it was delivered from. A\n// batch-managed row that reaches here without a resolved batch_id would\n// otherwise be posted under whatever placeholder batch_no still holds.\nif (parseFloat(entry.new_batch) === 0) {\n  let missingBatch = [];\n\n  for (const [index, item] of srrLines.entries()) {\n    if (isBundleRow(item)) continue;\n\n    if (!item.batch_id && item.batch_no && item.batch_no !== '-') {\n      missingBatch.push(lineLabel(item, index));\n    }\n  }\n\n  if (missingBatch.length > 0) {\n    return {\n      status: 'Failed',\n      message: `Line${missingBatch.length > 1 ? \"s\" : \"\"} ${missingBatch.join(\n          \", \",\n        )} ha${\n          missingBatch.length > 1 ? \"ve\" : \"s\"\n        } no source batch. This plant returns stock into the batch it was delivered from, so please re-add the item(s) to resolve the delivered batch.`\n    }\n  }\n}\n\nreturn {\n  status: 'Success',\n  message: ''\n}\n"
                         },
                         "response_json": [
                           {
@@ -1502,6 +1502,119 @@
                 ]
               },
               "blocks": []
+            },
+            {
+              "id": "code_node_HuIdsCollect",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "HU Guard: Collect Ids",
+                "isValidator": true,
+                "nodeName": "HU Guard: Collect Ids",
+                "name": "HU Guard: Collect Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "const entry = {{node:code_node_hGkumbo8.data.entry}};\n\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flatten = (rows) => (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n// hu_id records the unit the goods were DELIVERED in and stays on the row\n// whatever the receiver chose, so only rows actually going back into it are\n// worth checking.\nconst ids = [\n  ...new Set(\n    flatten(entry.table_srr)\n      .filter((row) => row.hu_option === \"Original\" && row.hu_id)\n      .map((row) => String(row.hu_id)),\n  ),\n];\n\n// The fetch below is unconditional so the chain stays linear; an id no record\n// can have keeps it matching nothing rather than everything.\nconst huIds = ids.length > 0 ? ids : [\"0\"];\n\nreturn { huIds, hasHuIds: ids.length > 0 ? 1 : 0 };"
+                },
+                "response_json": [
+                  {
+                    "key": "hu1kx8ab",
+                    "name": "huIds",
+                    "title": "huIds",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "hu1kx8abi",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "hu2mv3cd",
+                    "name": "hasHuIds",
+                    "title": "hasHuIds",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_HuGuardFetch",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Handling Unit:Table:2036736671686529026",
+                  "rules": {
+                    "collectionId": "2036736671686529026",
+                    "list": [
+                      {
+                        "id": 1777001055001,
+                        "parentId": 1777001055000,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_HuIdsCollect.data.huIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "HU Guard: Fetch Chosen HUs",
+                "isValidator": true,
+                "nodeName": "HU Guard: Fetch Chosen HUs",
+                "name": "HU Guard: Fetch Chosen HUs"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_HuGuardApply",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "HU Guard: Apply",
+                "isValidator": true,
+                "nodeName": "HU Guard: Apply",
+                "name": "HU Guard: Apply",
+                "script": {
+                  "type": "javascript",
+                  "code": "const entry = {{node:code_node_hGkumbo8.data.entry}};\nconst chosenHUs = {{node:search_node_HuGuardFetch.data.data}} || [];\n\n// A unit still holding stock has been repacked since the delivery, so loading\n// this return into it would mix two customers' goods. Those rows fall back to a\n// new unit instead, with no interruption to the receiver.\n//\n// total_quantity is the test, NOT item_count: a delivered unit keeps its item\n// row at quantity 0 with is_deleted 0, so item_count stays 1 and would reject\n// every unit that is legitimately reusable.\nconst occupied = new Set(\n  (Array.isArray(chosenHUs) ? chosenHUs : [chosenHUs])\n    .filter((hu) => hu && parseFloat(hu.total_quantity || 0) > 0)\n    .map((hu) => String(hu.id)),\n);\n\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\n\n// hu_id is left in place: it is where the goods came from, which stays true\n// even once the stock is going somewhere else.\nconst guardRow = (row) => {\n  const guarded =\n    row.hu_option === \"Original\" && row.hu_id && occupied.has(String(row.hu_id))\n      ? { ...row, hu_option: \"New\" }\n      : { ...row };\n\n  const kids = childrenOf(row);\n  if (kids.length > 0) guarded.children = kids.map(guardRow);\n\n  return guarded;\n};\n\nentry.table_srr = (entry.table_srr || []).map(guardRow);\n\nreturn { entry };"
+                },
+                "response_json": [
+                  {
+                    "key": "hu3qr7ef",
+                    "name": "entry",
+                    "title": "entry",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
             }
           ]
         }
@@ -1520,7 +1633,7 @@
         "name": "6. Fillback header fields",
         "script": {
           "type": "javascript",
-          "code": "let entry = {{workflowparams:allData.srr_status}} === 'Draft' ? {{node:code_node_pQlxXrFl.data.table}} : {{node:code_node_hGkumbo8.data.entry}};\n\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Those items are saved rows of this document too, so they are\n// formatted and stamped exactly like the rows beside them -- a pass over the\n// top level alone writes a bundle's items away unformatted and with no customer\n// or plant on them.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\n\nconst formatLineItem = (srrLineItem) => {\n  // Create a new object with formatted values\n  const formattedItem = {\n    ...srrLineItem,\n    // Number formatting\n    so_quantity: parseFloat(srrLineItem.so_quantity || 0).toFixed(3),\n    expected_return_qty: parseFloat(srrLineItem.expected_return_qty || 0).toFixed(3),\n    to_receive_qty: parseFloat(srrLineItem.to_receive_qty || 0).toFixed(3),\n    gd_quantity: parseFloat(srrLineItem.gd_quantity || 0).toFixed(3),\n    unit_price: parseFloat(srrLineItem.unit_price || 0).toFixed(4),\n    total_price: parseFloat(srrLineItem.total_price || 0).toFixed(4),\n    \n    customer_id: entry.customer_id || null,\n    plant_id: entry.plant_id || null,\n  };\n\n  const kids = childrenOf(srrLineItem);\n  if (kids.length > 0) {\n    formattedItem.children = kids.map(formatLineItem);\n  }\n\n  return formattedItem;\n};\n\nentry.table_srr = (entry.table_srr || []).map(formatLineItem);\n\nreturn { entry }\n"
+          "code": "let entry = {{workflowparams:allData.srr_status}} === 'Draft' ? {{node:code_node_pQlxXrFl.data.table}} : {{node:code_node_HuGuardApply.data.entry}};\n\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Those items are saved rows of this document too, so they are\n// formatted and stamped exactly like the rows beside them -- a pass over the\n// top level alone writes a bundle's items away unformatted and with no customer\n// or plant on them.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\n\nconst formatLineItem = (srrLineItem) => {\n  // Create a new object with formatted values\n  const formattedItem = {\n    ...srrLineItem,\n    // Number formatting\n    so_quantity: parseFloat(srrLineItem.so_quantity || 0).toFixed(3),\n    expected_return_qty: parseFloat(srrLineItem.expected_return_qty || 0).toFixed(3),\n    to_receive_qty: parseFloat(srrLineItem.to_receive_qty || 0).toFixed(3),\n    gd_quantity: parseFloat(srrLineItem.gd_quantity || 0).toFixed(3),\n    unit_price: parseFloat(srrLineItem.unit_price || 0).toFixed(4),\n    total_price: parseFloat(srrLineItem.total_price || 0).toFixed(4),\n    \n    customer_id: entry.customer_id || null,\n    plant_id: entry.plant_id || null,\n  };\n\n  const kids = childrenOf(srrLineItem);\n  if (kids.length > 0) {\n    formattedItem.children = kids.map(formatLineItem);\n  }\n\n  return formattedItem;\n};\n\nentry.table_srr = (entry.table_srr || []).map(formatLineItem);\n\nreturn { entry }\n"
         },
         "response_json": [
           {
@@ -2191,7 +2304,7 @@
                 "name": "9. Fetch Latest SRR",
                 "script": {
                   "type": "javascript",
-                  "code": "// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Everything after this point -- the inventory postings, the sales\n// return sync, the credit note -- has to see those items, and none of it should\n// have to know about bundles to do it. So the tree is resolved once here and\n// handed on as two views:\n//\n//   srrTree   the tree, which is what the credit note is built from: a bundle\n//             is one line there too, with its items beneath it\n//   srrLines  the same tree flat, the bundle row included -- what the inventory\n//             loop iterates and what anything keyed on a return line reads\n//\n// srrData stays exactly what it was: the saved record, which is where every\n// header field is read from. Only the LINES are rebuilt, and only where they\n// have to be -- on Add, srrData is the record the add node echoed back, and\n// that echo lists the TOP-LEVEL rows only. A bundle's items are not in it, so\n// they are taken from the entry that was written, matched to their bundle by\n// the return line it sits on. A bundle row is never split across source batches\n// -- it holds no stock -- so that line names it unambiguously.\n//\n// has_child is what the inventory loop's gate reads. It is a column default\n// rather than something written on every row, so it is settled here instead of\n// trusted: a row with items under it is a bundle line, everything else holds\n// stock.\n// ==========================================================================\nconst pageStatus = {{workflowparams:allData.page_status}};\nconst entry = {{node:code_node_7fFzVen4.data.entry}};\n\nconst srrData = pageStatus === 'Add' ? {{node:add_node_mLNYqe5N.data}}[0] : {{node:get_node_pmtCvAS0.data.data}};\n\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst kidsBySRLine = {};\n\nfor (const row of entry.table_srr || []) {\n  const kids = childrenOf(row);\n  if (kids.length > 0 && row.sr_line_id) {\n    kidsBySRLine[String(row.sr_line_id)] = kids;\n  }\n}\n\nconst settleRow = (row, kids) => {\n  const settled = { ...row, has_child: kids.length > 0 ? 1 : parseFloat(row.has_child) || 0 };\n\n  if (kids.length > 0) {\n    settled.children = kids.map((child) => settleRow(child, childrenOf(child)));\n  }\n\n  return settled;\n};\n\nconst srrTree = (srrData.table_srr || []).map((row) => {\n  const kids = childrenOf(row).length > 0\n    ? childrenOf(row)\n    : kidsBySRLine[String(row.sr_line_id)] || [];\n\n  return settleRow(row, kids);\n});\n\nconst srrLines = flattenSRRRows(srrTree);\n\nreturn { srrData, srrTree, srrLines }\n"
+                  "code": "// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Everything after this point -- the inventory postings, the sales\n// return sync, the credit note -- has to see those items, and none of it should\n// have to know about bundles to do it. So the tree is resolved once here and\n// handed on as two views:\n//\n//   srrTree   the tree, which is what the credit note is built from: a bundle\n//             is one line there too, with its items beneath it\n//   srrLines  the same tree flat, the bundle row included -- what the inventory\n//             loop iterates and what anything keyed on a return line reads\n//\n// srrData stays exactly what it was: the saved record, which is where every\n// header field is read from. Only the LINES are rebuilt, and only where they\n// have to be -- on Add, srrData is the record the add node echoed back, and\n// that echo lists the TOP-LEVEL rows only. A bundle's items are not in it, so\n// they are taken from the entry that was written, matched to their bundle by\n// the return line it sits on. A bundle row is never split across source batches\n// -- it holds no stock -- so that line names it unambiguously.\n//\n// has_child is what the inventory loop's gate reads. It is a column default\n// rather than something written on every row, so it is settled here instead of\n// trusted: a row with items under it is a bundle line, everything else holds\n// stock.\n// ==========================================================================\nconst pageStatus = {{workflowparams:allData.page_status}};\nconst entry = {{node:code_node_7fFzVen4.data.entry}};\n\nconst srrData = pageStatus === 'Add' ? {{node:add_node_mLNYqe5N.data}}[0] : {{node:get_node_pmtCvAS0.data.data}};\n\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst kidsBySRLine = {};\n\nfor (const row of entry.table_srr || []) {\n  const kids = childrenOf(row);\n  if (kids.length > 0 && row.sr_line_id) {\n    kidsBySRLine[String(row.sr_line_id)] = kids;\n  }\n}\n\nconst settleRow = (row, kids) => {\n  const settled = { ...row, has_child: kids.length > 0 ? 1 : parseFloat(row.has_child) || 0 };\n\n  if (kids.length > 0) {\n    settled.children = kids.map((child) => settleRow(child, childrenOf(child)));\n  }\n\n  return settled;\n};\n\nconst srrTree = (srrData.table_srr || []).map((row) => {\n  const kids = childrenOf(row).length > 0\n    ? childrenOf(row)\n    : kidsBySRLine[String(row.sr_line_id)] || [];\n\n  return settleRow(row, kids);\n});\n\nconst srrLines = flattenSRRRows(srrTree);\n\n// An empty `in` list matches EVERY row. Search 17 feeds the update that stamps\n// sr_status, so an unbounded fetch there would restamp every sales return in\n// the tenant -- an id no record can have keeps it matching nothing.\nconst rawSrIds = (Array.isArray(srrData.sr_id) ? srrData.sr_id : [srrData.sr_id])\n  .filter(Boolean)\n  .map(String);\nconst srIds = rawSrIds.length > 0 ? [...new Set(rawSrIds)] : [\"0\"];\n\nreturn { srrData, srrTree, srrLines, srIds }\n"
                 },
                 "response_json": [
                   {
@@ -2220,6 +2333,26 @@
                     "bsonType": "any",
                     "isExpand": false,
                     "children": []
+                  },
+                  {
+                    "key": "sr7id2qk",
+                    "name": "srIds",
+                    "title": "srIds",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "sr7id2qki",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
                   }
                 ]
               },
@@ -2473,6 +2606,265 @@
                             }
                           },
                           "blocks": []
+                        },
+                        {
+                          "id": "code_node_SrrHuPrep",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "13. HU Preparation",
+                            "isValidator": true,
+                            "nodeName": "13. HU Preparation",
+                            "name": "13. HU Preparation",
+                            "script": {
+                              "type": "javascript",
+                              "code": "const srrLineItem = {{node:loop_mWCnGwvG}};\nconst entry = {{node:code_node_AQ8blgDy.data.srrData}};\n\nconst huOption = srrLineItem.hu_option || \"None\";\nconst huId = srrLineItem.hu_id || \"\";\n\n// \"Original\" with no unit recorded against the line is a stray choice, not an\n// instruction -- minting a blank-numbered handling unit for it would be worse\n// than doing nothing.\nconst hasHuData = huOption === \"New\" || (huOption === \"Original\" && huId) ? 1 : 0;\n\n// The same bin the inventory went to, so the unit and the balance cannot end up\n// claiming different places. Only about two thirds of lines carry their own.\nconst locationId = srrLineItem.location_id || entry.default_bin_location || \"\";\nconst storageLocationId =\n  srrLineItem.storage_location_id || entry.default_storage_location || \"\";\n\nconst table_hu_items = hasHuData\n  ? [\n      {\n        material_id: srrLineItem.material_id,\n        material_name: srrLineItem.material_name,\n        material_desc: srrLineItem.receiving_detail,\n        location_id: locationId,\n        batch_id: {{node:workflow_node_sb5zXUTW.data.batchId}} || null,\n        material_uom: srrLineItem.quantity_uom,\n        quantity: parseFloat(srrLineItem.received_qty || 0),\n        balance_id: {{node:workflow_node_sb5zXUTW.data.balanceId}} || \"\",\n      },\n    ]\n  : [];\n\nreturn {\n  hasHuData,\n  table_hu_items,\n  handling_unit_id: huOption === \"Original\" ? huId : \"\",\n  handling_no: huOption === \"New\" ? \"Auto-generated number\" : \"\",\n  location_id: locationId,\n  storage_location_id: storageLocationId,\n};"
+                            },
+                            "response_json": [
+                              {
+                                "key": "hu4ab1cd",
+                                "name": "hasHuData",
+                                "title": "hasHuData",
+                                "description": "",
+                                "bsonType": "int",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "hu5ef2gh",
+                                "name": "table_hu_items",
+                                "title": "table_hu_items",
+                                "description": "",
+                                "bsonType": "array",
+                                "isExpand": true,
+                                "children": [
+                                  {
+                                    "key": "hu5ef2ghi",
+                                    "name": "items",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "isArrayItem": true,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "key": "hu6ij3kl",
+                                "name": "handling_unit_id",
+                                "title": "handling_unit_id",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "hu7mn4op",
+                                "name": "handling_no",
+                                "title": "handling_no",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "hu8qr5st",
+                                "name": "location_id",
+                                "title": "location_id",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "hu9uv6wx",
+                                "name": "storage_location_id",
+                                "title": "storage_location_id",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "if_SrrHasHu",
+                          "type": "if",
+                          "data": {
+                            "title": "IF hasHuData",
+                            "isValidator": true,
+                            "nodeName": "IF hasHuData",
+                            "name": "IF hasHuData",
+                            "condition_type": "Expression",
+                            "expression": {
+                              "type": "javascript",
+                              "code": "{{node:code_node_SrrHuPrep.data.hasHuData}} == 1"
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_block_SrrHuTrue",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "true"
+                              },
+                              "blocks": [
+                                {
+                                  "id": "workflow_node_SrrHu",
+                                  "type": "workflow-node",
+                                  "data": {
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "14. Handling Unit Workflow",
+                                    "isValidator": true,
+                                    "nodeName": "14. Handling Unit Workflow",
+                                    "name": "14. Handling Unit Workflow",
+                                    "workflow": {
+                                      "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                                      "rules": {
+                                        "collectionId": "2037062451509002241",
+                                        "list": [
+                                          {
+                                            "id": 1723795236686,
+                                            "parentId": 1723795236685,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "handling_unit_id",
+                                          "propLabel": "handling_unit_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_SrrHuPrep.data.handling_unit_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "handling_no",
+                                          "propLabel": "handling_no",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_SrrHuPrep.data.handling_no}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "plant_id",
+                                          "propLabel": "plant_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_ensRYKCK.data.inventoryData.plant_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "organization_id",
+                                          "propLabel": "organization_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_ensRYKCK.data.inventoryData.organization_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "location_id",
+                                          "propLabel": "location_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_SrrHuPrep.data.location_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "storage_location_id",
+                                          "propLabel": "storage_location_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_SrrHuPrep.data.storage_location_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "table_hu_items",
+                                          "propLabel": "table_hu_items",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_SrrHuPrep.data.table_hu_items}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "parent_trx_no",
+                                          "propLabel": "parent_trx_no",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_ensRYKCK.data.inventoryData.trx_no}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "inventory_movement_id",
+                                          "propLabel": "inventory_movement_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:workflow_node_sb5zXUTW.data.inventoryMovementId}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "hu_status",
+                                          "propLabel": "hu_status",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "value",
+                                          "valueTypeLabel": "",
+                                          "value": "Created",
+                                          "valueLabel": ""
+                                        }
+                                      ]
+                                    },
+                                    "response_json": []
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_block_SrrHuFalse",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "false"
+                              },
+                              "blocks": []
+                            }
+                          ]
                         }
                       ]
                     },
@@ -2499,7 +2891,7 @@
                 "name": "15. Map Latest SR Line Item",
                 "script": {
                   "type": "javascript",
-                  "code": "const srLineItemList = {{node:search_node_yBcXo9Ht.data.data}};\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each item advances its own sales return line, and so does the\n// bundle row -- without it the return's bundle line never closes and the\n// document stays Partially Received forever. The flat view carries both.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}};\nlet latestSRLineItemList = [];\n\nfor(const srLineItem of srLineItemList) {\n  const receivedQty = srrLines\n  .filter(item => item.sr_line_id === srLineItem.id)\n  .reduce((total, item) => total + (parseFloat(item.received_qty) || 0), 0);\n\n  const latestReceivedQty = parseFloat(receivedQty) + parseFloat(srLineItem.received_qty || 0);\n\n  latestSRLineItemList.push({\n    id: srLineItem.id,\n    received_qty: latestReceivedQty.toFixed(3),\n    srr_status: parseFloat(latestReceivedQty) >= parseFloat(srLineItem.expected_return_qty || 0) ? \"Fully Received\" : \"Partially Received\",\n  })\n}\n\nreturn { latestSRLineItemList }\n"
+                  "code": "const srLineItemList = {{node:search_node_yBcXo9Ht.data.data}} || [];\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each item advances its own sales return line, and so does the\n// bundle row -- without it the return's bundle line never closes and the\n// document stays Partially Received forever. The flat view carries both.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}};\nlet latestSRLineItemList = [];\n\nfor(const srLineItem of srLineItemList) {\n  const receivedQty = srrLines\n  .filter(item => item.sr_line_id === srLineItem.id)\n  .reduce((total, item) => total + (parseFloat(item.received_qty) || 0), 0);\n\n  const latestReceivedQty = parseFloat(receivedQty) + parseFloat(srLineItem.received_qty || 0);\n\n  latestSRLineItemList.push({\n    id: srLineItem.id,\n    received_qty: latestReceivedQty.toFixed(3),\n    srr_status: parseFloat(latestReceivedQty) >= parseFloat(srLineItem.expected_return_qty || 0) ? \"Fully Received\" : \"Partially Received\",\n  })\n}\n\nreturn { latestSRLineItemList }\n"
                 },
                 "response_json": [
                   {
@@ -2595,7 +2987,7 @@
                         "prop": "id",
                         "operator": "in",
                         "valueType": "field",
-                        "value": "{{node:code_node_AQ8blgDy.data.srrData.sr_id}}",
+                        "value": "{{node:code_node_AQ8blgDy.data.srIds}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "主键ID",
@@ -2627,7 +3019,7 @@
                 "name": "18. Map Latest SR List",
                 "script": {
                   "type": "javascript",
-                  "code": "const srList = {{node:search_node_9xxdyv7Z.data.data}};\n\n// The sales return stores its bundles the same way this document does: ONE row\n// with the bundle's items under `children`. Each of those items carries its own\n// expected and received quantity, so a walk that stops at the top level judges\n// the whole return on its bundle lines alone -- and a return whose bundle line\n// happened to be fully received reads as Fully Received while items under it\n// are still outstanding.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst latestSRList = srList.map((item, index) => {\n  const updatedSRStatus = flattenSRRows(item.table_sr).some(\n    (srItem) =>\n      parseFloat(srItem.received_qty || 0) < parseFloat(srItem.expected_return_qty || 0),\n  )\n    ? \"Partially Received\"\n    : \"Fully Received\";\n\n  return {\n    id: item.id,\n    srr_status: updatedSRStatus,\n    sr_status: updatedSRStatus === 'Fully Received' ? 'Completed' : 'Processing'\n  };\n});\n\nreturn { latestSRList }\n"
+                  "code": "const srList = {{node:search_node_9xxdyv7Z.data.data}} || [];\n\n// The sales return stores its bundles the same way this document does: ONE row\n// with the bundle's items under `children`. Each of those items carries its own\n// expected and received quantity, so a walk that stops at the top level judges\n// the whole return on its bundle lines alone -- and a return whose bundle line\n// happened to be fully received reads as Fully Received while items under it\n// are still outstanding.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst latestSRList = srList.map((item, index) => {\n  const updatedSRStatus = flattenSRRows(item.table_sr).some(\n    (srItem) =>\n      parseFloat(srItem.received_qty || 0) < parseFloat(srItem.expected_return_qty || 0),\n  )\n    ? \"Partially Received\"\n    : \"Fully Received\";\n\n  return {\n    id: item.id,\n    srr_status: updatedSRStatus,\n    sr_status: updatedSRStatus === 'Fully Received' ? 'Completed' : 'Processing'\n  };\n});\n\nreturn { latestSRList }\n"
                 },
                 "response_json": [
                   {
@@ -2827,7 +3219,7 @@
                         "name": "Map Unique GD Line ID",
                         "script": {
                           "type": "javascript",
-                          "code": "// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each item is invoiced on its own SI line, so the flat view is\n// what the invoice lines are fetched for -- the bundle row included, since the\n// invoice carries a bundle line of its own and that is where the money sits.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}};\n\nconst gdLineIDs = [ ...new Set(srrLines.map(item => item.gd_line_id).filter(Boolean))]\n\nreturn { gdLineIDs }\n"
+                          "code": "// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each item is invoiced on its own SI line, so the flat view is\n// what the invoice lines are fetched for -- the bundle row included, since the\n// invoice carries a bundle line of its own and that is where the money sits.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}};\n\nconst ids = [ ...new Set(srrLines.map(item => item.gd_line_id).filter(Boolean))]\n\n// An empty `in` list matches EVERY row, so an id no record can have is sent\n// instead -- otherwise a return with no delivery line behind it fetches every\n// invoice line in the tenant.\nconst gdLineIDs = ids.length > 0 ? ids : [\"0\"];\n\nreturn { gdLineIDs }\n"
                         },
                         "response_json": [
                           {
@@ -2916,6 +3308,46 @@
                       "blocks": []
                     },
                     {
+                      "id": "code_node_SiIdsCollect",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "22b. Collect SI Ids",
+                        "isValidator": true,
+                        "nodeName": "22b. Collect SI Ids",
+                        "name": "22b. Collect SI Ids",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const siLines = {{node:search_node_n6abggZu.data.data}} || [];\n\n// A reference is a plain id off a database read, an object off a form.\nconst referenceId = (value) => {\n  if (value && typeof value === \"object\") return value.id || null;\n  return value || null;\n};\n\nconst ids = [\n  ...new Set(\n    (Array.isArray(siLines) ? siLines : [siLines])\n      .map((line) => referenceId(line && line.sales_invoice_id))\n      .filter(Boolean)\n      .map(String),\n  ),\n];\n\n// An empty `in` list matches EVERY row. Goods returned before they were ever\n// invoiced leave no SI lines here, and without this the next search would pull\n// every invoice in the tenant -- condition 2 downstream would then reject the\n// credit note with \"SI contains more than one GDs\" instead of the real reason.\nconst siIds = ids.length > 0 ? ids : [\"0\"];\n\nreturn { siIds };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "si4id9wz",
+                            "name": "siIds",
+                            "title": "siIds",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "si4id9wzi",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "search_node_hx3J9PHc",
                       "type": "search-node",
                       "data": {
@@ -2931,7 +3363,7 @@
                                 "prop": "id",
                                 "operator": "in",
                                 "valueType": "field",
-                                "value": "{{node:search_node_n6abggZu.data.data.sales_invoice_id}}",
+                                "value": "{{node:code_node_SiIdsCollect.data.siIds}}",
                                 "type": "leaf",
                                 "level": 1,
                                 "propLabel": "主键ID",
@@ -2963,7 +3395,7 @@
                         "name": "24. Condition Proceed to CN ",
                         "script": {
                           "type": "javascript",
-                          "code": "const siList = {{node:search_node_hx3J9PHc.data.data}};\nconst siLineItemList = {{node:search_node_n6abggZu.data.data}};\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each item is invoiced on its own SI line, so the conditions below\n// are checked over the flat view -- the bundle row included, since the invoice\n// carries a bundle line of its own and that is where the money sits.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}};\n\n// Condition 1: one gd_line_id must map to exactly one SI\nconst gdLineToSIMap = {};\nfor (const siLine of siLineItemList) {\n  if (!siLine.gd_line_id) continue;\n  if (gdLineToSIMap[siLine.gd_line_id]) {\n    return {\n      status: 'Failed',\n      message: `GD is mapped to more than one SI.`\n    };\n  }\n  gdLineToSIMap[siLine.gd_line_id] = siLine.si_id;\n}\n\n// Condition 2: one SI must map to exactly one gd_id in srrData\nconst multipleGDSI = siList.filter(si => si.gd_id.length > 1)\nif(multipleGDSI.length > 0) {\n  return {\n    status: 'Failed',\n    message: `SI contains more than one GDs.`\n  };\n}\n\n// Condition 3 & 4: check per SR line\nfor (const [index, srr] of srrLines.entries()) {\n  const matchedSILine = siLineItemList.find(line => line.gd_line_id === srr.gd_line_id);\n  if (!matchedSILine) {\n    return {\n      status: 'Failed',\n      message: `No matching SI line found for GD Line ID ${srr.gd_line_id}.`\n    };\n  }\n\n  // Condition 3: invoice_qty must be greater than return qty\n  const receivedQty = parseFloat(srr?.received_qty) ?? 0;\n  if (parseFloat(matchedSILine.invoice_qty) - parseFloat(matchedSILine.credit_qty) < receivedQty) {\n    return {\n      status: 'Failed',\n      message: `Invoice quantity (${matchedSILine.invoice_qty}) must be greater than received quantity (${receivedQty}).`\n    };\n  }\n\n  // Condition 4: si_amount must be greater than 0\n  if (matchedSILine.si_amount <= 0) {\n    return {\n      status: 'Failed',\n      message: `Invoice line total must be greater than 0.`\n    };\n  }\n}\n\nreturn {\n  status: 'Passed',\n  message: ''\n};\n"
+                          "code": "const siList = {{node:search_node_hx3J9PHc.data.data}} || [];\nconst siLineItemList = {{node:search_node_n6abggZu.data.data}} || [];\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each item is invoiced on its own SI line, so the conditions below\n// are checked over the flat view -- the bundle row included, since the invoice\n// carries a bundle line of its own and that is where the money sits.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}};\n\n// Condition 1: one gd_line_id must map to exactly one SI\nconst gdLineToSIMap = {};\nfor (const siLine of siLineItemList) {\n  if (!siLine.gd_line_id) continue;\n  if (gdLineToSIMap[siLine.gd_line_id]) {\n    return {\n      status: 'Failed',\n      message: `GD is mapped to more than one SI.`\n    };\n  }\n  gdLineToSIMap[siLine.gd_line_id] = siLine.si_id;\n}\n\n// Condition 2: one SI must map to exactly one gd_id in srrData\nconst multipleGDSI = siList.filter(si => si.gd_id.length > 1)\nif(multipleGDSI.length > 0) {\n  return {\n    status: 'Failed',\n    message: `SI contains more than one GDs.`\n  };\n}\n\n// Condition 3 & 4: check per SR line\nfor (const [index, srr] of srrLines.entries()) {\n  const matchedSILine = siLineItemList.find(line => line.gd_line_id === srr.gd_line_id);\n  if (!matchedSILine) {\n    return {\n      status: 'Failed',\n      message: `No matching SI line found for GD Line ID ${srr.gd_line_id}.`\n    };\n  }\n\n  // Condition 3: invoice_qty must be greater than return qty\n  const receivedQty = parseFloat(srr?.received_qty) ?? 0;\n  if (parseFloat(matchedSILine.invoice_qty) - parseFloat(matchedSILine.credit_qty) < receivedQty) {\n    return {\n      status: 'Failed',\n      message: `Invoice quantity (${matchedSILine.invoice_qty}) must be greater than received quantity (${receivedQty}).`\n    };\n  }\n\n  // Condition 4: si_amount must be greater than 0\n  if (matchedSILine.si_amount <= 0) {\n    return {\n      status: 'Failed',\n      message: `Invoice line total must be greater than 0.`\n    };\n  }\n}\n\nreturn {\n  status: 'Passed',\n  message: ''\n};\n"
                         },
                         "response_json": [
                           {
