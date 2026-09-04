@@ -26,6 +26,8 @@
 | M:N cumulative recomputed instead of accumulated                                   | **Deployed to dev**                           |
 | Atomic lock acquisition (the original Part 1a)                                     | **Not possible on this platform** — see below |
 | Mobile pull-to-refresh                                                             | Shipped (app repo)                            |
+| Auto-created Picking now stamps the GD lines (`update_node_StampGDLines`)          | **Deployed to dev** 2026-09-04                |
+| Mobile coverage guard on Convert to Picking                                        | Shipped (app repo) 2026-09-04                 |
 
 Live on dev as of 2026-09-02: `PICKING_LOOP` **v80**, `PICKING` **v121**,
 `PUTAWAY_LOOP` **v14**, `STOCK_PICKING_LOOP` **v4** — all byte-identical to the repo
@@ -190,20 +192,28 @@ reads sensibly on the device.
 
 Two more things about that setting, since it changes what a picker can expect:
 
-- **A partial pick closes the line for good.** Picking 3 of 10 finishes the line at
-  3; the picker cannot come back to it on this document. **Handled in the app:**
+- **A partial pick closes the line on _this_ document.** Picking 3 of 10 finishes the
+  line here; the picker cannot come back to it on this Picking. **Handled in the app:**
   ConfirmPicking shows a banner above the carousel and requires an explicit
-  "Close Short" confirmation before submitting, since the action is final.
-- **A follow-up Picking usually appears on its own — refresh the list.** Where
-  `auto_trigger_to` is also on, confirming re-saves the parent GD, which runs
-  `GDheadWorkflow`'s **IF Auto Create Picking** and mints a Picking for the
-  remainder. So a new document can show up straight after a confirm and the app
-  should re-read the picking list, not just the current document. Where
-  `auto_trigger_to` is **off** (28 of the 31 Full Picking plants on dev) nothing is
-  created and someone has to run Convert to Picking on the desktop GD list page.
-  **Handled in the app:** `auto_trigger_to` is forwarded to ConfirmPicking and the
-  warning wording switches on it — it promises an automatic follow-up only where
-  the flag is on, and points at desktop Convert to Picking where it is off.
+  "Close Short" confirmation before submitting, since the action is final _for this
+  document_. What happens to the GD line is a separate question — see the correction
+  below; do not promise the picker anything about it.
+- **No follow-up Picking is ever created automatically — corrected 2026-09-04.** This
+  bullet previously said that with `auto_trigger_to` on, confirming re-saves the GD and
+  `GDheadWorkflow`'s **IF Auto Create Picking** mints one for the remainder. **That is
+  false**, and it is the source of the `remainderFate` copy that promised pickers a
+  follow-up which never arrived. `if_9xhwui06` requires `isPicking` to be **null**, and
+  the confirm's GD re-save (`workflow_node_4c98bf8x`) passes `isPicking: "Yes"`;
+  `PickingProcessWorkflow` has no add-node on `transfer_order` at all. The remainder
+  **always** waits for a manual Convert to Picking, on all 31 Full Picking plants,
+  whatever `auto_trigger_to` says. **Handled in the app:** the promise and the
+  `auto_trigger_to` plumbing were removed; the banner now says only
+  _"The rest of the line cannot be picked from this device afterwards."_
+- **Do not tell the picker the remainder is recoverable.** The GD line does go to
+  `In Progress` rather than `Completed` on a short pick, so the remainder should be
+  convertible — but that path is **code-read only**: dev has zero short-picked lines in
+  any `allow_full_picking = 1` org, so the threshold has never actually executed. See
+  the verification-status note under Known gaps before putting it in front of a user.
 - **This makes the silent clamp (item 1) routine rather than rare** — because any
   pick closes the line, a second picker on that line hits `pending = 0` and their
   whole submission is dropped with a "success" message. This is the case where
@@ -608,9 +618,9 @@ Three details worth knowing when maintaining it:
 
 - **An auto-created Picking never stamped the GD _lines_, so Convert to Picking could
   mint a duplicate.** Found 2026-09-04 with the `sudu-mobile-expo` session. **Fixed on
-  both sides, neither deployed** — server: `update_node_StampGDLines` added to
-  `GDheadWorkflow.json`; app: mobile's coverage guard (below). The two creation paths
-  used to disagree about what they write:
+  both sides** — server: `update_node_StampGDLines` added to `GDheadWorkflow.json`,
+  **deployed to dev 2026-09-04**; app: mobile's coverage guard (below). The two creation
+  paths used to disagree about what they write:
 
   | Picking created via                                 | GD header                 | GD lines (`table_gd`)                   |
   | --------------------------------------------------- | ------------------------- | --------------------------------------- |
@@ -654,7 +664,7 @@ Three details worth knowing when maintaining it:
   non-Full-Picking branch. If `if_9xhwui06` ever does stamp the lines, a coverage guard
   becomes redundant rather than wrong.
 
-  **The server fix (2026-09-04, NOT deployed).** `update_node_StampGDLines`, inserted
+  **The server fix (2026-09-04, deployed to dev).** `update_node_StampGDLines`, inserted
   in the `if_9xhwui06` branch immediately after `update_node_QtTmd6b8`, copied from
   `PickingLoopWorkflow`'s `update_node_CfTrqcLh` — same target table, same
   `picking_status = "Created"`, and crucially the same WHERE clause, which only matches
