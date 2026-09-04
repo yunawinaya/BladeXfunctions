@@ -567,7 +567,7 @@
                                 "name": "1d&1e&1f. Check Total Return Qty",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "let entry = {{node:code_node_i1NUMscC.data.table}};\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_sr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`.\n//\n// The quantity checks below stay on the TOP LEVEL deliberately. A bundle is one\n// line to the user and its quantity is the number of bundles; its items are not\n// rows they can type into, and an item whose share of the bundle rounds to zero\n// is not something they can act on. Dropping a zero-quantity bundle row takes\n// its items with it, which is what returning nothing of a bundle means.\n//\n// The header roll-ups are different: a bundle's items carry their own sales\n// order line, and it is not always the bundle's, so those are taken over every\n// line in the tree.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSrRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n// Check total return qty\nconst totalQuantity = entry.table_sr.reduce((sum, item) => {\n    const { expected_return_qty } = item;\n    return sum + (expected_return_qty || 0);\n  }, 0);\n\nif(totalQuantity <= 0){\n  return {\n    status: 'Failed',\n    code: '403',\n    message: 'Total return quantity is 0.',\n    entry\n  }\n}\n\n// Check line return qty\nlet zeroQtyArray = [];\nfor(const [index, sr] of entry.table_sr.entries()) {\n  if (!sr.expected_return_qty || sr.expected_return_qty <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\n\nif(zeroQtyArray.length > 0) {\n  if(entry.filter_sr == 'Yes') {\n    entry.table_sr = entry.table_sr.filter(\n      (item) => item.expected_return_qty > 0,\n    );\n\n    if(entry.table_sr.length === 0) {\n      return {\n        status: 'Failed',\n        code: '405',\n        message: 'All Return Quantity must not be 0. Please add at least one item with return quantity > 0.',\n        entry\n      }\n    }\n\n    let salesOrderNumber = [];\n    let soId = [];\n    let goodsDeliveryNumber = [];\n    let gdId = [];\n    for (const sr of flattenSrRows(entry.table_sr)) {\n      gdId.push(sr.gd_id);\n      goodsDeliveryNumber.push(sr.gd_number);\n\n      soId.push(sr.so_id);\n      salesOrderNumber.push(sr.line_so_no);\n    }\n\n    soId = [...new Set(soId)];\n    gdId = [...new Set(gdId)];\n    salesOrderNumber = [...new Set(salesOrderNumber)];\n    goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n\n    entry.so_id = soId;\n    entry.gd_id = gdId;\n    entry.so_no_display = salesOrderNumber.join(\", \");\n    entry.gd_no_display = goodsDeliveryNumber.join(\", \");\n  } else {\n    return {\n      status: 'Failed',\n      code: '404',\n      message: `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${\n        zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n      } a zero return quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 return quantity. \\nWould you like to proceed?`,\n      entry\n    }\n  }\n}\n\nreturn {\n  status: 'Success',\n  code: '',\n  message: '',\n  entry\n}\n"
+                                  "code": "let entry = {{node:code_node_i1NUMscC.data.table}};\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_sr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`.\n//\n// The quantity checks below stay on the TOP LEVEL deliberately. A bundle is one\n// line to the user and its quantity is the number of bundles; its items are not\n// rows they can type into, and an item whose share of the bundle rounds to zero\n// is not something they can act on. Dropping a zero-quantity bundle row takes\n// its items with it, which is what returning nothing of a bundle means.\n//\n// The header roll-ups are different: a bundle's items carry their own sales\n// order line, and it is not always the bundle's, so those are taken over every\n// line in the tree.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSrRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n// Check total return qty\nconst totalQuantity = entry.table_sr.reduce((sum, item) => {\n    const { expected_return_qty } = item;\n    return sum + (expected_return_qty || 0);\n  }, 0);\n\nif(totalQuantity <= 0){\n  return {\n    status: 'Failed',\n    code: '403',\n    message: 'Total return quantity is 0.',\n    entry\n  }\n}\n\n// Check line return qty\nlet zeroQtyArray = [];\nfor(const [index, sr] of entry.table_sr.entries()) {\n  if (!sr.expected_return_qty || sr.expected_return_qty <= 0) {\n    zeroQtyArray.push(`#${index + 1}`);\n  }\n}\n\nif(zeroQtyArray.length > 0) {\n  if(entry.filter_sr == 'Yes') {\n    entry.table_sr = entry.table_sr.filter(\n      (item) => item.expected_return_qty > 0,\n    );\n\n    if(entry.table_sr.length === 0) {\n      return {\n        status: 'Failed',\n        code: '405',\n        message: 'All Return Quantity must not be 0. Please add at least one item with return quantity > 0.',\n        entry\n      }\n    }\n\n    let salesOrderNumber = [];\n    let soId = [];\n    let goodsDeliveryNumber = [];\n    let gdId = [];\n    let handlingUnitNumber = [];\n    for (const sr of flattenSrRows(entry.table_sr)) {\n      gdId.push(sr.gd_id);\n      goodsDeliveryNumber.push(sr.gd_number);\n\n      soId.push(sr.so_id);\n      salesOrderNumber.push(sr.line_so_no);\n\n      // Dropping a row takes its handling units with it, so the header summary\n      // is rebuilt from the rows that survived rather than left as it was.\n      for (const huNo of (sr.hu_no_display || \"\").split(\", \")) {\n        if (huNo) handlingUnitNumber.push(huNo);\n      }\n    }\n\n    soId = [...new Set(soId)];\n    gdId = [...new Set(gdId)];\n    salesOrderNumber = [...new Set(salesOrderNumber)];\n    goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n    handlingUnitNumber = [...new Set(handlingUnitNumber)];\n\n    entry.so_id = soId;\n    entry.gd_id = gdId;\n    entry.so_no_display = salesOrderNumber.join(\", \");\n    entry.gd_no_display = goodsDeliveryNumber.join(\", \");\n    entry.hu_no_display = handlingUnitNumber.join(\", \");\n  } else {\n    return {\n      status: 'Failed',\n      code: '404',\n      message: `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${\n        zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n      } a zero return quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 return quantity. \\nWould you like to proceed?`,\n      entry\n    }\n  }\n}\n\n// A delivery that shipped in a handling unit should carry that unit onto the\n// return, so receiving knows which container to load the stock back into.\n// Missing it is a warning rather than an error: the user confirms, and that\n// confirmation comes back as filter_sr_hu. Checked last, so it is asked about\n// the rows that survived the quantity checks above rather than the rows the\n// user started with.\nconst hasHuData = (raw) => {\n  if (!raw) return false;\n  if (Array.isArray(raw)) return raw.length > 0;\n\n  try {\n    const parsed = JSON.parse(raw);\n    return Array.isArray(parsed) && parsed.length > 0;\n  } catch (error) {\n    return false;\n  }\n};\n\n// Only on a NEW return. A sales return raised before handling units were captured\n// carries no temp_hu_data of its own, so editing one would warn every time about\n// something the user cannot fix except by removing the line and re-adding it.\n// page_status is the same discriminator the add/update fork already uses.\nif (entry.filter_sr_hu != 'Yes' && entry.page_status == 'Add') {\n  const gdLineItemList = {{node:search_node_OfTEOTAo.data.data}} || [];\n  const missingHu = [];\n\n  const checkHu = (line, label) => {\n    // A bundle row holds no stock of its own, so it never had a handling unit.\n    if (!line.material_id) return;\n    if (hasHuData(line.temp_hu_data)) return;\n\n    const gdLine = gdLineItemList.find((gd) => gd.id === line.gd_line_id);\n    if (gdLine && hasHuData(gdLine.temp_hu_data)) missingHu.push(label);\n  };\n\n  (entry.table_sr || []).forEach((row, index) => {\n    checkHu(row, `#${index + 1}`);\n\n    childrenOf(row).forEach((child, childIndex) =>\n      checkHu(child, `#${index + 1}-${childIndex + 1}`),\n    );\n  });\n\n  if (missingHu.length > 0) {\n    return {\n      status: 'Failed',\n      code: '407',\n      message: `Line${missingHu.length > 1 ? \"s\" : \"\"} ${missingHu.join(\", \")} ${\n        missingHu.length > 1 ? \"were\" : \"was\"\n      } delivered in a handling unit, but none was captured on this return.\\nReceiving will not be able to put the stock back into its original handling unit.\\nWould you like to proceed?`,\n      entry\n    }\n  }\n}\n\nreturn {\n  status: 'Success',\n  code: '',\n  message: '',\n  entry\n}\n"
                                 },
                                 "response_json": [
                                   {
@@ -806,6 +806,66 @@
                                                 "name": "结束节点",
                                                 "back_data_type": "Default",
                                                 "code": 405,
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_rG74lIOj.data.message}}"
+                                                }
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_item_HuWarn01",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "1g. Error 407",
+                                            "filter": {
+                                              "list": [
+                                                {
+                                                  "id": 1776740351988,
+                                                  "parentId": 1776740351987,
+                                                  "isTop": true,
+                                                  "prop": "",
+                                                  "operator": "",
+                                                  "valueType": "",
+                                                  "value": "",
+                                                  "type": "leaf",
+                                                  "level": 1
+                                                }
+                                              ]
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_rG74lIOj.data.code}}' == '407'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "__index": 4,
+                                            "isDefault": false,
+                                            "isValidator": true,
+                                            "nodeName": "1g. Error 407",
+                                            "name": "1g. Error 407",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_HuWarn01",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "code": 407,
                                                 "msg": {
                                                   "type": "javascript",
                                                   "code": "{{node:code_node_rG74lIOj.data.message}}"
@@ -1682,6 +1742,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Reference Type"
+                    },
+                    {
+                      "prop": "hu_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.hu_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Handling Unit"
                     }
                   ]
                 }
@@ -2479,6 +2547,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Reference Type"
+                    },
+                    {
+                      "prop": "hu_no_display",
+                      "valueType": "field",
+                      "value": "{{node:code_node_9Wk6aEGR.data.entry.hu_no_display}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Handling Unit"
                     }
                   ]
                 }

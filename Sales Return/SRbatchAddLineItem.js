@@ -1,3 +1,40 @@
+// The delivery line's `temp_hu_data` records which handling unit the goods sat
+// in: the shipping carton when the line was packed, the storage pallet it was
+// picked from otherwise. Both paths write the same shape, so one read serves
+// both and no handling_unit lookup is needed -- handling_no is already in it.
+const parseHuData = (raw) => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+// A handling unit can hold items other than this line's, so the rows are
+// narrowed to the line's own material before anything is derived from them.
+const huOf = (gdItem, materialId) => {
+  const rows = parseHuData(gdItem.temp_hu_data).filter(
+    (row) =>
+      row.handling_unit_id && String(row.material_id) === String(materialId)
+  );
+
+  if (rows.length === 0) {
+    return { hu_no_display: "", hu_source: "", temp_hu_data: "" };
+  }
+
+  return {
+    hu_no_display: [
+      ...new Set(rows.map((row) => row.handling_no).filter(Boolean)),
+    ].join(", "),
+    hu_source: gdItem.packing_no ? "Packed" : "Picked",
+    temp_hu_data: JSON.stringify(rows),
+  };
+};
+
 (async () => {
   const referenceType = this.getValue(`dialog_select_item.reference_type`);
   const currentItemArray = this.getValue(`dialog_select_item.item_array`);
@@ -9,6 +46,7 @@
   let soId = [];
   let goodsDeliveryNumber = [];
   let gdId = [];
+  let handlingUnitNumber = [];
 
   if (currentItemArray.length === 0) {
     this.$alert("Please select at least one goods delivery / item.", "Error", {
@@ -87,6 +125,7 @@
             fifo_sequence: gdItem.fifo_sequence,
             costing_method: gdItem.item_costing_method,
             temp_qty_data: gdItem.temp_qty_data,
+            ...huOf(gdItem, gdItem.material_id),
           };
 
           tableSR.push(newtableSRRecord);
@@ -124,6 +163,7 @@
           fifo_sequence: gdItem.fifo_sequence,
           costing_method: gdItem.item_costing_method,
           temp_qty_data: gdItem.temp_qty_data,
+          ...huOf(gdItem, gdItem.item.id),
         };
 
         tableSR.push(newtableSRRecord);
@@ -144,6 +184,11 @@
   salesOrderNumber = [...new Set(latesttableSR.map((sr) => sr.line_so_no))];
   gdId = [...new Set(latesttableSR.map((sr) => sr.gd_id))];
   goodsDeliveryNumber = [...new Set(latesttableSR.map((sr) => sr.gd_number))];
+  handlingUnitNumber = [
+    ...new Set(
+      latesttableSR.flatMap((sr) => (sr.hu_no_display || "").split(", "))
+    ),
+  ].filter(Boolean);
 
   await this.setData({
     customer_id: currentItemArray[0].customer_id,
@@ -152,6 +197,7 @@
     so_id: soId,
     gd_no_display: goodsDeliveryNumber.join(", "),
     gd_id: gdId,
+    hu_no_display: handlingUnitNumber.join(", "),
     reference_type: referenceType,
   });
 

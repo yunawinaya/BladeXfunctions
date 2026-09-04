@@ -1,0 +1,5226 @@
+{
+ "bsonType": "object",
+ "commentKey": false,
+ "indexes": [
+  {
+   "name": "Document Number",
+   "fields": [
+    {
+     "title": "sales_return_no",
+     "name": "",
+     "sort_rule_type": "",
+     "sort_rule": "",
+     "operator_category_type": "",
+     "operator_category": "",
+     "sort": "ASC",
+     "nulls": "DEFAULT"
+    },
+    {
+     "title": "organization_id",
+     "name": "",
+     "sort_rule_type": "",
+     "sort_rule": "",
+     "operator_category_type": "",
+     "operator_category": "",
+     "sort": "ASC",
+     "nulls": "DEFAULT"
+    }
+   ],
+   "type": "UNIQUE",
+   "concurrency": 0,
+   "remark": ""
+  }
+ ],
+ "isRequired": false,
+ "multiple": false,
+ "name": "sales_return",
+ "persistField": true,
+ "physicalDelete": false,
+ "primaryKey": false,
+ "properties": {
+  "id": {
+   "bsonType": "bigint",
+   "description": "主键ID",
+   "idRule": {
+    "dataType": "long",
+    "generator": "snowflake"
+   },
+   "isRequired": true,
+   "key": "7y37biq3",
+   "multiple": false,
+   "name": "id",
+   "persistField": true,
+   "primaryKey": true,
+   "title": "主键ID"
+  },
+  "issued_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "html"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Issued Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .issued-button {\n            padding: 0 20px;\n            border: 2px solid #1FAA7D;\n            background-color: #A9FAEB;\n            color: #OA7659;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n\n    </style>\n</head>\n<body>\n    <div class=\"issued-button\">Issued</div>\n</body>\n</html>",
+   "description": "Issued Status",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "cgkyardw",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "issued_status",
+   "persistField": false,
+   "primaryKey": false,
+   "title": "Issued Status"
+  },
+  "processing_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "html"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Processing Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .processing-button {\n            padding: 0 20px;\n            border: 2px solid #FFBB00;\n            background-color: #FFFCDD;\n            color: #8F6A04;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"processing-button\">Processing</div>\n</body>\n</html>",
+   "description": "Processing Status",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "gm5fik3w",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "processing_status",
+   "persistField": false,
+   "primaryKey": false,
+   "title": "Processing Status"
+  },
+  "draft_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "html"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Draft Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .draft-button {\n            padding: 0 20px;\n            border: 2px solid #8C95A4;\n            background-color: #D0D5DD;\n            color: #4D5A74;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"draft-button\">Draft</div>\n</body>\n</html>",
+   "description": "Draft Status",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "q3b99rsk",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "draft_status",
+   "persistField": false,
+   "primaryKey": false,
+   "title": "Draft Status"
+  },
+  "completed_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "html"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Completed Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .completed-button {\n            padding: 0 20px;\n            border: 2px solid #00AE00;\n            background-color: #C5F5C5;\n            color: #016701;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"completed-button\">Completed</div>\n</body>\n</html>",
+   "description": "Completed Status",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "h2tbdl0j",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "completed_status",
+   "persistField": false,
+   "primaryKey": false,
+   "title": "Completed Status"
+  },
+  "cancelled_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "html"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Cancelled Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .cancelled-button {\n            padding: 0 20px;\n            border: 2px solid #F90A0A;\n            background-color: #FDC4C4;\n            color: #A30505;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"cancelled-button\">Cancelled</div>\n</body>\n</html>",
+   "description": "Cancelled Status",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "0jxi6tnr",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "cancelled_status",
+   "persistField": false,
+   "primaryKey": false,
+   "title": "Cancelled Status"
+  },
+  "page_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Page Status",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "09w9vy6q",
+   "multiple": false,
+   "name": "page_status",
+   "pattern": "",
+   "persistField": false,
+   "primaryKey": false,
+   "title": "Page Status"
+  },
+  "sr_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1747836254359,
+      "parentId": 1747836254360,
+      "isTop": true,
+      "type": "branch",
+      "operator": "all",
+      "prop": "",
+      "valueType": "",
+      "value": "",
+      "level": 1,
+      "children": [
+       {
+        "id": 1723795236686,
+        "parentId": 1747836254359,
+        "isTop": false,
+        "prop": "parent_id",
+        "operator": "numberEqual",
+        "valueType": "value",
+        "value": "1914242988707749889",
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "父主键",
+        "valueLabel": "",
+        "operatorLabel": "等于",
+        "valueTypeLabel": "值"
+       },
+       {
+        "id": 1747836254363,
+        "isTop": false,
+        "parentId": 1747836254359,
+        "type": "branch",
+        "operator": "any",
+        "level": 2,
+        "children": [
+         {
+          "id": 1747836254361,
+          "parentId": 1747836254363,
+          "isTop": false,
+          "prop": "dict_key",
+          "operator": "equal",
+          "valueType": "value",
+          "value": "Draft",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "字典值",
+          "valueLabel": "",
+          "operatorLabel": "等于",
+          "valueTypeLabel": "值"
+         },
+         {
+          "id": 1747836254366,
+          "parentId": 1747836254363,
+          "isTop": false,
+          "prop": "dict_key",
+          "operator": "equal",
+          "valueType": "value",
+          "value": "Issued",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "字典值",
+          "valueLabel": "",
+          "operatorLabel": "等于",
+          "valueTypeLabel": "值"
+         },
+         {
+          "id": 1747836254365,
+          "parentId": 1747836254363,
+          "isTop": false,
+          "prop": "dict_key",
+          "operator": "equal",
+          "valueType": "value",
+          "value": "Completed",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "字典值",
+          "valueLabel": "",
+          "operatorLabel": "等于",
+          "valueTypeLabel": "值"
+         },
+         {
+          "id": 1747836254364,
+          "parentId": 1747836254363,
+          "isTop": false,
+          "prop": "dict_key",
+          "operator": "equal",
+          "valueType": "value",
+          "value": "Cancelled",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "字典值",
+          "valueLabel": "",
+          "operatorLabel": "等于",
+          "valueTypeLabel": "值"
+         },
+         {
+          "id": 1756105891961,
+          "parentId": 1747836254363,
+          "isTop": false,
+          "prop": "dict_key",
+          "operator": "equal",
+          "valueType": "value",
+          "value": "Processing",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "字典值",
+          "valueLabel": "",
+          "operatorLabel": "等于",
+          "valueTypeLabel": "值"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "SR Status:关联blade_dict.dict_key字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "blade_dict",
+    "dataSourceName": "master",
+    "field": "dict_key as value, dict_key as text",
+    "pagingEnabled": 0
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "blade_dict.dict_key",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "o2ftz9vb",
+   "multiple": false,
+   "name": "sr_status",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "SR Status"
+  },
+  "srr_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "SRR Status",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "ci5uxov9",
+   "multiple": false,
+   "name": "srr_status",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "SRR Status"
+  },
+  "plant_id": {
+   "bsonType": "bigint",
+   "component": {
+    "name": "treeselect",
+    "rules": [
+     {
+      "id": 1747836322687,
+      "parentId": 1747836322688,
+      "isTop": true,
+      "type": "branch",
+      "operator": "any",
+      "prop": "",
+      "valueType": "",
+      "value": "",
+      "level": 1,
+      "children": [
+       {
+        "id": 1747836322690,
+        "isTop": false,
+        "parentId": 1747836322687,
+        "type": "branch",
+        "operator": "all",
+        "level": 2,
+        "children": [
+         {
+          "id": 1723795236686,
+          "parentId": 1747836322690,
+          "isTop": false,
+          "prop": "id",
+          "operator": "numberEqual",
+          "valueType": "field",
+          "value": "{{system:deptIds}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "主键ID",
+          "valueLabel": "",
+          "operatorLabel": "等于",
+          "valueTypeLabel": "值"
+         },
+         {
+          "id": 1747836322691,
+          "parentId": 1747836322690,
+          "isTop": false,
+          "prop": "parent_id",
+          "operator": "numberEqual",
+          "valueType": "field",
+          "value": "{{global:deptParentId}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "父主键",
+          "valueLabel": "",
+          "operatorLabel": "等于",
+          "valueTypeLabel": "值"
+         }
+        ]
+       },
+       {
+        "id": 1747836322692,
+        "isTop": false,
+        "parentId": 1747836322687,
+        "type": "branch",
+        "operator": "all",
+        "level": 2,
+        "children": [
+         {
+          "id": 1747836322689,
+          "parentId": 1747836322692,
+          "isTop": false,
+          "prop": "id",
+          "operator": "in",
+          "valueType": "formula",
+          "value": "{{global:deptIdList}}.split(',')",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "主键ID",
+          "valueLabel": "",
+          "operatorLabel": "等于任意一个",
+          "valueTypeLabel": "值"
+         },
+         {
+          "id": 1747836322693,
+          "parentId": 1747836322692,
+          "isTop": false,
+          "prop": "parent_id",
+          "operator": "numberEqual",
+          "valueType": "field",
+          "value": "{{system:deptIds}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "父主键",
+          "valueLabel": "",
+          "operatorLabel": "等于",
+          "valueTypeLabel": "值"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Plant:关联blade_dept.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "blade_dept",
+    "dataSourceName": "master",
+    "field": "id as value, dept_name as text",
+    "junctionTableName": "sales_return_blade_dept",
+    "pagingEnabled": 0
+   },
+   "enumType": "tree",
+   "errorMessage": {},
+   "foreignKey": "blade_dept.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "demmv0bw",
+   "multiple": false,
+   "name": "plant_id",
+   "parentKey": "id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Plant"
+  },
+  "sales_return_no": {
+   "bsonType": "string",
+   "component": {
+    "dynamicRuleField": "Sales Returns",
+    "name": "su-fm-serial-number",
+    "ruleMode": "dynamic",
+    "rules": [
+     {
+      "id": 1,
+      "type": "fixedText",
+      "config": {
+       "text": "SN"
+      }
+     },
+     {
+      "id": 2,
+      "type": "submitDate",
+      "config": {
+       "format": "YYYYMMDD",
+       "timezone": "Asia/Shanghai"
+      }
+     },
+     {
+      "id": 3,
+      "type": "autoCounter",
+      "config": {
+       "digits": 4,
+       "fixedDigits": true,
+       "resetPeriod": "day",
+       "initialValue": 1
+      }
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Sales Return No",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "s29tmc59",
+   "multiple": false,
+   "name": "sales_return_no",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Sales Return No"
+  },
+  "sales_return_no_type": {
+   "bsonType": "bigint",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1764233028783,
+      "parentId": 1764233028784,
+      "isTop": true,
+      "prop": "",
+      "operator": "all",
+      "valueType": "",
+      "value": "",
+      "type": "branch",
+      "level": 1,
+      "children": [
+       {
+        "id": 1723795236686,
+        "parentId": 1764233028783,
+        "isTop": false,
+        "prop": "business_type",
+        "operator": "equal",
+        "valueType": "formula",
+        "value": "() => {\n  var params = this.getComponent('sales_return_no');\n  const { options } = params;\n  return options?.dynamicRuleField;\n}",
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "Document Type",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       },
+       {
+        "id": 1764233028785,
+        "parentId": 1764233028783,
+        "isTop": false,
+        "prop": "department_id",
+        "operator": "equal",
+        "valueType": "field",
+        "value": "{{global:firstLvDeptId}}",
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "部门ID",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       },
+       {
+        "id": 1772182025019,
+        "parentId": 1764233028783,
+        "isTop": false,
+        "prop": "is_draft",
+        "operator": "numberEqual",
+        "valueType": "value",
+        "value": 0,
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "Draft",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       }
+      ]
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "规则:关联su_code_serial_no_rule.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "su_code_serial_no_rule",
+    "dataSourceName": "master",
+    "field": "id as value, rule_name as text",
+    "pagingEnabled": 0
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "su_code_serial_no_rule.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "ii3j78d5",
+   "multiple": false,
+   "name": "sales_return_no_type",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "规则"
+  },
+  "so_no_display": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "SO Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "co8inj85",
+   "multiple": false,
+   "name": "so_no_display",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "SO Number"
+  },
+  "gd_no_display": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "GD Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "qhibywba",
+   "multiple": false,
+   "name": "gd_no_display",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "GD Number"
+  },
+  "so_id": {
+   "arrayType": "long",
+   "bsonType": "array",
+   "component": {
+    "name": "su-fm-json-field"
+   },
+   "dataIdentifier": false,
+   "defaultValue": [],
+   "description": "SO ID",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "tamm025w",
+   "multiple": false,
+   "name": "so_id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "SO ID"
+  },
+  "gd_id": {
+   "arrayType": "bigint",
+   "bsonType": "array",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1723795236686,
+      "parentId": 1723795236685,
+      "isTop": true,
+      "prop": "",
+      "operator": "",
+      "valueType": "",
+      "value": "",
+      "type": "leaf",
+      "level": 1
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": [],
+   "description": "GD ID:关联goods_delivery.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "goods_delivery",
+    "dataSourceName": "master",
+    "field": "id as value, id as text",
+    "junctionTableName": "sales_return_goods_delivery",
+    "pagingEnabled": 0
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "goods_delivery.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "x5apbb6o",
+   "multiple": true,
+   "name": "gd_id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "GD ID"
+  },
+  "customer_id": {
+   "bsonType": "bigint",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1723795236686,
+      "parentId": 1723795236685,
+      "isTop": true,
+      "prop": "",
+      "operator": "",
+      "valueType": "",
+      "value": "",
+      "type": "leaf",
+      "level": 1
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Customer:关联Customer.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "Customer",
+    "dataSourceName": "master",
+    "field": "id as value, customer_com_name as text",
+    "pagingEnabled": 1
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "Customer.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "hu4v1jgo",
+   "multiple": false,
+   "name": "customer_id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Customer"
+  },
+  "sr_billing_address": {
+   "bsonType": "string",
+   "component": {
+    "name": "textarea"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Billing",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "pattern": "",
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "d0inh9wx",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "sr_billing_address",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Billing"
+  },
+  "sr_shipping_address": {
+   "bsonType": "string",
+   "component": {
+    "name": "textarea"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Shipping",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "pattern": "",
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "h1yc21bs",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "sr_shipping_address",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Shipping"
+  },
+  "link_billing_address": {
+   "bsonType": "string",
+   "component": {
+    "name": "link"
+   },
+   "dataIdentifier": false,
+   "description": "Manage address",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "t8nuvnsh",
+   "multiple": false,
+   "name": "link_billing_address",
+   "persistField": false,
+   "primaryKey": false,
+   "title": "Manage address"
+  },
+  "link_shipping_address": {
+   "bsonType": "string",
+   "component": {
+    "name": "link"
+   },
+   "dataIdentifier": false,
+   "description": "Manage address",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "h9js87h6",
+   "multiple": false,
+   "name": "link_shipping_address",
+   "persistField": false,
+   "primaryKey": false,
+   "title": "Manage address"
+  },
+  "sr_return_date": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Sales Return Date",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "a0v84s8j",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "sr_return_date",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Sales Return Date"
+  },
+  "sr_return_address_id": {
+   "bsonType": "string",
+   "component": {
+    "name": "select"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Return Address:Option 1-Option 1 Option 2-Option 2 Option 3-Option 3 ",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": [
+    {
+     "text": "Option 1",
+     "value": "Option 1"
+    },
+    {
+     "text": "Option 2",
+     "value": "Option 2"
+    },
+    {
+     "text": "Option 3",
+     "value": "Option 3"
+    }
+   ],
+   "errorMessage": {
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "kg81whyh",
+   "multiple": false,
+   "name": "sr_return_address_id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Return Address"
+  },
+  "sales_pic_id": {
+   "bsonType": "bigint",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1746520396493,
+      "parentId": 1746520396494,
+      "isTop": true,
+      "type": "branch",
+      "operator": "any",
+      "prop": "",
+      "valueType": "",
+      "value": "",
+      "level": 1,
+      "children": [
+       {
+        "id": 1723795236686,
+        "parentId": 1746520396493,
+        "isTop": false,
+        "prop": "organization_id",
+        "operator": "equal",
+        "valueType": "field",
+        "value": "{{system:deptIds}}",
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "Organization",
+        "valueLabel": "",
+        "operatorLabel": "等于",
+        "valueTypeLabel": "值"
+       },
+       {
+        "id": 1746520396495,
+        "parentId": 1746520396493,
+        "isTop": false,
+        "prop": "organization_id",
+        "operator": "equal",
+        "valueType": "field",
+        "value": "{{global:deptParentId}}",
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "Organization",
+        "valueLabel": "",
+        "operatorLabel": "等于",
+        "valueTypeLabel": "值"
+       }
+      ]
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Sales PIC:关联agent.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "agent",
+    "dataSourceName": "master",
+    "field": "id as value, agent_name as text",
+    "pagingEnabled": 1
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "agent.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "e8cbz1ee",
+   "multiple": false,
+   "name": "sales_pic_id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Sales PIC"
+  },
+  "sr_area_id": {
+   "bsonType": "bigint",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1774082302496,
+      "parentId": 1774082302495,
+      "isTop": true,
+      "type": "leaf",
+      "operator": "equal",
+      "prop": "organization_id",
+      "valueType": "field",
+      "value": "{{value:organization_id}}",
+      "level": 1,
+      "propLabel": "Organization",
+      "valueLabel": "",
+      "operatorLabel": "Equal"
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Area:关联area.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "area",
+    "dataSourceName": "master",
+    "field": "id as value, area_code as text",
+    "pagingEnabled": 1
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "area.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "h058o3si",
+   "multiple": false,
+   "name": "sr_area_id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Area"
+  },
+  "sr_remark": {
+   "bsonType": "string",
+   "component": {
+    "name": "textarea"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Sales Return Remark",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "pattern": "",
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "xfwznv1s",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "sr_remark",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Sales Return Remark"
+  },
+  "di_shipping_method": {
+   "bsonType": "string",
+   "component": {
+    "name": "su-fm-table-select",
+    "rules": [
+     {
+      "id": 1785999201828,
+      "parentId": 1785999201829,
+      "isTop": true,
+      "type": "branch",
+      "operator": "all",
+      "prop": "",
+      "valueType": "",
+      "value": "",
+      "level": 1,
+      "children": [
+       {
+        "id": 1785997492132,
+        "parentId": 1785999201828,
+        "isTop": false,
+        "type": "leaf",
+        "operator": "equal",
+        "prop": "organization_id",
+        "valueType": "field",
+        "value": "{{value:organization_id}}",
+        "level": 2,
+        "propLabel": "Organization ID",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       },
+       {
+        "id": 1785999201830,
+        "parentId": 1785999201828,
+        "isTop": false,
+        "prop": "is_active",
+        "operator": "numberEqual",
+        "valueType": "value",
+        "value": 1,
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "Is Active",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       }
+      ]
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Shipping Method:关联shipping_method.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "shipping_method",
+    "dataSourceName": "master",
+    "field": "id as value, shipping_method_code as text",
+    "pagingEnabled": 0
+   },
+   "errorMessage": {},
+   "foreignKey": "shipping_method.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "xpro3lxb",
+   "multiple": false,
+   "name": "di_shipping_method",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Shipping Method"
+  },
+  "sr_delivery_method": {
+   "bsonType": "string",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1723795236686,
+      "parentId": 1723795236685,
+      "isTop": true,
+      "prop": "parent_id",
+      "operator": "numberEqual",
+      "valueType": "value",
+      "value": "1914515096478228481",
+      "type": "leaf",
+      "level": 1,
+      "propLabel": "父主键",
+      "valueLabel": "",
+      "operatorLabel": "等于",
+      "valueTypeLabel": "值"
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Delivery Method:关联blade_dict.dict_key字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "blade_dict",
+    "dataSourceName": "master",
+    "field": "dict_key as value, dict_key as text",
+    "pagingEnabled": 1
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "blade_dict.dict_key",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "52q6g429",
+   "multiple": false,
+   "name": "sr_delivery_method",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Delivery Method"
+  },
+  "organization_id": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Organization",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "ic3s56d3",
+   "multiple": false,
+   "name": "organization_id",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Organization"
+  },
+  "return_by": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Return By",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "f5yd3zv4",
+   "multiple": false,
+   "name": "return_by",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Return By"
+  },
+  "reference_type": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Reference Type",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "23ja0pdv",
+   "multiple": false,
+   "name": "reference_type",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Reference Type"
+  },
+  "acc_integration_type": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Acc Integration Type",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "xm1sw27g",
+   "multiple": false,
+   "name": "acc_integration_type",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Acc Integration Type"
+  },
+  "previous_status": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Previous Status",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "699t1gmt",
+   "multiple": false,
+   "name": "previous_status",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Previous Status"
+  },
+  "project_id": {
+   "bsonType": "bigint",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1723795236686,
+      "parentId": 1723795236685,
+      "isTop": true,
+      "prop": "organization_id",
+      "operator": "equal",
+      "valueType": "field",
+      "value": "{{value:organization_id}}",
+      "type": "leaf",
+      "level": 1,
+      "propLabel": "Organization ID",
+      "valueLabel": "",
+      "operatorLabel": "Equal"
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Project:关联project.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "project",
+    "dataSourceName": "master",
+    "field": "id as value, project_code as text",
+    "pagingEnabled": 1
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "project.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "eg12ufep",
+   "multiple": false,
+   "name": "project_id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Project"
+  },
+  "sr_reference_doc": {
+   "arrayType": "file",
+   "bsonType": "array",
+   "component": {
+    "name": "fileupload"
+   },
+   "dataIdentifier": false,
+   "defaultValue": [],
+   "description": "Reference Documents",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "fileMediaType": "all",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "lv37wsmn",
+   "multiple": false,
+   "name": "sr_reference_doc",
+   "persistField": true,
+   "primaryKey": false,
+   "properties": {
+    "fileId": {
+     "bsonType": "string",
+     "description": "文件ID",
+     "isRequired": false,
+     "multiple": false,
+     "name": "fileId",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "文件ID"
+    },
+    "name": {
+     "bsonType": "string",
+     "description": "文件名",
+     "isRequired": false,
+     "multiple": false,
+     "name": "name",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "文件名"
+    },
+    "originalName": {
+     "bsonType": "string",
+     "description": "原始文件名",
+     "isRequired": false,
+     "multiple": false,
+     "name": "originalName",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "原始文件名"
+    },
+    "extname": {
+     "bsonType": "string",
+     "description": "扩展名",
+     "isRequired": false,
+     "multiple": false,
+     "name": "extname",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "扩展名"
+    },
+    "domain": {
+     "bsonType": "string",
+     "description": "域名",
+     "isRequired": false,
+     "multiple": false,
+     "name": "domain",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "域名"
+    },
+    "fileType": {
+     "bsonType": "string",
+     "description": "文件类型",
+     "isRequired": false,
+     "multiple": false,
+     "name": "fileType",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "文件类型"
+    },
+    "url": {
+     "bsonType": "string",
+     "description": "文件地址",
+     "isRequired": false,
+     "multiple": false,
+     "name": "url",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "文件地址"
+    },
+    "size": {
+     "bsonType": "int",
+     "description": "文件字节大小",
+     "isRequired": false,
+     "multiple": false,
+     "name": "size",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "文件字节大小"
+    }
+   },
+   "required": [
+    "url"
+   ],
+   "title": "Reference Documents"
+  },
+  "delivery_method_text": {
+   "bsonType": "string",
+   "component": {
+    "name": "text"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "vxoun4vv",
+   "multiple": false,
+   "name": "delivery_method_text",
+   "persistField": true,
+   "primaryKey": false,
+   "title": ""
+  },
+  "di_driver_name": {
+   "bsonType": "string",
+   "component": {
+    "name": "su-fm-table-select",
+    "rules": [
+     {
+      "id": 1763970549820,
+      "parentId": 1763970549821,
+      "isTop": true,
+      "type": "branch",
+      "operator": "all",
+      "prop": "",
+      "valueType": "",
+      "value": "",
+      "level": 1,
+      "children": [
+       {
+        "id": 1763970537639,
+        "parentId": 1763970549820,
+        "isTop": false,
+        "prop": "is_active",
+        "operator": "numberEqual",
+        "valueType": "value",
+        "value": 1,
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "Active",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       },
+       {
+        "id": 1763970549823,
+        "isTop": false,
+        "parentId": 1763970549820,
+        "type": "branch",
+        "operator": "any",
+        "level": 2,
+        "children": [
+         {
+          "id": 1763970549822,
+          "parentId": 1763970549823,
+          "isTop": false,
+          "prop": "organization_id",
+          "operator": "equal",
+          "valueType": "field",
+          "value": "{{system:deptIds}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "Organization ID",
+          "valueLabel": "",
+          "operatorLabel": "Equal"
+         },
+         {
+          "id": 1763970549824,
+          "parentId": 1763970549823,
+          "isTop": false,
+          "prop": "organization_id",
+          "operator": "equal",
+          "valueType": "field",
+          "value": "{{global:deptParentId}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "Organization ID",
+          "valueLabel": "",
+          "operatorLabel": "Equal"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Driver Name:关联driver.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "driver",
+    "dataSourceName": "master",
+    "field": "id as value, driver_name as text",
+    "pagingEnabled": 0
+   },
+   "errorMessage": {},
+   "foreignKey": "driver.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "gc4mhco8",
+   "multiple": false,
+   "name": "di_driver_name",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Driver Name"
+  },
+  "di_ic_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "IC No",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "uhswn836",
+   "multiple": false,
+   "name": "di_ic_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "IC No"
+  },
+  "di_driver_contact_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Driver Contact No",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "wjt42i0e",
+   "multiple": false,
+   "name": "di_driver_contact_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Driver Contact No"
+  },
+  "di_shipping_company": {
+   "bsonType": "string",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1746002963840,
+      "parentId": 1746002963839,
+      "isTop": true,
+      "prop": "",
+      "operator": "",
+      "valueType": "",
+      "value": "",
+      "type": "leaf",
+      "level": 1
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Shipping Company:关联courier_company.courier_name字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "courier_company",
+    "dataSourceName": "master",
+    "field": "courier_name as value, courier_name as text",
+    "pagingEnabled": 0
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "courier_company.courier_name",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "7rrlbam4",
+   "multiple": false,
+   "name": "di_shipping_company",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Shipping Company"
+  },
+  "di_transport_name": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Transport Name",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "haajlz78",
+   "multiple": false,
+   "name": "di_transport_name",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Transport Name"
+  },
+  "di_est_delivery_date": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Est Delivery Date",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "6ppwmf7l",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "di_est_delivery_date",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Est Delivery Date"
+  },
+  "di_vehicle_number": {
+   "bsonType": "bigint",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1763969533987,
+      "parentId": 1763969533988,
+      "isTop": true,
+      "type": "branch",
+      "operator": "all",
+      "prop": "",
+      "valueType": "",
+      "value": "",
+      "level": 1,
+      "children": [
+       {
+        "id": 1763969781951,
+        "isTop": false,
+        "parentId": 1763969533987,
+        "type": "branch",
+        "operator": "any",
+        "level": 2,
+        "children": [
+         {
+          "id": 1723795236686,
+          "parentId": 1763969781951,
+          "isTop": false,
+          "prop": "organization_id",
+          "operator": "equal",
+          "valueType": "field",
+          "value": "{{system:deptIds}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "Organization ID",
+          "valueLabel": "",
+          "operatorLabel": "Equal"
+         },
+         {
+          "id": 1763969781952,
+          "parentId": 1763969781951,
+          "isTop": false,
+          "prop": "organization_id",
+          "operator": "equal",
+          "valueType": "field",
+          "value": "{{global:deptParentId}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "Organization ID",
+          "valueLabel": "",
+          "operatorLabel": "Equal"
+         }
+        ]
+       },
+       {
+        "id": 1763969781950,
+        "parentId": 1763969533987,
+        "isTop": false,
+        "prop": "is_active",
+        "operator": "numberEqual",
+        "valueType": "value",
+        "value": 1,
+        "type": "leaf",
+        "level": 2,
+        "propLabel": "Active",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       }
+      ]
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Vehicle Number:关联Vehicle.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "Vehicle",
+    "dataSourceName": "master",
+    "field": "id as value, vehicle_number as text",
+    "pagingEnabled": 0
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "Vehicle.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "va6hmjxi",
+   "multiple": false,
+   "name": "di_vehicle_number",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Vehicle Number"
+  },
+  "di_pickup_date": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Pickup Date",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "9navu1a3",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "di_pickup_date",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Pickup Date"
+  },
+  "di_validity_of_collection": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Validity of Collection",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "tpod3k5s",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "di_validity_of_collection",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Validity of Collection"
+  },
+  "di_est_arrival_date": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Est Arrival Date",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "w8soqeor",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "di_est_arrival_date",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Est Arrival Date"
+  },
+  "di_tracking_number": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Tracking Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "wp1sbe5n",
+   "multiple": false,
+   "name": "di_tracking_number",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Tracking Number"
+  },
+  "di_freight_charges": {
+   "bsonType": "decimal",
+   "component": {
+    "name": "su-fm-currency-input",
+    "props": {
+     "cacheProp": true,
+     "valueType": "int",
+     "currency": "MYR",
+     "customCurrencySymbol": "",
+     "showThousandSeparator": true,
+     "showCurrencySymbol": true,
+     "precision_rule": 1,
+     "number_rule": ""
+    }
+   },
+   "dataIdentifier": false,
+   "defaultValue": 0,
+   "description": "Freight Charges",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {},
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "higvqlj4",
+   "maxLength": 65,
+   "minimum": 0,
+   "multiple": false,
+   "name": "di_freight_charges",
+   "numberRule": "amount",
+   "persistField": true,
+   "precision": 2,
+   "primaryKey": false,
+   "title": "Freight Charges"
+  },
+  "sr_driver_name": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Driver Name",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "mva7w4hm",
+   "multiple": false,
+   "name": "sr_driver_name",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Driver Name"
+  },
+  "cp_ic_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "IC No.",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "syrszh4d",
+   "multiple": false,
+   "name": "cp_ic_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "IC No."
+  },
+  "sr_driver_contact_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Driver Contact No.",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "ybkqhp87",
+   "multiple": false,
+   "name": "sr_driver_contact_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Driver Contact No."
+  },
+  "sr_vehicle_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Vehicle Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "p0akwn2n",
+   "multiple": false,
+   "name": "sr_vehicle_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Vehicle Number"
+  },
+  "sr_pickup_date": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Pickup Date",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "x0l84dor",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "sr_pickup_date",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Pickup Date"
+  },
+  "validity_of_collection": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Validity of Collection",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "eegxl5wp",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "validity_of_collection",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Validity of Collection"
+  },
+  "courier_company": {
+   "bsonType": "string",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1723795236686,
+      "parentId": 1723795236685,
+      "isTop": true,
+      "prop": "",
+      "operator": "",
+      "valueType": "value",
+      "value": "",
+      "type": "leaf",
+      "level": 1
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Courier Company:关联courier_company.courier_name字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "courier_company",
+    "dataSourceName": "master",
+    "field": "courier_name as value, courier_name as text",
+    "pagingEnabled": 1
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "courier_company.courier_name",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "dhbrop3u",
+   "multiple": false,
+   "name": "courier_company",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Courier Company"
+  },
+  "sr_shipping_date": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Shipping Date",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "899di9w8",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "sr_shipping_date",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Shipping Date"
+  },
+  "sr_freight_charges": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Freight Charges",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "phfh5kxl",
+   "multiple": false,
+   "name": "sr_freight_charges",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Freight Charges"
+  },
+  "sr_tracking_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Tracking Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "kj8r4sok",
+   "multiple": false,
+   "name": "sr_tracking_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Tracking Number"
+  },
+  "sr_est_arrival_date": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Est. Arrival Date",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "uug6djis",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "sr_est_arrival_date",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Est. Arrival Date"
+  },
+  "ct_ic_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "IC No.",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "k890msid",
+   "multiple": false,
+   "name": "ct_ic_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "IC No."
+  },
+  "sr_est_delivery_date": {
+   "bsonType": "timestamp",
+   "component": {
+    "name": "date"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Est. Delivery Date",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "format": "YYYY-MM-DD",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "ml011xd8",
+   "maxLength": 23,
+   "multiple": false,
+   "name": "sr_est_delivery_date",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "timestamp",
+   "title": "Est. Delivery Date"
+  },
+  "sr_delivery_cost": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Delivery Cost",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "gy1glfse",
+   "multiple": false,
+   "name": "sr_delivery_cost",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Delivery Cost"
+  },
+  "shipping_company": {
+   "bsonType": "string",
+   "component": {
+    "name": "select",
+    "rules": [
+     {
+      "id": 1723795236686,
+      "parentId": 1723795236685,
+      "isTop": true,
+      "prop": "",
+      "operator": "",
+      "valueType": "value",
+      "value": "",
+      "type": "leaf",
+      "level": 1
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Shipping Company:关联courier_company.courier_name字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "courier_company",
+    "dataSourceName": "master",
+    "field": "courier_name as value, courier_name as text",
+    "pagingEnabled": 1
+   },
+   "errorMessage": {
+    "required": ""
+   },
+   "foreignKey": "courier_company.courier_name",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "jdjy6mqp",
+   "multiple": false,
+   "name": "shipping_company",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Shipping Company"
+  },
+  "shipping_method": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Shipping Method",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "uoyw9hnn",
+   "multiple": false,
+   "name": "shipping_method",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Shipping Method"
+  },
+  "sr_tracking_number": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Tracking Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "cx7qoq71",
+   "multiple": false,
+   "name": "sr_tracking_number",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Tracking Number"
+  },
+  "tpt_vehicle_number": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Vehicle Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "6jjdpwka",
+   "multiple": false,
+   "name": "tpt_vehicle_number",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Vehicle Number"
+  },
+  "tpt_transport_name": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Transport Name",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "zcgxqv6a",
+   "multiple": false,
+   "name": "tpt_transport_name",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Transport Name"
+  },
+  "tpt_ic_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "IC No.",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "ygpa912r",
+   "multiple": false,
+   "name": "tpt_ic_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "IC No."
+  },
+  "tpt_driver_name": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Driver Name",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "g8ioqiri",
+   "multiple": false,
+   "name": "tpt_driver_name",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Driver Name"
+  },
+  "tpt_driver_contact_no": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Driver Contact No.",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "udwrhzc4",
+   "multiple": false,
+   "name": "tpt_driver_contact_no",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Driver Contact No."
+  },
+  "table_sr": {
+   "arrayType": "object",
+   "bsonType": "array",
+   "childRecordMode": true,
+   "component": {
+    "name": "table"
+   },
+   "defaultValue": [],
+   "description": "子表单",
+   "generateSubTable": true,
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "mes6yhqe",
+   "multiple": false,
+   "name": "table_sr",
+   "persistField": true,
+   "primaryKey": false,
+   "properties": {
+    "material_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1723795236686,
+        "parentId": 1723795236685,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "value",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Item Code:关联Item.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "Item",
+      "dataSourceName": "master",
+      "field": "id as value, material_code as text",
+      "pagingEnabled": 1
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "Item.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "rkwd435a",
+     "multiple": false,
+     "name": "material_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Item Code"
+    },
+    "material_name": {
+     "bsonType": "string",
+     "component": {
+      "name": "textarea"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Item Name",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "pattern": "",
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "s3qln6oh",
+     "maxLength": 16777216,
+     "multiple": false,
+     "name": "material_name",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Item Name"
+    },
+    "material_desc": {
+     "bsonType": "string",
+     "component": {
+      "name": "textarea"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Item Description",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "pattern": "",
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "sdklxlhp",
+     "maxLength": 16777216,
+     "multiple": false,
+     "name": "material_desc",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Item Description"
+    },
+    "more_desc": {
+     "bsonType": "string",
+     "component": {
+      "name": "textarea"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "More Description",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "pattern": "",
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "tra20vp1",
+     "maxLength": 16777216,
+     "multiple": false,
+     "name": "more_desc",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "More Description"
+    },
+    "further_description": {
+     "bsonType": "string",
+     "component": {
+      "name": "editor"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Further Description",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {},
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "sco7oz4n",
+     "maxLength": 16777216,
+     "multiple": false,
+     "name": "further_description",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Further Description"
+    },
+    "line_so_no": {
+     "bsonType": "string",
+     "component": {
+      "name": "input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Sales Order Number",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "format": "",
+      "pattern": "",
+      "required": ""
+     },
+     "format": "",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "zvz9ew8h",
+     "multiple": false,
+     "name": "line_so_no",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Sales Order Number"
+    },
+    "gd_number": {
+     "bsonType": "string",
+     "component": {
+      "name": "input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Good Delivery Number",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "format": "",
+      "pattern": "",
+      "required": ""
+     },
+     "format": "",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "t42xcd75",
+     "multiple": false,
+     "name": "gd_number",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Good Delivery Number"
+    },
+    "so_quantity": {
+     "bsonType": "decimal",
+     "component": {
+      "name": "number"
+     },
+     "dataIdentifier": false,
+     "defaultValue": 0,
+     "description": "Sales Order Quantity",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "5seqm9tv",
+     "maxLength": 65,
+     "maximum": 9999999,
+     "minimum": 0,
+     "multiple": false,
+     "name": "so_quantity",
+     "persistField": true,
+     "precision": 3,
+     "primaryKey": false,
+     "title": "Sales Order Quantity"
+    },
+    "good_delivery_qty": {
+     "bsonType": "decimal",
+     "component": {
+      "name": "number"
+     },
+     "dataIdentifier": false,
+     "defaultValue": 0,
+     "description": "Good Delivery Quantity",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "p5wz2uf4",
+     "maxLength": 65,
+     "maximum": 9999999,
+     "minimum": 0,
+     "multiple": false,
+     "name": "good_delivery_qty",
+     "persistField": true,
+     "precision": 3,
+     "primaryKey": false,
+     "title": "Good Delivery Quantity"
+    },
+    "to_returned_qty": {
+     "bsonType": "decimal",
+     "component": {
+      "name": "number"
+     },
+     "dataIdentifier": false,
+     "defaultValue": 0,
+     "description": "To Returned Qty",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "kxs1x4kn",
+     "maxLength": 65,
+     "maximum": 9999999,
+     "minimum": 0,
+     "multiple": false,
+     "name": "to_returned_qty",
+     "persistField": true,
+     "precision": 3,
+     "primaryKey": false,
+     "title": "To Returned Qty"
+    },
+    "quantity_uom": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1723795236686,
+        "parentId": 1723795236685,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "value",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "UOM:关联unit_of_measurement.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "unit_of_measurement",
+      "dataSourceName": "master",
+      "field": "id as value, uom_name as text",
+      "pagingEnabled": 1
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "unit_of_measurement.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "vj0g4tcp",
+     "multiple": false,
+     "name": "quantity_uom",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "UOM"
+    },
+    "expected_return_qty": {
+     "bsonType": "decimal",
+     "component": {
+      "name": "su-fm-enhanced-number-input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": 0,
+     "description": "Expected Return Quantity",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {},
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "07pth9ue",
+     "maxLength": 65,
+     "multiple": false,
+     "name": "expected_return_qty",
+     "persistField": true,
+     "precision": 3,
+     "primaryKey": false,
+     "title": "Expected Return Quantity",
+     "validator": "// A subform row is identified by its fm_key, not by where it sits: an item\n// under an item bundle is not a row of table_sr at all, so the position in the\n// field path does not reach it. The row is found by walking the tree instead,\n// falling back to position for a row the platform has not keyed yet.\nconst rowKey = arguments[0].field.split(\".\")[1];\nconst rows = this.getValue(\"table_sr\") || [];\n\nconst resolveRow = (key) => {\n  for (const row of rows) {\n    if (row && String(row.fm_key) === String(key)) return row;\n\n    for (const child of Array.isArray(row && row.children) ? row.children : []) {\n      if (child && String(child.fm_key) === String(key)) return child;\n    }\n  }\n\n  return rows[key] || null;\n};\n\nconst targetRow = resolveRow(rowKey) || {};\nconst toReturnedQty = targetRow.to_returned_qty;\n\nif (value > toReturnedQty) {\n  callback(\"Exceeds the returnable quantity\");\n} else {\n  callback();\n}"
+    },
+    "return_reason": {
+     "bsonType": "string",
+     "component": {
+      "name": "select"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Reason for Return:Damaged Product-Damaged Product Incorrect Item Shipped-Incorrect Item Shipped Wrong Size/Specification-Wrong Size/Specification Product Not As Describe-Product Not As Describe Expired Product-Expired Product ",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": [
+      {
+       "text": "Damaged Product",
+       "value": "Damaged Product"
+      },
+      {
+       "text": "Incorrect Item Shipped",
+       "value": "Incorrect Item Shipped"
+      },
+      {
+       "text": "Wrong Size/Specification",
+       "value": "Wrong Size/Specification"
+      },
+      {
+       "text": "Product Not As Describe",
+       "value": "Product Not As Describe"
+      },
+      {
+       "text": "Expired Product",
+       "value": "Expired Product"
+      }
+     ],
+     "errorMessage": {
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "d8rgcj07",
+     "multiple": false,
+     "name": "return_reason",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Reason for Return"
+    },
+    "tariff_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1723795236686,
+        "parentId": 1723795236685,
+        "isTop": true,
+        "prop": "organization_id",
+        "operator": "equal",
+        "valueType": "field",
+        "value": "{{global:firstLvDeptId}}",
+        "type": "leaf",
+        "level": 1,
+        "propLabel": "Organization",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Tariff:关联tariff.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "tariff",
+      "dataSourceName": "master",
+      "field": "id as value, tariff_code as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "tariff.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "d8gfpmaq",
+     "multiple": false,
+     "name": "tariff_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Tariff"
+    },
+    "attachment": {
+     "arrayType": "file",
+     "bsonType": "array",
+     "component": {
+      "name": "fileupload"
+     },
+     "dataIdentifier": false,
+     "defaultValue": [],
+     "description": "Attachment",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {},
+     "fileMediaType": "all",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "7jhi9xvt",
+     "multiple": false,
+     "name": "attachment",
+     "persistField": true,
+     "primaryKey": false,
+     "properties": {
+      "fileId": {
+       "bsonType": "string",
+       "description": "文件ID",
+       "isRequired": false,
+       "multiple": false,
+       "name": "fileId",
+       "persistField": true,
+       "primaryKey": false,
+       "title": "文件ID"
+      },
+      "name": {
+       "bsonType": "string",
+       "description": "文件名",
+       "isRequired": false,
+       "multiple": false,
+       "name": "name",
+       "persistField": true,
+       "primaryKey": false,
+       "title": "文件名"
+      },
+      "originalName": {
+       "bsonType": "string",
+       "description": "原始文件名",
+       "isRequired": false,
+       "multiple": false,
+       "name": "originalName",
+       "persistField": true,
+       "primaryKey": false,
+       "title": "原始文件名"
+      },
+      "extname": {
+       "bsonType": "string",
+       "description": "扩展名",
+       "isRequired": false,
+       "multiple": false,
+       "name": "extname",
+       "persistField": true,
+       "primaryKey": false,
+       "title": "扩展名"
+      },
+      "domain": {
+       "bsonType": "string",
+       "description": "域名",
+       "isRequired": false,
+       "multiple": false,
+       "name": "domain",
+       "persistField": true,
+       "primaryKey": false,
+       "title": "域名"
+      },
+      "fileType": {
+       "bsonType": "string",
+       "description": "文件类型",
+       "isRequired": false,
+       "multiple": false,
+       "name": "fileType",
+       "persistField": true,
+       "primaryKey": false,
+       "title": "文件类型"
+      },
+      "url": {
+       "bsonType": "string",
+       "description": "文件地址",
+       "isRequired": false,
+       "multiple": false,
+       "name": "url",
+       "persistField": true,
+       "primaryKey": false,
+       "title": "文件地址"
+      },
+      "size": {
+       "bsonType": "int",
+       "description": "文件字节大小",
+       "isRequired": false,
+       "multiple": false,
+       "name": "size",
+       "persistField": true,
+       "primaryKey": false,
+       "title": "文件字节大小"
+      }
+     },
+     "required": [
+      "url"
+     ],
+     "title": "Attachment"
+    },
+    "received_qty": {
+     "bsonType": "decimal",
+     "component": {
+      "name": "number"
+     },
+     "dataIdentifier": false,
+     "defaultValue": 0,
+     "description": "Received Qty",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "llevfd3r",
+     "maxLength": 65,
+     "maximum": 99999999999999,
+     "minimum": 0,
+     "multiple": false,
+     "name": "received_qty",
+     "persistField": true,
+     "precision": 3,
+     "primaryKey": false,
+     "title": "Received Qty"
+    },
+    "so_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1723795236686,
+        "parentId": 1723795236685,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "SO ID:关联sales_order.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "sales_order",
+      "dataSourceName": "master",
+      "field": "id as value, so_no as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "sales_order.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "6oqyjlfm",
+     "multiple": false,
+     "name": "so_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "SO ID"
+    },
+    "gd_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756039850301,
+        "parentId": 1756039850300,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "GD ID:关联goods_delivery.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "goods_delivery",
+      "dataSourceName": "master",
+      "field": "id as value, delivery_no as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "goods_delivery.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "glca33s4",
+     "multiple": false,
+     "name": "gd_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "GD ID"
+    },
+    "so_line_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756039868261,
+        "parentId": 1756039868260,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "SO Line ID:关联sales_order_axszx8cj_sub.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "sales_order_axszx8cj_sub",
+      "dataSourceName": "master",
+      "field": "id as value, sales_order_id.so_no as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "sales_order_axszx8cj_sub.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "6baheyt3",
+     "multiple": false,
+     "name": "so_line_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "SO Line ID"
+    },
+    "gd_line_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756039880386,
+        "parentId": 1756039880385,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "GD Line ID:关联goods_delivery_fwii8mvb_sub.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "goods_delivery_fwii8mvb_sub",
+      "dataSourceName": "master",
+      "field": "id as value, goods_delivery_id.delivery_no as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "goods_delivery_fwii8mvb_sub.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "seml3861",
+     "multiple": false,
+     "name": "gd_line_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "GD Line ID"
+    },
+    "plant_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756039921365,
+        "parentId": 1756039921364,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Plant ID:关联blade_dept.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "blade_dept",
+      "dataSourceName": "master",
+      "field": "id as value, dept_name as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "blade_dept.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "8tm6nwnt",
+     "multiple": false,
+     "name": "plant_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Plant ID"
+    },
+    "agent_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756039932739,
+        "parentId": 1756039932738,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Agent ID:关联agent.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "agent",
+      "dataSourceName": "master",
+      "field": "id as value, agent_code as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "agent.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "v0no9n7a",
+     "multiple": false,
+     "name": "agent_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Agent ID"
+    },
+    "customer_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756039951168,
+        "parentId": 1756039951167,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Customer ID:关联Customer.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "Customer",
+      "dataSourceName": "master",
+      "field": "id as value, customer_id as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "Customer.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "3wqul0og",
+     "multiple": false,
+     "name": "customer_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Customer ID"
+    },
+    "shipping_country_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756039988812,
+        "parentId": 1756039988811,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Shipping Country ID:关联country.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "country",
+      "dataSourceName": "master",
+      "field": "id as value, country_name as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "country.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "vhyisbpk",
+     "multiple": false,
+     "name": "shipping_country_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Shipping Country ID"
+    },
+    "billing_country_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756039988812,
+        "parentId": 1756039988811,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Billing Country ID:关联country.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "country",
+      "dataSourceName": "master",
+      "field": "id as value, country_name as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "country.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "tru2qi1z",
+     "multiple": false,
+     "name": "billing_country_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Billing Country ID"
+    },
+    "shipping_state_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756040021431,
+        "parentId": 1756040021430,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Shipping State ID:关联state.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "state",
+      "dataSourceName": "master",
+      "field": "id as value, state_name as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "state.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "natik3z4",
+     "multiple": false,
+     "name": "shipping_state_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Shipping State ID"
+    },
+    "billing_state_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756040021431,
+        "parentId": 1756040021430,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Billing State ID:关联state.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "state",
+      "dataSourceName": "master",
+      "field": "id as value, state_name as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "state.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "ykkv6jlo",
+     "multiple": false,
+     "name": "billing_state_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Billing State ID"
+    },
+    "area_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1774082533448,
+        "parentId": 1774082533447,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Area ID:关联area.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "area",
+      "dataSourceName": "master",
+      "field": "id as value, area_code as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "area.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "w6t7df2e",
+     "multiple": false,
+     "name": "area_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Area ID"
+    },
+    "item_category_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1756040074175,
+        "parentId": 1756040074174,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Item Category:关联material_category.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "material_category",
+      "dataSourceName": "master",
+      "field": "id as value, mat_cat_name as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "material_category.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "anbkja3n",
+     "multiple": false,
+     "name": "item_category_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Item Category"
+    },
+    "unit_price": {
+     "bsonType": "decimal",
+     "component": {
+      "name": "number"
+     },
+     "dataIdentifier": false,
+     "defaultValue": 0,
+     "description": "Unit Price",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "n7f275ca",
+     "maxLength": 65,
+     "maximum": 9999999,
+     "minimum": -9999999,
+     "multiple": false,
+     "name": "unit_price",
+     "persistField": true,
+     "precision": 4,
+     "primaryKey": false,
+     "title": "Unit Price"
+    },
+    "total_price": {
+     "bsonType": "decimal",
+     "component": {
+      "name": "number"
+     },
+     "dataIdentifier": false,
+     "defaultValue": 0,
+     "description": "Total Price",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "ur9ooijp",
+     "maxLength": 65,
+     "maximum": 9999999,
+     "minimum": -9999999,
+     "multiple": false,
+     "name": "total_price",
+     "persistField": true,
+     "precision": 4,
+     "primaryKey": false,
+     "title": "Total Price"
+    },
+    "fifo_sequence": {
+     "bsonType": "string",
+     "component": {
+      "name": "input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "FIFO Sequence",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "format": "",
+      "pattern": "",
+      "required": ""
+     },
+     "format": "",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "2ap072ll",
+     "multiple": false,
+     "name": "fifo_sequence",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "FIFO Sequence"
+    },
+    "costing_method": {
+     "bsonType": "string",
+     "component": {
+      "name": "input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Costing Method",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "format": "",
+      "pattern": "",
+      "required": ""
+     },
+     "format": "",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "uz5dm0kn",
+     "multiple": false,
+     "name": "costing_method",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Costing Method"
+    },
+    "line_index": {
+     "bsonType": "string",
+     "component": {
+      "name": "input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Line Index",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "format": "",
+      "pattern": "",
+      "required": ""
+     },
+     "format": "",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "8hyz8ird",
+     "multiple": false,
+     "name": "line_index",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Line Index"
+    },
+    "srr_status": {
+     "bsonType": "string",
+     "component": {
+      "name": "input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Line SRR Status",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "format": "",
+      "pattern": "",
+      "required": ""
+     },
+     "format": "",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "7ktyt3yb",
+     "multiple": false,
+     "name": "srr_status",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Line SRR Status"
+    },
+    "temp_qty_data": {
+     "bsonType": "string",
+     "component": {
+      "name": "textarea"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "GD Temp Data",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "pattern": "",
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "zlfw8ffr",
+     "maxLength": 16777216,
+     "multiple": false,
+     "name": "temp_qty_data",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "GD Temp Data"
+    },
+    "line_remark_1": {
+     "bsonType": "string",
+     "component": {
+      "name": "textarea"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Remark 1",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "pattern": "",
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "kxsvuet3",
+     "maxLength": 16777216,
+     "multiple": false,
+     "name": "line_remark_1",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Remark 1"
+    },
+    "line_remark_2": {
+     "bsonType": "string",
+     "component": {
+      "name": "textarea"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Remark 2",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "pattern": "",
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "avcrp8dt",
+     "maxLength": 16777216,
+     "multiple": false,
+     "name": "line_remark_2",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Remark 2"
+    },
+    "project_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1723795236686,
+        "parentId": 1723795236685,
+        "isTop": true,
+        "prop": "organization_id",
+        "operator": "equal",
+        "valueType": "field",
+        "value": "{{value:organization_id}}",
+        "type": "leaf",
+        "level": 1,
+        "propLabel": "Organization ID",
+        "valueLabel": "",
+        "operatorLabel": "Equal"
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Project:关联project.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "project",
+      "dataSourceName": "master",
+      "field": "id as value, project_code as text",
+      "pagingEnabled": 1
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "project.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "mch5ezuy",
+     "multiple": false,
+     "name": "project_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Project"
+    },
+    "item_bundle_id": {
+     "bsonType": "bigint",
+     "component": {
+      "name": "select",
+      "rules": [
+       {
+        "id": 1786609822359,
+        "parentId": 1786609822358,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Item Bundle ID:关联item_bundle.id字段",
+     "desensitization": false,
+     "encryptedKey": false,
+     "enum": {
+      "cascade": "",
+      "collection": "item_bundle",
+      "dataSourceName": "master",
+      "field": "id as value, ib_no as text",
+      "pagingEnabled": 0
+     },
+     "errorMessage": {
+      "required": ""
+     },
+     "foreignKey": "item_bundle.id",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "ibsr4k9m",
+     "multiple": false,
+     "name": "item_bundle_id",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Item Bundle ID"
+    },
+    "hu_no_display": {
+     "bsonType": "string",
+     "component": {
+      "name": "input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "Handling Unit",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "format": "",
+      "pattern": "",
+      "required": ""
+     },
+     "format": "",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "m4vt9xcb",
+     "multiple": false,
+     "name": "hu_no_display",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "Handling Unit"
+    },
+    "temp_hu_data": {
+     "bsonType": "string",
+     "component": {
+      "name": "textarea"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "HU Temp Data",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "pattern": "",
+      "required": ""
+     },
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "p8dz3ryk",
+     "maxLength": 16777216,
+     "multiple": false,
+     "name": "temp_hu_data",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "HU Temp Data"
+    },
+    "hu_source": {
+     "bsonType": "string",
+     "component": {
+      "name": "input"
+     },
+     "dataIdentifier": false,
+     "defaultValue": "",
+     "description": "HU Source",
+     "desensitization": false,
+     "encryptedKey": false,
+     "errorMessage": {
+      "format": "",
+      "pattern": "",
+      "required": ""
+     },
+     "format": "",
+     "historyKey": false,
+     "immutableKey": false,
+     "isRequired": false,
+     "key": "w6sjh1nq",
+     "multiple": false,
+     "name": "hu_source",
+     "pattern": "",
+     "persistField": true,
+     "primaryKey": false,
+     "title": "HU Source"
+    }
+   },
+   "title": "子表单"
+  },
+  "sr_decision": {
+   "bsonType": "string",
+   "component": {
+    "name": "select"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Decision:Option 1-Option 1 Option 2-Option 2 Option 3-Option 3 ",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": [
+    {
+     "text": "Option 1",
+     "value": "Option 1"
+    },
+    {
+     "text": "Option 2",
+     "value": "Option 2"
+    },
+    {
+     "text": "Option 3",
+     "value": "Option 3"
+    }
+   ],
+   "errorMessage": {
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "w20comq1",
+   "multiple": false,
+   "name": "sr_decision",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Decision"
+  },
+  "sr_note": {
+   "bsonType": "string",
+   "component": {
+    "name": "textarea"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Note",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "pattern": "",
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "0ihg2bzs",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "sr_note",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Note"
+  },
+  "remark": {
+   "bsonType": "string",
+   "component": {
+    "name": "textarea"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Remark 1",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "pattern": "",
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "iuydzmji",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "remark",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Remark 1"
+  },
+  "remark2": {
+   "bsonType": "string",
+   "component": {
+    "name": "textarea"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Remark 2",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "pattern": "",
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "juyntmtj",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "remark2",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Remark 2"
+  },
+  "remark3": {
+   "bsonType": "string",
+   "component": {
+    "name": "textarea"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Remark 3",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "pattern": "",
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "urlkf4r4",
+   "maxLength": 16777216,
+   "multiple": false,
+   "name": "remark3",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Remark 3"
+  },
+  "billing_address_name": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Address Name",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "gq4zghpi",
+   "multiple": false,
+   "name": "billing_address_name",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Address Name"
+  },
+  "billing_address_phone": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Contact Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "6670950a",
+   "multiple": false,
+   "name": "billing_address_phone",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Contact Number"
+  },
+  "billing_address_fax": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Fax",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "3uks9no2",
+   "multiple": false,
+   "name": "billing_address_fax",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Fax"
+  },
+  "billing_address_line_1": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Billing",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "74xdypq8",
+   "multiple": false,
+   "name": "billing_address_line_1",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Billing"
+  },
+  "billing_address_line_2": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "tanwrgol",
+   "multiple": false,
+   "name": "billing_address_line_2",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": ""
+  },
+  "billing_address_line_3": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "4l1bqejq",
+   "multiple": false,
+   "name": "billing_address_line_3",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": ""
+  },
+  "billing_address_line_4": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "0q2j6vus",
+   "multiple": false,
+   "name": "billing_address_line_4",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": ""
+  },
+  "billing_address_city": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "City",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "bvka9zzq",
+   "multiple": false,
+   "name": "billing_address_city",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "City"
+  },
+  "billing_postal_code": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Postal Code",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "3kkraruq",
+   "multiple": false,
+   "name": "billing_postal_code",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Postal Code"
+  },
+  "billing_address_country": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Country",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "i18tdb78",
+   "multiple": false,
+   "name": "billing_address_country",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Country"
+  },
+  "billing_address_state": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "State",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "y4pjrwvx",
+   "multiple": false,
+   "name": "billing_address_state",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "State"
+  },
+  "billing_attention": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Attention",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "485vwfmc",
+   "multiple": false,
+   "name": "billing_attention",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Attention"
+  },
+  "shipping_address_name": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Address Name",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "t766byks",
+   "multiple": false,
+   "name": "shipping_address_name",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Address Name"
+  },
+  "shipping_address_phone": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Contact Number",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "4vx0hfzk",
+   "multiple": false,
+   "name": "shipping_address_phone",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Contact Number"
+  },
+  "shipping_address_fax": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Fax",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "bavbbcj1",
+   "multiple": false,
+   "name": "shipping_address_fax",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Fax"
+  },
+  "shipping_address_line_1": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Shipping",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "7umlyyxb",
+   "multiple": false,
+   "name": "shipping_address_line_1",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Shipping"
+  },
+  "shipping_address_line_2": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "9s7hdg6p",
+   "multiple": false,
+   "name": "shipping_address_line_2",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": ""
+  },
+  "shipping_address_line_3": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "o9bmr4ih",
+   "multiple": false,
+   "name": "shipping_address_line_3",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": ""
+  },
+  "shipping_address_line_4": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "mehde3d8",
+   "multiple": false,
+   "name": "shipping_address_line_4",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": ""
+  },
+  "shipping_address_city": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "City",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "72m8isnm",
+   "multiple": false,
+   "name": "shipping_address_city",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "City"
+  },
+  "shipping_postal_code": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Postal Code",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "avw11pqn",
+   "multiple": false,
+   "name": "shipping_postal_code",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Postal Code"
+  },
+  "shipping_address_country": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Country",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "zcehhmul",
+   "multiple": false,
+   "name": "shipping_address_country",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Country"
+  },
+  "shipping_address_state": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "State",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "5vt0ng06",
+   "multiple": false,
+   "name": "shipping_address_state",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "State"
+  },
+  "shipping_attention": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Attention",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "bwsfzr1q",
+   "multiple": false,
+   "name": "shipping_attention",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Attention"
+  },
+  "create_user": {
+   "baseFieldKey": "create_user",
+   "bsonType": "bigint",
+   "description": "创建人",
+   "enum": {
+    "collection": "blade_user",
+    "dataSourceName": "master",
+    "field": "id as value, real_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "uid",
+    "update": false
+   },
+   "foreignKey": "blade_user.id",
+   "isRequired": false,
+   "key": "56jzmrh5",
+   "multiple": false,
+   "name": "create_user",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "创建人"
+  },
+  "create_dept": {
+   "baseFieldKey": "create_dept",
+   "bsonType": "bigint",
+   "description": "创建部门",
+   "enum": {
+    "collection": "blade_dept",
+    "dataSourceName": "master",
+    "field": "id as value, dept_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "did",
+    "update": false
+   },
+   "foreignKey": "blade_dept.id",
+   "isRequired": false,
+   "key": "0sgbkln8",
+   "multiple": false,
+   "name": "create_dept",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "创建部门"
+  },
+  "create_time": {
+   "baseFieldKey": "create_time",
+   "bsonType": "datetime",
+   "description": "创建时间",
+   "forceDefaultValue": {
+    "$env": "now",
+    "update": false
+   },
+   "format": "YYYY-MM-DD HH:mm:ss",
+   "isRequired": false,
+   "key": "pxjduric",
+   "multiple": false,
+   "name": "create_time",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "datetime",
+   "title": "创建时间"
+  },
+  "update_user": {
+   "baseFieldKey": "update_user",
+   "bsonType": "bigint",
+   "description": "修改人",
+   "enum": {
+    "collection": "blade_user",
+    "dataSourceName": "master",
+    "field": "id as value, real_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "uid"
+   },
+   "foreignKey": "blade_user.id",
+   "isRequired": false,
+   "key": "fpjyd6kb",
+   "multiple": false,
+   "name": "update_user",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "修改人"
+  },
+  "update_time": {
+   "baseFieldKey": "update_time",
+   "bsonType": "datetime",
+   "description": "修改时间",
+   "forceDefaultValue": {
+    "$env": "now",
+    "update": true
+   },
+   "format": "YYYY-MM-DD HH:mm:ss",
+   "isRequired": false,
+   "key": "t11huk7x",
+   "multiple": false,
+   "name": "update_time",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "datetime",
+   "title": "修改时间"
+  },
+  "is_deleted": {
+   "baseFieldKey": "is_deleted",
+   "bsonType": "int",
+   "defaultValue": 0,
+   "description": "删除状态",
+   "enum": [
+    {
+     "text": "0",
+     "value": "未删除"
+    },
+    {
+     "text": "1",
+     "value": "已删除"
+    }
+   ],
+   "forceDefaultValue": 0,
+   "isRequired": false,
+   "key": "jnfrlvv8",
+   "multiple": false,
+   "name": "is_deleted",
+   "persistField": true,
+   "primaryKey": false,
+   "systemKey": true,
+   "title": "删除状态"
+  },
+  "tenant_id": {
+   "bsonType": "string",
+   "description": "租户Id",
+   "enum": {
+    "collection": "blade_tenant",
+    "dataSourceName": "master",
+    "field": "tenant_id as value, tenant_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "tid",
+    "update": false
+   },
+   "foreignKey": "blade_tenant.tenant_id",
+   "isRequired": false,
+   "key": "qjguwboi",
+   "multiple": false,
+   "name": "tenant_id",
+   "persistField": true,
+   "primaryKey": false,
+   "systemKey": true,
+   "title": "租户Id"
+  },
+  "sub_tenant_id": {
+   "bsonType": "bigint",
+   "description": "子租户Id",
+   "enum": {
+    "collection": "su_code_sub_tenant",
+    "dataSourceName": "master",
+    "field": "id as value, sub_tenant_full_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "stid",
+    "update": false
+   },
+   "foreignKey": "su_code_sub_tenant.id",
+   "isRequired": false,
+   "key": "3asda89a",
+   "multiple": false,
+   "name": "sub_tenant_id",
+   "persistField": true,
+   "primaryKey": false,
+   "systemKey": true,
+   "title": "子租户Id"
+  },
+  "sales_return_no_sn": {
+   "bsonType": "bigint",
+   "description": "Sales Return No",
+   "errorMessage": {},
+   "isRequired": false,
+   "key": "s29tmc59_sn",
+   "multiple": false,
+   "name": "sales_return_no_sn",
+   "persistField": true,
+   "primaryKey": false,
+   "sourceSerialNumber": "sales_return_no",
+   "title": "Sales Return No"
+  },
+  "hu_no_display": {
+   "bsonType": "string",
+   "component": {
+    "name": "input"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Handling Unit",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "k7q2wnf3",
+   "multiple": false,
+   "name": "hu_no_display",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Handling Unit"
+  }
+ },
+ "title": "Sales Return",
+ "uniqueGroup": []
+}
