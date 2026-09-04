@@ -76,6 +76,48 @@ const fetchBatchNumbers = async (batchIds) => {
   );
 };
 
+// Only a receipt that actually happened consumes a source's capacity. A draft
+// has received nothing yet, and a draft deleted by a sales return cancellation
+// leaves its lines behind -- the cancel soft-deletes the HEADER, never the rows
+// under it, so those rows would otherwise keep claiming stock forever.
+const srrCompletedCache = new Map();
+
+const completedSRRIds = async (srrIds) => {
+  const unknown = srrIds.filter((id) => !srrCompletedCache.has(String(id)));
+
+  if (unknown.length > 0) {
+    const resSRR = await db
+      .collection("sales_return_receiving")
+      .filter(new Filter().in("id", unknown).build())
+      .get();
+
+    // A header that does not come back is deleted; mark every id asked for so a
+    // second pass never re-fetches it.
+    for (const id of unknown) srrCompletedCache.set(String(id), false);
+
+    for (const srr of resSRR?.data || []) {
+      srrCompletedCache.set(String(srr.id), srr.srr_status === "Completed");
+    }
+  }
+
+  return new Set(
+    srrIds.filter((id) => srrCompletedCache.get(String(id))).map(String),
+  );
+};
+
+const liveSRRLines = async (lines) => {
+  const ids = [
+    ...new Set(
+      lines.map((line) => String(line.sales_return_receiving_id)).filter(Boolean),
+    ),
+  ];
+  const live = await completedSRRIds(ids);
+
+  return lines.filter((line) =>
+    live.has(String(line.sales_return_receiving_id)),
+  );
+};
+
 // Qty already put back per (SR line, batch), so a second receipt does not
 // return stock into a batch that earlier receipts already filled.
 const fetchReceivedByBatch = async (srLineIds) => {
@@ -87,7 +129,7 @@ const fetchReceivedByBatch = async (srLineIds) => {
     .filter(new Filter().in("sr_line_id", srLineIds).build())
     .get();
 
-  for (const line of resSRRLine?.data || []) {
+  for (const line of await liveSRRLines(resSRRLine?.data || [])) {
     if (!line.batch_id) continue;
 
     const key = `${line.sr_line_id}|${line.batch_id}`;
@@ -241,7 +283,7 @@ const fetchReceivedByHU = async (srLineIds) => {
     .filter(new Filter().in("sr_line_id", srLineIds).build())
     .get();
 
-  for (const line of resSRRLine?.data || []) {
+  for (const line of await liveSRRLines(resSRRLine?.data || [])) {
     // hu_id records the unit the goods were DELIVERED in and is never cleared,
     // so a row the receiver took loose or into a new unit still carries it.
     // Only rows that actually went back into that unit consume its capacity.
