@@ -12,7 +12,8 @@
 //
 // Excel columns (header names are matched case/space/punctuation-insensitively):
 //   Supplier Code  -- or --  Supplier Name   (at least one, code wins)
-//   Supplier Item Alias / Item Description   (at least one)
+//   Supplier Item Alias / Item Description / Supplier Item Barcode
+//                                            (at least one)
 //
 // Validation is ALL-OR-NOTHING: one bad row aborts the whole import and the
 // table is left untouched. A successful import REPLACES table_sup_item_bind
@@ -52,6 +53,12 @@
     name: ["suppliername", "supname", "companyname", "suppliercomname"],
     alias: ["supplieritemalias", "supitemalias", "itemalias", "alias"],
     desc: ["itemdescription", "itemdesc", "description", "desc"],
+    barcode: [
+      "supplieritembarcode",
+      "supitembarcode",
+      "itembarcode",
+      "barcode",
+    ],
   };
   const pick = (normRow, names) => {
     for (const n of names) {
@@ -111,22 +118,25 @@
       const name = pick(normRow, HEADERS.name);
       const alias = pick(normRow, HEADERS.alias);
       const desc = pick(normRow, HEADERS.desc);
+      const barcode = pick(normRow, HEADERS.barcode);
 
       // Trailing/blank spreadsheet rows are ignored, not reported.
-      if (!code && !name && !alias && !desc) continue;
+      if (!code && !name && !alias && !desc && !barcode) continue;
 
       const label = "Excel row " + r.seq;
       if (!code && !name) {
         errors.push(label + ": Supplier Code or Supplier Name is required.");
         continue;
       }
-      if (!alias && !desc) {
+      if (!alias && !desc && !barcode) {
         errors.push(
-          label + ": Supplier Item Alias or Item Description is required.",
+          label +
+            ": Supplier Item Alias, Item Description or Supplier Item Barcode" +
+            " is required.",
         );
         continue;
       }
-      rows.push({ label, code, name, alias, desc });
+      rows.push({ label, code, name, alias, desc, barcode });
     }
 
     if (rows.length === 0 && errors.length === 0) {
@@ -287,6 +297,7 @@
         supplier_name: str(sup.supplier_com_name),
         sup_item_alias: r.alias,
         item_description: r.desc,
+        sup_item_barcode: r.barcode,
       });
     }
 
