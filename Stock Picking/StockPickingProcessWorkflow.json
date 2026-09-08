@@ -217,65 +217,181 @@
       "blocks": []
     },
     {
-      "id": "get_node_SPsetup",
-      "type": "get-node",
+      "id": "condition_all_SPhead",
+      "type": "condition-all-node",
       "data": {
-        "table_id": {
-          "source": "Picking Setup:Table:1935547845324787714",
-          "rules": {
-            "collectionId": "1935547845324787714",
-            "list": [
-              {
-                "id": 1794000000001,
-                "parentId": 1794000000002,
-                "isTop": true,
-                "type": "branch",
-                "operator": "all",
-                "prop": "",
-                "valueType": "",
-                "value": "",
-                "level": 1,
-                "children": [
-                  {
-                    "id": 1794000000002,
-                    "parentId": 1794000000001,
-                    "isTop": false,
-                    "prop": "organization_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{node:code_node_SPprep.data.organizationId}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "Organization ID",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  },
-                  {
-                    "id": 1794000000003,
-                    "parentId": 1794000000001,
-                    "isTop": false,
-                    "prop": "plant_id",
-                    "operator": "equal",
-                    "valueType": "field",
-                    "value": "{{node:code_node_SPprep.data.plantId}}",
-                    "type": "leaf",
-                    "level": 2,
-                    "propLabel": "Plant ID",
-                    "valueLabel": "",
-                    "operatorLabel": "equal"
-                  }
-                ]
-              }
-            ]
-          }
+        "title": "Parallel Branch",
+        "filter": {
+          "list": []
         },
-        "condition": {},
-        "title": "Get Picking Setup",
-        "isValidator": true,
-        "nodeName": "Get Picking Setup",
-        "name": "Get Picking Setup"
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
       },
-      "blocks": []
+      "blocks": [
+        {
+          "id": "condition_all_item_SPsetup",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 1",
+            "filter": {
+              "list": [
+                {
+                  "id": 1797000000010,
+                  "parentId": 1797000000011,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 1",
+            "name": "Branch 1",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "get_node_SPsetup",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Picking Setup:Table:1935547845324787714",
+                  "rules": {
+                    "collectionId": "1935547845324787714",
+                    "list": [
+                      {
+                        "id": 1794000000001,
+                        "parentId": 1794000000002,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1794000000002,
+                            "parentId": 1794000000001,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPprep.data.organizationId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 1794000000003,
+                            "parentId": 1794000000001,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_SPprep.data.plantId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Plant ID",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Picking Setup",
+                "isValidator": true,
+                "nodeName": "Get Picking Setup",
+                "name": "Get Picking Setup"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_SPorig",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 2",
+            "filter": {
+              "list": [
+                {
+                  "id": 1797000000020,
+                  "parentId": 1797000000021,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 2",
+            "name": "Branch 2",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "get_node_SPorig",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Stock Picking:Table:2092878390055469058",
+                  "rules": {
+                    "collectionId": "2092878390055469058",
+                    "list": [
+                      {
+                        "id": 1797000000001,
+                        "parentId": 1797000000002,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{node:code_node_SPprep.data.pickingId}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Original Picking",
+                "isValidator": true,
+                "nodeName": "Get Original Picking",
+                "name": "Get Original Picking"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "code_node_SPrecords",
@@ -290,11 +406,11 @@
         "name": "Create Table Picking Records",
         "script": {
           "type": "javascript",
-          "code": "const prep = {{node:code_node_SPprep.data}};\nconst confirmedBy = {{workflowparams:confirmed_by}} || \"\";\nconst setupRaw = {{node:get_node_SPsetup.data}};\nconst setup = Array.isArray(setupRaw) ? setupRaw[0] : setupRaw;\nconst allowFull = setup && setup.sp_allow_full_picking === 1 ? 1 : 0;\n\nconst round3 = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst items = prep.items || [];\n\n// picked_qty is captured in the Pick UOM; store_out_qty is the canonical order-UOM\n// figure the movement consumes, converted with the factors the line already carries.\nconst toOrderUom = (row, qty) => {\n  const ob = parseFloat(row.order_base_qty) || 0;\n  const pb = parseFloat(row.picking_base_qty) || 0;\n  if (!ob || !pb) return qty;\n  return round3((qty * pb) / ob);\n};\n\n// The factors are decimal(65,3) columns: persist them as fixed strings, and treat\n// a missing/zero factor as 1 (\"same UOM\"). The math above still uses the raw value.\nconst factor3 = (v) => {\n  const n = parseFloat(v);\n  return !n ? \"1.000\" : n.toFixed(3);\n};\nconst withFactors = (row, extra) =>\n  Object.assign({}, row, {\n    order_base_qty: factor3(row.order_base_qty),\n    picking_base_qty: factor3(row.picking_base_qty),\n  }, extra || {});\n\nconst records = [];\nconst updatedItems = [];\nlet allDone = 1;\nlet anyPicked = 0;\n\nfor (const row of items) {\n  if (row.line_status === \"Cancelled\") { updatedItems.push(withFactors(row)); continue; }\n  const pickedAlt = round3(row.picked_qty);\n  const pickedOrder = toOrderUom(row, pickedAlt);\n  const toPick = round3(row.qty_to_pick);\n  let pending = round3(toPick - pickedOrder);\n  if (pending < 0) pending = 0;\n\n  let status = \"Open\";\n  if (allowFull && pickedOrder > 0) { status = \"Completed\"; pending = 0; }\n  else if (pending === 0) status = \"Completed\";\n  else if (pickedOrder > 0) status = \"In Progress\";\n  if (prep.isForceComplete === 1) { status = \"Completed\"; pending = 0; }\n\n  if (status !== \"Completed\") allDone = 0;\n  if (pickedOrder > 0) {\n    anyPicked = 1;\n    records.push({\n      handling_unit_id: row.handling_unit_id || null,\n      item_code: row.item_code, item_name: row.item_name || \"\",\n      item_desc: row.item_desc || \"\", more_desc: row.more_desc || \"\",\n      batch_no: row.batch_no || null, target_batch: row.target_batch || null,\n      serial_numbers: row.serial_numbers || \"\",\n      store_out_qty: pickedOrder.toFixed(3),\n      picked_qty_alt: pickedAlt.toFixed(3),\n      item_uom: row.item_uom, picked_uom: row.picking_uom || row.item_uom,\n      source_bin: row.source_bin || null, remark: row.remark || \"\",\n      confirmed_by: confirmedBy, confirmed_at: null,\n      src_id: row.src_id || null, src_line_id: row.src_line_id || null,\n      src_no: row.src_no || \"\",\n    });\n  }\n  updatedItems.push(withFactors(row, {\n    line_status: status,\n    pending_process_qty: pending.toFixed(3),\n    picked_qty: pickedAlt.toFixed(3),\n  }));\n}\n\nconst headerStatus = allDone ? \"Completed\" : (anyPicked ? \"In Progress\" : \"Created\");\n\nreturn {\n  records, updatedItems, headerStatus,\n  hasRecords: records.length > 0 ? 1 : 0,\n  autoAdvance: setup && setup.sp_auto_advance === 1 ? 1 : 0,\n  isCompleted: headerStatus === \"Completed\" ? 1 : 0,\n};\n"
+          "code": "const prep = {{node:code_node_SPprep.data}};\nconst confirmedBy = {{workflowparams:confirmed_by}} || \"\";\nconst setupRaw = {{node:get_node_SPsetup.data}};\nconst setup = Array.isArray(setupRaw) ? setupRaw[0] : setupRaw;\nconst allowFull = setup && setup.sp_allow_full_picking === 1 ? 1 : 0;\n\nconst round3 = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst items = prep.items || [];\n\n// picked_qty is captured in the Pick UOM; store_out_qty is the canonical order-UOM\n// figure the movement consumes, converted with the factors the line already carries.\nconst toOrderUom = (row, qty) => {\n  const ob = parseFloat(row.order_base_qty) || 0;\n  const pb = parseFloat(row.picking_base_qty) || 0;\n  if (!ob || !pb) return qty;\n  return round3((qty * pb) / ob);\n};\nconst toPickUom = (row, qty) => {\n  const ob = parseFloat(row.order_base_qty) || 0;\n  const pb = parseFloat(row.picking_base_qty) || 0;\n  if (!ob || !pb) return qty;\n  return round3((qty * ob) / pb);\n};\n\n// A second picker can empty these bins while this one is still in the aisles: the\n// client validated picked_qty against the pending it loaded, which may be minutes\n// stale. Pending is therefore taken from the STORED document, not the payload, and\n// the picked qty is clamped to it. Mirrors PickingProcessWorkflow code_node_oHIIKfiw.\nconst storedRaw = {{node:get_node_SPorig.data.data}};\nconst stored = (Array.isArray(storedRaw) ? storedRaw[0] : storedRaw) || {};\nconst flatten = (rows) =>\n  (rows || []).flatMap((r) => [r, ...(Array.isArray(r.children) ? r.children : [])]);\nconst freshPending = {};\nfor (const row of flatten(stored.table_picking_items)) {\n  if (!row || !row.id) continue;\n  if (row.line_status === \"Cancelled\") continue;\n  freshPending[String(row.id)] = round3(row.pending_process_qty);\n}\nconst clampedLines = [];\n\nconst records = [];\nconst updatedItems = [];\nlet allDone = 1;\nlet anyPicked = 0;\n\nfor (const row of items) {\n  if (row.line_status === \"Cancelled\") { updatedItems.push(row); continue; }\n  const pickedAltRaw = round3(row.picked_qty);\n  let pickedOrder = toOrderUom(row, pickedAltRaw);\n  let pickedAlt = pickedAltRaw;\n\n  const key = String(row.id || \"\");\n  // A row the stored document has never seen is left alone rather than zeroed.\n  const known = Object.prototype.hasOwnProperty.call(freshPending, key);\n  const basePending = known ? freshPending[key] : round3(row.pending_process_qty);\n\n  if (known && pickedOrder > basePending) {\n    clampedLines.push({\n      picking_item_id: key,\n      item_name: row.item_name || row.item_code || key,\n      requested: pickedOrder,\n      allowed: basePending,\n    });\n    pickedOrder = basePending;\n    pickedAlt = toPickUom(row, pickedOrder);\n  }\n\n  let pending = round3(Math.max(0, basePending - pickedOrder));\n  if (known) freshPending[key] = pending;\n\n  let status = \"Open\";\n  if (allowFull && pickedOrder > 0) { status = \"Completed\"; pending = 0; }\n  else if (pending === 0) status = \"Completed\";\n  else if (pickedOrder > 0) status = \"In Progress\";\n  if (prep.isForceComplete === 1) { status = \"Completed\"; pending = 0; }\n\n  if (status !== \"Completed\") allDone = 0;\n  if (pickedOrder > 0) {\n    anyPicked = 1;\n    records.push({\n      handling_unit_id: row.handling_unit_id || null,\n      item_code: row.item_code, item_name: row.item_name || \"\",\n      item_desc: row.item_desc || \"\", more_desc: row.more_desc || \"\",\n      batch_no: row.batch_no || null, target_batch: row.target_batch || null,\n      serial_numbers: row.serial_numbers || \"\",\n      store_out_qty: pickedOrder.toFixed(3),\n      picked_qty_alt: pickedAlt.toFixed(3),\n      item_uom: row.item_uom, picked_uom: row.picking_uom || row.item_uom,\n      source_bin: row.source_bin || null, remark: row.remark || \"\",\n      confirmed_by: confirmedBy, confirmed_at: null,\n      src_id: row.src_id || null, src_line_id: row.src_line_id || null,\n      src_no: row.src_no || \"\",\n    });\n  }\n  updatedItems.push(Object.assign({}, row, {\n    line_status: status,\n    pending_process_qty: pending.toFixed(3),\n    picked_qty: pickedAlt.toFixed(3),\n  }));\n}\n\nconst headerStatus = allDone ? \"Completed\" : (anyPicked ? \"In Progress\" : \"Created\");\n\nreturn {\n  records, updatedItems, headerStatus,\n  hasRecords: records.length > 0 ? 1 : 0,\n  autoAdvance: setup && setup.sp_auto_advance === 1 ? 1 : 0,\n  isCompleted: headerStatus === \"Completed\" ? 1 : 0,\n  clampedLines, hasClamped: clampedLines.length > 0 ? 1 : 0,\n};\n"
         },
         "response_json": [
           {
-            "key": "recordskey",
+            "key": "recordsk",
             "name": "records",
             "title": "records",
             "description": "",
@@ -343,7 +459,7 @@
             "children": []
           },
           {
-            "key": "hasrecordske",
+            "key": "hasrecordsk",
             "name": "hasRecords",
             "title": "hasRecords",
             "description": "",
@@ -364,6 +480,35 @@
             "key": "iscompletedk",
             "name": "isCompleted",
             "title": "isCompleted",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "clampedlines",
+            "name": "clampedLines",
+            "title": "clampedLines",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "clampedlines",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "hasclampedk",
+            "name": "hasClamped",
+            "title": "hasClamped",
             "description": "",
             "bsonType": "int",
             "isExpand": false,
@@ -2022,6 +2167,35 @@
       ]
     },
     {
+      "id": "code_node_SPclampMsg",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Clamp Message",
+        "isValidator": true,
+        "nodeName": "Clamp Message",
+        "name": "Clamp Message",
+        "script": {
+          "type": "javascript",
+          "code": "// The clamp is otherwise invisible: the picker submits 10, the server records 4,\n// and the app is told \"processed successfully\". The response message is the only\n// channel that reaches the picker. Mirrors PickingProcessWorkflow code_node_ClampMsg.\nconst clamped = {{node:code_node_SPrecords.data.clampedLines}} || [];\nconst BASE = \"Stock Picking processed successfully\";\nif (!Array.isArray(clamped) || clamped.length === 0) return { message: BASE };\n\nconst byLine = {};\nfor (const c of clamped) {\n  const k = String(c.picking_item_id || \"\");\n  if (!byLine[k]) byLine[k] = { name: c.item_name || k, requested: 0, allowed: 0 };\n  byLine[k].requested += Number(c.requested) || 0;\n  byLine[k].allowed += Number(c.allowed) || 0;\n}\nconst r3 = (v) => Math.round(v * 1000) / 1000;\nconst parts = Object.keys(byLine).map((k) => {\n  const e = byLine[k];\n  return e.name + \" \" + r3(e.requested) + String.fromCharCode(8594) + r3(e.allowed);\n});\nreturn {\n  message: BASE + \". \" + parts.length + \" line(s) were reduced because the stock had\" +\n    \" already been picked: \" + parts.join(\", \") + \". Check the document before picking again.\",\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "messagek",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "return_node_SPok",
       "type": "return-node",
       "data": {
@@ -2043,8 +2217,8 @@
             {
               "prop": "message",
               "operator": "",
-              "valueType": "value",
-              "value": "Stock Picking processed successfully",
+              "valueType": "field",
+              "value": "{{node:code_node_SPclampMsg.data.message}}",
               "valueLabel": "",
               "propLabel": "message"
             }
