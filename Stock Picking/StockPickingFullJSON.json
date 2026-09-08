@@ -8,11 +8,7 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 1,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "options": {
         "customClass": "",
         "hidden": false,
@@ -37,34 +33,14 @@
           },
           "use": false
         },
-        "padding": [
-          "",
-          "",
-          "",
-          ""
-        ],
-        "margin": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "padding": ["", "", "", ""],
+        "margin": ["", "", "", ""],
         "boxSizing": "border-box",
         "width": "",
         "height": "",
-        "radius": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "radius": ["", "", "", ""],
         "position": "",
-        "positions": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "positions": ["", "", "", ""],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -119,28 +95,14 @@
           "icon": "icon-wenzishezhi-",
           "group": "Design",
           "groupSort": 1,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "defaultValue": "Stock Picking",
             "customClass": "marginright",
             "hidden": false,
             "isRich": false,
-            "padding": [
-              "",
-              "",
-              "",
-              ""
-            ],
-            "margin": [
-              "",
-              "",
-              "",
-              ""
-            ],
+            "padding": ["", "", "", ""],
+            "margin": ["", "", "", ""],
             "boxSizing": "border-box",
             "width": "",
             "maxWidth": "",
@@ -153,19 +115,9 @@
             "textOverflow": "",
             "whiteSpace": "",
             "lines": 0,
-            "radius": [
-              "",
-              "",
-              "",
-              ""
-            ],
+            "radius": ["", "", "", ""],
             "position": "",
-            "positions": [
-              "",
-              "",
-              "",
-              ""
-            ],
+            "positions": ["", "", "", ""],
             "zIndex": "",
             "flex": "",
             "flexGrow": "",
@@ -179,9 +131,7 @@
             "remoteOption": "option_ftkm8qxn",
             "tableColumn": false,
             "subform": false,
-            "select-card_n7ge7fmb": [
-              "dataBind"
-            ],
+            "select-card_n7ge7fmb": ["dataBind"],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -204,11 +154,7 @@
           "typeIcon": "HTML",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Draft Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .draft-button {\n            padding: 0 20px;\n            border: 2px solid #8C95A4;\n            background-color: #D0D5DD;\n            color: #4D5A74;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"draft-button\">Draft</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -224,9 +170,7 @@
             "subform": false,
             "customClass": "",
             "hideLabel": true,
-            "select-card_n7ge7fmb": [
-              "dataBind"
-            ],
+            "select-card_n7ge7fmb": ["dataBind"],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -248,11 +192,7 @@
           "typeIcon": "HTML",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Draft Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #C6DFFF;\n        }\n\n        .created-button {\n            padding: 0 20px;\n            border: 2px solid #036DF8;\n            background-color: #C6DFFF;\n            color: #4D5A74;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"created-button\">Created</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -268,9 +208,7 @@
             "subform": false,
             "customClass": "",
             "hideLabel": true,
-            "select-card_n7ge7fmb": [
-              "dataBind"
-            ],
+            "select-card_n7ge7fmb": ["dataBind"],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -292,11 +230,7 @@
           "typeIcon": "HTML",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>In Progress Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .inprogress-button {\n            padding: 0 20px;\n            border: 2px solid #FFBB00;\n            background-color: #FFFCDD;\n            color: #8F6A04;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"inprogress-button\">In Progress</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -312,9 +246,7 @@
             "subform": false,
             "customClass": "",
             "hideLabel": true,
-            "select-card_n7ge7fmb": [
-              "dataBind"
-            ],
+            "select-card_n7ge7fmb": ["dataBind"],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -336,11 +268,7 @@
           "typeIcon": "HTML",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Completed Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .completed-button {\n            padding: 0 20px;\n            border: 2px solid #00AE00;\n            background-color: #C5F5C5;\n            color: #016701;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"completed-button\">Completed</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -356,9 +284,7 @@
             "subform": false,
             "customClass": "",
             "hideLabel": true,
-            "select-card_n7ge7fmb": [
-              "dataBind"
-            ],
+            "select-card_n7ge7fmb": ["dataBind"],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -380,11 +306,7 @@
           "typeIcon": "HTML",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Cancelled Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .cancelled-button {\n            padding: 0 20px;\n            border: 2px solid #F90A0A;\n            background-color: #FDC4C4;\n            color: #A30505;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"cancelled-button\">Cancelled</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -400,9 +322,7 @@
             "subform": false,
             "customClass": "",
             "hideLabel": true,
-            "select-card_n7ge7fmb": [
-              "dataBind"
-            ],
+            "select-card_n7ge7fmb": ["dataBind"],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -433,11 +353,7 @@
       "icon": "icon-kapian",
       "group": "Layout",
       "groupSort": 5,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "list": [
         {
           "type": "select",
@@ -446,11 +362,7 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -651,11 +563,7 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -687,9 +595,7 @@
             "remoteOption": "option_engsu6mk",
             "tableColumn": false,
             "subform": false,
-            "select-card_n7ge7fmb": [
-              "dataBind"
-            ],
+            "select-card_n7ge7fmb": ["dataBind"],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -714,11 +620,7 @@
           "icon": "icon-RectangleCopy",
           "group": "Layout",
           "groupSort": 0,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "columns": [
             {
               "type": "col",
@@ -742,11 +644,7 @@
                   "icon": "icon-shuxuanzeqi",
                   "group": "Select",
                   "groupSort": 4,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": "",
                     "width": "",
@@ -946,11 +844,7 @@
                   "icon": "icon-zhediemianban",
                   "group": "Design",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "dataBind": false,
                     "pagingEnabled": true,
@@ -977,34 +871,14 @@
                       },
                       "use": false
                     },
-                    "padding": [
-                      "",
-                      "",
-                      "",
-                      ""
-                    ],
-                    "margin": [
-                      "",
-                      "",
-                      "",
-                      ""
-                    ],
+                    "padding": ["", "", "", ""],
+                    "margin": ["", "", "", ""],
                     "boxSizing": "border-box",
                     "width": "",
                     "height": "",
-                    "radius": [
-                      "",
-                      "",
-                      "",
-                      ""
-                    ],
+                    "radius": ["", "", "", ""],
                     "position": "relative",
-                    "positions": [
-                      "",
-                      "",
-                      "",
-                      ""
-                    ],
+                    "positions": ["", "", "", ""],
                     "zIndex": "",
                     "flex": "",
                     "flexGrow": "",
@@ -1063,11 +937,7 @@
                       "icon": "icon-zhediemianban",
                       "group": "Design",
                       "groupSort": 1,
-                      "enableScopes": [
-                        "Component",
-                        "Table",
-                        "Page"
-                      ],
+                      "enableScopes": ["Component", "Table", "Page"],
                       "options": {
                         "dataBind": false,
                         "pagingEnabled": true,
@@ -1094,34 +964,14 @@
                           },
                           "use": false
                         },
-                        "padding": [
-                          "",
-                          "",
-                          "",
-                          ""
-                        ],
-                        "margin": [
-                          "",
-                          "",
-                          "",
-                          ""
-                        ],
+                        "padding": ["", "", "", ""],
+                        "margin": ["", "", "", ""],
                         "boxSizing": "border-box",
                         "width": "80%",
                         "height": "",
-                        "radius": [
-                          "",
-                          "",
-                          "",
-                          ""
-                        ],
+                        "radius": ["", "", "", ""],
                         "position": "relative",
-                        "positions": [
-                          "",
-                          "",
-                          "",
-                          ""
-                        ],
+                        "positions": ["", "", "", ""],
                         "zIndex": "",
                         "flex": "",
                         "flexGrow": "",
@@ -1175,11 +1025,7 @@
                           "typeIcon": "流水号",
                           "group": "Text",
                           "groupSort": 5,
-                          "enableScopes": [
-                            "Component",
-                            "Table",
-                            "Page"
-                          ],
+                          "enableScopes": ["Component", "Table", "Page"],
                           "options": {
                             "defaultValue": "",
                             "customClass": "",
@@ -1225,7 +1071,7 @@
                             "tableColumn": false,
                             "subform": false,
                             "ruleMode": "dynamic",
-                            "dynamicRuleField": "Picking",
+                            "dynamicRuleField": "Stock Picking",
                             "select-card_n7ge7fmb": [],
                             "left": 3,
                             "right": 4,
@@ -1261,11 +1107,7 @@
                       "icon": "icon-zhediemianban",
                       "group": "Design",
                       "groupSort": 1,
-                      "enableScopes": [
-                        "Component",
-                        "Table",
-                        "Page"
-                      ],
+                      "enableScopes": ["Component", "Table", "Page"],
                       "options": {
                         "dataBind": false,
                         "pagingEnabled": true,
@@ -1292,34 +1134,14 @@
                           },
                           "use": false
                         },
-                        "padding": [
-                          "",
-                          "",
-                          "",
-                          "8px"
-                        ],
-                        "margin": [
-                          "",
-                          "",
-                          "",
-                          ""
-                        ],
+                        "padding": ["", "", "", "8px"],
+                        "margin": ["", "", "", ""],
                         "boxSizing": "border-box",
                         "width": "20%",
                         "height": "",
-                        "radius": [
-                          "",
-                          "",
-                          "",
-                          ""
-                        ],
+                        "radius": ["", "", "", ""],
                         "position": "relative",
-                        "positions": [
-                          "",
-                          "",
-                          "",
-                          ""
-                        ],
+                        "positions": ["", "", "", ""],
                         "zIndex": "",
                         "flex": "",
                         "flexGrow": "",
@@ -1373,11 +1195,7 @@
                           "icon": "icon-select",
                           "group": "Select",
                           "groupSort": 2,
-                          "enableScopes": [
-                            "Component",
-                            "Table",
-                            "Page"
-                          ],
+                          "enableScopes": ["Component", "Table", "Page"],
                           "el": "fm-select",
                           "options": {
                             "defaultValue": "",
@@ -1474,7 +1292,7 @@
                                         "value": "{{global:firstLvDeptId}}",
                                         "type": "leaf",
                                         "level": 2,
-                                        "propLabel": "部门ID",
+                                        "propLabel": "Organization ID",
                                         "valueLabel": "",
                                         "operatorLabel": "Equal"
                                       },
@@ -1541,11 +1359,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -1640,11 +1454,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -1825,11 +1635,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -1888,11 +1694,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -1946,11 +1748,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": [],
@@ -2049,11 +1847,7 @@
                   "icon": "icon-date",
                   "group": "DateTime",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": "",
                     "readonly": false,
@@ -2102,11 +1896,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -2157,11 +1947,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -2213,11 +1999,7 @@
                   "icon": "icon-switch",
                   "group": "Select",
                   "groupSort": 8,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": 0,
                     "required": false,
@@ -2282,11 +2064,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -2397,11 +2175,7 @@
                   "icon": "icon-wenjianshangchuan",
                   "group": "Special",
                   "groupSort": 0,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": [],
                     "width": "",
@@ -2497,11 +2271,7 @@
       "icon": "icon-tabs",
       "group": "Layout",
       "groupSort": 2,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "tabs": [
         {
           "label": "Picking Items",
@@ -2514,11 +2284,7 @@
               "icon": "icon-table",
               "group": "Container",
               "groupSort": 0,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": [],
                 "generateSubTable": true,
@@ -2718,11 +2484,7 @@
                   "icon": "icon-switch",
                   "group": "Select",
                   "groupSort": 8,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": 0,
                     "required": false,
@@ -2772,11 +2534,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -2882,11 +2640,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -2944,11 +2698,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -3049,11 +2799,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -3104,11 +2850,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -3162,11 +2904,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -3220,11 +2958,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -3281,11 +3015,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -3377,11 +3107,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -3441,11 +3167,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -3507,11 +3229,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -3569,11 +3287,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -3630,11 +3344,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -3736,11 +3446,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -3888,11 +3594,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -3992,11 +3694,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -4054,11 +3752,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -4119,11 +3813,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -4176,11 +3866,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -4268,11 +3954,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "",
                     "defaultValue": 0,
@@ -4347,11 +4029,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -4404,11 +4082,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -4466,11 +4140,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -4528,11 +4198,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -4590,11 +4256,7 @@
                   "icon": "icon-wenjianshangchuan",
                   "group": "File",
                   "groupSort": 0,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": [],
                     "width": "",
@@ -4654,11 +4316,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -4770,11 +4428,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -4833,11 +4487,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -4895,11 +4545,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -4990,11 +4636,7 @@
                   "icon": "icon-switch",
                   "group": "Select",
                   "groupSort": 8,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": 0,
                     "required": false,
@@ -5053,11 +4695,7 @@
               "icon": "icon-table",
               "group": "Container",
               "groupSort": 0,
-              "enableScopes": [
-                "Component",
-                "Table",
-                "Page"
-              ],
+              "enableScopes": ["Component", "Table", "Page"],
               "options": {
                 "defaultValue": [],
                 "customClass": "",
@@ -5193,11 +4831,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -5300,11 +4934,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -5402,11 +5032,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "200px",
@@ -5457,11 +5083,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "200px",
                     "defaultValue": "",
@@ -5508,11 +5130,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -5566,11 +5184,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "200px",
@@ -5621,11 +5235,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -5716,11 +5326,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -5812,11 +5418,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -5875,11 +5477,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -5937,11 +5535,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "200px",
                     "defaultValue": "",
@@ -5989,11 +5583,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "200px",
@@ -6051,11 +5641,7 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-number",
                   "options": {
                     "width": "200px",
@@ -6112,11 +5698,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -6216,11 +5798,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -6320,11 +5898,7 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -6415,11 +5989,7 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "width": "200px",
                     "defaultValue": "",
@@ -6466,11 +6036,7 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "el": "fm-input",
                   "options": {
                     "width": "200px",
@@ -6528,11 +6094,7 @@
                   "icon": "icon-date",
                   "group": "DateTime",
                   "groupSort": 1,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": "",
                     "readonly": false,
@@ -6583,11 +6145,7 @@
                   "icon": "icon-wenjianshangchuan",
                   "group": "File",
                   "groupSort": 0,
-                  "enableScopes": [
-                    "Component",
-                    "Table",
-                    "Page"
-                  ],
+                  "enableScopes": ["Component", "Table", "Page"],
                   "options": {
                     "defaultValue": [],
                     "width": "",
@@ -6672,11 +6230,7 @@
       "icon": "icon-diy-com-textarea",
       "group": "Text",
       "groupSort": 2,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "options": {
         "width": "",
         "defaultValue": "",
@@ -6729,11 +6283,7 @@
       "icon": "icon-diy-com-textarea",
       "group": "Text",
       "groupSort": 2,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "options": {
         "width": "",
         "defaultValue": "",
@@ -6786,11 +6336,7 @@
       "icon": "icon-diy-com-textarea",
       "group": "Text",
       "groupSort": 2,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "options": {
         "width": "",
         "defaultValue": "",
@@ -6844,11 +6390,7 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 1,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "options": {
         "customClass": "",
         "hidden": false,
@@ -6873,34 +6415,14 @@
           },
           "use": false
         },
-        "padding": [
-          "",
-          "",
-          "",
-          ""
-        ],
-        "margin": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "padding": ["", "", "", ""],
+        "margin": ["", "", "", ""],
         "boxSizing": "border-box",
         "width": "",
         "height": "70px",
-        "radius": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "radius": ["", "", "", ""],
         "position": "",
-        "positions": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "positions": ["", "", "", ""],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -6965,11 +6487,7 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 1,
-      "enableScopes": [
-        "Component",
-        "Table",
-        "Page"
-      ],
+      "enableScopes": ["Component", "Table", "Page"],
       "options": {
         "customClass": "fixbutton",
         "hidden": "{{this.isView}}",
@@ -6994,34 +6512,14 @@
           },
           "use": false
         },
-        "padding": [
-          "",
-          "",
-          "",
-          ""
-        ],
-        "margin": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "padding": ["", "", "", ""],
+        "margin": ["", "", "", ""],
         "boxSizing": "border-box",
         "width": "80%",
         "height": "70px",
-        "radius": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "radius": ["", "", "", ""],
         "position": "",
-        "positions": [
-          "",
-          "",
-          "",
-          ""
-        ],
+        "positions": ["", "", "", ""],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -7086,11 +6584,7 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -7133,11 +6627,7 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -7180,11 +6670,7 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -7228,11 +6714,7 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": [
-            "Component",
-            "Table",
-            "Page"
-          ],
+          "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "customClass": "marginright",
             "disabled": false,
