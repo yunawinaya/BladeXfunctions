@@ -27,11 +27,19 @@ const CONFIG = {
       "comp_post_button",
       "button_save_as_draft",
       "button_completed",
+      "button_created",
     ],
   },
   buttonConfig: {
     Add: ["button_save_as_draft", "button_completed", "comp_post_button"],
     Draft: ["button_save_as_draft", "button_completed", "comp_post_button"],
+    Completed: ["button_post"],
+  },
+  // With picking on, the stock is held at Created and only the pick task may issue it.
+  pickingButtonConfig: {
+    Add: ["button_save_as_draft", "button_created"],
+    Draft: ["button_save_as_draft", "button_created"],
+    Created: ["button_completed", "comp_post_button"],
     Completed: ["button_post"],
   },
 };
@@ -58,13 +66,39 @@ const configureFields = () => {
   this.disabled(["stock_movement.total_quantity"], true);
 };
 
-const configureButtons = (pageStatus, stockMovementStatus) => {
+const fetchStockPickingSetup = async (plantId, organizationId) => {
+  try {
+    const res = await db
+      .collection("picking_setup")
+      .where({ organization_id: organizationId, plant_id: plantId })
+      .get();
+    return res?.data?.[0] || null;
+  } catch (error) {
+    console.error("Error reading picking_setup:", error);
+    return null;
+  }
+};
+
+const configureButtons = (
+  pageStatus,
+  stockMovementStatus,
+  pickingRequired,
+) => {
   this.hide(CONFIG.fields.buttons);
 
-  if (pageStatus === "Add" || stockMovementStatus === "Draft") {
-    this.display(CONFIG.buttonConfig.Draft);
-  } else if (stockMovementStatus === "Completed") {
-    this.display(CONFIG.buttonConfig.Completed);
+  const map = pickingRequired
+    ? CONFIG.pickingButtonConfig
+    : CONFIG.buttonConfig;
+
+  if (
+    pageStatus === "Add" ||
+    (stockMovementStatus === "Draft" && pageStatus === "Edit")
+  ) {
+    this.display(map.Draft);
+  } else if (stockMovementStatus === "Created" && pageStatus === "Edit") {
+    this.display(map.Created || []);
+  } else if (stockMovementStatus === "Completed" && pageStatus === "Edit") {
+    this.display(map.Completed);
   }
 };
 
@@ -104,6 +138,11 @@ const editDisabledField = () => {
       "stock_movement",
       "stock_movement.item_selection",
       "stock_movement.total_quantity",
+      "reference_from",
+      "po_id",
+      "msi_type",
+      "stock_movement_no_type",
+      "custom_fields_56oh0ovf",
     ],
     true,
   );
@@ -154,6 +193,9 @@ const setPlant = (organizationId, pageStatus) => {
 
   if (pageStatus === "Add" && !isSameDept) {
     this.setData({ issuing_operation_faci: currentDept });
+    this.disabled("stock_movement", false);
+  } else if (pageStatus === "Add" && isSameDept) {
+    this.disabled("stock_movement", true);
   }
   return currentDept;
 };
@@ -235,13 +277,20 @@ const setStorageLocation = async (plantID) => {
           organization_id: organizationId,
           issued_by: nickName,
           issue_date: new Date().toISOString().split("T")[0],
+          msi_type: "Standard",
         });
+
         this.display(["draft_status", "button_save_as_draft"]);
 
         const plantID = setPlant(organizationId, pageStatus);
         hideSerialNumberRecordTab();
         configureFields();
-        configureButtons(pageStatus, null);
+        configureButtons(
+          pageStatus,
+          null,
+          (await fetchStockPickingSetup(plantID, organizationId))
+            ?.msi_picking_required === 1,
+        );
         await initMovementReason();
         await setStorageLocation(plantID);
         await checkAccIntegrationType(organizationId);
@@ -249,7 +298,14 @@ const setStorageLocation = async (plantID) => {
 
       case "Edit":
         configureFields();
-        configureButtons(pageStatus, data.stock_movement_status);
+        configureButtons(
+          pageStatus,
+          data.stock_movement_status,
+          (await fetchStockPickingSetup(
+            data.issuing_operation_faci,
+            organizationId,
+          ))?.msi_picking_required === 1,
+        );
 
         if (
           data.stock_movement_status === "Completed" ||
@@ -260,6 +316,8 @@ const setStorageLocation = async (plantID) => {
           setPlant(organizationId, pageStatus);
         }
 
+        this.setData({ page_status: pageStatus });
+
         showStatusHTML(data.stock_movement_status);
         hideSerialNumberRecordTab();
         await checkAccIntegrationType(organizationId);
@@ -269,7 +327,14 @@ const setStorageLocation = async (plantID) => {
         this.hide(["stock_movement.transfer_stock"]);
 
         configureFields();
-        configureButtons(pageStatus, data.stock_movement_status);
+        configureButtons(
+          pageStatus,
+          data.stock_movement_status,
+          (await fetchStockPickingSetup(
+            data.issuing_operation_faci,
+            organizationId,
+          ))?.msi_picking_required === 1,
+        );
         showStatusHTML(data.stock_movement_status);
         hideSerialNumberRecordTab();
         await checkAccIntegrationType(organizationId);
@@ -282,19 +347,35 @@ const setStorageLocation = async (plantID) => {
 })();
 
 setTimeout(async () => {
-  if (this.isAdd) {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
     const op = await this.onDropdownVisible("stock_movement_no_type", true);
-    function getDefaultItem(arr) {
-      return arr?.find((item) => item?.item?.item?.is_default === 1);
-    }
-    setTimeout(() => {
-      const optionsData = this.getOptionData("stock_movement_no_type") || [];
-      const data = getDefaultItem(optionsData);
-      if (data) {
-        this.setData({
-          stock_movement_no_type: data.value,
-        });
-      }
-    }, 500);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
-}, 500);
+
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("stock_movement_no");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("stock_movement_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("stock_movement_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        stock_movement_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ stock_movement_no_type: defaultData.value });
+    }
+  }
+}, 200);

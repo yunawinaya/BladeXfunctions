@@ -9,7 +9,11 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 6,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "title": "布局",
         "customClass": "",
@@ -35,14 +39,34 @@
           },
           "use": false
         },
-        "padding": ["", "", "", ""],
-        "margin": ["", "", "", ""],
+        "padding": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "margin": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "boxSizing": "border-box",
         "width": "",
         "height": "",
-        "radius": ["", "", "", ""],
+        "radius": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "position": "",
-        "positions": ["", "", "", ""],
+        "positions": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -144,14 +168,28 @@
           "icon": "icon-wenzishezhi-",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "Miscellaneous Issue",
             "customClass": "marginright",
             "hidden": false,
             "isRich": false,
-            "padding": ["", "", "", ""],
-            "margin": ["", "", "", ""],
+            "padding": [
+              "",
+              "",
+              "",
+              ""
+            ],
+            "margin": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "boxSizing": "border-box",
             "width": "",
             "maxWidth": "",
@@ -164,9 +202,19 @@
             "textOverflow": "",
             "whiteSpace": "",
             "lines": 0,
-            "radius": ["", "", "", ""],
+            "radius": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "position": "",
-            "positions": ["", "", "", ""],
+            "positions": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "zIndex": "",
             "flex": "",
             "flexGrow": "",
@@ -205,7 +253,11 @@
           "typeIcon": "HTML",
           "group": "View",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Draft Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .draft-button {\n            padding: 0 20px;\n            border: 2px solid #8C95A4;\n            background-color: #D0D5DD;\n            color: #4D5A74;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"draft-button\">Draft</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -221,7 +273,9 @@
             "subform": false,
             "hideLabel": true,
             "customClass": "",
-            "select-card_n7ge7fmb": ["dataBind"],
+            "select-card_n7ge7fmb": [
+              "dataBind"
+            ],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -243,7 +297,11 @@
           "typeIcon": "HTML",
           "group": "View",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Draft Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #C6DFFF;\n        }\n\n        .created-button {\n            padding: 0 20px;\n            border: 2px solid #036DF8;\n            background-color: #C6DFFF;\n            color: #4D5A74;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"created-button\">Created</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -259,7 +317,9 @@
             "subform": false,
             "hideLabel": true,
             "customClass": "",
-            "select-card_n7ge7fmb": ["dataBind"],
+            "select-card_n7ge7fmb": [
+              "dataBind"
+            ],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -281,7 +341,11 @@
           "typeIcon": "HTML",
           "group": "View",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Completed Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .completed-button {\n            padding: 0 20px;\n            border: 2px solid #00AE00;\n            background-color: #C5F5C5;\n            color: #016701;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"completed-button\">Completed</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -297,7 +361,9 @@
             "subform": false,
             "hideLabel": true,
             "customClass": "",
-            "select-card_n7ge7fmb": ["dataBind"],
+            "select-card_n7ge7fmb": [
+              "dataBind"
+            ],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -319,7 +385,11 @@
           "typeIcon": "HTML",
           "group": "View",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Cancelled Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .cancelled-button {\n            padding: 0 20px;\n            border: 2px solid #F90A0A;\n            background-color: #FDC4C4;\n            color: #A30505;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"cancelled-button\">Cancelled</div>\n</body>\n</html>",
             "labelWidth": 100,
@@ -335,7 +405,9 @@
             "subform": false,
             "hideLabel": true,
             "customClass": "",
-            "select-card_n7ge7fmb": ["dataBind"],
+            "select-card_n7ge7fmb": [
+              "dataBind"
+            ],
             "left": 3,
             "right": 4,
             "pad": "*",
@@ -365,7 +437,11 @@
       "icon": "icon-select",
       "group": "Select",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "el": "fm-select",
       "options": {
         "defaultValue": "",
@@ -623,7 +699,11 @@
       "icon": "icon-select",
       "group": "Select",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "el": "fm-select",
       "options": {
         "defaultValue": "",
@@ -881,7 +961,11 @@
       "icon": "icon-select",
       "group": "Select",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "el": "fm-select",
       "options": {
         "defaultValue": "",
@@ -1109,7 +1193,11 @@
       "icon": "icon-input",
       "group": "Text",
       "groupSort": 1,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "el": "fm-input",
       "options": {
         "width": "",
@@ -1141,7 +1229,9 @@
         "remoteOption": "option_z6tj798w",
         "tableColumn": false,
         "subform": false,
-        "select-card_n7ge7fmb": ["dataBind"],
+        "select-card_n7ge7fmb": [
+          "dataBind"
+        ],
         "left": 3,
         "right": 4,
         "pad": "*",
@@ -1165,7 +1255,11 @@
       "icon": "icon-RectangleCopy",
       "group": "Layout",
       "groupSort": 0,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "columns": [
         {
           "type": "col",
@@ -1192,7 +1286,11 @@
               "icon": "icon-shuxuanzeqi",
               "group": "Select",
               "groupSort": 4,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": "",
                 "width": "",
@@ -1433,7 +1531,11 @@
               "icon": "icon-radio-active",
               "group": "Select",
               "groupSort": 0,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "inline": true,
                 "defaultValue": "",
@@ -1521,7 +1623,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -1615,7 +1721,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": [],
@@ -1714,7 +1824,11 @@
               "icon": "icon-date",
               "group": "DateTime",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": "",
                 "readonly": false,
@@ -1778,7 +1892,11 @@
               "icon": "icon-zhediemianban",
               "group": "Design",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "dataBind": false,
                 "pagingEnabled": true,
@@ -1805,14 +1923,34 @@
                   },
                   "use": false
                 },
-                "padding": ["", "", "", ""],
-                "margin": ["", "", "", ""],
+                "padding": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                "margin": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
                 "boxSizing": "border-box",
                 "width": "",
                 "height": "",
-                "radius": ["", "", "", ""],
+                "radius": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
                 "position": "relative",
-                "positions": ["", "", "", ""],
+                "positions": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
                 "zIndex": "",
                 "flex": "",
                 "flexGrow": "",
@@ -1869,7 +2007,11 @@
                   "icon": "icon-zhediemianban",
                   "group": "Design",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "dataBind": false,
                     "pagingEnabled": true,
@@ -1896,14 +2038,34 @@
                       },
                       "use": false
                     },
-                    "padding": ["", "", "", ""],
-                    "margin": ["", "", "", ""],
+                    "padding": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
+                    "margin": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "boxSizing": "border-box",
                     "width": "80%",
                     "height": "",
-                    "radius": ["", "", "", ""],
+                    "radius": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "position": "relative",
-                    "positions": ["", "", "", ""],
+                    "positions": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "zIndex": "",
                     "flex": "",
                     "flexGrow": "",
@@ -1957,7 +2119,11 @@
                       "typeIcon": "流水号",
                       "group": "Text",
                       "groupSort": 5,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "defaultValue": "",
                         "customClass": "",
@@ -2039,7 +2205,11 @@
                   "icon": "icon-zhediemianban",
                   "group": "Design",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "dataBind": false,
                     "pagingEnabled": true,
@@ -2066,14 +2236,34 @@
                       },
                       "use": false
                     },
-                    "padding": ["", "", "", "8px"],
-                    "margin": ["", "", "", ""],
+                    "padding": [
+                      "",
+                      "",
+                      "",
+                      "8px"
+                    ],
+                    "margin": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "boxSizing": "border-box",
                     "width": "20%",
                     "height": "",
-                    "radius": ["", "", "", ""],
+                    "radius": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "position": "relative",
-                    "positions": ["", "", "", ""],
+                    "positions": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "zIndex": "",
                     "flex": "",
                     "flexGrow": "",
@@ -2127,7 +2317,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -2292,7 +2486,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -2448,7 +2646,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -2506,7 +2708,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -2656,7 +2862,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -2736,7 +2946,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -2848,7 +3062,11 @@
               "icon": "icon-wenjianshangchuan",
               "group": "Special",
               "groupSort": 0,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": [],
                 "width": "",
@@ -2904,7 +3122,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -2962,7 +3184,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -3020,7 +3246,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -3071,7 +3301,11 @@
               "icon": "icon-switch",
               "group": "Select",
               "groupSort": 8,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": 0,
                 "required": false,
@@ -3111,7 +3345,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -3244,7 +3482,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -3378,7 +3620,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -3435,7 +3681,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -3517,7 +3767,9 @@
       "icon": "icon-fenzu",
       "group": "Container",
       "groupSort": 6,
-      "enableScopes": ["Table"],
+      "enableScopes": [
+        "Table"
+      ],
       "options": {
         "defaultValue": {},
         "customClass": "",
@@ -3559,7 +3811,11 @@
       "icon": "icon-wenzishezhi-",
       "group": "Text",
       "groupSort": 1,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": "",
         "customClass": "font-bold",
@@ -3610,7 +3866,11 @@
       "icon": "icon-tabs",
       "group": "Layout",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "tabs": [
         {
           "label": "Stock Movement",
@@ -3624,7 +3884,11 @@
               "icon": "icon-table",
               "group": "Container",
               "groupSort": 0,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": [],
                 "customClass": "",
@@ -3758,7 +4022,11 @@
                   "group": "Select",
                   "groupSort": 4,
                   "generate": "part",
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "customClass": "",
                     "labelWidth": 100,
@@ -4012,7 +4280,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -4066,7 +4338,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -4120,7 +4396,11 @@
                   "icon": "icon-lianjie",
                   "group": "Buttons",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "customClass": "",
                     "disabled": false,
@@ -4141,7 +4421,9 @@
                     "subform": false,
                     "dynamicValueType": "fx",
                     "isDynamicValue": false,
-                    "select-card_n7ge7fmb": ["dataBind"],
+                    "select-card_n7ge7fmb": [
+                      "dataBind"
+                    ],
                     "left": 3,
                     "right": 4,
                     "pad": "*",
@@ -4167,7 +4449,11 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -4225,7 +4511,11 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -4277,7 +4567,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -4421,7 +4715,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -4474,7 +4772,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -4528,7 +4830,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -4582,7 +4888,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -4643,7 +4953,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -4755,7 +5069,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -4806,7 +5124,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -4857,7 +5179,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -4915,7 +5241,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -4973,7 +5303,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -5031,7 +5365,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -5089,7 +5427,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -5143,7 +5485,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -5197,7 +5543,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -5251,7 +5601,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -5385,7 +5739,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -5518,7 +5876,11 @@
                   "icon": "icon-switch",
                   "group": "Select",
                   "groupSort": 8,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "defaultValue": 0,
                     "required": false,
@@ -5558,7 +5920,11 @@
                   "icon": "icon-switch",
                   "group": "Select",
                   "groupSort": 8,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "defaultValue": 0,
                     "required": false,
@@ -5599,7 +5965,9 @@
                   "icon": "icon-fenzu",
                   "group": "Container",
                   "groupSort": 6,
-                  "enableScopes": ["Table"],
+                  "enableScopes": [
+                    "Table"
+                  ],
                   "options": {
                     "defaultValue": {},
                     "customClass": "",
@@ -5652,7 +6020,11 @@
               "icon": "icon-table",
               "group": "Container",
               "groupSort": 0,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "defaultValue": [],
                 "customClass": "",
@@ -5699,7 +6071,11 @@
                   "group": "Select",
                   "groupSort": 4,
                   "generate": "part",
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "customClass": "",
                     "labelWidth": 100,
@@ -5922,7 +6298,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -5969,7 +6349,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -6016,7 +6400,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -6063,7 +6451,11 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -6115,7 +6507,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -6256,7 +6652,11 @@
                   "group": "Number",
                   "groupSort": 4,
                   "generate": "part",
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "defaultValue": 0,
                     "customClass": "",
@@ -6311,7 +6711,11 @@
                   "group": "Number",
                   "groupSort": 4,
                   "generate": "part",
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "defaultValue": 0,
                     "customClass": "",
@@ -6365,7 +6769,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -6540,7 +6948,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -6591,7 +7003,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -6753,7 +7169,11 @@
       "icon": "icon-diy-com-textarea",
       "group": "Text",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "width": "",
         "defaultValue": "",
@@ -6800,7 +7220,11 @@
       "icon": "icon-diy-com-textarea",
       "group": "Text",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "width": "",
         "defaultValue": "",
@@ -6846,7 +7270,11 @@
       "icon": "icon-zhediemianban",
       "group": "Layout",
       "groupSort": 3,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "tabs": [
         {
           "title": "Additional Remarks",
@@ -6859,7 +7287,11 @@
               "icon": "icon-diy-com-textarea",
               "group": "Text",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "width": "",
                 "defaultValue": "",
@@ -6905,7 +7337,11 @@
               "icon": "icon-diy-com-textarea",
               "group": "Text",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "options": {
                 "width": "",
                 "defaultValue": "",
@@ -6972,7 +7408,11 @@
       "icon": "icon-zhediemianban",
       "group": "Design",
       "groupSort": 6,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "title": "布局",
         "customClass": "fixbutton",
@@ -6998,14 +7438,34 @@
           },
           "use": false
         },
-        "padding": ["", "", "", ""],
-        "margin": ["", "", "", ""],
+        "padding": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "margin": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "boxSizing": "border-box",
         "width": "",
         "height": "",
-        "radius": ["", "", "", ""],
+        "radius": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "position": "",
-        "positions": ["", "", "", ""],
+        "positions": [
+          "",
+          "",
+          "",
+          ""
+        ],
         "zIndex": "",
         "flex": "",
         "flexGrow": "",
@@ -7113,7 +7573,11 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -7149,6 +7613,57 @@
           "rules": []
         },
         {
+          "name": "Created",
+          "type": "button",
+          "mainIcon": "按钮",
+          "typeIcon": "按钮",
+          "icon": "icon-button",
+          "group": "Buttons",
+          "groupSort": 0,
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
+          "options": {
+            "customClass": "marginright",
+            "disabled": false,
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hideLabel": true,
+            "hidden": true,
+            "buttonSize": "default",
+            "buttonType": "success",
+            "buttonPlain": true,
+            "buttonRound": true,
+            "buttonCircle": false,
+            "buttonName": "Created",
+            "width": "",
+            "customProps": {},
+            "tip": "",
+            "remoteFunc": "func_msicrtd1",
+            "remoteOption": "option_msicrtd1",
+            "tableColumn": false,
+            "subform": false,
+            "dynamicValueType": "fx",
+            "isDynamicValue": false,
+            "defaultValue": "",
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": "",
+            "permission": "msi_save_as_completed"
+          },
+          "events": {
+            "onClick": "msicr8td"
+          },
+          "key": "msicrtd1",
+          "model": "button_created",
+          "rules": []
+        },
+        {
           "name": "Completed",
           "type": "button",
           "mainIcon": "按钮",
@@ -7156,7 +7671,11 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -7203,7 +7722,11 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -7248,7 +7771,11 @@
           "icon": "icon-button",
           "group": "Buttons",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "customClass": "marginright",
             "disabled": false,
@@ -7301,7 +7828,11 @@
       "icon": "icon-Dialog",
       "group": "Container",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": {},
         "visible": false,
@@ -7339,14 +7870,28 @@
           "icon": "icon-wenzishezhi-",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "The system suggests goods issuance based on the inventory's earliest created date as below.",
             "customClass": "",
             "hidden": false,
             "isRich": true,
-            "padding": ["", "", "", ""],
-            "margin": ["", "", "", ""],
+            "padding": [
+              "",
+              "",
+              "",
+              ""
+            ],
+            "margin": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "boxSizing": "border-box",
             "width": "",
             "maxWidth": "",
@@ -7359,9 +7904,19 @@
             "textOverflow": "",
             "whiteSpace": "",
             "lines": 0,
-            "radius": ["", "", "", ""],
+            "radius": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "position": "",
-            "positions": ["", "", "", ""],
+            "positions": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "zIndex": "",
             "flex": "",
             "flexGrow": "",
@@ -7392,14 +7947,28 @@
           "icon": "icon-wenzishezhi-",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "Manual selection will override the system selection",
             "customClass": "",
             "hidden": false,
             "isRich": true,
-            "padding": ["", "", "", ""],
-            "margin": ["", "", "", ""],
+            "padding": [
+              "",
+              "",
+              "",
+              ""
+            ],
+            "margin": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "boxSizing": "border-box",
             "width": "",
             "maxWidth": "",
@@ -7412,9 +7981,19 @@
             "textOverflow": "",
             "whiteSpace": "",
             "lines": 0,
-            "radius": ["", "", "", ""],
+            "radius": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "position": "",
-            "positions": ["", "", "", ""],
+            "positions": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "zIndex": "",
             "flex": "",
             "flexGrow": "",
@@ -7445,7 +8024,11 @@
           "icon": "icon-RectangleCopy",
           "group": "Layout",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "columns": [
             {
               "type": "col",
@@ -7470,7 +8053,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -7502,7 +8089,9 @@
                     "remoteOption": "option_5zw5qyj5",
                     "tableColumn": false,
                     "subform": false,
-                    "select-card_n7ge7fmb": ["dataBind"],
+                    "select-card_n7ge7fmb": [
+                      "dataBind"
+                    ],
                     "left": 3,
                     "right": 4,
                     "pad": "*",
@@ -7528,7 +8117,11 @@
                   "icon": "icon-input",
                   "group": "Text",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-input",
                   "options": {
                     "width": "",
@@ -7560,7 +8153,9 @@
                     "remoteOption": "option_5zw5qyj5",
                     "tableColumn": false,
                     "subform": false,
-                    "select-card_n7ge7fmb": ["dataBind"],
+                    "select-card_n7ge7fmb": [
+                      "dataBind"
+                    ],
                     "left": 3,
                     "right": 4,
                     "pad": "*",
@@ -7586,7 +8181,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -7701,7 +8300,9 @@
                         }
                       ]
                     },
-                    "select-card_n7ge7fmb": ["dataBind"],
+                    "select-card_n7ge7fmb": [
+                      "dataBind"
+                    ],
                     "left": 3,
                     "right": 4,
                     "pad": "*",
@@ -7729,7 +8330,11 @@
                   "icon": "icon-select",
                   "group": "Select",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-select",
                   "options": {
                     "defaultValue": "",
@@ -7844,7 +8449,9 @@
                         }
                       ]
                     },
-                    "select-card_n7ge7fmb": ["dataBind"],
+                    "select-card_n7ge7fmb": [
+                      "dataBind"
+                    ],
                     "left": 3,
                     "right": 4,
                     "pad": "*",
@@ -7872,7 +8479,11 @@
                   "typeIcon": "数字",
                   "group": "Number",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "el": "fm-number",
                   "options": {
                     "width": "",
@@ -7907,7 +8518,9 @@
                     "subform": false,
                     "dynamicValueType": "fx",
                     "isDynamicValue": false,
-                    "select-card_n7ge7fmb": ["dataBind"],
+                    "select-card_n7ge7fmb": [
+                      "dataBind"
+                    ],
                     "left": 3,
                     "right": 4,
                     "pad": "*",
@@ -7931,7 +8544,11 @@
                   "icon": "icon-diy-com-textarea",
                   "group": "Text",
                   "groupSort": 2,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "width": "",
                     "defaultValue": "",
@@ -7959,7 +8576,9 @@
                     "remoteOption": "option_2bx2dlcx",
                     "tableColumn": false,
                     "subform": false,
-                    "select-card_n7ge7fmb": ["dataBind"],
+                    "select-card_n7ge7fmb": [
+                      "dataBind"
+                    ],
                     "left": 3,
                     "right": 4,
                     "pad": "*",
@@ -8007,7 +8626,11 @@
           "icon": "icon-tabs",
           "group": "Layout",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "tabs": [
             {
               "label": "Handling Unit",
@@ -8020,7 +8643,11 @@
                   "icon": "icon-table",
                   "group": "Container",
                   "groupSort": 0,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "defaultValue": [],
                     "customClass": "",
@@ -8048,7 +8675,9 @@
                     "remoteOption": "option_hr4nq20g",
                     "tableColumn": false,
                     "subform": false,
-                    "select-card_n7ge7fmb": ["dataBind"],
+                    "select-card_n7ge7fmb": [
+                      "dataBind"
+                    ],
                     "left": 3,
                     "right": 4,
                     "pad": "*",
@@ -8115,7 +8744,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -8174,7 +8807,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -8232,7 +8869,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -8334,7 +8975,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -8392,7 +9037,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -8493,7 +9142,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -8595,7 +9248,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -8738,7 +9395,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -8796,7 +9457,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -8856,7 +9521,11 @@
                       "icon": "icon-switch",
                       "group": "Select",
                       "groupSort": 8,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "defaultValue": 0,
                         "required": false,
@@ -8906,7 +9575,11 @@
                       "icon": "icon-switch",
                       "group": "Select",
                       "groupSort": 8,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "defaultValue": 0,
                         "required": false,
@@ -8953,7 +9626,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -9011,7 +9688,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -9069,7 +9750,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -9126,7 +9811,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -9184,7 +9873,11 @@
                       "icon": "icon-diy-com-textarea",
                       "group": "Text",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "width": "",
                         "defaultValue": "",
@@ -9238,7 +9931,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -9296,7 +9993,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -9354,7 +10055,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -9427,7 +10132,11 @@
                   "icon": "icon-zhediemianban",
                   "group": "Design",
                   "groupSort": 1,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "pagingEnabled": true,
                     "customClass": "",
@@ -9453,14 +10162,34 @@
                       },
                       "use": false
                     },
-                    "padding": ["", "", "", ""],
-                    "margin": ["", "", "", ""],
+                    "padding": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
+                    "margin": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "boxSizing": "border-box",
                     "width": "",
                     "height": "",
-                    "radius": ["", "", "", ""],
+                    "radius": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "position": "relative",
-                    "positions": ["", "", "", ""],
+                    "positions": [
+                      "",
+                      "",
+                      "",
+                      ""
+                    ],
                     "zIndex": "",
                     "flex": "",
                     "flexGrow": "",
@@ -9517,7 +10246,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -9550,7 +10283,9 @@
                         "tableColumn": false,
                         "subform": false,
                         "hideLabel": true,
-                        "select-card_n7ge7fmb": ["dataBind"],
+                        "select-card_n7ge7fmb": [
+                          "dataBind"
+                        ],
                         "left": 3,
                         "right": 4,
                         "pad": "*",
@@ -9575,7 +10310,11 @@
                       "icon": "icon-button",
                       "group": "Buttons",
                       "groupSort": 0,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "customClass": "",
                         "disabled": false,
@@ -9613,7 +10352,11 @@
                       "icon": "icon-button",
                       "group": "Buttons",
                       "groupSort": 0,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "customClass": "",
                         "disabled": false,
@@ -9661,7 +10404,11 @@
                   "icon": "icon-table",
                   "group": "Container",
                   "groupSort": 0,
-                  "enableScopes": ["Component", "Table", "Page"],
+                  "enableScopes": [
+                    "Component",
+                    "Table",
+                    "Page"
+                  ],
                   "options": {
                     "defaultValue": [],
                     "customClass": "",
@@ -9755,7 +10502,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -9807,7 +10558,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -9939,7 +10694,11 @@
                       "icon": "icon-date",
                       "group": "DateTime",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "defaultValue": "",
                         "readonly": false,
@@ -9994,7 +10753,11 @@
                       "icon": "icon-date",
                       "group": "DateTime",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "defaultValue": "",
                         "readonly": false,
@@ -10050,7 +10813,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -10190,7 +10957,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -10242,7 +11013,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -10300,7 +11075,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -10358,7 +11137,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -10416,7 +11199,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -10474,7 +11261,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-number",
                       "options": {
                         "width": "",
@@ -10526,7 +11317,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -10704,7 +11499,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": null,
@@ -10848,7 +11647,11 @@
                       "icon": "icon-select",
                       "group": "Select",
                       "groupSort": 2,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-select",
                       "options": {
                         "defaultValue": "",
@@ -10996,7 +11799,11 @@
                       "typeIcon": "数字",
                       "group": "Number",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "options": {
                         "width": "",
                         "defaultValue": 0,
@@ -11072,7 +11879,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -11130,7 +11941,11 @@
                       "icon": "icon-input",
                       "group": "Text",
                       "groupSort": 1,
-                      "enableScopes": ["Component", "Table", "Page"],
+                      "enableScopes": [
+                        "Component",
+                        "Table",
+                        "Page"
+                      ],
                       "el": "fm-input",
                       "options": {
                         "width": "",
@@ -11220,7 +12035,11 @@
       "icon": "icon-table",
       "group": "Container",
       "groupSort": 0,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": [],
         "customClass": "",
@@ -11268,7 +12087,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -11326,7 +12149,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -11385,7 +12212,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -11525,7 +12356,11 @@
           "icon": "icon-date",
           "group": "DateTime",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "",
             "readonly": false,
@@ -11580,7 +12415,11 @@
           "icon": "icon-date",
           "group": "DateTime",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "",
             "readonly": false,
@@ -11635,7 +12474,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -11737,7 +12580,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -11869,7 +12716,11 @@
           "typeIcon": "数字",
           "group": "Number",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-number",
           "options": {
             "width": "",
@@ -11921,7 +12772,11 @@
           "typeIcon": "数字",
           "group": "Number",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-number",
           "options": {
             "width": "",
@@ -11973,7 +12828,11 @@
           "typeIcon": "数字",
           "group": "Number",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-number",
           "options": {
             "width": "",
@@ -12025,7 +12884,11 @@
           "typeIcon": "数字",
           "group": "Number",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-number",
           "options": {
             "width": "",
@@ -12077,7 +12940,11 @@
           "typeIcon": "数字",
           "group": "Number",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-number",
           "options": {
             "width": "",
@@ -12129,7 +12996,11 @@
           "typeIcon": "数字",
           "group": "Number",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-number",
           "options": {
             "width": "",
@@ -12181,7 +13052,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -12318,7 +13193,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -12459,7 +13338,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -12600,7 +13483,11 @@
           "typeIcon": "数字",
           "group": "Number",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-number",
           "options": {
             "width": "",
@@ -12656,7 +13543,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -12707,7 +13598,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -12759,7 +13654,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -12823,7 +13722,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "const showStatusHTML = (status) => {\n  const statusMap = {\n    Draft: \"draft_status\",\n    Completed: \"completed_status\",\n    Cancelled: \"cancel_status\",\n  };\n\n  if (statusMap[status]) {\n    this.display([statusMap[status]]);\n  }\n};\n\nconst CONFIG = {\n  fields: {\n    all: [\n      \"stock_movement.item_selection\",\n      \"stock_movement.view_stock\",\n      \"stock_movement.transfer_stock\",\n      \"stock_movement.edit_stock\",\n      \"stock_movement.total_quantity\",\n      \"stock_movement.quantity_uom\",\n      \"stock_movement.stock_summary\",\n      \"movement_reason\",\n    ],\n    buttons: [\n      \"button_post\",\n      \"comp_post_button\",\n      \"button_save_as_draft\",\n      \"button_completed\",\n    ],\n  },\n  buttonConfig: {\n    Add: [\"button_save_as_draft\", \"button_completed\", \"comp_post_button\"],\n    Draft: [\"button_save_as_draft\", \"button_completed\", \"comp_post_button\"],\n    Completed: [\"button_post\"],\n  },\n};\n\nconst initMovementReason = async () => {\n  const resType = await db\n    .collection(\"blade_dict\")\n    .where({ dict_key: \"Miscellaneous Issue\" })\n    .get();\n\n  const movementTypeId = resType.data[0]?.id;\n\n  if (movementTypeId) {\n    const resReason = await db\n      .collection(\"blade_dict\")\n      .where({ parent_id: movementTypeId })\n      .get();\n    this.setOptionData(\"movement_reason\", resReason.data);\n  }\n};\n\nconst configureFields = () => {\n  this.display(CONFIG.fields.all);\n  this.disabled([\"stock_movement.total_quantity\"], true);\n};\n\nconst configureButtons = (pageStatus, stockMovementStatus) => {\n  this.hide(CONFIG.fields.buttons);\n\n  if (\n    pageStatus === \"Add\" ||\n    (stockMovementStatus === \"Draft\" && pageStatus === \"Edit\")\n  ) {\n    this.display(CONFIG.buttonConfig.Draft);\n  } else if (stockMovementStatus === \"Completed\" && pageStatus === \"Edit\") {\n    this.display(CONFIG.buttonConfig.Completed);\n  }\n};\n\nconst checkAccIntegrationType = async (organizationId) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n\n      this.setData({ acc_integration_type: aiData.acc_integration_type });\n      if (aiData.acc_integration_type === \"No Accounting Integration\") {\n        this.hide([\"button_post\", \"comp_post_button\"]);\n      }\n    }\n  }\n};\n\nconst editDisabledField = () => {\n  this.disabled(\n    [\n      \"issue_date\",\n      \"stock_movement_no\",\n      \"movement_type\",\n      \"movement_reason\",\n      \"issued_by\",\n      \"issuing_operation_faci\",\n      \"remarks\",\n      \"remark\",\n      \"remark2\",\n      \"remark3\",\n      \"reference_documents\",\n      \"movement_id\",\n      \"stock_movement\",\n      \"stock_movement.item_selection\",\n      \"stock_movement.total_quantity\",\n      \"reference_from\",\n      \"po_id\",\n      \"msi_type\",\n      \"stock_movement_no_type\",\n      \"custom_fields_56oh0ovf\",\n    ],\n    true,\n  );\n\n  setTimeout(() => {\n    const editButtons = document.querySelectorAll(\n      \".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link\",\n    );\n    editButtons.forEach((button) => {\n      button.style.display = \"none\";\n    });\n\n    const styleId = \"msi-hide-row-actions\";\n    if (!document.getElementById(styleId)) {\n      const style = document.createElement(\"style\");\n      style.id = styleId;\n      style.textContent = `\n        .fm-virtual-table__row-cell .scope-action { display: none !important; }\n        .fm-virtual-table__row-cell .scope-index { display: flex !important; }\n      `;\n      document.head.appendChild(style);\n    }\n  }, 500);\n\n  this.hide([\"stock_movement.transfer_stock\"]);\n  this.display(\"button_post\");\n};\n\nconst hideSerialNumberRecordTab = () => {\n  setTimeout(() => {\n    const tableSerialNumber = this.getValue(\"table_sn_records\");\n    if (!tableSerialNumber || tableSerialNumber.length === 0) {\n      const tab = document.querySelector(\n        '.el-drawer[role=\"dialog\"] .el-tabs__item#tab-serial_number_records',\n      );\n      if (tab) {\n        tab.style.display = \"none\";\n      }\n    }\n  }, 10);\n};\n\nconst setPlant = (organizationId, pageStatus) => {\n  const currentDept = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  const isSameDept = currentDept === organizationId;\n\n  this.disabled(\"issuing_operation_faci\", !isSameDept);\n\n  if (pageStatus === \"Add\" && !isSameDept) {\n    this.setData({ issuing_operation_faci: currentDept });\n    this.disabled(\"stock_movement\", false);\n  } else if (pageStatus === \"Add\" && isSameDept) {\n    this.disabled(\"stock_movement\", true);\n  }\n  return currentDept;\n};\n\nconst setStorageLocation = async (plantID) => {\n  try {\n    if (plantID) {\n      let defaultStorageLocationID = \"\";\n\n      const resStorageLocation = await db\n        .collection(\"storage_location\")\n        .where({\n          plant_id: plantID,\n          is_deleted: 0,\n          is_default: 1,\n          storage_status: 1,\n          location_type: \"Common\",\n        })\n        .get();\n\n      if (resStorageLocation.data && resStorageLocation.data.length > 0) {\n        defaultStorageLocationID = resStorageLocation.data[0].id;\n        this.setData({\n          default_storage_location: defaultStorageLocationID,\n        });\n      }\n\n      if (defaultStorageLocationID && defaultStorageLocationID !== \"\") {\n        const resBinLocation = await db\n          .collection(\"bin_location\")\n          .where({\n            plant_id: plantID,\n            storage_location_id: defaultStorageLocationID,\n            is_deleted: 0,\n            is_default: 1,\n            bin_status: 1,\n          })\n          .get();\n\n        if (resBinLocation.data && resBinLocation.data.length > 0) {\n          this.setData({\n            default_bin: resBinLocation.data[0].id,\n          });\n        }\n      }\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    this.setData({\n      page_status: pageStatus,\n      movement_type: \"Miscellaneous Issue\",\n    });\n    this.disabled([\"movement_type\"], true);\n\n    switch (pageStatus) {\n      case \"Add\":\n        const nickName = this.getVarGlobal(\"nickname\");\n        this.setData({\n          organization_id: organizationId,\n          issued_by: nickName,\n          issue_date: new Date().toISOString().split(\"T\")[0],\n          msi_type: \"Standard\",\n        });\n\n        this.display([\"draft_status\", \"button_save_as_draft\"]);\n\n        const plantID = setPlant(organizationId, pageStatus);\n        hideSerialNumberRecordTab();\n        configureFields();\n        configureButtons(pageStatus, null);\n        await initMovementReason();\n        await setStorageLocation(plantID);\n        await checkAccIntegrationType(organizationId);\n        break;\n\n      case \"Edit\":\n        configureFields();\n        configureButtons(pageStatus, data.stock_movement_status);\n\n        if (\n          data.stock_movement_status === \"Completed\" ||\n          data.stock_movement_status === \"Fully Posted\"\n        ) {\n          editDisabledField();\n        } else if (data.stock_movement_status === \"Draft\") {\n          setPlant(organizationId, pageStatus);\n        }\n\n        this.setData({ page_status: pageStatus });\n\n        showStatusHTML(data.stock_movement_status);\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        break;\n\n      case \"View\":\n        this.hide([\"stock_movement.transfer_stock\"]);\n\n        configureFields();\n        configureButtons(pageStatus, data.stock_movement_status);\n        showStatusHTML(data.stock_movement_status);\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"stock_movement_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"stock_movement_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"stock_movement_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"stock_movement_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        stock_movement_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ stock_movement_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
+        "func": "const showStatusHTML = (status) => {\n  const statusMap = {\n    Draft: \"draft_status\",\n    Completed: \"completed_status\",\n    Cancelled: \"cancel_status\",\n  };\n\n  if (statusMap[status]) {\n    this.display([statusMap[status]]);\n  }\n};\n\nconst CONFIG = {\n  fields: {\n    all: [\n      \"stock_movement.item_selection\",\n      \"stock_movement.view_stock\",\n      \"stock_movement.transfer_stock\",\n      \"stock_movement.edit_stock\",\n      \"stock_movement.total_quantity\",\n      \"stock_movement.quantity_uom\",\n      \"stock_movement.stock_summary\",\n      \"movement_reason\",\n    ],\n    buttons: [\n      \"button_post\",\n      \"comp_post_button\",\n      \"button_save_as_draft\",\n      \"button_completed\",\n      \"button_created\",\n    ],\n  },\n  buttonConfig: {\n    Add: [\"button_save_as_draft\", \"button_completed\", \"comp_post_button\"],\n    Draft: [\"button_save_as_draft\", \"button_completed\", \"comp_post_button\"],\n    Completed: [\"button_post\"],\n  },\n  // With picking on, the stock is held at Created and only the pick task may issue it.\n  pickingButtonConfig: {\n    Add: [\"button_save_as_draft\", \"button_created\"],\n    Draft: [\"button_save_as_draft\", \"button_created\"],\n    Created: [\"button_completed\", \"comp_post_button\"],\n    Completed: [\"button_post\"],\n  },\n};\n\nconst initMovementReason = async () => {\n  const resType = await db\n    .collection(\"blade_dict\")\n    .where({ dict_key: \"Miscellaneous Issue\" })\n    .get();\n\n  const movementTypeId = resType.data[0]?.id;\n\n  if (movementTypeId) {\n    const resReason = await db\n      .collection(\"blade_dict\")\n      .where({ parent_id: movementTypeId })\n      .get();\n    this.setOptionData(\"movement_reason\", resReason.data);\n  }\n};\n\nconst configureFields = () => {\n  this.display(CONFIG.fields.all);\n  this.disabled([\"stock_movement.total_quantity\"], true);\n};\n\nconst fetchStockPickingSetup = async (plantId, organizationId) => {\n  try {\n    const res = await db\n      .collection(\"picking_setup\")\n      .where({ organization_id: organizationId, plant_id: plantId })\n      .get();\n    return res?.data?.[0] || null;\n  } catch (error) {\n    console.error(\"Error reading picking_setup:\", error);\n    return null;\n  }\n};\n\nconst configureButtons = (\n  pageStatus,\n  stockMovementStatus,\n  pickingRequired,\n) => {\n  this.hide(CONFIG.fields.buttons);\n\n  const map = pickingRequired\n    ? CONFIG.pickingButtonConfig\n    : CONFIG.buttonConfig;\n\n  if (\n    pageStatus === \"Add\" ||\n    (stockMovementStatus === \"Draft\" && pageStatus === \"Edit\")\n  ) {\n    this.display(map.Draft);\n  } else if (stockMovementStatus === \"Created\" && pageStatus === \"Edit\") {\n    this.display(map.Created || []);\n  } else if (stockMovementStatus === \"Completed\" && pageStatus === \"Edit\") {\n    this.display(map.Completed);\n  }\n};\n\nconst checkAccIntegrationType = async (organizationId) => {\n  if (organizationId) {\n    const resAI = await db\n      .collection(\"accounting_integration\")\n      .where({ organization_id: organizationId })\n      .get();\n\n    if (resAI && resAI.data.length > 0) {\n      const aiData = resAI.data[0];\n\n      this.setData({ acc_integration_type: aiData.acc_integration_type });\n      if (aiData.acc_integration_type === \"No Accounting Integration\") {\n        this.hide([\"button_post\", \"comp_post_button\"]);\n      }\n    }\n  }\n};\n\nconst editDisabledField = () => {\n  this.disabled(\n    [\n      \"issue_date\",\n      \"stock_movement_no\",\n      \"movement_type\",\n      \"movement_reason\",\n      \"issued_by\",\n      \"issuing_operation_faci\",\n      \"remarks\",\n      \"remark\",\n      \"remark2\",\n      \"remark3\",\n      \"reference_documents\",\n      \"movement_id\",\n      \"stock_movement\",\n      \"stock_movement.item_selection\",\n      \"stock_movement.total_quantity\",\n      \"reference_from\",\n      \"po_id\",\n      \"msi_type\",\n      \"stock_movement_no_type\",\n      \"custom_fields_56oh0ovf\",\n    ],\n    true,\n  );\n\n  setTimeout(() => {\n    const editButtons = document.querySelectorAll(\n      \".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link\",\n    );\n    editButtons.forEach((button) => {\n      button.style.display = \"none\";\n    });\n\n    const styleId = \"msi-hide-row-actions\";\n    if (!document.getElementById(styleId)) {\n      const style = document.createElement(\"style\");\n      style.id = styleId;\n      style.textContent = `\n        .fm-virtual-table__row-cell .scope-action { display: none !important; }\n        .fm-virtual-table__row-cell .scope-index { display: flex !important; }\n      `;\n      document.head.appendChild(style);\n    }\n  }, 500);\n\n  this.hide([\"stock_movement.transfer_stock\"]);\n  this.display(\"button_post\");\n};\n\nconst hideSerialNumberRecordTab = () => {\n  setTimeout(() => {\n    const tableSerialNumber = this.getValue(\"table_sn_records\");\n    if (!tableSerialNumber || tableSerialNumber.length === 0) {\n      const tab = document.querySelector(\n        '.el-drawer[role=\"dialog\"] .el-tabs__item#tab-serial_number_records',\n      );\n      if (tab) {\n        tab.style.display = \"none\";\n      }\n    }\n  }, 10);\n};\n\nconst setPlant = (organizationId, pageStatus) => {\n  const currentDept = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  const isSameDept = currentDept === organizationId;\n\n  this.disabled(\"issuing_operation_faci\", !isSameDept);\n\n  if (pageStatus === \"Add\" && !isSameDept) {\n    this.setData({ issuing_operation_faci: currentDept });\n    this.disabled(\"stock_movement\", false);\n  } else if (pageStatus === \"Add\" && isSameDept) {\n    this.disabled(\"stock_movement\", true);\n  }\n  return currentDept;\n};\n\nconst setStorageLocation = async (plantID) => {\n  try {\n    if (plantID) {\n      let defaultStorageLocationID = \"\";\n\n      const resStorageLocation = await db\n        .collection(\"storage_location\")\n        .where({\n          plant_id: plantID,\n          is_deleted: 0,\n          is_default: 1,\n          storage_status: 1,\n          location_type: \"Common\",\n        })\n        .get();\n\n      if (resStorageLocation.data && resStorageLocation.data.length > 0) {\n        defaultStorageLocationID = resStorageLocation.data[0].id;\n        this.setData({\n          default_storage_location: defaultStorageLocationID,\n        });\n      }\n\n      if (defaultStorageLocationID && defaultStorageLocationID !== \"\") {\n        const resBinLocation = await db\n          .collection(\"bin_location\")\n          .where({\n            plant_id: plantID,\n            storage_location_id: defaultStorageLocationID,\n            is_deleted: 0,\n            is_default: 1,\n            bin_status: 1,\n          })\n          .get();\n\n        if (resBinLocation.data && resBinLocation.data.length > 0) {\n          this.setData({\n            default_bin: resBinLocation.data[0].id,\n          });\n        }\n      }\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n};\n\n(async () => {\n  try {\n    const data = this.getValues();\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    this.setData({\n      page_status: pageStatus,\n      movement_type: \"Miscellaneous Issue\",\n    });\n    this.disabled([\"movement_type\"], true);\n\n    switch (pageStatus) {\n      case \"Add\":\n        const nickName = this.getVarGlobal(\"nickname\");\n        this.setData({\n          organization_id: organizationId,\n          issued_by: nickName,\n          issue_date: new Date().toISOString().split(\"T\")[0],\n          msi_type: \"Standard\",\n        });\n\n        this.display([\"draft_status\", \"button_save_as_draft\"]);\n\n        const plantID = setPlant(organizationId, pageStatus);\n        hideSerialNumberRecordTab();\n        configureFields();\n        configureButtons(\n          pageStatus,\n          null,\n          (await fetchStockPickingSetup(plantID, organizationId))\n            ?.msi_picking_required === 1,\n        );\n        await initMovementReason();\n        await setStorageLocation(plantID);\n        await checkAccIntegrationType(organizationId);\n        break;\n\n      case \"Edit\":\n        configureFields();\n        configureButtons(\n          pageStatus,\n          data.stock_movement_status,\n          (await fetchStockPickingSetup(\n            data.issuing_operation_faci,\n            organizationId,\n          ))?.msi_picking_required === 1,\n        );\n\n        if (\n          data.stock_movement_status === \"Completed\" ||\n          data.stock_movement_status === \"Fully Posted\"\n        ) {\n          editDisabledField();\n        } else if (data.stock_movement_status === \"Draft\") {\n          setPlant(organizationId, pageStatus);\n        }\n\n        this.setData({ page_status: pageStatus });\n\n        showStatusHTML(data.stock_movement_status);\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        break;\n\n      case \"View\":\n        this.hide([\"stock_movement.transfer_stock\"]);\n\n        configureFields();\n        configureButtons(\n          pageStatus,\n          data.stock_movement_status,\n          (await fetchStockPickingSetup(\n            data.issuing_operation_faci,\n            organizationId,\n          ))?.msi_picking_required === 1,\n        );\n        showStatusHTML(data.stock_movement_status);\n        hideSerialNumberRecordTab();\n        await checkAccIntegrationType(organizationId);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n\nsetTimeout(async () => {\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"stock_movement_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n  var params = this.getComponent(\"stock_movement_no\");\n  const { options } = params;\n\n  const optionsData = this.getOptionData(\"stock_movement_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n  if (options?.canManualInput) {\n    this.setOptionData(\"stock_movement_no_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n    if (this.isAdd) {\n      this.setData({\n        stock_movement_no_type: defaultData ? defaultData.value : -9999,\n      });\n    }\n  } else if (defaultData) {\n    if (this.isAdd) {\n      this.setData({ stock_movement_no_type: defaultData.value });\n    }\n  }\n}, 200);\n",
         "type": "js",
         "rules": [
           {
@@ -13487,6 +14386,11 @@
         "name": "onPoIdChange_ug53fl9m",
         "func": "const handleUOM = async (itemData, rowIndex) => {\n  const altUoms = itemData.table_uom_conversion.map((data) => data.alt_uom_id);\n\n  const uomPromises = altUoms.map((uomId) =>\n    db.collection(\"unit_of_measurement\").where({ id: uomId }).get(),\n  );\n  const uomResults = await Promise.all(uomPromises);\n  const uomOptions = uomResults.map((res) => res.data[0]).filter(Boolean);\n\n  this.setOptionData([`stock_movement.${rowIndex}.quantity_uom`], uomOptions);\n\n  this.setData({\n    [`stock_movement.${rowIndex}.uom_options`]: uomOptions,\n  });\n};\n\n(async () => {\n  const poIDs = arguments[0].value;\n\n  if (poIDs && poIDs.length >= 0) {\n    // Fetch PO Data\n    const resPO = await Promise.all(\n      poIDs.map((id) => db.collection(\"purchase_order\").doc(id).get()),\n    );\n\n    const poList = resPO.map((response) => response.data[0]);\n\n    // Map PO Data to the MSI Line Items\n    let tableMSI = [];\n    for (const po of poList) {\n      const lineItems = po.table_po || [];\n      for (const item of lineItems) {\n        tableMSI.push({\n          po_id: po.id,\n          po_no: po.purchase_order_no,\n          po_line_id: item.id,\n          item_selection: item.item_id,\n          item_name: item.item_name,\n          item_desc: item.item_desc,\n          quantity_uom: item.quantity_uom,\n          item_remark: item.line_remark_1,\n          item_remark_2: item.line_remark_2,\n        });\n      }\n    }\n\n    this.setData({ stock_movement: tableMSI });\n\n    // Trigger onChange for each new line item to fetch UOM options and update fields\n    for (let i = 0; i < tableMSI.length; i++) {\n      const currentItem = tableMSI[i];\n      if (currentItem.item_selection) {\n        const resItem = await db\n          .collection(\"Item\")\n          .doc(currentItem.item_selection)\n          .get();\n        const itemData = resItem.data[0];\n        await handleUOM(itemData, i);\n      }\n    }\n  }\n})();\n",
         "type": "js"
+      },
+      {
+        "key": "msicr8td",
+        "name": "onClick_created",
+        "func": "const closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading(\"Saving Misc Issue as Created...\");\n\n    const data = this.getValues();\n    console.log(\"data\", data);\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      \"2015602242971631618\",\n      { allData: data, saveAs: \"Created\", pageStatus: data.page_status },\n      async (res) => {\n        console.log(\"Misc Issue saved successfully:\", res);\n        workflowResult = res;\n      },\n      (err) => {\n        console.error(\"Failed to save Misc Issue:\", err);\n        this.hideLoading();\n        workflowResult = err;\n      },\n    );\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    // Handle workflow errors\n    if (\n      workflowResult.data.code === \"400\" ||\n      workflowResult.data.code === 400 ||\n      workflowResult.data.success === false\n    ) {\n      this.hideLoading();\n      const errorMessage =\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Failed to save Misc Issue\";\n      this.$message.error(errorMessage);\n      return;\n    }\n\n    // Handle success\n    if (\n      workflowResult.data.code === \"200\" ||\n      workflowResult.data.code === 200 ||\n      workflowResult.data.success === true\n    ) {\n      this.hideLoading();\n      const successMessage =\n        workflowResult.data.message ||\n        workflowResult.data.msg ||\n        \"Misc Issue saved successfully\";\n      this.$message.success(successMessage);\n      closeDialog();\n    } else {\n      this.hideLoading();\n      this.$message.error(\"Unknown workflow status\");\n    }\n  } catch (error) {\n    this.hideLoading();\n    console.error(\"Error:\", error);\n    const errorMessage = error.message || \"Failed to save Misc Issue\";\n    this.$message.error(errorMessage);\n  }\n})();\n"
       }
     ],
     "uniqueGroup": [],
