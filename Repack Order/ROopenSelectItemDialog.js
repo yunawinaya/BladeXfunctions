@@ -139,8 +139,14 @@ const fetchInventoryItems = async (
   // on_reserved_gd is allowed to fail soft: an empty reserved map only
   // over-deducts (hides stock), which is the safe direction.
   const [itemRes, subRes, reservationRes] = await Promise.all([
+    // .field() prunes the generated LEFT JOINs to the listed subforms only. Without
+    // it the platform joins all 11 Item_*_sub tables: 2.6M rows for a 3k-material
+    // plant, past the 30s statement timeout.
     db
       .collection("item")
+      .field(
+        "material_name,material_desc,based_uom,item_batch_management,table_uom_conversion",
+      )
       .filter([
         {
           type: "branch",
