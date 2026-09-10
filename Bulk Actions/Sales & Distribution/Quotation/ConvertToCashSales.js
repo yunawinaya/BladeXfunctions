@@ -1,0 +1,463 @@
+// ConvertToCashSales — Quotation list action, the Cash Sales twin of ConvertToSO.js.
+//
+// Cash Sales is not a separate document: it is a Sales Order carrying so_type "Cash"
+// with auto_si set, numbered from the "Cash Sales" su_code_serial_no_rule. The two
+// paths reach that differently. The single path opens the SO form with the page param
+// sales_order_title="Cash Sales", and SOonMounted sets so_type/auto_si and reveals
+// "Issue and Post" off it. The multiple path inserts into sales_order directly, so
+// SOonMounted never runs and this file has to set those fields itself.
+
+const handleSingleSO = async (sqtRecords) => {
+  console.log("Handle Single SO");
+  try {
+    const sqtData = await fetchSQTData(sqtRecords);
+    console.log("Fetched SQT Data:", sqtData);
+
+    const sqtIDs = sqtData.map((sqt) => sqt.id);
+    console.log("SQT IDs to be linked:", sqtIDs);
+
+    const sqtNos = sqtData.map((sqt) => sqt.sqt_no).join(", ");
+    console.log("SQT Numbers to be linked:", sqtNos);
+    // Ensure all selected SQTs are for the same customer
+
+    const uniqueCustomers = new Set(sqtData.map((sqt) => sqt.sqt_customer_id));
+    const allSameCustomer = uniqueCustomers.size === 1;
+
+    if (!allSameCustomer) {
+      this.$alert(
+        "All selected quotations must be from the same customer to create a single cash sales.",
+        "Error",
+        {
+          confirmButtonText: "OK",
+          type: "error",
+        },
+      );
+      return;
+    }
+
+    let soLineItemPromises = [];
+    let lineIndex = 0;
+    for (const sqt of sqtData) {
+      const lineItem = sqt.table_sqt || [];
+      for (const item of lineItem) {
+        lineIndex++;
+        const lineItemPromise = await mapLineItemToSOLine(item, sqt, lineIndex);
+
+        soLineItemPromises.push(lineItemPromise);
+      }
+    }
+
+    const data = sqtData[0];
+    const lineItemLength = soLineItemPromises.length;
+    const soPrefix = "";
+    const plantID = "";
+    const soData = await mapToSOData(
+      data,
+      soLineItemPromises,
+      lineItemLength,
+      soPrefix,
+      sqtIDs,
+      sqtNos,
+      plantID,
+    );
+    console.log("Mapped SO Data:", soData);
+
+    await this.toView({
+      target: "1902773735979597826",
+      type: "add",
+      data: { ...soData },
+      params: { sales_order_title: "Cash Sales" },
+      position: "rtl",
+      mode: "dialog",
+      width: "80%",
+      title: "Add",
+    });
+  } catch (error) {
+    console.error("Error in handleSingleSO:", error);
+  }
+};
+
+const handleMultipleSO = async (sqtRecords) => {
+  console.log("Handle Multiple SO");
+  try {
+    const sqtData = await fetchSQTData(sqtRecords);
+    console.log("Fetched SQT Data:", sqtData);
+
+    let soDataPromises = [];
+
+    for (const sqt of sqtData) {
+      let soLineItemPromises = [];
+      const lineItem = sqt.table_sqt || [];
+      for (const [index, item] of lineItem.entries()) {
+        const lineItemPromise = await mapLineItemToSOLine(item, sqt, index + 1);
+
+        soLineItemPromises.push(lineItemPromise);
+      }
+
+      const lineItemLength = soLineItemPromises.length;
+      const soPrefix = "draft";
+      const soData = await mapToSOData(
+        sqt,
+        soLineItemPromises,
+        lineItemLength,
+        soPrefix,
+        [sqt.id],
+        sqt.sqt_no,
+        sqt.sqt_plant,
+      );
+      console.log("Mapped SO Data:", soData);
+      soDataPromises.push(soData);
+    }
+
+    console.log("All SO Data to be added:", soDataPromises);
+
+    const resSODraftFormat = await db
+      .collection("su_code_serial_no_rule")
+      .where({
+        department_id: this.getVarGlobal("firstLvDeptId"),
+        business_type: "Cash Sales",
+        is_default: 1,
+      })
+      .get();
+
+    // Cash Sales numbering is configured per department. Without a rule the
+    // insert would produce unnumbered records, so stop before writing anything.
+    if (!resSODraftFormat.data || resSODraftFormat.data.length === 0) {
+      await this.$alert(
+        "No default Cash Sales document numbering rule is configured for this department. Please set one up before converting.",
+        "Cash Sales Numbering Not Configured",
+        { confirmButtonText: "OK", type: "error" },
+      );
+      return;
+    }
+
+    const resSO = await Promise.all(
+      soDataPromises.map((soData) =>
+        db
+          .collection("sales_order")
+          .add({ ...soData, so_no_type: resSODraftFormat.data[0].id }),
+      ),
+    );
+
+    const soData = resSO.map((response) => response.data[0]);
+    console.log("Created SO Records:", soData);
+
+    await this.refresh();
+    await this.$alert(
+      `Successfully created ${soData.length} draft cash sales.<br><br>
+      <strong>Sales Order Numbers:</strong><br> ${soData
+        .map((item) => item.so_no)
+        .join("<br>")}`,
+      "Success Converted to Cash Sales",
+      {
+        confirmButtonText: "OK",
+        dangerouslyUseHTMLString: true,
+        type: "success",
+      },
+    );
+  } catch (error) {
+    console.error("Error in handleMultipleSO:", error);
+  }
+};
+
+const fetchSQTData = async (sqtRecords) => {
+  try {
+    const resSqt = await Promise.all(
+      sqtRecords.map((item) => db.collection("Quotation").doc(item.id).get()),
+    );
+
+    const sqtData = resSqt.map((response) => response.data[0]);
+    return sqtData;
+  } catch (error) {
+    console.error("Error fetching SQT data:", error);
+    throw error;
+  }
+};
+
+const mapLineItemToSOLine = async (item, sqt, lineIndex) => {
+  return {
+    item_name: item.material_id,
+    item_id: item.material_name,
+    so_desc: item.sqt_desc,
+    so_quantity: item.quantity,
+    so_item_uom: item.sqt_order_uom_id,
+    so_item_price: item.unit_price,
+    so_gross: item.sqt_gross,
+    more_desc: item.more_desc,
+    line_remark_1: item.line_remark_1,
+    line_remark_2: item.line_remark_2,
+    line_remark_3: item.line_remark_3,
+    so_discount: item.sqt_discount,
+    so_discount_uom: item.sqt_discount_uom_id,
+    so_discount_amount: item.sqt_discount_amount,
+    so_tax_preference: item.sqt_taxes_rate_id,
+    so_tax_percentage: item.sqt_tax_rate_percent,
+    so_tax_amount: item.sqt_taxes_fee_amount,
+    so_tax_inclusive: item.sqt_tax_inclusive,
+    so_brand: item.sqt_brand_id,
+    so_packaging_style: item.sqt_packaging_id,
+    so_amount: item.total_price,
+    plant_id: sqt.sqt_plant || null,
+    item_category_id: item.item_category_id,
+    customer_id: sqt.sqt_customer_id || null,
+    payment_term_id: sqt.sqt_payment_term || null,
+    sales_person_id: sqt.sales_person_id || null,
+    billing_state_id: sqt.billing_address_state || null,
+    billing_country_id: sqt.billing_address_country || null,
+    shipping_state_id: sqt.shipping_address_state || null,
+    shipping_country_id: sqt.shipping_address_country || null,
+    sqt_id: sqt.id || null,
+    sqt_created_by_id: sqt.create_user || null,
+    organization_id: sqt.organization_id,
+    line_status: "Draft",
+    line_index: lineIndex,
+    access_group: sqt.access_group,
+    area_id: sqt.area_id || "",
+    custom_fields: item.custom_fields || "",
+    tariff_id: item.tariff_id,
+    further_description: item.further_description,
+    so_shipping_date: item.expected_shipment_date,
+    project_id: item.project_id || null,
+  };
+};
+
+const mapToSOData = async (
+  data,
+  soLineItemPromises,
+  lineItemLength,
+  soPrefix,
+  sqtIDs,
+  sqtNos,
+  plantID,
+) => {
+  return {
+    so_status: "Draft",
+    so_type: "Cash",
+    auto_si: 1,
+    so_no: soPrefix,
+    sqt_no: sqtNos,
+    sqt_id: sqtIDs,
+    so_date: new Date(),
+    so_sales_person: data.sales_person_id,
+    customer_name: data.sqt_customer_id || "",
+    so_currency: data.currency_code,
+    organization_id: data.organization_id,
+    plant_name: plantID || "",
+    cust_billing_address: data.sqt_billing_address,
+    cust_shipping_address: data.sqt_shipping_address,
+    so_payment_term: data.sqt_payment_term,
+    so_delivery_method: data.sqt_delivery_method_id,
+    delivery_method_text: data.delivery_method_text || "",
+    so_area_id: data.sqt_area_id || "",
+    project_id: data.project_id || null,
+
+    di_shipping_method: data.di_shipping_method,
+    di_driver_name: data.di_driver_name,
+    di_ic_no: data.di_ic_no,
+    di_driver_contact_no: data.di_driver_contact_no,
+    di_shipping_company: data.di_shipping_company,
+    di_transport_name: data.di_transport_name,
+    di_vehicle_number: data.di_vehicle_number,
+    di_est_delivery_date: data.di_est_delivery_date,
+    di_est_arrival_date: data.di_est_arrival_date,
+    di_pickup_date: data.di_pickup_date,
+    di_validity_of_collection: data.di_validity_of_collection,
+    di_tracking_number: data.di_tracking_number,
+    di_freight_charges: data.di_freight_charges,
+
+    cp_driver_name: data.cp_customer_pickup,
+    cp_ic_no: data.cp_ic_no,
+    cp_driver_contact_no: data.driver_contact_no,
+    cp_vehicle_number: data.vehicle_number,
+    cp_pickup_date: data.pickup_date,
+    validity_of_collection: data.validity_of_collection,
+
+    cs_courier_company: data.courier_company,
+    cs_shipping_date: data.shipping_date,
+    cs_tracking_number: data.cs_tracking_number,
+    est_arrival_date: data.cs_est_arrival_date,
+    cs_freight_charges: data.freight_charges,
+
+    ct_driver_name: data.ct_driver_name,
+    ct_ic_no: data.ct_ic_no,
+    ct_driver_contact_no: data.ct_driver_contact_no,
+    ct_delivery_cost: data.ct_delivery_cost,
+    ct_vehicle_number: data.ct_vehicle_number,
+    ct_est_delivery_date: data.ct_est_delivery_date,
+
+    ss_shipping_company: data.ss_shipping_company,
+    ss_shippping_date: data.ss_shipping_date,
+    ss_freight_charges: data.ss_freight_charges,
+    ss_shipping_method: data.ss_shipping_method,
+    ss_est_arrival_date: data.est_arrival_date,
+    ss_tracking_number: data.ss_tracking_number,
+
+    tpt_vehicle_number: data.tpt_vehicle_number,
+    tpt_transport_name: data.tpt_transport_name,
+    tpt_ic_no: data.tpt_ic_no,
+    tpt_driver_contact_no: data.tpt_driver_contact_no,
+
+    table_so: soLineItemPromises,
+    so_total_gross: data.sqt_sub_total,
+    so_total_discount: data.sqt_total_discount,
+    so_total_tax: data.sqt_total_tax,
+    so_total: data.sqt_totalsum,
+    exchange_rate: data.exchange_rate,
+    myr_total_amount: data.myr_total_amount,
+
+    billing_address_line_1: data.billing_address_line_1,
+    billing_address_line_2: data.billing_address_line_2,
+    billing_address_line_3: data.billing_address_line_3,
+    billing_address_line_4: data.billing_address_line_4,
+    billing_address_city: data.billing_address_city,
+    billing_postal_code: data.billing_postal_code,
+    billing_address_state: data.billing_address_state,
+    billing_address_country: data.billing_address_country,
+    billing_address_name: data.billing_address_name,
+    billing_address_phone: data.billing_address_phone,
+    billing_attention: data.billing_attention,
+    billing_address_fax: data.billing_address_fax,
+    billing_address_code: data.billing_address_code,
+
+    shipping_address_line_1: data.shipping_address_line_1,
+    shipping_address_line_2: data.shipping_address_line_2,
+    shipping_address_line_3: data.shipping_address_line_3,
+    shipping_address_line_4: data.shipping_address_line_4,
+    shipping_address_city: data.shipping_address_city,
+    shipping_postal_code: data.shipping_postal_code,
+    shipping_address_state: data.shipping_address_state,
+    shipping_address_country: data.shipping_address_country,
+    shipping_address_name: data.shipping_address_name,
+    shipping_address_phone: data.shipping_address_phone,
+    shipping_attention: data.shipping_attention,
+    shipping_address_fax: data.shipping_address_fax,
+    shipping_address_code: data.shipping_address_code,
+
+    so_shipping_date: data.expected_shipment_date,
+    so_tnc: data.sqt_tnc,
+    so_payment_details: data.sqt_payment_details,
+    so_delivery_term: data.sqt_deliveryterm,
+    so_remarks: data.sqt_remarks,
+    so_remarks2: data.sqt_remarks2,
+    so_remarks3: data.sqt_remarks3,
+    so_remarks4: data.sqt_remarks4,
+    so_remarks5: data.sqt_remarks5,
+    partially_delivered: `0 / ${lineItemLength}`,
+    fully_delivered: `0 / ${lineItemLength}`,
+    access_group: data.access_group,
+    price_tag_id: data.price_tag_id,
+  };
+};
+
+(async () => {
+  try {
+    const unCompletedListID = "custom_kviatmto";
+    const allListID = "custom_851imkgn";
+    const tabUncompletedElement = document.getElementById(
+      "tab-tab_uncompleted",
+    );
+
+    const activeTab = tabUncompletedElement?.classList.contains("is-active")
+      ? "Uncompleted"
+      : "All";
+
+    let selectedRecords;
+
+    selectedRecords = this.getComponent(
+      activeTab === "Uncompleted" ? unCompletedListID : allListID,
+    )?.$refs.crud.tableSelect;
+
+    console.log("selectedRecords", selectedRecords);
+
+    if (selectedRecords && selectedRecords.length > 0) {
+      selectedRecords = selectedRecords.filter(
+        (item) =>
+          item.sqt_status === "Issued" || item.sqt_status === "Completed",
+      );
+
+      if (selectedRecords.length === 0) {
+        await this.$alert(
+          "No selected records are available for conversion. Please select records with status 'Issued' or 'Completed'.",
+          "No Records to Convert",
+          {
+            confirmButtonText: "OK",
+            dangerouslyUseHTMLString: true,
+            type: "warning",
+          },
+        );
+        return;
+      }
+
+      // Filter out records that are not "Issued"
+      await this.$confirm(
+        `Only these quotation records available for conversion. Proceed?<br><br>
+        <strong>Selected Records:</strong><br> ${selectedRecords
+          .map((item) => item.sqt_no)
+          .join("<br>")}`,
+        "Confirm Conversion",
+        {
+          confirmButtonText: "Proceed",
+          cancelButtonText: "Cancel",
+          dangerouslyUseHTMLString: true,
+          type: "info",
+        },
+      ).catch(() => {
+        console.log("User clicked Cancel or closed the dialog");
+        throw new Error();
+      });
+
+      // Process multiple selections
+      if (selectedRecords.length > 1) {
+        console.log("this.$confirm", this.$confirm);
+        await this.$confirm(
+          `You have selected ${selectedRecords.length} quotation records. Would you like to convert these into a single cash sales or into multiple cash sales?<br><br>
+          <strong>Single Cash Sales:</strong> All items combined into one document<br>
+          <strong>Multiple Cash Sales:</strong> Separate orders for better tracking`,
+          "Quotation Conversion",
+          {
+            confirmButtonText: "Single Cash Sales",
+            cancelButtonText: "Multiple Cash Sales",
+            dangerouslyUseHTMLString: true,
+            type: "info",
+            distinguishCancelAndClose: true,
+
+            beforeClose: async (action, instance, done) => {
+              if (action === "confirm") {
+                this.showLoading("Converting to Sales Order...");
+                await handleSingleSO(selectedRecords);
+                await this.getComponent(
+                  activeTab === "Uncompleted" ? unCompletedListID : allListID,
+                )?.$refs.crud.clearSelection();
+                this.hideLoading();
+                done();
+              } else if (action === "cancel") {
+                this.showLoading("Converting to Sales Order...");
+                await handleMultipleSO(selectedRecords);
+                await this.getComponent(
+                  activeTab === "Uncompleted" ? unCompletedListID : allListID,
+                )?.$refs.crud.clearSelection();
+                this.hideLoading();
+                done();
+              } else {
+                this.hideLoading();
+                done();
+              }
+            },
+          },
+        );
+      } else if (selectedRecords.length === 1) {
+        this.showLoading("Converting to Sales Order...");
+        await handleSingleSO(selectedRecords);
+      }
+
+      await this.getComponent(
+        activeTab === "Uncompleted" ? unCompletedListID : allListID,
+      )?.$refs.crud.clearSelection();
+      this.hideLoading();
+    } else {
+      this.$message.error("Please select at least one record.");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+})();

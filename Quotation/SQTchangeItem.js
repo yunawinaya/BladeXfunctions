@@ -21,6 +21,8 @@ const resetData = async (rowIndex) => {
     [`table_sqt.${rowIndex}.base_unrestricted_qty`]: 0,
     [`table_sqt.${rowIndex}.table_uom_conversion`]: "",
     [`table_sqt.${rowIndex}.further_description`]: "",
+    [`table_sqt.${rowIndex}.min_quantity`]: 0,
+    [`table_sqt.${rowIndex}.max_quantity`]: 0,
   });
 };
 
@@ -178,6 +180,14 @@ const fetchUnrestrictedQty = async (
         );
     }
 
+    await this.setData({
+      [`table_sqt.${rowIndex}.min_quantity`]:
+        defaultSalesDetail?.min_sales_qty || 0,
+    
+      [`table_sqt.${rowIndex}.max_quantity`]:
+        defaultSalesDetail?.max_sales_qty || 0,
+    });
+
     await this.runWorkflow(
       "2067818102244966401",
       {
@@ -222,6 +232,12 @@ const fetchUnrestrictedQty = async (
             arguments[0].fieldModel.item.material_name;
           updates[`table_sqt.${item.line_index}.further_description`] =
             arguments[0].fieldModel.item.further_description;
+          updates[`table_sqt.${item.line_index}.more_desc`] =
+            arguments[0].fieldModel.item.additional_remark;
+          updates[`table_sqt.${item.line_index}.min_quantity`] =
+            item.min_qty;
+          updates[`table_sqt.${item.line_index}.max_quantity`] =
+            item.max_qty;
         }
         await this.setData(updates);
         await this.triggerEvent("SQTCalculation");

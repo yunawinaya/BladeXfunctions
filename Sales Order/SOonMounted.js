@@ -363,7 +363,7 @@ const checkAccIntegrationType = async (organizationId) => {
 const cloneResetQuantity = async () => {
   const tableSO = this.getValue("table_so");
 
-  for (const so of tableSO) {
+  const resetLineQuantity = (so) => {
     so.delivered_qty = 0;
     so.planned_qty = 0;
     so.return_qty = 0;
@@ -374,6 +374,19 @@ const cloneResetQuantity = async () => {
     so.production_status = "";
     so.si_status = "";
     so.line_status = "";
+  };
+
+  for (const so of tableSO) {
+    resetLineQuantity(so);
+
+    // An item bundle is one row with its items under `children`. The items are
+    // lines in their own right and carry the same delivered / invoiced
+    // quantities, so a clone has to clear theirs too.
+    const bundleChildren = Array.isArray(so.children) ? so.children : [];
+
+    for (const child of bundleChildren) {
+      resetLineQuantity(child);
+    }
   }
 
   this.setData({
@@ -544,7 +557,7 @@ const fetchUnrestrictedQty = async () => {
           totalUnrestrictedQtyBase = 0;
         }
 
-        let finalQty = 0;
+        let finalQty = totalUnrestrictedQtyBase;
 
         if (so.so_item_uom !== baseUOM) {
           finalQty = await convertBaseToAlt(
@@ -553,6 +566,8 @@ const fetchUnrestrictedQty = async () => {
             so.so_item_uom,
           );
         }
+
+        console.log("finalQty", finalQty);
         this.setData({
           [`table_so.${index}.unrestricted_qty`]: finalQty,
           [`table_so.${index}.base_unrestricted_qty`]: totalUnrestrictedQtyBase,
@@ -594,7 +609,13 @@ const fetchUnrestrictedQty = async () => {
       "total_amount_myr",
     ]);
 
+    this.getComponent("table_so").hideChildRecord();
+
     const fromSource = this.getParamsVariables("sales_order_title");
+    const sqtId = this.getValue("sqt_id");
+    const hasQuotation = Array.isArray(sqtId)
+      ? sqtId.length > 0
+      : Boolean(sqtId);
 
     switch (pageStatus) {
       case "Add":
@@ -613,11 +634,8 @@ const fetchUnrestrictedQty = async () => {
               ? { so_type: "Cash", auto_si: 1 }
               : { so_type: "Credit" }),
           create_si: "No",
+          so_description: fromSource ? fromSource : hasQuotation ? this.getValue("so_description") : "Sales Order",
         });
-
-        if (this.getValue("so_no")) {
-          this.display("so_no");
-        }
 
         const customerID = this.getValue("customer_name");
 
@@ -639,9 +657,6 @@ const fetchUnrestrictedQty = async () => {
         await disabledField(status, fromSource);
 
         await setPlant(organizationId, pageStatus);
-        if (this.getValue("so_no")) {
-          this.display("so_no");
-        }
 
         this.setData({ previous_status: status });
         if (status !== "Draft") {
@@ -690,7 +705,7 @@ const fetchUnrestrictedQty = async () => {
         await displayDeliveryMethod();
 
         this.display("price_history");
-        //await fetchUnrestrictedQty();
+        await fetchUnrestrictedQty();
 
         console.log("delivered quantity", this.getValue("partially_delivered"));
         break;
@@ -736,6 +751,7 @@ setTimeout(async () => {
   console.log("options", options);
   const optionsData = this.getOptionData("so_no_type") || [];
   const defaultData = getDefaultItem(optionsData);
+  console.log("defaultData", defaultData);
   if (options?.canManualInput) {
     this.setOptionData("so_no_type", [
       { label: "Manual Input", value: -9999 },
@@ -751,4 +767,4 @@ setTimeout(async () => {
       this.setData({ so_no_type: defaultData.value });
     }
   }
-}, 200);
+}, 300);

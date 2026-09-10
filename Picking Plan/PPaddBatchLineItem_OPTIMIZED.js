@@ -1245,6 +1245,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         base_uom_id: itemData.based_uom,
         customer_id: item.customer_id,
         item_bundle_id: item.item_bundle_id || "",
+        project_id: item.project_id ?? "",
       };
     } else {
       return {
@@ -1269,6 +1270,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         item_category_id: item.item_category_id,
         customer_id: item.customer_id,
         item_bundle_id: item.item_bundle_id || "",
+        project_id: item.project_id ?? "",
       };
     }
   };
@@ -1422,6 +1424,7 @@ const createTableToWithBaseUOM = async (allItems) => {
     item_category_id: soItem.item_category_id,
     customer_id: so.customer_id,
     item_bundle_id: soItem.item_bundle_id || "",
+    project_id: soItem.project_id ?? null,
   });
 
   switch (referenceType) {
@@ -1480,6 +1483,7 @@ const createTableToWithBaseUOM = async (allItems) => {
         item_category_id: picked.item?.item_category,
         customer_id: picked.customer_id,
         item_bundle_id: picked.item_bundle_id || "",
+        project_id: picked.project_id ?? null,
       });
 
       for (const soItem of currentItemArray) {

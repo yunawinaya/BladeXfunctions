@@ -37,6 +37,7 @@ const CONFIG = {
       "button_complete_receive",
       "button_save_as_draft",
       "button_issued_ift",
+      "button_created",
     ],
     hide: [
       "stock_movement.view_stock",
@@ -82,6 +83,20 @@ const CONFIG = {
     },
     Completed: ["button_post"],
   },
+  // With picking on, the issuing side is held at Created and only Issued may follow.
+  // The receiving child also lives at Created in this table, so both are keyed by
+  // movement_type to keep them apart.
+  pickingButtonConfig: {
+    Add: ["button_save_as_draft", "button_created"],
+    Draft: ["button_save_as_draft", "button_created"],
+    Issued: ["button_inprogress_ift"],
+    "In Progress": ["button_inprogress_ift"],
+    Created: {
+      "Plant Transfer": ["button_issued_ift"],
+      "Plant Transfer (Receiving)": ["button_complete_receive"],
+    },
+    Completed: ["button_post"],
+  },
 };
 
 const initMovementReason = async () => {
@@ -115,28 +130,50 @@ const configureFields = (movementType) => {
   }
 };
 
-const configureButtons = (pageStatus, stockMovementStatus, movementType) => {
+// Stock Picking rides on picking_setup with one master switch per movement type.
+// Extra ROWS would break GD/PP -- every picking_setup reader filters on org/plant
+// only and takes data[0] -- so the per-type switches are columns instead.
+const fetchStockPickingSetup = async (plantId, organizationId) => {
+  try {
+    const res = await db
+      .collection("picking_setup")
+      .where({ organization_id: organizationId, plant_id: plantId })
+      .get();
+    return res?.data?.[0] || null;
+  } catch (error) {
+    console.error("Error reading picking_setup:", error);
+    return null;
+  }
+};
+
+const configureButtons = (
+  pageStatus,
+  stockMovementStatus,
+  movementType,
+  pickingRequired,
+) => {
   this.hide(CONFIG.fields.buttons);
 
+  const map = pickingRequired
+    ? CONFIG.pickingButtonConfig
+    : CONFIG.buttonConfig;
+
   if (pageStatus === "Add" || stockMovementStatus === "Draft") {
-    this.display(CONFIG.buttonConfig.Draft);
+    this.display(map.Draft);
   } else if (stockMovementStatus === "Issued") {
-    this.display(CONFIG.buttonConfig.Issued);
+    this.display(map.Issued);
   } else if (
     stockMovementStatus === "In Progress" &&
     movementType === "Plant Transfer"
   ) {
-    this.display(CONFIG.buttonConfig["In Progress"]);
-  } else if (
-    stockMovementStatus === "Created" &&
-    movementType === "Plant Transfer (Receiving)"
-  ) {
-    this.display(CONFIG.buttonConfig.Created["Plant Transfer (Receiving)"]);
+    this.display(map["In Progress"]);
+  } else if (stockMovementStatus === "Created" && map.Created[movementType]) {
+    this.display(map.Created[movementType]);
   } else if (
     stockMovementStatus === "Completed" ||
     stockMovementStatus === "Fully Posted"
   ) {
-    this.display(CONFIG.buttonConfig.Completed);
+    this.display(map.Completed);
   }
 };
 
@@ -638,7 +675,15 @@ const hideBatchAdd = () => {
         this.display(["draft_status"]);
 
         configureFields("Plant Transfer");
-        configureButtons(pageStatus, null, "Plant Transfer");
+        configureButtons(
+          pageStatus,
+          null,
+          "Plant Transfer",
+          (await fetchStockPickingSetup(
+            this.getValue("issuing_operation_faci"),
+            organizationId,
+          ))?.pt_picking_required === 1,
+        );
         setPlant(organizationId, pageStatus);
         hideSerialNumberRecordTab();
         await initMovementReason();
@@ -651,7 +696,15 @@ const hideBatchAdd = () => {
         this.disabled("movement_type", true);
 
         configureFields(movementType);
-        configureButtons(pageStatus, data.stock_movement_status, movementType);
+        configureButtons(
+          pageStatus,
+          data.stock_movement_status,
+          movementType,
+          (await fetchStockPickingSetup(
+            data.issuing_operation_faci,
+            organizationId,
+          ))?.pt_picking_required === 1,
+        );
 
         if (
           data.stock_movement_status === "Created" &&
@@ -778,6 +831,10 @@ const hideBatchAdd = () => {
           pageStatus,
           data.stock_movement_status,
           viewMovementType,
+          (await fetchStockPickingSetup(
+            data.issuing_operation_faci,
+            organizationId,
+          ))?.pt_picking_required === 1,
         );
         this.hide(["stock_movement.transfer_stock"]);
 

@@ -151,19 +151,27 @@ const setDialogAddressFields = (addressType, address) => {
           document_type: "SQT",
           supp_cust_id: newCustomerId,
           plant_id: plantID,
-          item_data: tableSQT.map((item, index) => {
-            return {
-              item_id: item.material_id,
-              unit_price: item.unit_price,
-              line_index: index,
-              uom_id: item.sqt_order_uom_id,
-              tax_rate: item.sqt_taxes_rate_id || null,
-              tax_percent: item.sqt_tax_rate_percent || null,
-              quantity: item.quantity,
-              discount: item.sqt_discount,
-              discount_uom: item.sqt_discount_uom_id,
-            };
-          }),
+          // Map first so line_index stays the row's real position in
+          // table_sqt, then drop the rows that carry no item -- an item
+          // bundle's parent row has an empty material_id (the items sit in
+          // its `children`) and the workflow rejects it with
+          // "Item ID is required". Bundle pricing does not follow the
+          // customer, so those rows are skipped on purpose.
+          item_data: tableSQT
+            .map((item, index) => {
+              return {
+                item_id: item.material_id,
+                unit_price: item.unit_price,
+                line_index: index,
+                uom_id: item.sqt_order_uom_id,
+                tax_rate: item.sqt_taxes_rate_id || null,
+                tax_percent: item.sqt_tax_rate_percent || null,
+                quantity: item.quantity,
+                discount: item.sqt_discount,
+                discount_uom: item.sqt_discount_uom_id,
+              };
+            })
+            .filter((row) => row.item_id),
         },
         async (result) => {
           console.log("result", result);
@@ -231,7 +239,7 @@ const setDialogAddressFields = (addressType, address) => {
 
   const customerItem = arguments[0]?.fieldModel?.item;
   const customerId = customerItem?.id || this.getValue("sqt_customer_id");
-
+  this.getComponent('table_sqt')?.hideChildRecord()
   if (customerId && !Array.isArray(customerId)) {
     this.display([
       "address_grid",

@@ -199,6 +199,7 @@ const fetchUnrestrictedQty = async (
   if (organizationId === "0") {
     organizationId = this.getVarSystem("deptIds").split(",")[0];
   }
+  const headerProjectId = this.getValue("project_id") || "";
   const itemArray = [];
 
   for (const item of currentItemArray) {
@@ -224,6 +225,10 @@ const fetchUnrestrictedQty = async (
       custom_fields: item.custom_fields || {},
       trigger_calc: "No",
       further_description: item.further_description,
+      more_desc: item.additional_remark,
+      min_quantity: defaultSalesDetail.min_sales_qty || 0,
+      max_quantity: defaultSalesDetail.max_salas_qty || 0,
+      project_id: headerProjectId,
     };
 
     itemArray.push(soItem);
@@ -325,6 +330,8 @@ const fetchUnrestrictedQty = async (
             item.from_historical;
           updates[`table_so.${item.line_index}.max_price`] = item.max_price;
           updates[`table_so.${item.line_index}.min_price`] = item.min_price;
+          updates[`table_so.${item.line_index}.max_quantity`] = item.max_qty;
+          updates[`table_so.${item.line_index}.min_quantity`] = item.min_qty;
           updates[`table_so.${item.line_index}.so_quantity`] = item.quantity;
           updates[`table_so.${item.line_index}.so_discount`] = item.discount;
           updates[`table_so.${item.line_index}.so_discount_uom`] =

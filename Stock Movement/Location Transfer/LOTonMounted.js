@@ -25,7 +25,12 @@ const CONFIG = {
       "movement_reason",
       "is_production_order",
     ],
-    buttons: ["button_save_as_draft", "button_inprogress", "button_completed"],
+    buttons: [
+      "button_save_as_draft",
+      "button_created",
+      "button_inprogress",
+      "button_completed",
+    ],
     hide: [
       "stock_movement.unit_price",
       "stock_movement.amount",
@@ -38,6 +43,14 @@ const CONFIG = {
     Draft: ["button_save_as_draft", "button_inprogress", "button_completed"],
     Created: ["button_inprogress", "button_completed"],
     "In Progress": ["button_inprogress", "button_completed"],
+  },
+  // With picking on, the stock is held at Created and only the pick task may move
+  // it on, so Draft offers Created instead of In Progress / Completed.
+  pickingButtonConfig: {
+    Add: ["button_save_as_draft", "button_created"],
+    Draft: ["button_save_as_draft", "button_created"],
+    Created: ["button_inprogress"],
+    "In Progress": ["button_completed"],
   },
 };
 
@@ -69,15 +82,32 @@ const configureFields = (isProductionOrder) => {
   this.disabled(["stock_movement.total_quantity"], true);
 };
 
-const configureButtons = (pageStatus, stockMovementStatus) => {
+const fetchStockPickingSetup = async (plantId, organizationId) => {
+  try {
+    const res = await db
+      .collection("picking_setup")
+      .where({ organization_id: organizationId, plant_id: plantId })
+      .get();
+    return res?.data?.[0] || null;
+  } catch (error) {
+    console.error("Error reading picking_setup:", error);
+    return null;
+  }
+};
+
+const configureButtons = (pageStatus, stockMovementStatus, pickingRequired) => {
   this.hide(CONFIG.fields.buttons);
 
+  const map = pickingRequired
+    ? CONFIG.pickingButtonConfig
+    : CONFIG.buttonConfig;
+
   if (pageStatus === "Add" || stockMovementStatus === "Draft") {
-    this.display(CONFIG.buttonConfig.Draft);
+    this.display(map.Draft);
   } else if (stockMovementStatus === "Created") {
-    this.display(CONFIG.buttonConfig.Created);
+    this.display(map.Created);
   } else if (stockMovementStatus === "In Progress") {
-    this.display(CONFIG.buttonConfig["In Progress"]);
+    this.display(map["In Progress"]);
   }
 };
 
@@ -255,7 +285,12 @@ const setStorageLocation = async (plantID) => {
         const plantID = setPlant(organizationId, pageStatus);
         hideSerialNumberRecordTab();
         configureFields(data.is_production_order);
-        configureButtons(pageStatus, null);
+        configureButtons(
+          pageStatus,
+          null,
+          (await fetchStockPickingSetup(plantID, organizationId))
+            ?.lot_picking_required === 1,
+        );
         await initMovementReason();
         await setStorageLocation(plantID);
         break;
@@ -264,8 +299,13 @@ const setStorageLocation = async (plantID) => {
         this.hide(CONFIG.fields.hide);
 
         configureFields(data.is_production_order);
-        configureButtons(pageStatus, data.stock_movement_status);
         const plantId = data.issuing_operation_faci;
+        configureButtons(
+          pageStatus,
+          data.stock_movement_status,
+          (await fetchStockPickingSetup(plantId, organizationId))
+            ?.lot_picking_required === 1,
+        );
 
         if (data.stock_movement_status === "Completed") {
           editDisabledField();
@@ -311,7 +351,14 @@ const setStorageLocation = async (plantID) => {
         this.hide(CONFIG.fields.hide);
 
         configureFields(data.is_production_order);
-        configureButtons(pageStatus, data.stock_movement_status);
+        configureButtons(
+          pageStatus,
+          data.stock_movement_status,
+          (await fetchStockPickingSetup(
+            data.issuing_operation_faci,
+            organizationId,
+          ))?.lot_picking_required === 1,
+        );
         showStatusHTML(data.stock_movement_status);
         showProductionOrder(data);
         hideSerialNumberRecordTab();
@@ -327,7 +374,10 @@ setTimeout(async () => {
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
-    const op = await this.onDropdownVisible("stock_movement_no_type", true);
+    const op = await this.onDropdownVisible(
+      "stock_movement_no_type",
+      true,
+    );
     if (op != null) break;
     await new Promise((resolve) => setTimeout(resolve, interval));
   }

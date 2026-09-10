@@ -82,6 +82,7 @@
       order_remark4: soData.so_remarks4 || "",
       order_remark5: soData.so_remarks5 || "",
       sales_person: soData.so_sales_person ? [soData.so_sales_person] : [],
+      project_id: soData.project_id ?? null,
     });
 
   } else {
@@ -148,6 +149,7 @@
       order_remark4: "",
       order_remark5: "",
       sales_person: [],
+      project_id: null,
     });
   }
 })();

@@ -184,7 +184,7 @@ const disabledField = async (status) => {
         "shipping_postal_code",
         "shipping_address_country",
       ],
-      true,
+      true
     );
 
     this.hide([
@@ -194,7 +194,10 @@ const disabledField = async (status) => {
       "button_issued",
     ]);
   } else {
-    this.display(["link_billing_address", "link_shipping_address"]);
+    this.display([
+      "link_billing_address",
+      "link_shipping_address",
+    ]);
     if (status === "Issued") {
       this.hide("button_save_as_draft");
     }
@@ -298,7 +301,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = serialBalanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0,
+              0
             );
           }
         } else if (
@@ -322,7 +325,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = batchBalanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0,
+              0
             );
           }
         } else if (
@@ -346,7 +349,7 @@ const fetchUnrestrictedQty = async () => {
 
             totalUnrestrictedQtyBase = balanceData.reduce(
               (sum, balance) => sum + (balance.unrestricted_qty || 0),
-              0,
+              0
             );
           }
         } else {
@@ -399,6 +402,7 @@ const fetchUnrestrictedQty = async () => {
     ]);
 
     const customerType = this.getValue("customer_type");
+    this.getComponent('table_sqt')?.hideChildRecord()
     switch (pageStatus) {
       case "Add":
         this.display(["draft_status"]);
@@ -408,7 +412,8 @@ const fetchUnrestrictedQty = async () => {
           sqt_date: new Date().toISOString().split("T")[0],
           customer_type: "Existing Customer",
           print_status: "Pending",
-          created_source: "Web",
+          created_source: 'Web',
+          sqt_description: 'Quotation'
         });
         break;
 
@@ -445,14 +450,15 @@ const fetchUnrestrictedQty = async () => {
 
         this.disabled(
           this.getValue("sqt_no_type") !== -9999 ? ["sqt_no"] : [],
-          true,
+          true
         );
         this.setData({
           sqt_date: new Date().toISOString().split("T")[0],
           sqt_no: null,
           sqt_status: null,
           print_status: "Pending",
-          created_source: "Web",
+          created_source: 'Web',
+          sqt_description: 'Quotation'
         });
         this.display(["draft_status"]);
 
@@ -502,7 +508,10 @@ setTimeout(async () => {
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
-    const op = await this.onDropdownVisible("sqt_no_type", true);
+    const op = await this.onDropdownVisible(
+      "sqt_no_type",
+      true,
+    );
     if (op != null) break;
     await new Promise((resolve) => setTimeout(resolve, interval));
   }

@@ -49,7 +49,10 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
@@ -61,7 +64,10 @@
         "nodeName": "IF Cancelled",
         "name": "IF Cancelled",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -85,7 +91,9 @@
         {
           "id": "if_block_lUOcX5TA",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_node_czmdH3Jw",
@@ -126,7 +134,9 @@
         {
           "id": "if_block_ushAzWNj",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -303,7 +313,9 @@
         {
           "id": "if_block_mVRNBpZh",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_aQxrHqh2",
@@ -346,7 +358,188 @@
         {
           "id": "if_block_q2kj3r1V",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "search_node_LOTspLive",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Stock Picking:Table:2092878390055469058",
+          "rules": {
+            "collectionId": "2092878390055469058",
+            "list": [
+              {
+                "id": 1798170000010,
+                "parentId": 1798170000011,
+                "isTop": true,
+                "type": "branch",
+                "operator": "all",
+                "prop": "",
+                "valueType": "",
+                "value": "",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1798170000012,
+                    "parentId": 1798170000010,
+                    "isTop": false,
+                    "prop": "src_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_yPlLXIZW.data.allData.id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Source Document ID",
+                    "valueLabel": "",
+                    "operatorLabel": "equal"
+                  },
+                  {
+                    "id": 1798170000013,
+                    "parentId": 1798170000010,
+                    "isTop": false,
+                    "prop": "ref_doc_type",
+                    "operator": "equal",
+                    "valueType": "value",
+                    "value": "Location Transfer",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Reference Doc Type",
+                    "valueLabel": "",
+                    "operatorLabel": "equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 50,
+        "title": "Get Stock Pickings",
+        "isValidator": true,
+        "nodeName": "Get Stock Pickings",
+        "name": "Get Stock Pickings"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_LOTspGuard",
+      "type": "code-node",
+      "data": {
+        "title": "Stock Picking Guard",
+        "isValidator": true,
+        "nodeName": "Stock Picking Guard",
+        "name": "Stock Picking Guard",
+        "script": {
+          "type": "javascript",
+          "code": "const saveAs = {{workflowparams:saveAs}};\nconst pageStatus = {{workflowparams:pageStatus}};\n\nconst rows = {{node:search_node_LOTspLive.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\n\n// Draft/Completed/Cancelled pickings are not work in progress. Anything else is a\n// picker's open work list, and the movement has no reconcile path -- editing it\n// would leave the two out of step -- so block BEFORE anything is persisted.\n// Only the \"Created\" re-save is gated: advancing or cancelling the movement stays\n// open, and the auto-advance call from STOCK_PICKING_PROCESS sends \"In Progress\",\n// so it exempts itself.\nconst active = arr.filter((p) => p &&\n  p.sp_status !== \"Draft\" && p.sp_status !== \"Completed\" && p.sp_status !== \"Cancelled\");\n\nlet blocked = 0;\nlet guardMessage = \"\";\nif (saveAs === \"Created\" && pageStatus === \"Edit\" && active.length > 0) {\n  blocked = 1;\n  const list = active.map((p) => p.sp_id || p.id).slice(0, 5).join(\", \");\n  const more = active.length > 5 ? \" (+\" + (active.length - 5) + \" more)\" : \"\";\n  guardMessage =\n    \"Cannot edit this Location Transfer while \" + active.length +\n    (active.length === 1 ? \" Stock Picking is\" : \" Stock Pickings are\") +\n    \" active: \" + list + more + \". Cancel or complete \" +\n    (active.length === 1 ? \"it\" : \"them\") + \" first.\";\n}\n\nreturn { blocked: blocked, guardMessage: guardMessage };"
+        },
+        "response_json": [
+          {
+            "key": "spgblocked",
+            "name": "blocked",
+            "title": "blocked",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "spgmessage",
+            "name": "guardMessage",
+            "title": "guardMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_LOTspGuard",
+      "type": "if",
+      "data": {
+        "title": "IF Picking Active",
+        "isValidator": true,
+        "nodeName": "IF Picking Active",
+        "name": "IF Picking Active",
+        "condition_type": "ConditionRule",
+        "filter": {
+          "list": [
+            {
+              "id": 1798170000020,
+              "parentId": 1798170000021,
+              "isTop": true,
+              "prop": "node.code_node_LOTspGuard.data.blocked",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "blocked",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_LOTspGuard_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_node_LOTspGuard",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_LOTspGuard.data.guardMessage}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_LOTspGuard_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -360,7 +553,10 @@
         "nodeName": "IF !Draft & !Cancelled",
         "name": "IF !Draft & !Cancelled",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -411,7 +607,9 @@
         {
           "id": "if_block_PAj1VHP0",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_i8zWlzBw",
@@ -500,7 +698,9 @@
                 {
                   "id": "if_block__ZnT8DK6",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_VTDm4bBc",
@@ -543,7 +743,9 @@
                 {
                   "id": "if_block_dUnKxEIi",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -580,7 +782,9 @@
                 {
                   "id": "ifBlock_S3hQww0R",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_3UICodh0",
@@ -623,7 +827,9 @@
                 {
                   "id": "ifBlock_cChBiiqD",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -633,7 +839,9 @@
         {
           "id": "if_block_WXFkCP1M",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -670,7 +878,9 @@
         {
           "id": "if_block_J_RphoHJ",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "search_node_LOTitOpenCancel",
@@ -970,7 +1180,10 @@
                 "isValidator": true,
                 "nodeName": "Set Movement Index",
                 "name": "Set Movement Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "{{node:code_node_LOTcancelKey.data.cacheKey}}"
               },
               "blocks": []
@@ -1357,7 +1570,9 @@
                     {
                       "id": "if_LOTcancelSubErr_t",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_LOTcancelSubErr",
@@ -1398,7 +1613,9 @@
                     {
                       "id": "if_LOTcancelSubErr_f",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -1619,7 +1836,9 @@
                     {
                       "id": "if_LOTcancelAddErr_t",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_LOTcancelAddErr",
@@ -1660,7 +1879,9 @@
                     {
                       "id": "if_LOTcancelAddErr_f",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -1718,7 +1939,9 @@
                 {
                   "id": "if_LOTcancelClose_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_LOTcancelClose",
@@ -1789,7 +2012,9 @@
                 {
                   "id": "if_LOTcancelClose_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1891,7 +2116,9 @@
         {
           "id": "if_block_h9hzxIZx",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1979,7 +2206,9 @@
         {
           "id": "if_block_2g3GCmTD",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_LOTprecheckAgg",
@@ -2088,7 +2317,10 @@
                 "isValidator": true,
                 "nodeName": "Set Check Index",
                 "name": "Set Check Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "{{node:code_node_LOTprecheckKey.data.cacheKey}}"
               },
               "blocks": []
@@ -2349,7 +2581,9 @@
                     {
                       "id": "if_LOTprecheckFail_t",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_LOTprecheckFail",
@@ -2390,7 +2624,9 @@
                     {
                       "id": "if_LOTprecheckFail_f",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -2421,7 +2657,9 @@
         {
           "id": "if_block_Xb1lFEvB",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -2435,7 +2673,10 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -2459,7 +2700,9 @@
         {
           "id": "if_block_GuQ_8hPE",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "if_niFrMasW",
@@ -2470,7 +2713,10 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -2494,7 +2740,9 @@
                 {
                   "id": "if_block_5KmzQT1v",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "if_DOSWFx2S",
@@ -2505,7 +2753,10 @@
                         "nodeName": "IF Production Order",
                         "name": "IF Production Order",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -2529,7 +2780,9 @@
                         {
                           "id": "if_block_YCwlY0IN",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "code_node_OHjnEcVJ",
@@ -2596,7 +2849,9 @@
                                 {
                                   "id": "if_block_LoBUqe2b",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "return_node_fUnuJ8vP",
@@ -2639,7 +2894,9 @@
                                 {
                                   "id": "if_block_QYCX4y7e",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -2649,7 +2906,9 @@
                         {
                           "id": "if_block_jo5_HYTZ",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -2763,7 +3022,7 @@
                         "name": "Reconcile Compute",
                         "script": {
                           "type": "javascript",
-                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n// The ledger stores 3dp; at or under this a reconcile shortfall is a rounding\n// artefact, not a real shortage. Matches code_node_LOTmainCompute.\nconst QTY_EPS = 0.005;\n\nconst currentData = {{node:code_node_yPlLXIZW.data.allData}};\nconst initialData = {{node:get_node_Ij7YbXCA.data.data}} || {};\nconst openRaw = {{node:search_node_LOTitOpenRecon.data.data}};\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\n\nconst ctx = {\n  docId: currentData.id || \"\",\n  docNo: currentData.stock_movement_no || \"\",\n  plantId: currentData.issuing_operation_faci,\n  orgId: currentData.organization_id,\n  docDate: currentData.issue_date,\n};\n\nconst lineStaging = (line) => {\n  const D = line.location_id;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  const byKey = {};\n  for (const e of entries) {\n    const qty = roundQty(e.sm_quantity); if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    const k = `${mat}|${e.location_id}|${e.batch_id || \"\"}|${e.category || \"Unrestricted\"}`;\n    if (byKey[k]) byKey[k].qty = roundQty(byKey[k].qty + qty);\n    else byKey[k] = { material_id: mat, source: e.location_id, batch_id: e.batch_id || null,\n      category: e.category || \"Unrestricted\", qty, material_uom: e.material_uom || line.quantity_uom,\n      handling_unit_id: e.handling_unit_id || null, manufacturing_date: e.manufacturing_date || null,\n      expired_date: e.expired_date || null };\n  }\n  return { D, byKey };\n};\n\nconst initLines = {}; for (const l of (initialData.stock_movement || [])) if (l.id) initLines[l.id] = l;\nconst curLines = {}; for (const l of (currentData.stock_movement || [])) if (l.id) curLines[l.id] = l;\nconst allIds = Object.keys(initLines).concat(Object.keys(curLines).filter(x => !initLines[x]));\n\nconst movements = [];\nconst materialSet = {};\nconst transitDelta = new Map();\nconst bumpTransit = (mat, batch, bin, delta, meta) => {\n  const k = `${mat}|${batch || \"\"}|${bin}`;\n  const cur = transitDelta.get(k);\n  if (cur) cur.delta = roundQty(cur.delta + delta);\n  else transitDelta.set(k, { delta: roundQty(delta), material: mat, batch: batch || null, bin, meta });\n};\nconst pushPair = (base, subCat, subLoc, addCat, addLoc, qty) => {\n  if (qty <= 0) return;\n  materialSet[base.material_id] = true;\n  movements.push({ material_id: base.material_id, batch_id: base.batch_id, quantity: roundQty(qty),\n    material_uom: base.material_uom, handling_unit_id: base.handling_unit_id,\n    manufacturing_date: base.manufacturing_date, expired_date: base.expired_date,\n    subtractCategory: subCat, subtractLocation: subLoc, addCategory: addCat, addLocation: addLoc });\n};\n\nfor (const id of allIds) {\n  const init = initLines[id] ? lineStaging(initLines[id]) : null;\n  const cur = curLines[id] ? lineStaging(curLines[id]) : null;\n\n  if (init && cur && init.D !== cur.D) {\n    const keys = {}; for (const k in init.byKey) keys[k] = 1; for (const k in cur.byKey) keys[k] = 1;\n    for (const k in keys) {\n      const a = cur.byKey[k], b = init.byKey[k]; const base = a || b;\n      const cq = a ? a.qty : 0, iq = b ? b.qty : 0; const common = Math.min(cq, iq);\n      if (common > 0) { pushPair(base, \"In Transit\", init.D, \"In Transit\", cur.D, common);\n        bumpTransit(base.material_id, base.batch_id, init.D, -common, base);\n        bumpTransit(base.material_id, base.batch_id, cur.D, +common, base); }\n      if (cq > iq) { pushPair(base, base.category, base.source, \"In Transit\", cur.D, cq - iq);\n        bumpTransit(base.material_id, base.batch_id, cur.D, +(cq - iq), base); }\n      else if (iq > cq) { pushPair(base, \"In Transit\", init.D, base.category, base.source, iq - cq);\n        bumpTransit(base.material_id, base.batch_id, init.D, -(iq - cq), base); }\n    }\n    continue;\n  }\n\n  const D = (cur || init).D;\n  const keys = {};\n  if (init) for (const k in init.byKey) keys[k] = 1;\n  if (cur) for (const k in cur.byKey) keys[k] = 1;\n  for (const k in keys) {\n    const a = cur ? cur.byKey[k] : null, b = init ? init.byKey[k] : null; const base = a || b;\n    const cq = a ? a.qty : 0, iq = b ? b.qty : 0; const d = roundQty(cq - iq);\n    if (d > 0) { pushPair(base, base.category, base.source, \"In Transit\", D, d); bumpTransit(base.material_id, base.batch_id, D, +d, base); }\n    else if (d < 0) { pushPair(base, \"In Transit\", D, base.category, base.source, -d); bumpTransit(base.material_id, base.batch_id, D, d, base); }\n  }\n}\n\nconst rows = openRows.filter((r) => r.status === \"In Transit\");\nconst byKey = new Map();\nfor (const r of rows) { const k = `${r.material_id}|${r.batch_id || \"\"}|${r.transit_bin}`; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(r); }\nfor (const [, l] of byKey) l.sort((a, b) => { const da = String(a.transit_date || \"\"), db = String(b.transit_date || \"\"); if (da !== db) return da < db ? -1 : 1; return (a.line_no || 0) - (b.line_no || 0); });\n\nconst transitUpdates = [], transitCreates = [], shortages = [];\n// A Location Transfer staged before this ledger existed has no rows of any status\n// (search_node_LOTitOpenRecon is deliberately unfiltered by status, so this means\n// \"never tracked\", not \"already consumed\"). Writing rows for an edit delta would\n// leave it half-tracked -- the tuple becomes tracked, but only for the delta,\n// while completion still demands the full staged quantity, which is exactly the\n// shortage 400 that code_node_LOTmainCompute's per-tuple skip exists to avoid.\n// The inventory reconcile below still runs: only the ledger writes are suppressed,\n// so movements/isDifferent are unaffected and a legacy document stays legacy.\nconst isLegacyDoc = openRows.length === 0;\nfor (const [k, info] of (isLegacyDoc ? [] : transitDelta)) {\n  const delta = info.delta, material = info.material, batch = info.batch, bin = info.bin, meta = info.meta;\n  if (delta === 0) continue;\n  const list = byKey.get(k) || [];\n  if (delta > 0) {\n    if (list.length > 0) { const r = list[0]; const nq = roundQty(r.open_qty + delta);\n      transitUpdates.push({ id: r.id, transit_qty: qtyStr(nq), open_qty: qtyStr(nq), status: \"In Transit\", received_date: null }); r.open_qty = nq; }\n    else transitCreates.push({ doc_type: \"Location Transfer\", doc_id: ctx.docId, doc_no: ctx.docNo, doc_line_id: \"\", line_no: 0,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\", material_id: material, item_code: \"\", item_name: \"\", item_desc: \"\",\n      item_uom: meta.material_uom, batch_id: batch, handling_unit_id: meta.handling_unit_id, plant_id: ctx.plantId,\n      organization_id: ctx.orgId, transit_bin: bin, from_plant_id: ctx.plantId, from_bin: null, from_category: null,\n      to_plant_id: ctx.plantId, to_bin: bin, to_category: \"Unrestricted\", transit_qty: qtyStr(delta), received_qty: qtyStr(0),\n      open_qty: qtyStr(delta), status: \"In Transit\", transit_date: ctx.docDate, received_date: null, remark: \"\",\n      target_doc_type: \"Location Transfer\", target_doc_id: ctx.docId, target_doc_no: ctx.docNo, target_doc_line_id: \"\", source_transit_id: \"\" });\n  } else {\n    let need = -delta;\n    for (const r of list) { if (need <= 0) break; if (r.open_qty <= 0) continue; const take = roundQty(Math.min(r.open_qty, need)); const nq = roundQty(r.open_qty - take);\n      transitUpdates.push({ id: r.id, transit_qty: qtyStr(nq), open_qty: qtyStr(nq), status: nq <= 0 ? \"Cancelled\" : \"In Transit\", received_date: null }); r.open_qty = nq; need = roundQty(need - take); }\n    if (need > QTY_EPS) shortages.push({ material_id: material, batch_id: batch, bin, shortage: qtyStr(need) });\n  }\n}\n\nreturn {\n  isDifferent: movements.length > 0 ? 1 : 0,\n  movements, movementsLength: movements.length,\n  transitCreates, hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  transitUpdates, hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  shortages, hasShortage: shortages.length > 0 ? 1 : 0,\n  materialIds: Object.keys(materialSet),\n  plant_id: ctx.plantId, organization_id: ctx.orgId, stock_movement_no: ctx.docNo, doc_date: ctx.docDate,\n};\n"
+                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n// The ledger stores 3dp; at or under this a reconcile shortfall is a rounding\n// artefact, not a real shortage. Matches code_node_LOTmainCompute.\nconst QTY_EPS = 0.005;\n\nconst currentData = {{node:code_node_yPlLXIZW.data.allData}};\nconst initialData = {{node:get_node_Ij7YbXCA.data.data}} || {};\nconst openRaw = {{node:search_node_LOTitOpenRecon.data.data}};\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\n\nconst ctx = {\n  docId: currentData.id || \"\",\n  docNo: currentData.stock_movement_no || \"\",\n  plantId: currentData.issuing_operation_faci,\n  orgId: currentData.organization_id,\n  docDate: currentData.issue_date,\n};\n\n// A Created document holds its stock as Reserved at the source bin, not as In\n// Transit at the destination, so this transit reconcile must not run for it.\n// code_node_LOTmainCompute rebuilds the reservation set instead (phase RESERVE).\nconst preStatus = {{node:code_node_yPlLXIZW.data.stock_movement_status}};\nif (preStatus === \"Created\") {\n  return {\n    isDifferent: 0, movements: [], movementsLength: 0,\n    transitCreates: [], hasTransitCreates: 0,\n    transitUpdates: [], hasTransitUpdates: 0,\n    shortages: [], hasShortage: 0, materialIds: [],\n    plant_id: ctx.plantId, organization_id: ctx.orgId,\n    stock_movement_no: ctx.docNo, doc_date: ctx.docDate,\n  };\n}\n\nconst lineStaging = (line) => {\n  const D = line.location_id;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  const byKey = {};\n  for (const e of entries) {\n    const qty = roundQty(e.sm_quantity); if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    const k = `${mat}|${e.location_id}|${e.batch_id || \"\"}|${e.category || \"Unrestricted\"}`;\n    if (byKey[k]) byKey[k].qty = roundQty(byKey[k].qty + qty);\n    else byKey[k] = { material_id: mat, source: e.location_id, batch_id: e.batch_id || null,\n      category: e.category || \"Unrestricted\", qty, material_uom: e.material_uom || line.quantity_uom,\n      handling_unit_id: e.handling_unit_id || null, manufacturing_date: e.manufacturing_date || null,\n      expired_date: e.expired_date || null };\n  }\n  return { D, byKey };\n};\n\nconst initLines = {}; for (const l of (initialData.stock_movement || [])) if (l.id) initLines[l.id] = l;\nconst curLines = {}; for (const l of (currentData.stock_movement || [])) if (l.id) curLines[l.id] = l;\nconst allIds = Object.keys(initLines).concat(Object.keys(curLines).filter(x => !initLines[x]));\n\nconst movements = [];\nconst materialSet = {};\nconst transitDelta = new Map();\nconst bumpTransit = (mat, batch, bin, delta, meta) => {\n  const k = `${mat}|${batch || \"\"}|${bin}`;\n  const cur = transitDelta.get(k);\n  if (cur) cur.delta = roundQty(cur.delta + delta);\n  else transitDelta.set(k, { delta: roundQty(delta), material: mat, batch: batch || null, bin, meta });\n};\nconst pushPair = (base, subCat, subLoc, addCat, addLoc, qty) => {\n  if (qty <= 0) return;\n  materialSet[base.material_id] = true;\n  movements.push({ material_id: base.material_id, batch_id: base.batch_id, quantity: roundQty(qty),\n    material_uom: base.material_uom, handling_unit_id: base.handling_unit_id,\n    manufacturing_date: base.manufacturing_date, expired_date: base.expired_date,\n    subtractCategory: subCat, subtractLocation: subLoc, addCategory: addCat, addLocation: addLoc });\n};\n\nfor (const id of allIds) {\n  const init = initLines[id] ? lineStaging(initLines[id]) : null;\n  const cur = curLines[id] ? lineStaging(curLines[id]) : null;\n\n  if (init && cur && init.D !== cur.D) {\n    const keys = {}; for (const k in init.byKey) keys[k] = 1; for (const k in cur.byKey) keys[k] = 1;\n    for (const k in keys) {\n      const a = cur.byKey[k], b = init.byKey[k]; const base = a || b;\n      const cq = a ? a.qty : 0, iq = b ? b.qty : 0; const common = Math.min(cq, iq);\n      if (common > 0) { pushPair(base, \"In Transit\", init.D, \"In Transit\", cur.D, common);\n        bumpTransit(base.material_id, base.batch_id, init.D, -common, base);\n        bumpTransit(base.material_id, base.batch_id, cur.D, +common, base); }\n      if (cq > iq) { pushPair(base, base.category, base.source, \"In Transit\", cur.D, cq - iq);\n        bumpTransit(base.material_id, base.batch_id, cur.D, +(cq - iq), base); }\n      else if (iq > cq) { pushPair(base, \"In Transit\", init.D, base.category, base.source, iq - cq);\n        bumpTransit(base.material_id, base.batch_id, init.D, -(iq - cq), base); }\n    }\n    continue;\n  }\n\n  const D = (cur || init).D;\n  const keys = {};\n  if (init) for (const k in init.byKey) keys[k] = 1;\n  if (cur) for (const k in cur.byKey) keys[k] = 1;\n  for (const k in keys) {\n    const a = cur ? cur.byKey[k] : null, b = init ? init.byKey[k] : null; const base = a || b;\n    const cq = a ? a.qty : 0, iq = b ? b.qty : 0; const d = roundQty(cq - iq);\n    if (d > 0) { pushPair(base, base.category, base.source, \"In Transit\", D, d); bumpTransit(base.material_id, base.batch_id, D, +d, base); }\n    else if (d < 0) { pushPair(base, \"In Transit\", D, base.category, base.source, -d); bumpTransit(base.material_id, base.batch_id, D, d, base); }\n  }\n}\n\nconst rows = openRows.filter((r) => r.status === \"In Transit\");\nconst byKey = new Map();\nfor (const r of rows) { const k = `${r.material_id}|${r.batch_id || \"\"}|${r.transit_bin}`; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(r); }\nfor (const [, l] of byKey) l.sort((a, b) => { const da = String(a.transit_date || \"\"), db = String(b.transit_date || \"\"); if (da !== db) return da < db ? -1 : 1; return (a.line_no || 0) - (b.line_no || 0); });\n\nconst transitUpdates = [], transitCreates = [], shortages = [];\n// A Location Transfer staged before this ledger existed has no rows of any status\n// (search_node_LOTitOpenRecon is deliberately unfiltered by status, so this means\n// \"never tracked\", not \"already consumed\"). Writing rows for an edit delta would\n// leave it half-tracked -- the tuple becomes tracked, but only for the delta,\n// while completion still demands the full staged quantity, which is exactly the\n// shortage 400 that code_node_LOTmainCompute's per-tuple skip exists to avoid.\n// The inventory reconcile below still runs: only the ledger writes are suppressed,\n// so movements/isDifferent are unaffected and a legacy document stays legacy.\nconst isLegacyDoc = openRows.length === 0;\nfor (const [k, info] of (isLegacyDoc ? [] : transitDelta)) {\n  const delta = info.delta, material = info.material, batch = info.batch, bin = info.bin, meta = info.meta;\n  if (delta === 0) continue;\n  const list = byKey.get(k) || [];\n  if (delta > 0) {\n    if (list.length > 0) { const r = list[0]; const nq = roundQty(r.open_qty + delta);\n      transitUpdates.push({ id: r.id, transit_qty: qtyStr(nq), open_qty: qtyStr(nq), status: \"In Transit\", received_date: null }); r.open_qty = nq; }\n    else transitCreates.push({ doc_type: \"Location Transfer\", doc_id: ctx.docId, doc_no: ctx.docNo, doc_line_id: \"\", line_no: 0,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\", material_id: material, item_code: \"\", item_name: \"\", item_desc: \"\",\n      item_uom: meta.material_uom, batch_id: batch, handling_unit_id: meta.handling_unit_id, plant_id: ctx.plantId,\n      organization_id: ctx.orgId, transit_bin: bin, from_plant_id: ctx.plantId, from_bin: null, from_category: null,\n      to_plant_id: ctx.plantId, to_bin: bin, to_category: \"Unrestricted\", transit_qty: qtyStr(delta), received_qty: qtyStr(0),\n      open_qty: qtyStr(delta), status: \"In Transit\", transit_date: ctx.docDate, received_date: null, remark: \"\",\n      target_doc_type: \"Location Transfer\", target_doc_id: ctx.docId, target_doc_no: ctx.docNo, target_doc_line_id: \"\", source_transit_id: \"\" });\n  } else {\n    let need = -delta;\n    for (const r of list) { if (need <= 0) break; if (r.open_qty <= 0) continue; const take = roundQty(Math.min(r.open_qty, need)); const nq = roundQty(r.open_qty - take);\n      transitUpdates.push({ id: r.id, transit_qty: qtyStr(nq), open_qty: qtyStr(nq), status: nq <= 0 ? \"Cancelled\" : \"In Transit\", received_date: null }); r.open_qty = nq; need = roundQty(need - take); }\n    if (need > QTY_EPS) shortages.push({ material_id: material, batch_id: batch, bin, shortage: qtyStr(need) });\n  }\n}\n\nreturn {\n  isDifferent: movements.length > 0 ? 1 : 0,\n  movements, movementsLength: movements.length,\n  transitCreates, hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  transitUpdates, hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  shortages, hasShortage: shortages.length > 0 ? 1 : 0,\n  materialIds: Object.keys(materialSet),\n  plant_id: ctx.plantId, organization_id: ctx.orgId, stock_movement_no: ctx.docNo, doc_date: ctx.docDate,\n};\n"
                         },
                         "response_json": [
                           {
@@ -2956,8 +3215,12 @@
                       "type": "condition-or-node",
                       "data": {
                         "title": "Condition",
-                        "filter": { "list": [] },
-                        "expression": { "code": "" },
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -2984,7 +3247,9 @@
                                 }
                               ]
                             },
-                            "expression": { "code": "" },
+                            "expression": {
+                              "code": ""
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "isDifferent",
@@ -3024,7 +3289,9 @@
                                 {
                                   "id": "if_LOTreconShort_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "return_node_LOTreconShort",
@@ -3065,7 +3332,9 @@
                                 {
                                   "id": "if_LOTreconShort_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -3588,7 +3857,9 @@
                                     {
                                       "id": "if_LOTreconSubErr_t",
                                       "type": "ifBlock",
-                                      "data": { "title": "true" },
+                                      "data": {
+                                        "title": "true"
+                                      },
                                       "blocks": [
                                         {
                                           "id": "return_node_LOTreconSubErr",
@@ -3629,7 +3900,9 @@
                                     {
                                       "id": "if_LOTreconSubErr_f",
                                       "type": "ifBlock",
-                                      "data": { "title": "false" },
+                                      "data": {
+                                        "title": "false"
+                                      },
                                       "blocks": []
                                     }
                                   ]
@@ -3850,7 +4123,9 @@
                                     {
                                       "id": "if_LOTreconAddErr_t",
                                       "type": "ifBlock",
-                                      "data": { "title": "true" },
+                                      "data": {
+                                        "title": "true"
+                                      },
                                       "blocks": [
                                         {
                                           "id": "return_node_LOTreconAddErr",
@@ -3891,7 +4166,9 @@
                                     {
                                       "id": "if_LOTreconAddErr_f",
                                       "type": "ifBlock",
-                                      "data": { "title": "false" },
+                                      "data": {
+                                        "title": "false"
+                                      },
                                       "blocks": []
                                     }
                                   ]
@@ -3922,8 +4199,12 @@
                               "type": "condition-all-node",
                               "data": {
                                 "title": "Parallel Branch",
-                                "filter": { "list": [] },
-                                "expression": { "code": "" },
+                                "filter": {
+                                  "list": []
+                                },
+                                "expression": {
+                                  "code": ""
+                                },
                                 "displayContent": "sdk.form.setCondition"
                               },
                               "blocks": [
@@ -3990,7 +4271,9 @@
                                         {
                                           "id": "if_LOTreconCreate_t",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "add_node_LOTreconCreate",
@@ -4321,7 +4604,9 @@
                                         {
                                           "id": "if_LOTreconCreate_f",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -4391,7 +4676,9 @@
                                         {
                                           "id": "if_LOTreconAdjust_t",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "update_node_LOTreconAdjust",
@@ -4470,7 +4757,9 @@
                                         {
                                           "id": "if_LOTreconAdjust_f",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -4487,8 +4776,12 @@
                           "data": {
                             "title": "!isDifferent",
                             "isDefault": true,
-                            "filter": { "list": [] },
-                            "expression": { "code": "" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": ""
+                            },
                             "displayContent": "sdk.form.otherCondition"
                           },
                           "blocks": []
@@ -4504,22 +4797,52 @@
                         "nodeName": "IF !Draft",
                         "name": "IF !Draft",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
-                              "id": 1736695973613,
-                              "parentId": 1736695973612,
+                              "id": 1790200000010,
+                              "parentId": 1790200000009,
                               "isTop": true,
-                              "prop": "node.code_node_yPlLXIZW.data.stock_movement_status",
-                              "operator": "notEqual",
-                              "valueType": "value",
-                              "value": "Draft",
-                              "type": "leaf",
+                              "type": "branch",
+                              "operator": "all",
+                              "prop": "",
+                              "valueType": "",
+                              "value": "",
                               "level": 1,
-                              "propLabel": "stock_movement_status",
-                              "valueLabel": "",
-                              "operatorLabel": "Not Equal"
+                              "children": [
+                                {
+                                  "id": 1790200000011,
+                                  "parentId": 1790200000010,
+                                  "isTop": false,
+                                  "prop": "node.code_node_yPlLXIZW.data.stock_movement_status",
+                                  "operator": "notEqual",
+                                  "valueType": "value",
+                                  "value": "Draft",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "stock_movement_status",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Not Equal"
+                                },
+                                {
+                                  "id": 1790200000012,
+                                  "parentId": 1790200000010,
+                                  "isTop": false,
+                                  "prop": "node.code_node_yPlLXIZW.data.stock_movement_status",
+                                  "operator": "notEqual",
+                                  "valueType": "value",
+                                  "value": "Created",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "stock_movement_status",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Not Equal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -4528,7 +4851,9 @@
                         {
                           "id": "if_block_fiUhJgHY",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_TxDhhT03",
@@ -4738,7 +5063,9 @@
                                 {
                                   "id": "ifBlock_U0Q7EeyX",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "return_node_uyJo2Ej7",
@@ -4781,7 +5108,9 @@
                                 {
                                   "id": "ifBlock_MmsnQ96g",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -4791,7 +5120,9 @@
                         {
                           "id": "if_block_bbC6b0be",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_0rtpXydw",
@@ -5028,7 +5359,9 @@
                 {
                   "id": "if_block_SSXPyncj",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "add_node_xxQX3uMU",
@@ -5223,66 +5556,318 @@
               ]
             },
             {
-              "id": "search_node_LOTitOpenMain",
-              "type": "search-node",
+              "id": "condition_all_LOTmainFetch",
+              "type": "condition-all-node",
               "data": {
-                "table_id": {
-                  "source": "In Transit Detail:Table:2080477944160923650",
-                  "rules": {
-                    "collectionId": "2080477944160923650",
-                    "list": [
-                      {
-                        "id": 1790100000056,
-                        "parentId": 1790100000055,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1790100000035,
-                            "parentId": 1790100000056,
-                            "isTop": false,
-                            "prop": "doc_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{node:code_node_yPlLXIZW.data.allData.id}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Document ID",
-                            "valueLabel": "",
-                            "operatorLabel": "equal"
-                          },
-                          {
-                            "id": 1790100000049,
-                            "parentId": 1790100000056,
-                            "isTop": false,
-                            "prop": "organization_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{node:code_node_yPlLXIZW.data.allData.organization_id}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Organization ID",
-                            "valueLabel": "",
-                            "operatorLabel": "equal"
-                          }
-                        ]
-                      }
-                    ]
-                  }
+                "title": "Parallel Branch",
+                "filter": {
+                  "list": []
                 },
-                "condition": {},
-                "limit": 1000,
-                "title": "Get In Transit Rows",
-                "isValidator": true,
-                "nodeName": "Get In Transit Rows",
-                "name": "Get In Transit Rows"
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
               },
-              "blocks": []
+              "blocks": [
+                {
+                  "id": "condition_all_item_LOTmainIT",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 1",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1790300000050,
+                          "parentId": 1790300000051,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "1 == 1",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 1",
+                    "name": "Branch 1",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_LOTitOpenMain",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "In Transit Detail:Table:2080477944160923650",
+                          "rules": {
+                            "collectionId": "2080477944160923650",
+                            "list": [
+                              {
+                                "id": 1790100000056,
+                                "parentId": 1790100000055,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1790100000035,
+                                    "parentId": 1790100000056,
+                                    "isTop": false,
+                                    "prop": "doc_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_yPlLXIZW.data.allData.id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Document ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 1790100000049,
+                                    "parentId": 1790100000056,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_yPlLXIZW.data.allData.organization_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1000,
+                        "title": "Get In Transit Rows",
+                        "isValidator": true,
+                        "nodeName": "Get In Transit Rows",
+                        "name": "Get In Transit Rows"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_all_item_LOTmainRes",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 2",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1790300000060,
+                          "parentId": 1790300000061,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "1 == 1",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 2",
+                    "name": "Branch 2",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_LOTresOpenMain",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                          "rules": {
+                            "collectionId": "1935880014687440897",
+                            "list": [
+                              {
+                                "id": 1790300000001,
+                                "parentId": 1790300000000,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1790300000002,
+                                    "parentId": 1790300000001,
+                                    "isTop": false,
+                                    "prop": "doc_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_yPlLXIZW.data.allData.id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Document ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 1790300000003,
+                                    "parentId": 1790300000001,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_yPlLXIZW.data.allData.organization_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 1790300000004,
+                                    "parentId": 1790300000001,
+                                    "isTop": false,
+                                    "prop": "doc_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Location Transfer",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Document Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1000,
+                        "title": "Get Open Reservations",
+                        "isValidator": true,
+                        "nodeName": "Get Open Reservations",
+                        "name": "Get Open Reservations"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_all_item_LOTspRule",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 3",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1798100000030,
+                          "parentId": 1798100000031,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "1 == 1",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 3",
+                    "name": "Branch 3",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "get_node_LOTspRule",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "流水号规则表:Table:1994006139209117697",
+                          "rules": {
+                            "collectionId": "1994006139209117697",
+                            "list": [
+                              {
+                                "id": 1798100000010,
+                                "parentId": 1798100000011,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1798100000012,
+                                    "parentId": 1798100000010,
+                                    "isTop": false,
+                                    "prop": "business_type",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Stock Picking",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Document Type",
+                                    "valueLabel": "",
+                                    "operatorLabel": "equal"
+                                  },
+                                  {
+                                    "id": 1798100000013,
+                                    "parentId": 1798100000010,
+                                    "isTop": false,
+                                    "prop": "department_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_yPlLXIZW.data.allData.organization_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "部门ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "numberEqual"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get Stock Picking Format",
+                        "isValidator": true,
+                        "nodeName": "Get Stock Picking Format",
+                        "name": "Get Stock Picking Format"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
             },
             {
               "id": "code_node_LOTmainDocId",
@@ -5360,7 +5945,7 @@
                 "name": "Compute Main Movements",
                 "script": {
                   "type": "javascript",
-                  "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n// The ledger stores 3dp. A base -> alt -> base round trip on a fractional UOM\n// conversion comes back high, so at or under this is a rounding artefact, not a\n// real shortage, and must not 400 the completion.\nconst QTY_EPS = 0.005;\n\nconst page_status = {{workflowparams:pageStatus}};\nconst status = {{node:code_node_yPlLXIZW.data.stock_movement_status}};\nconst saveAs = {{workflowparams:saveAs}};\n\nlet allData;\nif (page_status === \"Add\") {\n  const rd = {{node:add_node_xxQX3uMU.data}};\n  allData = Array.isArray(rd) ? rd[0] : rd;\n} else if (page_status === \"Edit\" && status === \"Draft\") {\n  allData = {{node:get_node_lvTzXllZ.data.data}};\n} else {\n  allData = {{node:code_node_yPlLXIZW.data.allData}};\n}\n\nconst openRaw = {{node:search_node_LOTitOpenMain.data.data}};\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\n\nconst lines = allData.stock_movement || [];\n\n// doc_line_id fix (same class as GR): on a fresh (Add) save the add-node response\n// carries no subform row ids, so line.id is empty. Re-read the persisted doc and\n// resolve each line's id by its persisted line_index. (Edit+Draft already reads the\n// persisted doc via get_node_lvTzXllZ, so this is a no-op there.)\nconst persistedRaw = {{node:get_node_LOTmainLines.data.data}};\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\nconst persistedLines = (persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : [];\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\nconst plantId = allData.issuing_operation_faci;\nconst orgId = allData.organization_id;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// STAGE = Draft->In Progress; COMPLETE = In Progress->Completed; DIRECT = Draft->Completed\nconst phase =\n  saveAs === \"In Progress\" && status === \"Draft\" ? \"STAGE\"\n    : saveAs === \"Completed\" && status === \"In Progress\" ? \"COMPLETE\"\n      : \"DIRECT\";\n\nconst movements = [];\nconst transitCreates = [];\nconst materialSet = {};\n\nfor (const line of lines) {\n  const D = line.location_id;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  for (const e of entries) {\n    const qty = roundQty(e.sm_quantity);\n    if (qty <= 0) continue;\n    const S = e.location_id;\n    const C = e.category || \"Unrestricted\";\n    const mat = e.material_id || line.item_selection;\n    const batchId = e.batch_id || null;\n    const hu = e.handling_unit_id || null;\n    materialSet[mat] = true;\n    const base = {\n      material_id: mat, batch_id: batchId, quantity: qty,\n      material_uom: e.material_uom || line.quantity_uom, handling_unit_id: hu,\n      manufacturing_date: e.manufacturing_date || null, expired_date: e.expired_date || null,\n    };\n    if (phase === \"STAGE\") {\n      // -C@S, +InTransit@D (relocated to destination)\n      movements.push({ ...base, subtractCategory: C, subtractLocation: S, addCategory: \"In Transit\", addLocation: D });\n      transitCreates.push({\n        doc_type: \"Location Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\",\n        line_no: line.line_index, parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n        material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\",\n        item_uom: base.material_uom, batch_id: batchId, handling_unit_id: hu,\n        plant_id: plantId, organization_id: orgId, transit_bin: D,\n        from_plant_id: plantId, from_bin: S, from_category: C,\n        to_plant_id: plantId, to_bin: D, to_category: C,\n        transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n        status: \"In Transit\", transit_date: docDate, received_date: null, remark: line.item_remark || \"\",\n        target_doc_type: \"Location Transfer\", target_doc_id: docId, target_doc_no: docNo,\n        target_doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\", source_transit_id: \"\",\n      });\n    } else if (phase === \"COMPLETE\") {\n      // -InTransit@D (relocated), +C@D\n      movements.push({ ...base, subtractCategory: \"In Transit\", subtractLocation: D, addCategory: C, addLocation: D });\n    } else {\n      // DIRECT: -C@S, +C@D\n      movements.push({ ...base, subtractCategory: C, subtractLocation: S, addCategory: C, addLocation: D });\n    }\n  }\n}\n\n// ledger close on COMPLETE: consume this doc's open rows FIFO with a guard.\nconst transitUpdates = [];\nconst shortages = [];\nif (phase === \"COMPLETE\") {\n  const key = (m, b, d) => `${m || \"\"}|${b || \"\"}|${d || \"\"}`;\n  // search_node_LOTitOpenMain returns EVERY row for this doc, any status, so two\n  // structures come off it:\n  //\n  //   trackedTuples - every tuple this doc has ever staged. A tuple in here but\n  //     absent from pool is fully consumed, so a second claim is a\n  //     double-consumption and must 400.\n  //   pool - open rows only. The FIFO stock actually available to draw down.\n  //\n  // A tuple in NEITHER is untracked: a Location Transfer staged before this\n  // ledger existed holds In Transit stock at D with no rows behind it. Blocking\n  // its completion would strand that stock, so those tuples fall through and the\n  // inventory workflows behave as they always did. code_node_uht83Wzh refuses to\n  // backfill such a document precisely so it cannot end up half-tracked.\n  const trackedTuples = {};\n  const pool = {};\n  for (const r of openRows) {\n    const k = key(r.material_id, r.batch_id, r.transit_bin);\n    trackedTuples[k] = 1;\n    if (r.status !== \"In Transit\") continue;\n    if (!pool[k]) pool[k] = [];\n    pool[k].push({ row: r, remaining: roundQty(r.open_qty), consumed: 0 });\n  }\n  for (const k in pool) pool[k].sort((a, b) => {\n    const da = String(a.row.transit_date || \"\"), db = String(b.row.transit_date || \"\");\n    if (da !== db) return da < db ? -1 : 1;\n    return (a.row.line_no || 0) - (b.row.line_no || 0);\n  });\n  for (const m of movements) {\n    const mk = key(m.material_id, m.batch_id, m.addLocation);\n    // Untracked tuple: this document never staged this stock through the ledger.\n    if (!trackedTuples[mk]) continue;\n    let need = roundQty(m.quantity);\n    const bucket = pool[mk] || [];\n    for (const ent of bucket) {\n      if (need <= 0) break;\n      if (ent.remaining <= 0) continue;\n      const take = roundQty(Math.min(ent.remaining, need));\n      ent.remaining = roundQty(ent.remaining - take);\n      ent.consumed = roundQty(ent.consumed + take);\n      need = roundQty(need - take);\n    }\n    if (need > QTY_EPS) shortages.push({ material_id: m.material_id, batch_id: m.batch_id || \"\", bin: m.addLocation, shortage: qtyStr(need) });\n  }\n  for (const k in pool) for (const ent of pool[k]) {\n    if (!ent.consumed) continue;\n    const r = ent.row;\n    transitUpdates.push({\n      id: r.id,\n      received_qty: qtyStr(roundQty((r.received_qty || 0) + ent.consumed)),\n      open_qty: qtyStr(ent.remaining),\n      status: ent.remaining <= 0 ? \"Received\" : \"In Transit\",\n      received_date: ent.remaining <= 0 ? docDate : null,\n    });\n  }\n}\n\nreturn {\n  phase, movements, movementsLength: movements.length,\n  transitCreates, hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  transitUpdates, hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  shortages, hasShortage: shortages.length > 0 ? 1 : 0,\n  materialIds: Object.keys(materialSet),\n  plant_id: plantId, organization_id: orgId, stock_movement_no: docNo, doc_date: docDate,\n};\n"
+                  "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n// The ledger stores 3dp. A base -> alt -> base round trip on a fractional UOM\n// conversion comes back high, so at or under this is a rounding artefact, not a\n// real shortage, and must not 400 the completion.\nconst QTY_EPS = 0.005;\n\nconst page_status = {{workflowparams:pageStatus}};\nconst status = {{node:code_node_yPlLXIZW.data.stock_movement_status}};\nconst saveAs = {{workflowparams:saveAs}};\n\nlet allData;\nif (page_status === \"Add\") {\n  const rd = {{node:add_node_xxQX3uMU.data}};\n  allData = Array.isArray(rd) ? rd[0] : rd;\n} else if (page_status === \"Edit\" && (status === \"Draft\" || status === \"Created\")) {\n  allData = {{node:get_node_lvTzXllZ.data.data}};\n} else {\n  allData = {{node:code_node_yPlLXIZW.data.allData}};\n}\n\nconst openRaw = {{node:search_node_LOTitOpenMain.data.data}};\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\n\n// Open reservations this document already holds. Only \"Allocated\" rows carry\n// live Reserved stock; Delivered/Cancelled rows are history.\nconst resRaw = {{node:search_node_LOTresOpenMain.data.data}};\nconst resAll = Array.isArray(resRaw) ? resRaw : (resRaw ? [resRaw] : []);\nconst resRows = resAll.filter((r) => r && r.status === \"Allocated\");\n\nconst lines = allData.stock_movement || [];\n\n// doc_line_id fix (same class as GR): on a fresh (Add) save the add-node response\n// carries no subform row ids, so line.id is empty. Re-read the persisted doc and\n// resolve each line's id by its persisted line_index. (Edit+Draft already reads the\n// persisted doc via get_node_lvTzXllZ, so this is a no-op there.)\nconst persistedRaw = {{node:get_node_LOTmainLines.data.data}};\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\nconst persistedLines = (persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : [];\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\nconst plantId = allData.issuing_operation_faci;\nconst orgId = allData.organization_id;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// STAGE = Draft->In Progress; COMPLETE = In Progress->Completed; DIRECT = Draft->Completed\n// RESERVE            = ->Created            : -C@S, +Reserved@S  (picking hold)\n// STAGE_FROM_CREATED = Created->In Progress : -Reserved@S, +In Transit@D\n// DIRECT_FROM_CREATED= Created->Completed   : -Reserved@S, +C@D  (defensive; the form\n//                      hides Complete at Created when picking is required, but a\n//                      plain DIRECT here would wrongly subtract C@S instead of Reserved@S)\nconst phase =\n  saveAs === \"Created\" ? \"RESERVE\"\n    : saveAs === \"In Progress\" && status === \"Created\" ? \"STAGE_FROM_CREATED\"\n      : saveAs === \"In Progress\" && status === \"Draft\" ? \"STAGE\"\n        : saveAs === \"Completed\" && status === \"In Progress\" ? \"COMPLETE\"\n          : saveAs === \"Completed\" && status === \"Created\" ? \"DIRECT_FROM_CREATED\"\n            : \"DIRECT\";\n\nconst RESERVED = \"Reserved\";\n// on_reserved_gd.from_category records the category the stock was taken from, so the\n// hold can be released back to it.\nconst fromCatOf = (r) => r.from_category || \"Unrestricted\";\n\nconst releaseMovements = [];\nconst movements = [];\nconst transitCreates = [];\nconst reserveCreates = [];\nconst reserveUpdates = [];\nconst materialSet = {};\n\n// RESERVE is an idempotent rebuild: every open hold is released back to its source\n// category first, then the whole set is re-reserved from the current lines. Editing a\n// Created document therefore needs no delta reconcile.\nif (phase === \"RESERVE\") {\n  for (const r of resRows) {\n    const q = roundQty(r.open_qty);\n    if (q > 0) {\n      materialSet[r.material_id] = true;\n      releaseMovements.push({\n        material_id: r.material_id, batch_id: r.batch_id || null, quantity: q,\n        material_uom: r.item_uom, handling_unit_id: r.handling_unit_id || null,\n        manufacturing_date: null, expired_date: null,\n        subtractCategory: RESERVED, subtractLocation: r.bin_location,\n        addCategory: fromCatOf(r), addLocation: r.bin_location,\n      });\n    }\n    reserveUpdates.push({\n      id: r.id, delivered_qty: qtyStr(r.delivered_qty), open_qty: qtyStr(0), status: \"Cancelled\",\n    });\n  }\n}\n\n// Leaving Created consumes every hold the document owns. The Subtract Inventory\n// workflow is the real guard on quantity: if Reserved is short it 400s there.\nif (phase === \"STAGE_FROM_CREATED\" || phase === \"DIRECT_FROM_CREATED\") {\n  for (const r of resRows) {\n    reserveUpdates.push({\n      id: r.id,\n      delivered_qty: qtyStr(roundQty(r.delivered_qty) + roundQty(r.open_qty)),\n      open_qty: qtyStr(0),\n      status: \"Delivered\",\n    });\n  }\n}\n\nfor (const line of lines) {\n  const D = line.location_id;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  for (const e of entries) {\n    const qty = roundQty(e.sm_quantity);\n    if (qty <= 0) continue;\n    const S = e.location_id;\n    const C = e.category || \"Unrestricted\";\n    const mat = e.material_id || line.item_selection;\n    const batchId = e.batch_id || null;\n    const hu = e.handling_unit_id || null;\n    materialSet[mat] = true;\n    const lineId = line.id || idByLineIdx[String(line.line_index)] || \"\";\n    const base = {\n      material_id: mat, batch_id: batchId, quantity: qty,\n      material_uom: e.material_uom || line.quantity_uom, handling_unit_id: hu,\n      manufacturing_date: e.manufacturing_date || null, expired_date: e.expired_date || null,\n    };\n    if (phase === \"RESERVE\") {\n      // -C@S, +Reserved@S (stock does not move bin; it is held in place)\n      movements.push({ ...base, subtractCategory: C, subtractLocation: S, addCategory: RESERVED, addLocation: S });\n      reserveCreates.push({\n        doc_type: \"Location Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: lineId, line_no: line.line_index,\n        parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n        material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\", item_uom: base.material_uom,\n        batch_id: batchId, handling_unit_id: hu, bin_location: S,\n        reserved_qty: qtyStr(qty), delivered_qty: qtyStr(0), open_qty: qtyStr(qty),\n        status: \"Allocated\", reserved_date: docDate, plant_id: plantId, organization_id: orgId,\n        from_category: C, remark: line.item_remark || \"\", target_gd_id: \"\", source_reserved_id: \"\",\n      });\n    } else if (phase === \"STAGE_FROM_CREATED\") {\n      // -Reserved@S, +InTransit@D (relocated to destination)\n      movements.push({ ...base, subtractCategory: RESERVED, subtractLocation: S, addCategory: \"In Transit\", addLocation: D });\n      transitCreates.push({\n        doc_type: \"Location Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: lineId,\n        line_no: line.line_index, parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n        material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\",\n        item_uom: base.material_uom, batch_id: batchId, handling_unit_id: hu,\n        plant_id: plantId, organization_id: orgId, transit_bin: D,\n        from_plant_id: plantId, from_bin: S, from_category: C,\n        to_plant_id: plantId, to_bin: D, to_category: C,\n        transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n        status: \"In Transit\", transit_date: docDate, received_date: null, remark: line.item_remark || \"\",\n        target_doc_type: \"Location Transfer\", target_doc_id: docId, target_doc_no: docNo,\n        target_doc_line_id: lineId, source_transit_id: \"\",\n      });\n    } else if (phase === \"DIRECT_FROM_CREATED\") {\n      // -Reserved@S, +C@D\n      movements.push({ ...base, subtractCategory: RESERVED, subtractLocation: S, addCategory: C, addLocation: D });\n    } else if (phase === \"STAGE\") {\n      // -C@S, +InTransit@D (relocated to destination)\n      movements.push({ ...base, subtractCategory: C, subtractLocation: S, addCategory: \"In Transit\", addLocation: D });\n      transitCreates.push({\n        doc_type: \"Location Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: lineId,\n        line_no: line.line_index, parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n        material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\",\n        item_uom: base.material_uom, batch_id: batchId, handling_unit_id: hu,\n        plant_id: plantId, organization_id: orgId, transit_bin: D,\n        from_plant_id: plantId, from_bin: S, from_category: C,\n        to_plant_id: plantId, to_bin: D, to_category: C,\n        transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n        status: \"In Transit\", transit_date: docDate, received_date: null, remark: line.item_remark || \"\",\n        target_doc_type: \"Location Transfer\", target_doc_id: docId, target_doc_no: docNo,\n        target_doc_line_id: lineId, source_transit_id: \"\",\n      });\n    } else if (phase === \"COMPLETE\") {\n      // -InTransit@D (relocated), +C@D\n      movements.push({ ...base, subtractCategory: \"In Transit\", subtractLocation: D, addCategory: C, addLocation: D });\n    } else {\n      // DIRECT: -C@S, +C@D\n      movements.push({ ...base, subtractCategory: C, subtractLocation: S, addCategory: C, addLocation: D });\n    }\n  }\n}\n\n// ledger close on COMPLETE: consume this doc's open rows FIFO with a guard.\nconst transitUpdates = [];\nconst shortages = [];\nif (phase === \"COMPLETE\") {\n  const key = (m, b, d) => `${m || \"\"}|${b || \"\"}|${d || \"\"}`;\n  // search_node_LOTitOpenMain returns EVERY row for this doc, any status, so two\n  // structures come off it:\n  //\n  //   trackedTuples - every tuple this doc has ever staged. A tuple in here but\n  //     absent from pool is fully consumed, so a second claim is a\n  //     double-consumption and must 400.\n  //   pool - open rows only. The FIFO stock actually available to draw down.\n  //\n  // A tuple in NEITHER is untracked: a Location Transfer staged before this\n  // ledger existed holds In Transit stock at D with no rows behind it. Blocking\n  // its completion would strand that stock, so those tuples fall through and the\n  // inventory workflows behave as they always did. code_node_uht83Wzh refuses to\n  // backfill such a document precisely so it cannot end up half-tracked.\n  const trackedTuples = {};\n  const pool = {};\n  for (const r of openRows) {\n    const k = key(r.material_id, r.batch_id, r.transit_bin);\n    trackedTuples[k] = 1;\n    if (r.status !== \"In Transit\") continue;\n    if (!pool[k]) pool[k] = [];\n    pool[k].push({ row: r, remaining: roundQty(r.open_qty), consumed: 0 });\n  }\n  for (const k in pool) pool[k].sort((a, b) => {\n    const da = String(a.row.transit_date || \"\"), db = String(b.row.transit_date || \"\");\n    if (da !== db) return da < db ? -1 : 1;\n    return (a.row.line_no || 0) - (b.row.line_no || 0);\n  });\n  for (const m of movements) {\n    const mk = key(m.material_id, m.batch_id, m.addLocation);\n    // Untracked tuple: this document never staged this stock through the ledger.\n    if (!trackedTuples[mk]) continue;\n    let need = roundQty(m.quantity);\n    const bucket = pool[mk] || [];\n    for (const ent of bucket) {\n      if (need <= 0) break;\n      if (ent.remaining <= 0) continue;\n      const take = roundQty(Math.min(ent.remaining, need));\n      ent.remaining = roundQty(ent.remaining - take);\n      ent.consumed = roundQty(ent.consumed + take);\n      need = roundQty(need - take);\n    }\n    if (need > QTY_EPS) shortages.push({ material_id: m.material_id, batch_id: m.batch_id || \"\", bin: m.addLocation, shortage: qtyStr(need) });\n  }\n  for (const k in pool) for (const ent of pool[k]) {\n    if (!ent.consumed) continue;\n    const r = ent.row;\n    transitUpdates.push({\n      id: r.id,\n      received_qty: qtyStr(roundQty((r.received_qty || 0) + ent.consumed)),\n      open_qty: qtyStr(ent.remaining),\n      status: ent.remaining <= 0 ? \"Received\" : \"In Transit\",\n      received_date: ent.remaining <= 0 ? docDate : null,\n    });\n  }\n}\n\n// A category/bin pair that does not actually move (e.g. reserving stock already in\n// Reserved) would otherwise emit a pointless subtract+add round trip.\nconst allMovements = releaseMovements.concat(movements).filter(\n  (m) => !(m.subtractCategory === m.addCategory && String(m.subtractLocation) === String(m.addLocation))\n);\n\nreturn {\n  phase, movements: allMovements, movementsLength: allMovements.length,\n  transitCreates, hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  transitUpdates, hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  reserveCreates, hasReserveCreates: reserveCreates.length > 0 ? 1 : 0,\n  reserveUpdates, hasReserveUpdates: reserveUpdates.length > 0 ? 1 : 0,\n  shortages, hasShortage: shortages.length > 0 ? 1 : 0,\n  materialIds: Object.keys(materialSet),\n  plant_id: plantId, organization_id: orgId, stock_movement_no: docNo, doc_date: docDate,\n};\n"
                 },
                 "response_json": [
                   {
@@ -5454,6 +6039,64 @@
                     "key": "hasTranss",
                     "name": "hasTransitUpdates",
                     "title": "hasTransitUpdates",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "resvcrea",
+                    "name": "reserveCreates",
+                    "title": "reserveCreates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "resvcreai",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "resvcren",
+                    "name": "hasReserveCreates",
+                    "title": "hasReserveCreates",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "resvupda",
+                    "name": "reserveUpdates",
+                    "title": "reserveUpdates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "resvupdai",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "resvupdn",
+                    "name": "hasReserveUpdates",
+                    "title": "hasReserveUpdates",
                     "description": "",
                     "bsonType": "int",
                     "isExpand": false,
@@ -5580,7 +6223,9 @@
                 {
                   "id": "if_LOTmainShort_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_LOTmainShort",
@@ -5621,7 +6266,9 @@
                 {
                   "id": "if_LOTmainShort_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5687,7 +6334,7 @@
                 "name": "Enrich Creates",
                 "script": {
                   "type": "javascript",
-                  "code": "const creates = {{node:code_node_LOTmainCompute.data.transitCreates}} || [];\nconst itemsRaw = {{node:search_node_LOTitItemsMain.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\n// The compute nodes build the ledger rows before items are fetched, so\n// item_code/name/desc arrive empty. Fill them from the item master here.\nconst map = {};\nfor (const it of items) if (it && it.id) map[String(it.id)] = it;\nconst enrichedCreates = creates.map((c) => {\n  const it = map[String(c.material_id)];\n  if (!it) return c;\n  return Object.assign({}, c, {\n    item_code: it.material_code || \"\",\n    item_name: it.material_name || \"\",\n    item_desc: it.material_desc || \"\",\n  });\n});\nreturn { enrichedCreates };\n"
+                  "code": "const creates = {{node:code_node_LOTmainCompute.data.transitCreates}} || [];\nconst reserves = {{node:code_node_LOTmainCompute.data.reserveCreates}} || [];\nconst itemsRaw = {{node:search_node_LOTitItemsMain.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\n// The compute nodes build the ledger rows before items are fetched, so\n// item_code/name/desc arrive empty. Fill them from the item master here.\nconst map = {};\nfor (const it of items) if (it && it.id) map[String(it.id)] = it;\nconst enrich = (rows) => rows.map((c) => {\n  const it = map[String(c.material_id)];\n  if (!it) return c;\n  return Object.assign({}, c, {\n    item_code: it.material_code || \"\",\n    item_name: it.material_name || \"\",\n    item_desc: it.material_desc || \"\",\n  });\n});\nreturn { enrichedCreates: enrich(creates), enrichedReserves: enrich(reserves) };\n"
                 },
                 "response_json": [
                   {
@@ -5700,6 +6347,26 @@
                     "children": [
                       {
                         "key": "enrichedi",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "enrresv",
+                    "name": "enrichedReserves",
+                    "title": "enrichedReserves",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "enrresvi",
                         "name": "items",
                         "title": "",
                         "description": "",
@@ -5754,7 +6421,10 @@
                 "isValidator": true,
                 "nodeName": "Set Movement Index",
                 "name": "Set Movement Index",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "{{node:code_node_LOTmainKey.data.cacheKey}}"
               },
               "blocks": []
@@ -6141,7 +6811,9 @@
                     {
                       "id": "if_LOTmainSubErr_t",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_LOTmainSubErr",
@@ -6182,7 +6854,9 @@
                     {
                       "id": "if_LOTmainSubErr_f",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -6403,7 +7077,9 @@
                     {
                       "id": "if_LOTmainAddErr_t",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_LOTmainAddErr",
@@ -6444,7 +7120,9 @@
                     {
                       "id": "if_LOTmainAddErr_f",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -6475,8 +7153,12 @@
               "type": "condition-all-node",
               "data": {
                 "title": "Parallel Branch",
-                "filter": { "list": [] },
-                "expression": { "code": "" },
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
                 "displayContent": "sdk.form.setCondition"
               },
               "blocks": [
@@ -6500,7 +7182,10 @@
                         }
                       ]
                     },
-                    "expression": { "code": "1 == 1", "type": "javascript" },
+                    "expression": {
+                      "code": "1 == 1",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Branch 1",
@@ -6540,7 +7225,9 @@
                         {
                           "id": "if_LOTmainCreate_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "add_node_LOTmainCreate",
@@ -6871,7 +7558,9 @@
                         {
                           "id": "if_LOTmainCreate_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -6898,7 +7587,10 @@
                         }
                       ]
                     },
-                    "expression": { "code": "1 == 1", "type": "javascript" },
+                    "expression": {
+                      "code": "1 == 1",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Branch 2",
@@ -6938,7 +7630,9 @@
                         {
                           "id": "if_LOTmainClose_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_LOTmainClose",
@@ -7025,12 +7719,926 @@
                         {
                           "id": "if_LOTmainClose_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
                     }
                   ]
+                },
+                {
+                  "id": "condition_all_item_LOTmainResCreate",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 3",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1790300000070,
+                          "parentId": 1790300000071,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "1 == 1",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 3",
+                    "name": "Branch 3",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_LOTmainResCreate",
+                      "type": "if",
+                      "data": {
+                        "title": "IF hasReserveCreates",
+                        "isValidator": true,
+                        "nodeName": "IF hasReserveCreates",
+                        "name": "IF hasReserveCreates",
+                        "condition_type": "ConditionRule",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1790300000090,
+                              "parentId": 1790300000091,
+                              "isTop": true,
+                              "prop": "node.code_node_LOTmainCompute.data.hasReserveCreates",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "hasReserveCreates",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_LOTmainResCreate_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "add_node_LOTmainResCreate",
+                              "type": "add-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                                  "rules": {
+                                    "collectionId": "1935880014687440897",
+                                    "list": [
+                                      {
+                                        "id": 1790300000070,
+                                        "parentId": 1790300000071,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "title": "Add Reservations",
+                                "isValidator": true,
+                                "nodeName": "Add Reservations",
+                                "name": "Add Reservations",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "doc_type",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.doc_type}}",
+                                      "valueLabel": "",
+                                      "propLabel": "doc_type"
+                                    },
+                                    {
+                                      "prop": "doc_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.doc_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "doc_id"
+                                    },
+                                    {
+                                      "prop": "doc_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.doc_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "doc_no"
+                                    },
+                                    {
+                                      "prop": "doc_line_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.doc_line_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "doc_line_id"
+                                    },
+                                    {
+                                      "prop": "line_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.line_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "line_no"
+                                    },
+                                    {
+                                      "prop": "parent_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.parent_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "parent_id"
+                                    },
+                                    {
+                                      "prop": "parent_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.parent_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "parent_no"
+                                    },
+                                    {
+                                      "prop": "parent_line_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.parent_line_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "parent_line_id"
+                                    },
+                                    {
+                                      "prop": "material_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.material_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "material_id"
+                                    },
+                                    {
+                                      "prop": "item_code",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.item_code}}",
+                                      "valueLabel": "",
+                                      "propLabel": "item_code"
+                                    },
+                                    {
+                                      "prop": "item_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.item_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "item_name"
+                                    },
+                                    {
+                                      "prop": "item_desc",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.item_desc}}",
+                                      "valueLabel": "",
+                                      "propLabel": "item_desc"
+                                    },
+                                    {
+                                      "prop": "item_uom",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.item_uom}}",
+                                      "valueLabel": "",
+                                      "propLabel": "item_uom"
+                                    },
+                                    {
+                                      "prop": "batch_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.batch_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "batch_id"
+                                    },
+                                    {
+                                      "prop": "handling_unit_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.handling_unit_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "handling_unit_id"
+                                    },
+                                    {
+                                      "prop": "bin_location",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.bin_location}}",
+                                      "valueLabel": "",
+                                      "propLabel": "bin_location"
+                                    },
+                                    {
+                                      "prop": "from_category",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.from_category}}",
+                                      "valueLabel": "",
+                                      "propLabel": "from_category"
+                                    },
+                                    {
+                                      "prop": "reserved_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.reserved_qty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "reserved_qty"
+                                    },
+                                    {
+                                      "prop": "delivered_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.delivered_qty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "delivered_qty"
+                                    },
+                                    {
+                                      "prop": "open_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.open_qty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "open_qty"
+                                    },
+                                    {
+                                      "prop": "status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.status}}",
+                                      "valueLabel": "",
+                                      "propLabel": "status"
+                                    },
+                                    {
+                                      "prop": "reserved_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.reserved_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "reserved_date"
+                                    },
+                                    {
+                                      "prop": "plant_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.plant_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "plant_id"
+                                    },
+                                    {
+                                      "prop": "organization_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.organization_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "organization_id"
+                                    },
+                                    {
+                                      "prop": "remark",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.remark}}",
+                                      "valueLabel": "",
+                                      "propLabel": "remark"
+                                    },
+                                    {
+                                      "prop": "target_gd_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.target_gd_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "target_gd_id"
+                                    },
+                                    {
+                                      "prop": "source_reserved_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainEnrich.data.enrichedReserves.source_reserved_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "source_reserved_id"
+                                    }
+                                  ]
+                                },
+                                "fields": []
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_LOTmainResCreate_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_all_item_LOTmainResClose",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Branch 4",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1790300000080,
+                          "parentId": 1790300000081,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "1 == 1",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Branch 4",
+                    "name": "Branch 4",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_LOTmainResClose",
+                      "type": "if",
+                      "data": {
+                        "title": "IF hasReserveUpdates",
+                        "isValidator": true,
+                        "nodeName": "IF hasReserveUpdates",
+                        "name": "IF hasReserveUpdates",
+                        "condition_type": "ConditionRule",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1790300000100,
+                              "parentId": 1790300000101,
+                              "isTop": true,
+                              "prop": "node.code_node_LOTmainCompute.data.hasReserveUpdates",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "hasReserveUpdates",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_LOTmainResClose_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_LOTmainResClose",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                                  "rules": {
+                                    "collectionId": "1935880014687440897",
+                                    "list": [
+                                      {
+                                        "id": 1790300000080,
+                                        "parentId": 1790300000081,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_LOTmainCompute.data.reserveUpdates.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Close Reservations",
+                                "isValidator": true,
+                                "nodeName": "Close Reservations",
+                                "name": "Close Reservations",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainCompute.data.reserveUpdates.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "id"
+                                    },
+                                    {
+                                      "prop": "delivered_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainCompute.data.reserveUpdates.delivered_qty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "delivered_qty"
+                                    },
+                                    {
+                                      "prop": "open_qty",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainCompute.data.reserveUpdates.open_qty}}",
+                                      "valueLabel": "",
+                                      "propLabel": "open_qty"
+                                    },
+                                    {
+                                      "prop": "status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_LOTmainCompute.data.reserveUpdates.status}}",
+                                      "valueLabel": "",
+                                      "propLabel": "status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_LOTmainResClose_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_node_LOTspBuild",
+              "type": "code-node",
+              "data": {
+                "title": "Build Stock Picking",
+                "isValidator": true,
+                "nodeName": "Build Stock Picking",
+                "name": "Build Stock Picking",
+                "script": {
+                  "type": "javascript",
+                  "code": "const roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst qtyNum = (v) => Math.max(0, roundQty(v));\n\nconst saveAs = {{workflowparams:saveAs}};\nconst empty = { needsCreate: 0, createData: {}, srcIds: [], lineIds: [], pickingStatus: \"\" };\nif (saveAs !== \"Created\") return empty;\n\nconst raw = {{node:get_node_LOTmainLines.data.data}};\nconst allData = Array.isArray(raw) ? raw[0] : raw;\nif (!allData) return empty;\n\nconst docId = String(allData.id || \"\");\nconst docNo = allData.stock_movement_no || \"\";\n\n// One Stock Picking per movement. The reservation rebuild above is idempotent,\n// this is not -- an existing non-Cancelled picking short-circuits the build so a\n// re-save of a Created document cannot mint a second one.\nconst existRaw = {{node:search_node_LOTspLive.data.data}};\nconst existAll = Array.isArray(existRaw) ? existRaw : (existRaw ? [existRaw] : []);\nif (existAll.filter((p) => p && p.sp_status !== \"Cancelled\").length > 0) return empty;\n\nconst ruleRaw = {{node:get_node_LOTspRule.data.data}};\nconst rule = Array.isArray(ruleRaw) ? ruleRaw[0] : ruleRaw;\n// -9999 is the platform's \"no numbering rule\" sentinel -- the same one\n// StockPickingLoopWorkflow tests before it asks for a generated number. Without a\n// \"Stock Picking\" prefix for this organisation the document is created unnumbered\n// rather than not at all, so the pick is never silently lost.\nconst ruleId = rule && rule.id ? rule.id : -9999;\n\n// One picking row per (item, batch, bin, movement line, HU) -- the same grouping the\n// GD path uses, so two allocations that differ only by bin stay separately pickable.\nconst groups = new Map();\nconst lineIds = [];\n\nfor (const line of allData.stock_movement || []) {\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  let lineHasWork = 0;\n  for (const e of entries) {\n    const qty = qtyNum(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    if (!mat) continue;\n    const uom = e.material_uom || line.quantity_uom;\n    const key = [\n      String(mat), String(e.batch_id || \"no-batch\"), String(e.location_id || \"no-bin\"),\n      String(line.id || \"\"), String(e.handling_unit_id || \"no-hu\"),\n    ].join(\"|\");\n    let g = groups.get(key);\n    if (!g) {\n      g = {\n        row_type: \"item\", hu_select: 0,\n        handling_unit_id: e.handling_unit_id || null,\n        item_code: String(mat),\n        item_name: line.item_name || \"\",\n        item_desc: line.item_desc || \"\",\n        more_desc: \"\",\n        src_no: docNo,\n        batch_no: e.batch_id || null,\n        target_batch: null,\n        qty_to_pick: 0, to_pick_alt: 0,\n        pending_process_qty: 0, pending_alt: 0, picked_qty: 0,\n        // Identity conversion. enrichPickingUOM() in SPonMounted recomputes both\n        // scalars and both alt columns from the item master every time the Stock\n        // Picking is opened, so seeding them 1:1 is correct rather than merely safe.\n        order_base_qty: 1, picking_base_qty: 1,\n        item_uom: uom, picking_uom: uom,\n        source_bin: e.location_id || null,\n        line_status: \"Open\",\n        net_weight: 0, weight_conversion: 0,\n        project_id: line.project_id || null,\n        src_id: docId, src_line_id: String(line.id || \"\"),\n        is_serialized_item: 0,\n        serialList: [],\n      };\n      groups.set(key, g);\n    }\n    g.qty_to_pick = roundQty(g.qty_to_pick + qty);\n    if (e.serial_number) g.serialList.push(String(e.serial_number));\n    lineHasWork = 1;\n  }\n  if (lineHasWork && line.id) lineIds.push(String(line.id));\n}\n\nconst tablePickingItems = [];\ngroups.forEach((g) => {\n  g.pending_process_qty = g.qty_to_pick;\n  g.to_pick_alt = g.qty_to_pick;\n  g.pending_alt = g.qty_to_pick;\n  if (g.serialList.length > 0) {\n    g.is_serialized_item = 1;\n    g.serial_numbers = g.serialList.join(\", \");\n  }\n  delete g.serialList;\n  tablePickingItems.push(g);\n});\n\n// Nothing allocated means nothing to pick -- a description-only document must not\n// spawn an empty picking the warehouse can never complete.\nif (tablePickingItems.length === 0) return empty;\n\nconst createData = {\n  sp_status: \"Created\",\n  sp_id: ruleId === -9999 ? \"\" : \"issued\",\n  sp_id_type: ruleId,\n  plant_id: allData.issuing_operation_faci,\n  organization_id: allData.organization_id,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Location Transfer\",\n  src_id: docId,\n  src_no: docNo,\n  assigned_to: [],\n  ref_doc: [],\n  created_at: allData.issue_date,\n  created_by: allData.issued_by || \"\",\n  is_processing: 0,\n  project_id: allData.project_id || null,\n  remarks: allData.remarks || \"\",\n  remarks_2: allData.remark2 || \"\",\n  remarks_3: allData.remark3 || \"\",\n  table_picking_items: tablePickingItems,\n  table_picking_records: [],\n};\n\nreturn {\n  needsCreate: 1, createData: createData,\n  srcIds: [docId], lineIds: lineIds, pickingStatus: \"Created\",\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "spb00000",
+                    "name": "needsCreate",
+                    "title": "needsCreate",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "spb00001",
+                    "name": "createData",
+                    "title": "createData",
+                    "description": "",
+                    "bsonType": "object",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "spb00002",
+                    "name": "srcIds",
+                    "title": "srcIds",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "spb00003",
+                    "name": "lineIds",
+                    "title": "lineIds",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "spb00004",
+                    "name": "pickingStatus",
+                    "title": "pickingStatus",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_LOTspCreate",
+              "type": "if",
+              "data": {
+                "title": "IF needsCreate",
+                "isValidator": true,
+                "nodeName": "IF needsCreate",
+                "name": "IF needsCreate",
+                "condition_type": "ConditionRule",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1798100000060,
+                      "parentId": 1798100000061,
+                      "isTop": true,
+                      "prop": "node.code_node_LOTspBuild.data.needsCreate",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "needsCreate",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_LOTspCreate_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "add_node_LOTspCreate",
+                      "type": "add-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Stock Picking:Table:2092878390055469058",
+                          "rules": {
+                            "collectionId": "2092878390055469058",
+                            "list": [
+                              {
+                                "id": 1798100000070,
+                                "parentId": 1798100000071,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "title": "Add Stock Picking",
+                        "isValidator": true,
+                        "nodeName": "Add Stock Picking",
+                        "name": "Add Stock Picking",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "sp_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.sp_status}}",
+                              "valueLabel": "",
+                              "propLabel": "sp_status"
+                            },
+                            {
+                              "prop": "sp_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.sp_id}}",
+                              "valueLabel": "",
+                              "propLabel": "sp_id"
+                            },
+                            {
+                              "prop": "sp_id_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.sp_id_type}}",
+                              "valueLabel": "",
+                              "propLabel": "sp_id_type"
+                            },
+                            {
+                              "prop": "plant_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.plant_id}}",
+                              "valueLabel": "",
+                              "propLabel": "plant_id"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "organization_id"
+                            },
+                            {
+                              "prop": "movement_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.movement_type}}",
+                              "valueLabel": "",
+                              "propLabel": "movement_type"
+                            },
+                            {
+                              "prop": "ref_doc_type",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.ref_doc_type}}",
+                              "valueLabel": "",
+                              "propLabel": "ref_doc_type"
+                            },
+                            {
+                              "prop": "src_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.src_id}}",
+                              "valueLabel": "",
+                              "propLabel": "src_id"
+                            },
+                            {
+                              "prop": "src_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.src_no}}",
+                              "valueLabel": "",
+                              "propLabel": "src_no"
+                            },
+                            {
+                              "prop": "assigned_to",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.assigned_to}}",
+                              "valueLabel": "",
+                              "propLabel": "assigned_to"
+                            },
+                            {
+                              "prop": "ref_doc",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.ref_doc}}",
+                              "valueLabel": "",
+                              "propLabel": "ref_doc"
+                            },
+                            {
+                              "prop": "created_at",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.created_at}}",
+                              "valueLabel": "",
+                              "propLabel": "created_at"
+                            },
+                            {
+                              "prop": "created_by",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.created_by}}",
+                              "valueLabel": "",
+                              "propLabel": "created_by"
+                            },
+                            {
+                              "prop": "is_processing",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.is_processing}}",
+                              "valueLabel": "",
+                              "propLabel": "is_processing"
+                            },
+                            {
+                              "prop": "project_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.project_id}}",
+                              "valueLabel": "",
+                              "propLabel": "project_id"
+                            },
+                            {
+                              "prop": "remarks",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.remarks}}",
+                              "valueLabel": "",
+                              "propLabel": "remarks"
+                            },
+                            {
+                              "prop": "remarks_2",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.remarks_2}}",
+                              "valueLabel": "",
+                              "propLabel": "remarks_2"
+                            },
+                            {
+                              "prop": "remarks_3",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.remarks_3}}",
+                              "valueLabel": "",
+                              "propLabel": "remarks_3"
+                            },
+                            {
+                              "prop": "table_picking_items",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.table_picking_items}}",
+                              "valueLabel": "",
+                              "propLabel": "table_picking_items"
+                            },
+                            {
+                              "prop": "table_picking_records",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.createData.table_picking_records}}",
+                              "valueLabel": "",
+                              "propLabel": "table_picking_records"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "update_node_LOTspHead",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Location Transfer:Table:2013791389687349250",
+                          "rules": {
+                            "collectionId": "2013791389687349250",
+                            "list": [
+                              {
+                                "id": 1798100000080,
+                                "parentId": 1798100000081,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1798100000082,
+                                    "parentId": 1798100000080,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_LOTspBuild.data.srcIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Update LOT Picking Status",
+                        "isValidator": true,
+                        "nodeName": "Update LOT Picking Status",
+                        "name": "Update LOT Picking Status",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "picking_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.pickingStatus}}",
+                              "valueLabel": "",
+                              "propLabel": "picking_status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "update_node_LOTspLines",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Stock Movement Table(Location Transfer):Table:2013831779991814146",
+                          "rules": {
+                            "collectionId": "2013831779991814146",
+                            "list": [
+                              {
+                                "id": 1798100000090,
+                                "parentId": 1798100000091,
+                                "isTop": true,
+                                "type": "branch",
+                                "operator": "all",
+                                "prop": "",
+                                "valueType": "",
+                                "value": "",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1798100000092,
+                                    "parentId": 1798100000090,
+                                    "isTop": false,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_LOTspBuild.data.lineIds}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Update LOT Line Picking Status",
+                        "isValidator": true,
+                        "nodeName": "Update LOT Line Picking Status",
+                        "name": "Update LOT Line Picking Status",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "picking_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_LOTspBuild.data.pickingStatus}}",
+                              "valueLabel": "",
+                              "propLabel": "picking_status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_LOTspCreate_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
                 }
               ]
             },
@@ -7046,18 +8654,45 @@
                 "filter": {
                   "list": [
                     {
-                      "id": 1736695973613,
-                      "parentId": 1736695973612,
+                      "id": 1790200000020,
+                      "parentId": 1790200000019,
                       "isTop": true,
-                      "prop": "workflowparams.saveAs",
-                      "operator": "notEqual",
-                      "valueType": "value",
-                      "value": "In Progress",
-                      "type": "leaf",
+                      "type": "branch",
+                      "operator": "all",
+                      "prop": "",
+                      "valueType": "",
+                      "value": "",
                       "level": 1,
-                      "propLabel": "saveAs",
-                      "valueLabel": "",
-                      "operatorLabel": "Not Equal"
+                      "children": [
+                        {
+                          "id": 1790200000021,
+                          "parentId": 1790200000020,
+                          "isTop": false,
+                          "prop": "workflowparams.saveAs",
+                          "operator": "notEqual",
+                          "valueType": "value",
+                          "value": "In Progress",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "saveAs",
+                          "valueLabel": "",
+                          "operatorLabel": "Not Equal"
+                        },
+                        {
+                          "id": 1790200000022,
+                          "parentId": 1790200000020,
+                          "isTop": false,
+                          "prop": "workflowparams.saveAs",
+                          "operator": "notEqual",
+                          "valueType": "value",
+                          "value": "Created",
+                          "type": "leaf",
+                          "level": 2,
+                          "propLabel": "saveAs",
+                          "valueLabel": "",
+                          "operatorLabel": "Not Equal"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -7066,7 +8701,9 @@
                 {
                   "id": "if_block_-qF5q7gk",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_DDcO5DOo",
@@ -7330,7 +8967,10 @@
                             "nodeName": "IF Error",
                             "name": "IF Error",
                             "condition_type": "ConditionRule",
-                            "expression": { "type": "javascript", "code": "" },
+                            "expression": {
+                              "type": "javascript",
+                              "code": ""
+                            },
                             "filter": {
                               "list": [
                                 {
@@ -7354,7 +8994,9 @@
                             {
                               "id": "if_block_Bl4e9WUM",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_87dTi3ry",
@@ -7397,7 +9039,9 @@
                             {
                               "id": "if_block_4hOc6WE8",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -7409,7 +9053,9 @@
                 {
                   "id": "if_block_vjxQ7ee6",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -7419,7 +9065,9 @@
         {
           "id": "if_block_GEBq-prj",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "if_VC15dMI3",
@@ -7430,7 +9078,10 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -7454,7 +9105,9 @@
                 {
                   "id": "if_block_AqLFOAxv",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_WKLUE7ka",
@@ -7637,7 +9290,9 @@
                 {
                   "id": "if_block_zTq81GlL",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "add_node_5E9es34x",

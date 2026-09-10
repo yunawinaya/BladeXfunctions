@@ -35,6 +35,7 @@
       di_validity_of_collection: soData.di_validity_of_collection || "",
       di_tracking_number: soData.di_tracking_number || "",
       di_freight_charges: soData.di_freight_charges || 0,
+      project_id: soData.project_id ?? null,
     });
 
   } else {
@@ -58,6 +59,7 @@
       di_validity_of_collection: "",
       di_tracking_number: "",
       di_freight_charges: 0,
+      project_id: null,
     });
   }
 })();

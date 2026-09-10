@@ -164,6 +164,9 @@ const fetchUnrestrictedQty = async (
       sqt_tax_rate_percent: defaultSalesDetail.sales_tax_percent || null,
       sqt_order_uom_id: defaultSalesDetail.alt_uom_id || null,
       further_description: item.further_description,
+      more_desc: item.additional_remark,
+      min_quantity: defaultSalesDetail.min_sales_qty || 0,
+      max_quantity: defaultSalesDetail.max_sales_qty || 0
     };
 
     itemArray.push(sqtItem);
@@ -256,6 +259,10 @@ const fetchUnrestrictedQty = async (
           updates[`table_sqt.${item.line_index}.sqt_discount`] = item.discount;
           updates[`table_sqt.${item.line_index}.sqt_discount_uom_id`] =
             item.discount_uom;
+          updates[`table_sqt.${item.line_index}.min_quantity`] =
+            item.min_qty;
+          updates[`table_sqt.${item.line_index}.max_quantity`] =
+            item.max_qty;
         }
 
         await this.setData(updates);

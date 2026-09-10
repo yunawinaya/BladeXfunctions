@@ -324,6 +324,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         is_force_complete: item.is_force_complete,
         picking_status: item.picking_status,
         item_bundle_id: item.item_bundle_id || "",
+        project_id: item.project_id ?? "",
       };
     } else {
       // Non-serialized items keep original UOM
@@ -367,6 +368,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         is_force_complete: item.is_force_complete,
         picking_status: item.picking_status,
         item_bundle_id: item.item_bundle_id || "",
+        project_id: item.project_id ?? "",
       };
     }
   };
@@ -749,6 +751,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
               picking_id: picking.to_id,
               picking_no: picking.to_no,
               customer_id: picking.customer_id?.[0],
+              project_id: soLine?.project_id ?? null,
               tempEntries: [tempEntry],
               locationBatchInfo: [
                 {
@@ -874,6 +877,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
             picking_id: pickingItem.picking_data?.id,
             picking_no: pickingItem.picking_data?.to_id,
             customer_id: parseCustomerId(pickingItem.customer_id),
+            project_id: soLine?.project_id ?? null,
             tempEntries: [tempEntry],
             locationBatchInfo: [
               {
@@ -1071,6 +1075,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
           temp_qty_data: "[]", // no stock is picked against a bundle row
           view_stock: "",
           item_bundle_id: parentLine.item_bundle_id || "",
+          project_id: parentLine.project_id ?? null,
           bundleChildren: [],
         };
 

@@ -1281,6 +1281,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         tariff_id: item.tariff_id,
         further_description: item.further_description || "",
         item_bundle_id: item.item_bundle_id || "",
+        project_id: item.project_id ?? "",
       });
     } else {
       processedItems.push({
@@ -1313,6 +1314,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         tariff_id: item.tariff_id,
         further_description: item.further_description || "",
         item_bundle_id: item.item_bundle_id || "",
+        project_id: item.project_id ?? "",
       });
     }
   }

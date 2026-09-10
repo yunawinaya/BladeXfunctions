@@ -1459,6 +1459,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         item_category_id: item.item_category_id,
         base_uom_id: itemData.based_uom,
         item_bundle_id: item.item_bundle_id || "",
+        project_id: item.project_id ?? "",
       };
     } else {
       return {
@@ -1490,6 +1491,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         ),
         item_category_id: item.item_category_id,
         item_bundle_id: item.item_bundle_id || "",
+        project_id: item.project_id ?? "",
       };
     }
   };
@@ -1623,6 +1625,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
     item_category_id: soItem.item_category_id,
     item_bundle_id: soItem.item_bundle_id || "",
     is_internal: !!so.source_po_id,
+    project_id: soItem.project_id ?? null,
   });
 
   switch (referenceType) {
@@ -1679,6 +1682,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         item_category_id: picked.item?.item_category,
         item_bundle_id: picked.item_bundle_id || "",
         is_internal: !!picked.source_po_line_item_id,
+        project_id: picked.project_id ?? null,
       });
 
       for (const soItem of currentItemArray) {
