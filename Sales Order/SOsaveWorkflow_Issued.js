@@ -6,6 +6,26 @@ const closeDialog = () => {
   }
 };
 
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    // Check for the specific error structure: { "table_so.1dz9gq2q.so_item_price": { "message": "..." } }
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const value = obj[key];
+        // If value has a message property, return it
+        if (value && typeof value === "object" && value.message) {
+          return value.message;
+        }
+        // Recursively search
+        const found = findFieldMessage(value);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+};
+
 const submitForm = async (data) => {
   await this.runWorkflow(
     "1988908545345945602",
@@ -13,6 +33,18 @@ const submitForm = async (data) => {
       allData: data,
     },
     async (res) => {
+      console.log("res", res);
+      if (res.enteredSlotApproval) {
+        await this.$alert(
+          "This Sales Order requires approval.<br><br>Please wait for approval and it will be save as draft.",
+          "Approval Required",
+          {
+            confirmButtonText: "OK",
+            dangerouslyUseHTMLString: true,
+            type: "info",
+          },
+        );
+      }
       // A gate (414 / 413 / 406) now returns HTTP 200 with the code in the body, so the
       // platform raises no error toast beside the dialog. Handle it before anything here
       // treats this as a saved order. The error-callback branches below still stand, so a
@@ -26,12 +58,16 @@ const submitForm = async (data) => {
         this.hideLoading();
         const gateMsg = `${payload.message || ""}`;
         if (gateCode === "414" || gateCode === 414) {
-          const addToDelivery = await this.$confirm(gateMsg, `Delivery quantity`, {
-            confirmButtonText: "Add to delivery",
-            cancelButtonText: "Leave outstanding",
-            type: "warning",
-            dangerouslyUseHTMLString: true,
-          })
+          const addToDelivery = await this.$confirm(
+            gateMsg,
+            `Delivery quantity`,
+            {
+              confirmButtonText: "Add to delivery",
+              cancelButtonText: "Leave outstanding",
+              type: "warning",
+              dangerouslyUseHTMLString: true,
+            },
+          )
             .then(() => "Yes")
             .catch(() => "No");
 
@@ -204,19 +240,56 @@ const submitForm = async (data) => {
 };
 
 (async () => {
-  this.showLoading("Saving Sales Order...");
-  const data = this.getValues();
-  let entry = data;
+  // 必须大于 0 的列（required 对数字 0 是放行的，得自己判）
+  const POSITIVE_COLUMNS = {
+    so_quantity: "Quantity must be greater than 0.",
+  };
 
-  for (const [index, soLineItem] of entry.table_so.entries()) {
-    await this.validate(`table_so.${index}.so_item_price`);
+  try {
+    this.showLoading("Saving Sales Order...");
+
+    // 整个子表这两列、所有行；不通过的单元格会标红
+    const res = await this.validateByColName(Object.keys(POSITIVE_COLUMNS), {
+      validator: (value, row, ctx) =>
+        Number(value) > 0 || POSITIVE_COLUMNS[ctx.field],
+    });
+    if (!res.valid) {
+      const lines = res.errors
+        .slice(0, 3)
+        .map((e) => `Line ${e.rowNo} · ${e.columnLabel}: ${e.message}`);
+      if (res.errors.length > 3) lines.push(`(+${res.errors.length - 3} more)`);
+      this.$message.error(lines.join(";"));
+      return;
+    }
+
+    const entry = this.getValues();
+
+    entry.so_status =
+      entry.so_status === "Processing" ? entry.so_status : "Issued";
+    if (!entry.previous_status || entry.previous_status === "Draft") {
+      entry.production_status = "Not Created";
+    }
+
+    await submitForm(entry);
+  } catch (error) {
+    console.error("Submit Sales Order failed:", error);
+    // runWorkflow rejects AFTER its error callback has run, so anything carrying a
+    // workflow code was already reported there -- as a confirm, or as its own alert.
+    // Reporting it again here also renders the raw <br> tags, because $message takes
+    // no dangerouslyUseHTMLString. A cancellation or a validation failure is a plain
+    // Error with no .data, so those still surface.
+    if (!(error && error.data && error.data.code)) {
+      const msg =
+        (error && typeof error === "object"
+          ? error.message || findFieldMessage(error)
+          : "") || String(error);
+      this.$message.error(
+        msg && msg !== "[object Object]"
+          ? msg
+          : "Save failed, please try again.",
+      );
+    }
+  } finally {
+    this.hideLoading();
   }
-
-  entry.so_status =
-    entry.so_status === "Processing" ? entry.so_status : "Issued";
-  if (!entry.previous_status || entry.previous_status === "Draft") {
-    entry.production_status = "Not Created";
-  }
-
-  await submitForm(entry);
 })();
