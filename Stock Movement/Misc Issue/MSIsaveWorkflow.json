@@ -289,6 +289,185 @@
       ]
     },
     {
+      "id": "search_node_MSIspLive",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Stock Picking:Table:2092878390055469058",
+          "rules": {
+            "collectionId": "2092878390055469058",
+            "list": [
+              {
+                "id": 1798070000010,
+                "parentId": 1798070000011,
+                "isTop": true,
+                "type": "branch",
+                "operator": "all",
+                "prop": "",
+                "valueType": "",
+                "value": "",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1798070000012,
+                    "parentId": 1798070000010,
+                    "isTop": false,
+                    "prop": "src_id",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_ISWz5KGY.data.allData.id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Source Document ID",
+                    "valueLabel": "",
+                    "operatorLabel": "equal"
+                  },
+                  {
+                    "id": 1798070000013,
+                    "parentId": 1798070000010,
+                    "isTop": false,
+                    "prop": "ref_doc_type",
+                    "operator": "equal",
+                    "valueType": "value",
+                    "value": "Miscellaneous Issue",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Reference Doc Type",
+                    "valueLabel": "",
+                    "operatorLabel": "equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 50,
+        "title": "Get Stock Pickings",
+        "isValidator": true,
+        "nodeName": "Get Stock Pickings",
+        "name": "Get Stock Pickings"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_MSIspGuard",
+      "type": "code-node",
+      "data": {
+        "title": "Stock Picking Guard",
+        "isValidator": true,
+        "nodeName": "Stock Picking Guard",
+        "name": "Stock Picking Guard",
+        "script": {
+          "type": "javascript",
+          "code": "const saveAs = {{workflowparams:saveAs}};\nconst pageStatus = {{workflowparams:pageStatus}};\n\nconst rows = {{node:search_node_MSIspLive.data.data}};\nconst arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);\n\n// Draft/Completed/Cancelled pickings are not work in progress. Anything else is a\n// picker's open work list, and the movement has no reconcile path -- editing it\n// would leave the two out of step -- so block BEFORE anything is persisted.\n// Only the \"Created\" re-save is gated: advancing or cancelling the movement stays\n// open, and the auto-advance call from STOCK_PICKING_PROCESS sends \"In Progress\",\n// so it exempts itself.\nconst active = arr.filter((p) => p &&\n  p.sp_status !== \"Draft\" && p.sp_status !== \"Completed\" && p.sp_status !== \"Cancelled\");\n\nlet blocked = 0;\nlet guardMessage = \"\";\nif (saveAs === \"Created\" && pageStatus === \"Edit\" && active.length > 0) {\n  blocked = 1;\n  const list = active.map((p) => p.sp_id || p.id).slice(0, 5).join(\", \");\n  const more = active.length > 5 ? \" (+\" + (active.length - 5) + \" more)\" : \"\";\n  guardMessage =\n    \"Cannot edit this Misc Issue while \" + active.length +\n    (active.length === 1 ? \" Stock Picking is\" : \" Stock Pickings are\") +\n    \" active: \" + list + more + \". Cancel or complete \" +\n    (active.length === 1 ? \"it\" : \"them\") + \" first.\";\n}\n\nreturn { blocked: blocked, guardMessage: guardMessage };"
+        },
+        "response_json": [
+          {
+            "key": "spgblocked",
+            "name": "blocked",
+            "title": "blocked",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "spgmessage",
+            "name": "guardMessage",
+            "title": "guardMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_MSIspGuard",
+      "type": "if",
+      "data": {
+        "title": "IF Picking Active",
+        "isValidator": true,
+        "nodeName": "IF Picking Active",
+        "name": "IF Picking Active",
+        "condition_type": "ConditionRule",
+        "filter": {
+          "list": [
+            {
+              "id": 1798070000020,
+              "parentId": 1798070000021,
+              "isTop": true,
+              "prop": "node.code_node_MSIspGuard.data.blocked",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "blocked",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_MSIspGuard_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_node_MSIspGuard",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_MSIspGuard.data.guardMessage}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_MSIspGuard_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_NKaR9NLM",
       "type": "if",
       "data": {
@@ -1775,80 +1954,316 @@
                   },
                   "blocks": [
                     {
-                      "id": "search_node_MSIresOpen",
-                      "type": "search-node",
+                      "id": "condition_all_MSIspFetch",
+                      "type": "condition-all-node",
                       "data": {
-                        "table_id": {
-                          "source": "On Reserved Goods Delivery:Table:1935880014687440897",
-                          "rules": {
-                            "collectionId": "1935880014687440897",
-                            "list": [
-                              {
-                                "id": 1796000000010,
-                                "parentId": 1796000000011,
-                                "isTop": true,
-                                "type": "branch",
-                                "operator": "all",
-                                "prop": "",
-                                "valueType": "",
-                                "value": "",
-                                "level": 1,
-                                "children": [
+                        "title": "Parallel Branch",
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "condition_all_item_MSIspRes",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 1",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1798000000030,
+                                  "parentId": 1798000000031,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "1 == 1",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 1",
+                            "name": "Branch 1",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "search_node_MSIresOpen",
+                              "type": "search-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "On Reserved Goods Delivery:Table:1935880014687440897",
+                                  "rules": {
+                                    "collectionId": "1935880014687440897",
+                                    "list": [
+                                      {
+                                        "id": 1796000000010,
+                                        "parentId": 1796000000011,
+                                        "isTop": true,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "prop": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1796000000012,
+                                            "parentId": 1796000000010,
+                                            "isTop": false,
+                                            "prop": "doc_id",
+                                            "operator": "equal",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_ISWz5KGY.data.allData.id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Document ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "equal"
+                                          },
+                                          {
+                                            "id": 1796000000013,
+                                            "parentId": 1796000000010,
+                                            "isTop": false,
+                                            "prop": "organization_id",
+                                            "operator": "equal",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_ISWz5KGY.data.allData.organization_id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Organization ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "equal"
+                                          },
+                                          {
+                                            "id": 1796000000014,
+                                            "parentId": 1796000000010,
+                                            "isTop": false,
+                                            "prop": "doc_type",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "Miscellaneous Issue",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Document Type",
+                                            "valueLabel": "",
+                                            "operatorLabel": "equal"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "limit": 1000,
+                                "title": "Get Open Reservations",
+                                "isValidator": true,
+                                "nodeName": "Get Open Reservations",
+                                "name": "Get Open Reservations"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "condition_all_item_MSIspRule",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 2",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1798000000040,
+                                  "parentId": 1798000000041,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "1 == 1",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 2",
+                            "name": "Branch 2",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_MSIspRule",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "流水号规则表:Table:1994006139209117697",
+                                  "rules": {
+                                    "collectionId": "1994006139209117697",
+                                    "list": [
+                                      {
+                                        "id": 1798000000010,
+                                        "parentId": 1798000000011,
+                                        "isTop": true,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "prop": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1798000000012,
+                                            "parentId": 1798000000010,
+                                            "isTop": false,
+                                            "prop": "business_type",
+                                            "operator": "equal",
+                                            "valueType": "value",
+                                            "value": "Stock Picking",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "Document Type",
+                                            "valueLabel": "",
+                                            "operatorLabel": "equal"
+                                          },
+                                          {
+                                            "id": 1798000000013,
+                                            "parentId": 1798000000010,
+                                            "isTop": false,
+                                            "prop": "department_id",
+                                            "operator": "numberEqual",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_ISWz5KGY.data.allData.organization_id}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "部门ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "numberEqual"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get Stock Picking Format",
+                                "isValidator": true,
+                                "nodeName": "Get Stock Picking Format",
+                                "name": "Get Stock Picking Format"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "condition_all_item_MSIspDoc",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "Branch 3",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1798050000010,
+                                  "parentId": 1798050000011,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": "1 == 1",
+                              "type": "javascript"
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "Branch 3",
+                            "name": "Branch 3",
+                            "condition_type": "Expression"
+                          },
+                          "blocks": [
+                            {
+                              "id": "code_node_MSIspDocId",
+                              "type": "code-node",
+                              "data": {
+                                "title": "Resolve Persisted Doc ID",
+                                "isValidator": true,
+                                "nodeName": "Resolve Persisted Doc ID",
+                                "name": "Resolve Persisted Doc ID",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const pageStatus = {{workflowparams:pageStatus}};\nlet docId = \"\";\nif (pageStatus === \"Add\") {\n  const rd = {{node:add_node_1p1Kdkhz.data}};\n  const rec = Array.isArray(rd) ? rd[0] : rd;\n  docId = (rec && rec.id) ? rec.id : \"\";\n} else {\n  docId = {{node:code_node_ISWz5KGY.data.allData.id}} || \"\";\n}\nreturn { docId: docId };"
+                                },
+                                "response_json": [
                                   {
-                                    "id": 1796000000012,
-                                    "parentId": 1796000000010,
-                                    "isTop": false,
-                                    "prop": "doc_id",
-                                    "operator": "equal",
-                                    "valueType": "field",
-                                    "value": "{{node:code_node_ISWz5KGY.data.allData.id}}",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Document ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "equal"
-                                  },
-                                  {
-                                    "id": 1796000000013,
-                                    "parentId": 1796000000010,
-                                    "isTop": false,
-                                    "prop": "organization_id",
-                                    "operator": "equal",
-                                    "valueType": "field",
-                                    "value": "{{node:code_node_ISWz5KGY.data.allData.organization_id}}",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Organization ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "equal"
-                                  },
-                                  {
-                                    "id": 1796000000014,
-                                    "parentId": 1796000000010,
-                                    "isTop": false,
-                                    "prop": "doc_type",
-                                    "operator": "equal",
-                                    "valueType": "value",
-                                    "value": "Miscellaneous Issue",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "Document Type",
-                                    "valueLabel": "",
-                                    "operatorLabel": "equal"
+                                    "key": "spdocid001",
+                                    "name": "docId",
+                                    "title": "docId",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
                                   }
                                 ]
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "limit": 1000,
-                        "title": "Get Open Reservations",
-                        "isValidator": true,
-                        "nodeName": "Get Open Reservations",
-                        "name": "Get Open Reservations"
-                      },
-                      "blocks": []
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "get_node_MSIspDoc",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Miscellaneous Issue:Table:2015621214538432514",
+                                  "rules": {
+                                    "collectionId": "2015621214538432514",
+                                    "list": [
+                                      {
+                                        "id": 1798050000002,
+                                        "parentId": 1798050000001,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_MSIspDocId.data.docId}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "in"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "Get Persisted SM Doc",
+                                "isValidator": true,
+                                "nodeName": "Get Persisted SM Doc",
+                                "name": "Get Persisted SM Doc"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
                     },
                     {
                       "id": "code_node_MSIresCompute",
@@ -1863,7 +2278,7 @@
                         "name": "Compute Reserve Movements",
                         "script": {
                           "type": "javascript",
-                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n\nconst pageStatus = {{workflowparams:pageStatus}};\nlet allData;\nif (pageStatus === \"Add\") {\n  const rd = {{node:add_node_1p1Kdkhz.data}};\n  allData = Array.isArray(rd) ? rd[0] : rd;\n} else {\n  allData = {{node:get_node_7CFMbGI0.data.data}};\n}\n\nconst lines = allData.stock_movement || [];\nconst plantId = allData.issuing_operation_faci;\nconst orgId = allData.organization_id;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// RESERVE is an idempotent rebuild: release every open hold back to its source\n// category, then re-reserve from the current lines.\nconst resRaw = {{node:search_node_MSIresOpen.data.data}};\nconst resAll = Array.isArray(resRaw) ? resRaw : (resRaw ? [resRaw] : []);\nconst resRows = resAll.filter((r) => r && r.status === \"Allocated\");\n\nconst RESERVED = \"Reserved\";\nconst fromCatOf = (r) => r.from_category || \"Unrestricted\";\nconst releaseMovements = [];\nconst movements = [];\nconst reserveCreates = [];\nconst reserveUpdates = [];\nconst materialSet = {};\n\nfor (const r of resRows) {\n  const q = roundQty(r.open_qty);\n  if (q > 0) {\n    materialSet[r.material_id] = true;\n    releaseMovements.push({\n      material_id: r.material_id, batch_id: r.batch_id || null, quantity: q,\n      material_uom: r.item_uom, handling_unit_id: r.handling_unit_id || null,\n      manufacturing_date: null, expired_date: null,\n      subtractCategory: RESERVED, subtractLocation: r.bin_location,\n      addCategory: fromCatOf(r), addLocation: r.bin_location,\n    });\n  }\n  reserveUpdates.push({\n    id: r.id, delivered_qty: qtyStr(r.delivered_qty), open_qty: qtyStr(0), status: \"Cancelled\",\n  });\n}\n\nfor (const line of lines) {\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  for (const e of entries) {\n    const qty = roundQty(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    const C = e.category || \"Unrestricted\";\n    materialSet[mat] = true;\n    // Misc Issue has no destination bin: the hold changes category in place.\n    movements.push({\n      material_id: mat, batch_id: e.batch_id || null, quantity: qty,\n      material_uom: e.material_uom || line.quantity_uom,\n      handling_unit_id: e.handling_unit_id || null,\n      manufacturing_date: e.manufacturing_date || null, expired_date: e.expired_date || null,\n      subtractCategory: C, subtractLocation: e.location_id,\n      addCategory: RESERVED, addLocation: e.location_id,\n    });\n    reserveCreates.push({\n      doc_type: \"Miscellaneous Issue\", doc_id: docId, doc_no: docNo,\n      doc_line_id: line.id || \"\", line_no: line.line_index,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n      material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\",\n      item_uom: e.material_uom || line.quantity_uom,\n      batch_id: e.batch_id || null, handling_unit_id: e.handling_unit_id || null,\n      bin_location: e.location_id, from_category: C,\n      reserved_qty: qtyStr(qty), delivered_qty: qtyStr(0), open_qty: qtyStr(qty),\n      status: \"Allocated\", reserved_date: docDate,\n      plant_id: plantId, organization_id: orgId,\n      remark: line.item_remark || \"\", target_gd_id: \"\", source_reserved_id: \"\",\n    });\n  }\n}\n\nconst allMovements = releaseMovements.concat(movements).filter(\n  (m) => !(m.subtractCategory === m.addCategory && String(m.subtractLocation) === String(m.addLocation))\n);\n\nreturn {\n  movements: allMovements, movementsLength: allMovements.length,\n  materialIds: Object.keys(materialSet),\n  reserveCreates, hasReserveCreates: reserveCreates.length > 0 ? 1 : 0,\n  reserveUpdates, hasReserveUpdates: reserveUpdates.length > 0 ? 1 : 0,\n  plant_id: plantId, organization_id: orgId, stock_movement_no: docNo, doc_date: docDate,\n};\n"
+                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n\nconst pageStatus = {{workflowparams:pageStatus}};\nlet allData;\nif (pageStatus === \"Add\") {\n  const rd = {{node:add_node_1p1Kdkhz.data}};\n  allData = Array.isArray(rd) ? rd[0] : rd;\n} else {\n  allData = {{node:get_node_7CFMbGI0.data.data}};\n}\n\nconst lines = allData.stock_movement || [];\n// doc_line_id fix (same class as GR/LOT): on a fresh (Add) save the add-node\n// response carries no subform row ids, so line.id is empty. Resolve each line's\n// id from the persisted re-read by its line_index.\nconst persistedRaw = {{node:get_node_MSIspDoc.data.data}};\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\nconst persistedLines = (persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : [];\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\nconst plantId = allData.issuing_operation_faci;\nconst orgId = allData.organization_id;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// RESERVE is an idempotent rebuild: release every open hold back to its source\n// category, then re-reserve from the current lines.\nconst resRaw = {{node:search_node_MSIresOpen.data.data}};\nconst resAll = Array.isArray(resRaw) ? resRaw : (resRaw ? [resRaw] : []);\nconst resRows = resAll.filter((r) => r && r.status === \"Allocated\");\n\nconst RESERVED = \"Reserved\";\nconst fromCatOf = (r) => r.from_category || \"Unrestricted\";\nconst releaseMovements = [];\nconst movements = [];\nconst reserveCreates = [];\nconst reserveUpdates = [];\nconst materialSet = {};\n\nfor (const r of resRows) {\n  const q = roundQty(r.open_qty);\n  if (q > 0) {\n    materialSet[r.material_id] = true;\n    releaseMovements.push({\n      material_id: r.material_id, batch_id: r.batch_id || null, quantity: q,\n      material_uom: r.item_uom, handling_unit_id: r.handling_unit_id || null,\n      manufacturing_date: null, expired_date: null,\n      subtractCategory: RESERVED, subtractLocation: r.bin_location,\n      addCategory: fromCatOf(r), addLocation: r.bin_location,\n    });\n  }\n  reserveUpdates.push({\n    id: r.id, delivered_qty: qtyStr(r.delivered_qty), open_qty: qtyStr(0), status: \"Cancelled\",\n  });\n}\n\nfor (const line of lines) {\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  for (const e of entries) {\n    const qty = roundQty(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    const C = e.category || \"Unrestricted\";\n    materialSet[mat] = true;\n    // Misc Issue has no destination bin: the hold changes category in place.\n    movements.push({\n      material_id: mat, batch_id: e.batch_id || null, quantity: qty,\n      material_uom: e.material_uom || line.quantity_uom,\n      handling_unit_id: e.handling_unit_id || null,\n      manufacturing_date: e.manufacturing_date || null, expired_date: e.expired_date || null,\n      subtractCategory: C, subtractLocation: e.location_id,\n      addCategory: RESERVED, addLocation: e.location_id,\n    });\n    reserveCreates.push({\n      doc_type: \"Miscellaneous Issue\", doc_id: docId, doc_no: docNo,\n      doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\", line_no: line.line_index,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n      material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\",\n      item_uom: e.material_uom || line.quantity_uom,\n      batch_id: e.batch_id || null, handling_unit_id: e.handling_unit_id || null,\n      bin_location: e.location_id, from_category: C,\n      reserved_qty: qtyStr(qty), delivered_qty: qtyStr(0), open_qty: qtyStr(qty),\n      status: \"Allocated\", reserved_date: docDate,\n      plant_id: plantId, organization_id: orgId,\n      remark: line.item_remark || \"\", target_gd_id: \"\", source_reserved_id: \"\",\n    });\n  }\n}\n\nconst allMovements = releaseMovements.concat(movements).filter(\n  (m) => !(m.subtractCategory === m.addCategory && String(m.subtractLocation) === String(m.addLocation))\n);\n\nreturn {\n  movements: allMovements, movementsLength: allMovements.length,\n  materialIds: Object.keys(materialSet),\n  reserveCreates, hasReserveCreates: reserveCreates.length > 0 ? 1 : 0,\n  reserveUpdates, hasReserveUpdates: reserveUpdates.length > 0 ? 1 : 0,\n  plant_id: plantId, organization_id: orgId, stock_movement_no: docNo, doc_date: docDate,\n};\n"
                         },
                         "response_json": [
                           {
@@ -2999,6 +3414,432 @@
                               ]
                             }
                           ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "code_node_MSIspBuild",
+                      "type": "code-node",
+                      "data": {
+                        "title": "Build Stock Picking",
+                        "isValidator": true,
+                        "nodeName": "Build Stock Picking",
+                        "name": "Build Stock Picking",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst qtyNum = (v) => Math.max(0, roundQty(v));\n\nconst saveAs = {{workflowparams:saveAs}};\nconst empty = { needsCreate: 0, createData: {}, srcIds: [], lineIds: [], pickingStatus: \"\" };\nif (saveAs !== \"Created\") return empty;\n\n// Re-read the PERSISTED document. A fresh save's add-node response carries no\n// subform row ids, so building the picking off it would leave every src_line_id\n// blank and the Stock Picking would have no way back to the movement line.\nconst raw = {{node:get_node_MSIspDoc.data.data}};\nconst allData = Array.isArray(raw) ? raw[0] : raw;\nif (!allData) return empty;\n\nconst docId = String(allData.id || \"\");\nconst docNo = allData.stock_movement_no || \"\";\n\n// One Stock Picking per movement. The reservation rebuild above is idempotent,\n// this is not -- an existing non-Cancelled picking short-circuits the build so a\n// re-save of a Created document cannot mint a second one.\nconst existRaw = {{node:search_node_MSIspLive.data.data}};\nconst existAll = Array.isArray(existRaw) ? existRaw : (existRaw ? [existRaw] : []);\nif (existAll.filter((p) => p && p.sp_status !== \"Cancelled\").length > 0) return empty;\n\nconst ruleRaw = {{node:get_node_MSIspRule.data.data}};\nconst rule = Array.isArray(ruleRaw) ? ruleRaw[0] : ruleRaw;\n// -9999 is the platform's \"no numbering rule\" sentinel -- the same one\n// StockPickingLoopWorkflow tests before it asks for a generated number. Without a\n// \"Stock Picking\" prefix for this organisation the document is created unnumbered\n// rather than not at all, so the pick is never silently lost.\nconst ruleId = rule && rule.id ? rule.id : -9999;\n\n// One picking row per (item, batch, bin, movement line, HU) -- the same grouping the\n// GD path uses, so two allocations that differ only by bin stay separately pickable.\nconst groups = new Map();\nconst lineIds = [];\n\nfor (const line of allData.stock_movement || []) {\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  let lineHasWork = 0;\n  for (const e of entries) {\n    const qty = qtyNum(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    if (!mat) continue;\n    const uom = e.material_uom || line.quantity_uom;\n    const key = [\n      String(mat), String(e.batch_id || \"no-batch\"), String(e.location_id || \"no-bin\"),\n      String(line.id || \"\"), String(e.handling_unit_id || \"no-hu\"),\n    ].join(\"|\");\n    let g = groups.get(key);\n    if (!g) {\n      g = {\n        row_type: \"item\", hu_select: 0,\n        handling_unit_id: e.handling_unit_id || null,\n        item_code: String(mat),\n        item_name: line.item_name || \"\",\n        item_desc: line.item_desc || \"\",\n        more_desc: \"\",\n        src_no: docNo,\n        batch_no: e.batch_id || null,\n        target_batch: null,\n        qty_to_pick: 0, to_pick_alt: 0,\n        pending_process_qty: 0, pending_alt: 0, picked_qty: 0,\n        // Identity conversion. enrichPickingUOM() in SPonMounted recomputes both\n        // scalars and both alt columns from the item master every time the Stock\n        // Picking is opened, so seeding them 1:1 is correct rather than merely safe.\n        order_base_qty: 1, picking_base_qty: 1,\n        item_uom: uom, picking_uom: uom,\n        source_bin: e.location_id || null,\n        line_status: \"Open\",\n        net_weight: 0, weight_conversion: 0,\n        project_id: line.project_id || null,\n        src_id: docId, src_line_id: String(line.id || \"\"),\n        is_serialized_item: 0,\n        serialList: [],\n      };\n      groups.set(key, g);\n    }\n    g.qty_to_pick = roundQty(g.qty_to_pick + qty);\n    if (e.serial_number) g.serialList.push(String(e.serial_number));\n    lineHasWork = 1;\n  }\n  if (lineHasWork && line.id) lineIds.push(String(line.id));\n}\n\nconst tablePickingItems = [];\ngroups.forEach((g) => {\n  g.pending_process_qty = g.qty_to_pick;\n  g.to_pick_alt = g.qty_to_pick;\n  g.pending_alt = g.qty_to_pick;\n  if (g.serialList.length > 0) {\n    g.is_serialized_item = 1;\n    g.serial_numbers = g.serialList.join(\", \");\n  }\n  delete g.serialList;\n  tablePickingItems.push(g);\n});\n\n// Nothing allocated means nothing to pick -- a description-only document must not\n// spawn an empty picking the warehouse can never complete.\nif (tablePickingItems.length === 0) return empty;\n\nconst createData = {\n  sp_status: \"Created\",\n  sp_id: ruleId === -9999 ? \"\" : \"issued\",\n  sp_id_type: ruleId,\n  plant_id: allData.issuing_operation_faci,\n  organization_id: allData.organization_id,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Miscellaneous Issue\",\n  src_id: docId,\n  src_no: docNo,\n  assigned_to: [],\n  ref_doc: [],\n  created_at: allData.issue_date,\n  created_by: allData.issued_by || \"\",\n  is_processing: 0,\n  project_id: allData.project_id || null,\n  remarks: allData.remarks || \"\",\n  remarks_2: allData.remark2 || \"\",\n  remarks_3: allData.remark3 || \"\",\n  table_picking_items: tablePickingItems,\n  table_picking_records: [],\n};\n\nreturn {\n  needsCreate: 1, createData: createData,\n  srcIds: [docId], lineIds: lineIds, pickingStatus: \"Created\",\n};"
+                        },
+                        "response_json": [
+                          {
+                            "key": "spb00000",
+                            "name": "needsCreate",
+                            "title": "needsCreate",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "spb00001",
+                            "name": "createData",
+                            "title": "createData",
+                            "description": "",
+                            "bsonType": "object",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "spb00002",
+                            "name": "srcIds",
+                            "title": "srcIds",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "spb00003",
+                            "name": "lineIds",
+                            "title": "lineIds",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "spb00004",
+                            "name": "pickingStatus",
+                            "title": "pickingStatus",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_MSIspCreate",
+                      "type": "if",
+                      "data": {
+                        "title": "IF needsCreate",
+                        "isValidator": true,
+                        "nodeName": "IF needsCreate",
+                        "name": "IF needsCreate",
+                        "condition_type": "ConditionRule",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1798000000060,
+                              "parentId": 1798000000061,
+                              "isTop": true,
+                              "prop": "node.code_node_MSIspBuild.data.needsCreate",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "needsCreate",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_MSIspCreate_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "add_node_MSIspCreate",
+                              "type": "add-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Stock Picking:Table:2092878390055469058",
+                                  "rules": {
+                                    "collectionId": "2092878390055469058",
+                                    "list": [
+                                      {
+                                        "id": 1798000000070,
+                                        "parentId": 1798000000071,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "title": "Add Stock Picking",
+                                "isValidator": true,
+                                "nodeName": "Add Stock Picking",
+                                "name": "Add Stock Picking",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "sp_status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.sp_status}}",
+                                      "valueLabel": "",
+                                      "propLabel": "sp_status"
+                                    },
+                                    {
+                                      "prop": "sp_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.sp_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "sp_id"
+                                    },
+                                    {
+                                      "prop": "sp_id_type",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.sp_id_type}}",
+                                      "valueLabel": "",
+                                      "propLabel": "sp_id_type"
+                                    },
+                                    {
+                                      "prop": "plant_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.plant_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "plant_id"
+                                    },
+                                    {
+                                      "prop": "organization_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.organization_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "organization_id"
+                                    },
+                                    {
+                                      "prop": "movement_type",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.movement_type}}",
+                                      "valueLabel": "",
+                                      "propLabel": "movement_type"
+                                    },
+                                    {
+                                      "prop": "ref_doc_type",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.ref_doc_type}}",
+                                      "valueLabel": "",
+                                      "propLabel": "ref_doc_type"
+                                    },
+                                    {
+                                      "prop": "src_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.src_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "src_id"
+                                    },
+                                    {
+                                      "prop": "src_no",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.src_no}}",
+                                      "valueLabel": "",
+                                      "propLabel": "src_no"
+                                    },
+                                    {
+                                      "prop": "assigned_to",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.assigned_to}}",
+                                      "valueLabel": "",
+                                      "propLabel": "assigned_to"
+                                    },
+                                    {
+                                      "prop": "ref_doc",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.ref_doc}}",
+                                      "valueLabel": "",
+                                      "propLabel": "ref_doc"
+                                    },
+                                    {
+                                      "prop": "created_at",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.created_at}}",
+                                      "valueLabel": "",
+                                      "propLabel": "created_at"
+                                    },
+                                    {
+                                      "prop": "created_by",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.created_by}}",
+                                      "valueLabel": "",
+                                      "propLabel": "created_by"
+                                    },
+                                    {
+                                      "prop": "is_processing",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.is_processing}}",
+                                      "valueLabel": "",
+                                      "propLabel": "is_processing"
+                                    },
+                                    {
+                                      "prop": "project_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.project_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "project_id"
+                                    },
+                                    {
+                                      "prop": "remarks",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.remarks}}",
+                                      "valueLabel": "",
+                                      "propLabel": "remarks"
+                                    },
+                                    {
+                                      "prop": "remarks_2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.remarks_2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "remarks_2"
+                                    },
+                                    {
+                                      "prop": "remarks_3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.remarks_3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "remarks_3"
+                                    },
+                                    {
+                                      "prop": "table_picking_items",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.table_picking_items}}",
+                                      "valueLabel": "",
+                                      "propLabel": "table_picking_items"
+                                    },
+                                    {
+                                      "prop": "table_picking_records",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.createData.table_picking_records}}",
+                                      "valueLabel": "",
+                                      "propLabel": "table_picking_records"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "update_node_MSIspHead",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Miscellaneous Issue:Table:2015621214538432514",
+                                  "rules": {
+                                    "collectionId": "2015621214538432514",
+                                    "list": [
+                                      {
+                                        "id": 1798000000080,
+                                        "parentId": 1798000000081,
+                                        "isTop": true,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "prop": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1798000000082,
+                                            "parentId": 1798000000080,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_MSIspBuild.data.srcIds}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "in"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Update MSI Picking Status",
+                                "isValidator": true,
+                                "nodeName": "Update MSI Picking Status",
+                                "name": "Update MSI Picking Status",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "picking_status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.pickingStatus}}",
+                                      "valueLabel": "",
+                                      "propLabel": "picking_status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "update_node_MSIspLines",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Stock movement(Miscellaneous Issue ):Table:2015633434253066241",
+                                  "rules": {
+                                    "collectionId": "2015633434253066241",
+                                    "list": [
+                                      {
+                                        "id": 1798000000090,
+                                        "parentId": 1798000000091,
+                                        "isTop": true,
+                                        "type": "branch",
+                                        "operator": "all",
+                                        "prop": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1798000000092,
+                                            "parentId": 1798000000090,
+                                            "isTop": false,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_MSIspBuild.data.lineIds}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "in"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Update MSI Line Picking Status",
+                                "isValidator": true,
+                                "nodeName": "Update MSI Line Picking Status",
+                                "name": "Update MSI Line Picking Status",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "picking_status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_MSIspBuild.data.pickingStatus}}",
+                                      "valueLabel": "",
+                                      "propLabel": "picking_status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_MSIspCreate_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
                         }
                       ]
                     }
