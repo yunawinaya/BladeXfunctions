@@ -30,6 +30,8 @@ const EDIT_DISABLED_FIELDS = [
   "net_weight",
   "gross_weight",
   "remarks",
+  "remarks_2",
+  "remarks_3",
 ];
 
 // Mirrors MSI: a plant-level login can only issue from its own plant, so the

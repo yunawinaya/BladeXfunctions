@@ -31,6 +31,7 @@ PAIRS = {
         ("vlxg4fno", "ItemAssemblyResetSN.js",            "func"),
         ("wv07g9xe", "ItemAssemblyOnChangeItem.js",       "func"),
         ("iaqty01x", "ItemAssemblyOnChangeItemQty.js",    "func"),
+        ("iaproj01", "ItemAssemblyOnChangeProject.js",    "func"),
     ],
     "BOMlistPageJSON.json": [
         ("oh26x9gl", "BOMlistDelete.js", "func"),

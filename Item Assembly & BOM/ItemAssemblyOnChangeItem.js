@@ -472,6 +472,9 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
         quantity_uom: sub.sub_material_qty_uom || item?.based_uom || "",
         uom_options: JSON.stringify(rowUoms),
         item_remark: sub.sub_material_remark || "",
+        // Seeded here because the locked table has no onRowAdd for
+        // onChange_project to hook, unlike the Sales Order line table.
+        project_id: allData.project_id || "",
         organization_id: organizationId,
         issuing_plant: plantId,
         line_index: index + 1,

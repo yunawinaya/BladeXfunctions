@@ -142,6 +142,41 @@ The components table is locked to the BOM (`isAdd: false`, `isDelete: false`,
 `item_selection` disabled): the only way to change it is to change the BOM or
 `item_qty`.
 
+## How to read this module
+
+**The header is one MSR receipt line** — the assembled item going IN to stock.
+Not the MSR *header*: the analogue is a single row of MSR's `stock_movement`
+table, which is why the header carries storage location, bin, batch,
+manufacturing/expired date and its own remarks. IA's `remarks` even shares MSR's
+component key `zq62c1v9`.
+
+**The subform is MSI** — the components going OUT of stock. That is why the
+Transfer Stock dialog, `temp_qty_data` / `temp_hu_data` and the allocation rules
+are ported from Misc Issue.
+
+Consequences already applied:
+
+- `onChange_Plant` defaults the receiving storage location with
+  `location_type: "Common"`, matching MSR's receipt default.
+- Header remarks are `remarks` / `remarks_2` / `remarks_3` — the `_2`/`_3`
+  underscore convention MSR uses on its *lines* (`item_remark_2`,
+  `item_remark_3`), not the `remark2`/`remark3` spelling on MSR's header.
+
+When the save pipeline is built it needs both legs: an MSI-style issue for every
+component line and an MSR-style receipt for the header item, including batch
+creation when the assembled item is batch-managed.
+
+## Project cascade
+
+The header Project pushes down onto the component lines, following
+`Sales Order/SOonChangeProject.js`: blank lines take it silently, lines already
+carrying a *different* project prompt Overwrite / Keep, and clearing the header
+never wipes the lines.
+
+Sales Order wires the same handler to its line table's `onRowAdd`. That hook does
+not exist here because the components table is locked to the BOM, so the BOM
+explosion seeds `project_id` on the rows it creates instead.
+
 ## Component line behaviour
 
 **Two quantities.** `requested_qty` is what the BOM calls for (read-only,
