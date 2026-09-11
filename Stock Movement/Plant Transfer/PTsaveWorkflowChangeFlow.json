@@ -1880,7 +1880,7 @@
                     "name": "Pick Movement",
                     "script": {
                       "type": "javascript",
-                      "code": "const movements = {{node:code_node_PTcancelCompute.data.movements}} || [];\nconst idxRaw = {{node:get_cache_node_PTcancelIdx.data}};\nconst index = idxRaw ? parseInt(idxRaw, 10) : 0;\nconst m = movements[index] || {};\nconst itemsRaw = {{node:search_node_PtCancelItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemData = items.find((i) => i && String(i.id) === String(m.material_id)) || null;\nreturn {\n  material_id: m.material_id, batch_id: m.batch_id || null, quantity: m.quantity, material_uom: m.material_uom,\n  subtractPlant: m.subtractPlant, subtractCategory: m.subtractCategory, subtractLocation: m.subtractLocation,\n  addPlant: m.addPlant, addCategory: m.addCategory, addLocation: m.addLocation,\n  handling_unit_id: m.handling_unit_id || null, manufacturing_date: m.manufacturing_date || null,\n  expired_date: m.expired_date || null, itemData: itemData, index: index, nextIndex: index + 1,\n};\n"
+                      "code": "const movements = {{node:code_node_PTcancelCompute.data.movements}} || [];\nconst idxRaw = {{node:get_cache_node_PTcancelIdx.data}};\nconst index = idxRaw ? parseInt(idxRaw, 10) : 0;\nconst m = movements[index] || {};\nconst itemsRaw = {{node:search_node_PtCancelItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemData = items.find((i) => i && String(i.id) === String(m.material_id)) || null;\nreturn {\n  material_id: m.material_id, batch_id: m.batch_id || null, quantity: m.quantity, material_uom: m.material_uom,\n  subtractPlant: m.subtractPlant, subtractCategory: m.subtractCategory, subtractLocation: m.subtractLocation,\n  addPlant: m.addPlant, addCategory: m.addCategory, addLocation: m.addLocation,\n  handling_unit_id: m.handling_unit_id || null, manufacturing_date: m.manufacturing_date || null,\n  expired_date: m.expired_date || null, itemData: itemData, index: index, nextIndex: index + 1,\n  // A same-plant hop keeps one costing row; a cross-plant hop must move it, so\n  // isMovingInv=0 lets ADD/SUBTRACT_INVENTORY maintain wa_costing_method per plant.\n  isMovingInv: String(m.subtractPlant) === String(m.addPlant) ? 1 : 0,\n};\n"
                     },
                     "response_json": [
                       {
@@ -2022,6 +2022,15 @@
                         "key": "nextIndes",
                         "name": "nextIndex",
                         "title": "nextIndex",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "ismovinginv",
+                        "name": "isMovingInv",
+                        "title": "isMovingInv",
                         "description": "",
                         "bsonType": "int",
                         "isExpand": false,
@@ -2180,8 +2189,8 @@
                         {
                           "prop": "isMovingInv",
                           "operator": "",
-                          "valueType": "value",
-                          "value": 1,
+                          "valueType": "field",
+                          "value": "{{node:code_node_PTcancelPick.data.isMovingInv}}",
                           "valueLabel": "",
                           "propLabel": "Moving Inventory?"
                         },
@@ -2430,8 +2439,8 @@
                         {
                           "prop": "isMovingInv",
                           "operator": "",
-                          "valueType": "value",
-                          "value": 1,
+                          "valueType": "field",
+                          "value": "{{node:code_node_PTcancelPick.data.isMovingInv}}",
                           "valueLabel": "",
                           "propLabel": "Moving Inventory?"
                         },
@@ -14876,7 +14885,7 @@
                             "name": "Pick Movement",
                             "script": {
                               "type": "javascript",
-                              "code": "const movements = {{node:code_node_PTissCompute.data.movements}} || [];\nconst idxRaw = {{node:get_cache_node_PTissIdx.data}};\nconst index = idxRaw ? parseInt(idxRaw, 10) : 0;\nconst m = movements[index] || {};\nconst itemsRaw = {{node:search_node_PtIssuedItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemData = items.find((i) => i && String(i.id) === String(m.material_id)) || null;\nreturn {\n  material_id: m.material_id, batch_id: m.batch_id || null, quantity: m.quantity, material_uom: m.material_uom,\n  subtractPlant: m.subtractPlant, subtractCategory: m.subtractCategory, subtractLocation: m.subtractLocation,\n  addPlant: m.addPlant, addCategory: m.addCategory, addLocation: m.addLocation,\n  handling_unit_id: m.handling_unit_id || null, manufacturing_date: m.manufacturing_date || null,\n  expired_date: m.expired_date || null, itemData: itemData, index: index, nextIndex: index + 1,\n};\n"
+                              "code": "const movements = {{node:code_node_PTissCompute.data.movements}} || [];\nconst idxRaw = {{node:get_cache_node_PTissIdx.data}};\nconst index = idxRaw ? parseInt(idxRaw, 10) : 0;\nconst m = movements[index] || {};\nconst itemsRaw = {{node:search_node_PtIssuedItems.data.data}} || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\nconst itemData = items.find((i) => i && String(i.id) === String(m.material_id)) || null;\nreturn {\n  material_id: m.material_id, batch_id: m.batch_id || null, quantity: m.quantity, material_uom: m.material_uom,\n  subtractPlant: m.subtractPlant, subtractCategory: m.subtractCategory, subtractLocation: m.subtractLocation,\n  addPlant: m.addPlant, addCategory: m.addCategory, addLocation: m.addLocation,\n  handling_unit_id: m.handling_unit_id || null, manufacturing_date: m.manufacturing_date || null,\n  expired_date: m.expired_date || null, itemData: itemData, index: index, nextIndex: index + 1,\n  // A same-plant hop keeps one costing row; a cross-plant hop must move it, so\n  // isMovingInv=0 lets ADD/SUBTRACT_INVENTORY maintain wa_costing_method per plant.\n  isMovingInv: String(m.subtractPlant) === String(m.addPlant) ? 1 : 0,\n};\n"
                             },
                             "response_json": [
                               {
@@ -15018,6 +15027,15 @@
                                 "key": "nextIndes",
                                 "name": "nextIndex",
                                 "title": "nextIndex",
+                                "description": "",
+                                "bsonType": "int",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "ismovinginv",
+                                "name": "isMovingInv",
+                                "title": "isMovingInv",
                                 "description": "",
                                 "bsonType": "int",
                                 "isExpand": false,
@@ -15176,8 +15194,8 @@
                                 {
                                   "prop": "isMovingInv",
                                   "operator": "",
-                                  "valueType": "value",
-                                  "value": 1,
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PTissPick.data.isMovingInv}}",
                                   "valueLabel": "",
                                   "propLabel": "Moving Inventory?"
                                 },
@@ -15426,8 +15444,8 @@
                                 {
                                   "prop": "isMovingInv",
                                   "operator": "",
-                                  "valueType": "value",
-                                  "value": 1,
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PTissPick.data.isMovingInv}}",
                                   "valueLabel": "",
                                   "propLabel": "Moving Inventory?"
                                 },

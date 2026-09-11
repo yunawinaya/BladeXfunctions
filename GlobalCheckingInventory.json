@@ -20,7 +20,10 @@
         "nodeName": "IF Data not Valid",
         "name": "IF Data not Valid",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -96,7 +99,9 @@
         {
           "id": "if_block_n6o7pcGh",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_f4hAPru0",
@@ -147,7 +152,9 @@
         {
           "id": "if_block_kV5kPJyM",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -195,7 +202,10 @@
         "nodeName": "IF Item not Found",
         "name": "IF Item not Found",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -219,7 +229,9 @@
         {
           "id": "if_block_-JCQUx0o",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_ClHo7ok7",
@@ -270,133 +282,411 @@
         {
           "id": "if_block__GXzVi7V",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
     },
     {
-      "id": "if_XPr9mVTE",
-      "type": "if",
+      "id": "condition_all_GIVFetch",
+      "type": "condition-all-node",
       "data": {
-        "title": "IF Batch Manage Item",
-        "isValidator": true,
-        "nodeName": "IF Batch Manage Item",
-        "name": "IF Batch Manage Item",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "title": "Parallel Branch",
         "filter": {
-          "list": [
-            {
-              "id": 1736695973613,
-              "parentId": 1736695973612,
-              "isTop": true,
-              "prop": "node.get_node_xgWUnZRj.data.data.item_batch_management",
-              "operator": "numberEqual",
-              "valueType": "value",
-              "value": 1,
-              "type": "leaf",
-              "level": 1,
-              "propLabel": "Batch Management",
-              "valueLabel": "",
-              "operatorLabel": "Equal"
-            }
-          ]
-        }
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
         {
-          "id": "if_block_eFPZBbi6",
-          "type": "ifBlock",
-          "data": { "title": "true" },
+          "id": "condition_all_item_GIVBalance",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Balance",
+            "filter": {
+              "list": [
+                {
+                  "id": 1773900000100,
+                  "parentId": 1773900000099,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Balance",
+            "name": "Balance",
+            "condition_type": "ConditionRule"
+          },
           "blocks": [
             {
-              "id": "search_node_ARAmvXyd",
+              "id": "if_XPr9mVTE",
+              "type": "if",
+              "data": {
+                "title": "IF Batch Manage Item",
+                "isValidator": true,
+                "nodeName": "IF Batch Manage Item",
+                "name": "IF Batch Manage Item",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "node.get_node_xgWUnZRj.data.data.item_batch_management",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "Batch Management",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_eFPZBbi6",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_ARAmvXyd",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Item Batch Balance:Table:1902718803880558594",
+                          "rules": {
+                            "collectionId": "1902718803880558594",
+                            "list": [
+                              {
+                                "id": 1773373339477,
+                                "parentId": 1773373339478,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1773373339479,
+                                    "parentId": 1773373339477,
+                                    "isTop": false,
+                                    "prop": "material_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:material_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Item Code",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1773373339480,
+                                    "parentId": 1773373339477,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:organization_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1773373339479,
+                                    "parentId": 1773373339477,
+                                    "isTop": false,
+                                    "prop": "plant_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:plant_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Plant ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1773373339481,
+                                    "parentId": 1773373339477,
+                                    "isTop": false,
+                                    "prop": "location_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:location_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Location ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1773373339482,
+                                    "parentId": 1773373339477,
+                                    "isTop": false,
+                                    "prop": "batch_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:batch_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Batch ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get Item Batch Balance",
+                        "isValidator": true,
+                        "nodeName": "Get Item Batch Balance",
+                        "name": "Get Item Batch Balance"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_26xo7ItO",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": [
+                    {
+                      "id": "search_node_mb8Vv8fZ",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Item Balance:Table:1902698977724317697",
+                          "rules": {
+                            "collectionId": "1902698977724317697",
+                            "list": [
+                              {
+                                "id": 1773373498535,
+                                "parentId": 1773373498536,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                  {
+                                    "id": 1773373534649,
+                                    "parentId": 1773373498535,
+                                    "isTop": false,
+                                    "prop": "material_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:material_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Item Code",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1773373498537,
+                                    "parentId": 1773373498535,
+                                    "isTop": false,
+                                    "prop": "plant_id",
+                                    "operator": "numberEqual",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:plant_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Plant ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1773373498538,
+                                    "parentId": 1773373498535,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:organization_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  },
+                                  {
+                                    "id": 1773373498539,
+                                    "parentId": 1773373498535,
+                                    "isTop": false,
+                                    "prop": "location_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{workflowparams:location_id}}",
+                                    "type": "leaf",
+                                    "level": 2,
+                                    "propLabel": "Location ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 100,
+                        "title": "Get Item Balance",
+                        "isValidator": true,
+                        "nodeName": "Get Item Balance",
+                        "name": "Get Item Balance"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_GIVWaBatch",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "WA Costing (batch)",
+            "filter": {
+              "list": [
+                {
+                  "id": 1773900000201,
+                  "parentId": 1773900000200,
+                  "isTop": true,
+                  "prop": "workflowparams.batch_id",
+                  "operator": "isNotNull",
+                  "valueType": "value",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "Batch ID",
+                  "valueLabel": "",
+                  "operatorLabel": "Is Not Null"
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "WA Costing (batch)",
+            "name": "WA Costing (batch)",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_node_GIVWaBatch",
               "type": "search-node",
               "data": {
                 "table_id": {
-                  "source": "Item Batch Balance:Table:1902718803880558594",
+                  "source": "Weighted Average Costing History:Table:1902948453171433474",
                   "rules": {
-                    "collectionId": "1902718803880558594",
+                    "collectionId": "1902948453171433474",
                     "list": [
                       {
-                        "id": 1773373339477,
-                        "parentId": 1773373339478,
+                        "id": 1773900000001,
+                        "parentId": 1773900000000,
                         "isTop": true,
-                        "prop": "",
+                        "type": "branch",
                         "operator": "all",
+                        "prop": "",
                         "valueType": "",
                         "value": "",
-                        "type": "branch",
                         "level": 1,
                         "children": [
                           {
-                            "id": 1773373339479,
-                            "parentId": 1773373339477,
+                            "id": 1773900000002,
+                            "parentId": 1773900000001,
                             "isTop": false,
-                            "prop": "material_id",
+                            "type": "leaf",
                             "operator": "numberEqual",
+                            "prop": "material_id",
                             "valueType": "field",
                             "value": "{{workflowparams:material_id}}",
-                            "type": "leaf",
                             "level": 2,
                             "propLabel": "Item Code",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
                           {
-                            "id": 1773373339480,
-                            "parentId": 1773373339477,
+                            "id": 1773900000003,
+                            "parentId": 1773900000001,
                             "isTop": false,
-                            "prop": "organization_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{workflowparams:organization_id}}",
                             "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Organization",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1773373339479,
-                            "parentId": 1773373339477,
-                            "isTop": false,
+                            "operator": "equal",
                             "prop": "plant_id",
-                            "operator": "numberEqual",
                             "valueType": "field",
                             "value": "{{workflowparams:plant_id}}",
-                            "type": "leaf",
                             "level": 2,
                             "propLabel": "Plant ID",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
                           {
-                            "id": 1773373339481,
-                            "parentId": 1773373339477,
+                            "id": 1773900000004,
+                            "parentId": 1773900000001,
                             "isTop": false,
-                            "prop": "location_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{workflowparams:location_id}}",
                             "type": "leaf",
+                            "operator": "equal",
+                            "prop": "organization_id",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
                             "level": 2,
-                            "propLabel": "Location ID",
+                            "propLabel": "Organization",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
                           {
-                            "id": 1773373339482,
-                            "parentId": 1773373339477,
+                            "id": 1773900000005,
+                            "parentId": 1773900000001,
                             "isTop": false,
+                            "type": "leaf",
+                            "operator": "numberEqual",
                             "prop": "batch_id",
-                            "operator": "equal",
                             "valueType": "field",
                             "value": "{{workflowparams:batch_id}}",
-                            "type": "leaf",
                             "level": 2,
-                            "propLabel": "Batch ID",
+                            "propLabel": "Batch Number",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           }
@@ -407,93 +697,106 @@
                 },
                 "condition": {},
                 "limit": 100,
-                "title": "Get Item Batch Balance",
+                "title": "Get WA Costing (batch)",
                 "isValidator": true,
-                "nodeName": "Get Item Batch Balance",
-                "name": "Get Item Batch Balance"
+                "nodeName": "Get WA Costing (batch)",
+                "name": "Get WA Costing (batch)"
               },
               "blocks": []
             }
           ]
         },
         {
-          "id": "if_block_26xo7ItO",
-          "type": "ifBlock",
-          "data": { "title": "false" },
+          "id": "condition_all_item_GIVWaNoBatch",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "WA Costing (non batch)",
+            "filter": {
+              "list": [
+                {
+                  "id": 1773900000211,
+                  "parentId": 1773900000210,
+                  "isTop": true,
+                  "prop": "workflowparams.batch_id",
+                  "operator": "isNull",
+                  "valueType": "value",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "Batch ID",
+                  "valueLabel": "",
+                  "operatorLabel": "Is Null"
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "WA Costing (non batch)",
+            "name": "WA Costing (non batch)",
+            "condition_type": "ConditionRule"
+          },
           "blocks": [
             {
-              "id": "search_node_mb8Vv8fZ",
+              "id": "search_node_GIVWaNoBatch",
               "type": "search-node",
               "data": {
                 "table_id": {
-                  "source": "Item Balance:Table:1902698977724317697",
+                  "source": "Weighted Average Costing History:Table:1902948453171433474",
                   "rules": {
-                    "collectionId": "1902698977724317697",
+                    "collectionId": "1902948453171433474",
                     "list": [
                       {
-                        "id": 1773373498535,
-                        "parentId": 1773373498536,
+                        "id": 1773900000001,
+                        "parentId": 1773900000000,
                         "isTop": true,
-                        "prop": "",
+                        "type": "branch",
                         "operator": "all",
+                        "prop": "",
                         "valueType": "",
                         "value": "",
-                        "type": "branch",
                         "level": 1,
                         "children": [
                           {
-                            "id": 1773373534649,
-                            "parentId": 1773373498535,
+                            "id": 1773900000002,
+                            "parentId": 1773900000001,
                             "isTop": false,
-                            "prop": "material_id",
+                            "type": "leaf",
                             "operator": "numberEqual",
+                            "prop": "material_id",
                             "valueType": "field",
                             "value": "{{workflowparams:material_id}}",
-                            "type": "leaf",
                             "level": 2,
                             "propLabel": "Item Code",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
                           {
-                            "id": 1773373498537,
-                            "parentId": 1773373498535,
+                            "id": 1773900000003,
+                            "parentId": 1773900000001,
                             "isTop": false,
+                            "type": "leaf",
+                            "operator": "equal",
                             "prop": "plant_id",
-                            "operator": "numberEqual",
                             "valueType": "field",
                             "value": "{{workflowparams:plant_id}}",
-                            "type": "leaf",
                             "level": 2,
                             "propLabel": "Plant ID",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           },
                           {
-                            "id": 1773373498538,
-                            "parentId": 1773373498535,
+                            "id": 1773900000004,
+                            "parentId": 1773900000001,
                             "isTop": false,
-                            "prop": "organization_id",
+                            "type": "leaf",
                             "operator": "equal",
+                            "prop": "organization_id",
                             "valueType": "field",
                             "value": "{{workflowparams:organization_id}}",
-                            "type": "leaf",
                             "level": 2,
                             "propLabel": "Organization",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1773373498539,
-                            "parentId": 1773373498535,
-                            "isTop": false,
-                            "prop": "location_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{workflowparams:location_id}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Location ID",
                             "valueLabel": "",
                             "operatorLabel": "Equal"
                           }
@@ -504,10 +807,10 @@
                 },
                 "condition": {},
                 "limit": 100,
-                "title": "Get Item Balance",
+                "title": "Get WA Costing (non batch)",
                 "isValidator": true,
-                "nodeName": "Get Item Balance",
-                "name": "Get Item Balance"
+                "nodeName": "Get WA Costing (non batch)",
+                "name": "Get WA Costing (non batch)"
               },
               "blocks": []
             }
@@ -528,7 +831,7 @@
         "name": "Check Inventory",
         "script": {
           "type": "javascript",
-          "code": "// Global Inventory Check (no allocation)\n\nconst material_id = {{workflowparams:material_id}};\nconst quantity = {{workflowparams:quantity}};\nconst plant_id = {{workflowparams:plant_id}};\nconst orderUomId = {{workflowparams:orderUomId}} || \"\";\nconst location_id = {{workflowparams:location_id}} || \"\";\nconst batch_id = {{workflowparams:batch_id}} || \"\";\nconst category = {{workflowparams:category}} || \"Unrestricted\";\nconst existingAllocationData = {{workflowparams:existingAllocationData}} || [];\nconst itemData = {{node:get_node_xgWUnZRj.data.data}};\n\n// Items flagged as no-stock-control always pass the check\nif (itemData.stock_control === 0) {\n  return {\n    code: \"200\",\n    message: \"Stock control disabled for this item\",\n    totalAvailable: 0,\n  };\n}\n\n// Map category name to balance column\nconst CATEGORY_FIELD_MAP = {\n  Unrestricted: \"unrestricted_qty\",\n  Reserved: \"reserved_qty\",\n  Blocked: \"block_qty\",\n  \"In Transit\": \"intransit_qty\",\n};\nconst qtyField = CATEGORY_FIELD_MAP[category];\nif (!qtyField) {\n  return {\n    code: \"400\",\n    message: `Invalid category: ${category}. Valid: ${Object.keys(CATEGORY_FIELD_MAP).join(\", \")}`,\n    totalAvailable: 0,\n  };\n}\n\n// UOM conversion: convert requested qty to base UOM for comparison\nlet conversionFactor = 1;\nif (orderUomId && Array.isArray(itemData.table_uom_conversion)) {\n  const uomConversion = itemData.table_uom_conversion.find(\n    (conv) => conv.alt_uom_id === orderUomId\n  );\n  if (uomConversion && uomConversion.base_qty) {\n    conversionFactor = parseFloat(uomConversion.base_qty);\n  }\n}\nconst baseQuantity = parseFloat((quantity * conversionFactor).toFixed(3));\n\n// Pick the right balance collection (already filtered by material/plant/org/location/batch in WHERE)\nconst balanceData =\n  itemData.item_batch_management === 1\n    ? ({{node:search_node_ARAmvXyd.data.data}} || [])\n    : ({{node:search_node_mb8Vv8fZ.data.data}} || []);\n\n// Sum stock for the requested category only\nlet totalAvailableBase = 0;\nfor (const b of balanceData) {\n  totalAvailableBase += parseFloat(b[qtyField]) || 0;\n}\n\n// Deduct any already-counted quantity from prior line checks (convert to base UOM)\nlet existingBase = 0;\nif (Array.isArray(existingAllocationData)) {\n  for (const existing of existingAllocationData) {\n    existingBase += (parseFloat(existing.quantity) || 0) * conversionFactor;\n  }\n}\nconst effectiveAvailableBase = Math.max(0, totalAvailableBase - existingBase);\n\n// Report totalAvailable in order UOM (matches caller's quantity frame)\nconst reverseFactor = conversionFactor !== 0 ? 1 / conversionFactor : 1;\nconst totalAvailable = parseFloat((effectiveAvailableBase * reverseFactor).toFixed(3));\n\nif (effectiveAvailableBase >= baseQuantity) {\n  return {\n    code: \"200\",\n    message: \"Sufficient stock\",\n    totalAvailable,\n  };\n}\n\nreturn {\n  code: \"400\",\n  message: `Insufficient stock for item ${itemData.material_code || material_id} (${category}). Available: ${totalAvailable}, Requested: ${quantity}`,\n  totalAvailable,\n};\n"
+          "code": "// Global Inventory Check (no allocation)\n\nconst material_id = {{workflowparams:material_id}};\nconst quantity = {{workflowparams:quantity}};\nconst plant_id = {{workflowparams:plant_id}};\nconst orderUomId = {{workflowparams:orderUomId}} || \"\";\nconst location_id = {{workflowparams:location_id}} || \"\";\nconst batch_id = {{workflowparams:batch_id}} || \"\";\nconst category = {{workflowparams:category}} || \"Unrestricted\";\nconst existingAllocationData = {{workflowparams:existingAllocationData}} || [];\nconst itemData = {{node:get_node_xgWUnZRj.data.data}};\n\n// Items flagged as no-stock-control always pass the check\nif (itemData.stock_control === 0) {\n  return {\n    code: \"200\",\n    message: \"Stock control disabled for this item\",\n    totalAvailable: 0,\n  };\n}\n\n// wa_costing_method is keyed by plant. A batch that changed plants without its\n// costing row makes SUBTRACT_INVENTORY throw at \"process WA Data\" -- after the\n// movement and both balance rows are already written, with no rollback. Reject the\n// line here, before the caller writes its header or touches any stock.\nif (itemData.material_costing_method === \"Weighted Average\") {\n  const waRows = batch_id\n    ? ({{node:search_node_GIVWaBatch.data.data}} || [])\n    : ({{node:search_node_GIVWaNoBatch.data.data}} || []);\n  if (waRows.length === 0) {\n    return {\n      code: \"400\",\n      message:\n        \"No Weighted Average costing record for item \" +\n        (itemData.material_code || material_id) +\n        \" at this plant\" + (batch_id ? \" (batch \" + batch_id + \")\" : \"\") +\n        \". The batch was most likely moved between plants without its costing\" +\n        \" record; create it for this plant before issuing this stock.\",\n      totalAvailable: 0,\n    };\n  }\n}\n\n// Map category name to balance column\nconst CATEGORY_FIELD_MAP = {\n  Unrestricted: \"unrestricted_qty\",\n  Reserved: \"reserved_qty\",\n  Blocked: \"block_qty\",\n  \"In Transit\": \"intransit_qty\",\n};\nconst qtyField = CATEGORY_FIELD_MAP[category];\nif (!qtyField) {\n  return {\n    code: \"400\",\n    message: `Invalid category: ${category}. Valid: ${Object.keys(CATEGORY_FIELD_MAP).join(\", \")}`,\n    totalAvailable: 0,\n  };\n}\n\n// UOM conversion: convert requested qty to base UOM for comparison\nlet conversionFactor = 1;\nif (orderUomId && Array.isArray(itemData.table_uom_conversion)) {\n  const uomConversion = itemData.table_uom_conversion.find(\n    (conv) => conv.alt_uom_id === orderUomId\n  );\n  if (uomConversion && uomConversion.base_qty) {\n    conversionFactor = parseFloat(uomConversion.base_qty);\n  }\n}\nconst baseQuantity = parseFloat((quantity * conversionFactor).toFixed(3));\n\n// Pick the right balance collection (already filtered by material/plant/org/location/batch in WHERE)\nconst balanceData =\n  itemData.item_batch_management === 1\n    ? ({{node:search_node_ARAmvXyd.data.data}} || [])\n    : ({{node:search_node_mb8Vv8fZ.data.data}} || []);\n\n// Sum stock for the requested category only\nlet totalAvailableBase = 0;\nfor (const b of balanceData) {\n  totalAvailableBase += parseFloat(b[qtyField]) || 0;\n}\n\n// Deduct any already-counted quantity from prior line checks (convert to base UOM)\nlet existingBase = 0;\nif (Array.isArray(existingAllocationData)) {\n  for (const existing of existingAllocationData) {\n    existingBase += (parseFloat(existing.quantity) || 0) * conversionFactor;\n  }\n}\nconst effectiveAvailableBase = Math.max(0, totalAvailableBase - existingBase);\n\n// Report totalAvailable in order UOM (matches caller's quantity frame)\nconst reverseFactor = conversionFactor !== 0 ? 1 / conversionFactor : 1;\nconst totalAvailable = parseFloat((effectiveAvailableBase * reverseFactor).toFixed(3));\n\nif (effectiveAvailableBase >= baseQuantity) {\n  return {\n    code: \"200\",\n    message: \"Sufficient stock\",\n    totalAvailable,\n  };\n}\n\nreturn {\n  code: \"400\",\n  message: `Insufficient stock for item ${itemData.material_code || material_id} (${category}). Available: ${totalAvailable}, Requested: ${quantity}`,\n  totalAvailable,\n};\n"
         },
         "response_json": [
           {
@@ -607,7 +910,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
