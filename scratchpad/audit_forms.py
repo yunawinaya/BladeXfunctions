@@ -36,6 +36,19 @@ def walk2(nodes):
                 if v: bound.add(v)
                 elif x.get("type") == "button": empty_btn.append((x.get("model"), k))
         o = x.get("options", {}) or {}
+        # List-page CRUD buttons bind their handlers under customProps, not events.
+        # viewBtn/editBtn/addBtn reference a func_* key the platform auto-wires and
+        # that never exists in eventScript, so only `custom` actions are checked.
+        cprops = o.get("customProps") or {}
+        for grp in ("rowActions", "toolbar", "batchActions"):
+            for a in cprops.get(grp) or []:
+                for e in (a.get("events") or []):
+                    if not e.get("key"):
+                        continue
+                    if a.get("type") == "custom":
+                        bound.add(e["key"])
+                    elif e["key"] in {s["key"] for s in d["config"]["eventScript"]}:
+                        bound.add(e["key"])
         for k in ("list", "columns", "children", "tableColumns", "tabs"):
             if isinstance(x.get(k), list): walk2(x[k])
         for k in ("list", "columns", "tabs"):

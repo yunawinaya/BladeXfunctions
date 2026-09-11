@@ -4,38 +4,70 @@
 
 | Artefact | State |
 |---|---|
-| `BOMFullJSON.json` | repaired, **not deployed** |
-| `BOMsaveWorkflow.json` | new, **not deployed** — `BOMsave.js` holds a placeholder id |
-| `BOMlistPageJSON.json` | unchanged |
-| `ItemAssemblyFullJSON.json` | repaired + BOM explosion wired, **not deployed** |
+| `ItemAssemblyFullJSON.json` | **DEPLOYED dev v8** — all 26 handlers byte-identical, every structural change survived |
+| `BOMsaveWorkflow.json` | **DEPLOYED dev** as `BOM_SAVE` id `2098308362750185474`, enabled v3, identical to repo |
+| `BOMFullJSON.json` | repaired, **NOT enabled** — v68 sits in `designing`; dev still serves v67 |
+| `BOMlistPageJSON.json` | repaired (filters, columns, Delete), **not deployed** |
 
-Nothing here has been released. Dev still runs BOM form v66 (2025-12-26) and
-Item Assembly v7.
+The three new columns exist on dev: `sm_item_assembly_tlm8ve69_sub.requested_qty`
+`decimal(65,3)`, and `serial_number` / `material_id` on
+`sm_item_assembly_mw10kf66_sub`.
+
+**Outstanding:** enable the BOM form (v68 or a fresh paste — the repo copy has
+moved since, see below) and paste the list page.
 
 ## Deploy order
 
-1. **Add the three missing columns through the platform field editor** (below).
-   Pasting form JSON does not run the DDL that creates a physical column.
-2. Paste `BOMFullJSON.json` into the BOM form's `designing` copy, then enable.
-3. Paste `BOMsaveWorkflow.json` into a new workflow, enable it, then put its id
-   into `BOM_SAVE_WORKFLOW_ID` in `BOMsave.js`, re-run
-   `python3 scratchpad/patch_bom_form.py`, and re-paste the BOM form.
-4. Paste `ItemAssemblyFullJSON.json`, then enable.
+Steps 1, 2 and 4 are done. What remains:
 
-## Columns that need creating first
+1. ~~Create the three columns in the field editor~~ — done.
+2. ~~Deploy `BOMsaveWorkflow.json`~~ — done, `BOM_SAVE` `2098308362750185474`.
+   Its id is now wired into `BOMsave.js`, so **the BOM form must be re-pasted**:
+   the v68 currently in `designing` still carries the placeholder id and would
+   fail on every save.
+3. **Paste `BOMFullJSON.json` again and enable it.**
+4. ~~Deploy `ItemAssemblyFullJSON.json`~~ — done, v8.
+5. **Paste `BOMlistPageJSON.json` and enable it.**
 
-| Where | Field | Type | Physical table |
-|---|---|---|---|
-| `stock_movement` subform | `requested_qty` | number, precision 3, min 0, default 0 | `sm_item_assembly_tlm8ve69_sub` |
-| `sm_item_balance > table_item_balance` | `serial_number` | input | `sm_item_assembly_mw10kf66_sub` |
-| `sm_item_balance > table_item_balance` | `material_id` | input | `sm_item_assembly_mw10kf66_sub` |
+## Columns (done)
 
-Clone them from Misc Issue, which already has all three
-(`requested_qty` there is key `ctr4vwvd`, `decimal(65,3)`, `precision: 3`,
-`minimum: 0`, `defaultValue: 0`).
-
+`requested_qty` on `sm_item_assembly_tlm8ve69_sub`, plus `serial_number` and
+`material_id` on `sm_item_assembly_mw10kf66_sub`, all created on dev.
 `table_item_balance_raw`, `search_serial_number`, `confirm_search` and
-`reset_search` need **no** column — Misc Issue does not persist them either.
+`reset_search` are transient and need no column — Misc Issue does not persist
+them either.
+
+## The BOM list page
+
+It shipped with three defects, now fixed:
+
+- **No filters.** Added Material Code, Material Name and BOM Version. Int filters
+  (Active / Default) were *not* added — no list page in this repo filters an int
+  field, so there is no shape to copy; they are columns instead.
+- **A column bound to `bom_status`**, a field nothing writes, so it was always
+  blank. Removed. Added `is_active`, `parent_mat_is_default` and
+  `parent_mat_base_quantity`.
+- **The Delete row action pointed at handler `oh26x9gl`, which did not exist**, so
+  the button did nothing. `BOMlistDelete.js` now supplies it under that same key:
+  it blocks deletion when a production order references the BOM, confirms, then
+  soft-deletes the header **and its sub-material rows** — leaving children behind
+  is how the 40 orphan rows already in this table were created.
+
+`viewBtn` / `editBtn` / `addBtn` also reference `func_*` keys that are absent from
+`eventScript`; that is normal — the platform auto-wires those. Only `type: "custom"`
+actions need a real handler (confirmed against `PickingListPageFullJSON.json`,
+where all 7 custom buttons resolve).
+
+The existing `DELETE_BOM` workflow (`2005950986531250178`) was **not** wired: it
+operates on `bom_tree`, a different table.
+
+## Datasource filters on the BOM form
+
+Five remote selects shipped with an empty rule list, listing every row in every
+organization. Now scoped: `parent_material_category`, `parent_mat_base_uom`,
+`sub_material_category`, `sub_material_qty_uom` (organization), and `ref_bom_id`
+(organization + `is_active`). `sub_material_bom_version` is left unfiltered on
+purpose — it is deprecated and hidden.
 
 ## The two quantities on a BOM Components line
 
@@ -90,5 +122,9 @@ gone wrong.
     python3 scratchpad/audit_forms.py <form.json>    # dangling refs / orphans / bad model paths
     python3 scratchpad/validate.py "Item Assembly & BOM/BOMsaveWorkflow.json"
 
-`patch_ia_form.py` is not idempotent for the handler drops — it is written to run
-once against the pre-repair form. Re-run it only from a clean checkout.
+    python3 scratchpad/patch_bom_form_filters.py     # datasource scoping (idempotent)
+    python3 scratchpad/patch_bom_listpage.py         # list page filters/columns/Delete
+
+`patch_bom_form.py`, `patch_bom_form_filters.py` and `patch_bom_listpage.py` are
+idempotent. `patch_ia_form.py` is **not** — it drops handlers and clones
+components, so run it only against a clean pre-repair checkout.

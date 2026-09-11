@@ -44,11 +44,14 @@ def collect_component_keys(node, out):
             collect_component_keys(v, out)
 collect_component_keys(doc["list"], existing_keys)
 
+already = {k for k, _, _ in NEW_HANDLERS if k in by_key}
 for k, _, _ in NEW_HANDLERS:
-    if k in existing_keys:
-        sys.exit("minted key %r collides with an existing key" % k)
     if len(k) != 8:
         sys.exit("minted key %r must be 8 chars" % k)
+    # Re-runnable: a key already present as a handler is an earlier run of this
+    # script, not a collision. A collision with a COMPONENT key still aborts.
+    if k in existing_keys and k not in by_key:
+        sys.exit("minted key %r collides with a component key" % k)
 
 def read(rel):
     return open(os.path.join(MOD, rel)).read()
@@ -73,6 +76,10 @@ by_key["4rfxs5xg"]["rules"][0]["options"]["func"] = ""
 print("  emptied    4rfxs5xg (superseded by iky7wors)")
 
 for k, name, rel in NEW_HANDLERS:
+    if k in by_key:
+        by_key[k]["func"] = read(rel)
+        print("  re-mirrored %-9s %s" % (k, name))
+        continue
     es.append({"key": k, "name": name, "func": read(rel), "type": "js"})
     print("  added      %-10s %s" % (k, name))
 

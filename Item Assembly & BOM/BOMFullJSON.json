@@ -1144,15 +1144,57 @@
                         "collectionId": "1901981572257665025",
                         "list": [
                           {
-                            "id": 1723795236686,
-                            "parentId": 1723795236685,
+                            "id": 1789200000001,
+                            "parentId": 1789200000006,
                             "isTop": true,
+                            "type": "branch",
+                            "operator": "all",
                             "prop": "",
-                            "operator": "",
                             "valueType": "",
                             "value": "",
-                            "type": "leaf",
-                            "level": 1
+                            "level": 1,
+                            "children": [
+                              {
+                                "id": 1789200000002,
+                                "parentId": 1789200000003,
+                                "isTop": false,
+                                "type": "branch",
+                                "operator": "any",
+                                "level": 2,
+                                "children": [
+                                  {
+                                    "id": 1789200000004,
+                                    "parentId": 1789200000002,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{system:deptIds}}",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1789200000005,
+                                    "parentId": 1789200000002,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:deptParentId}}",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal",
+                                    "valueTypeLabel": "值"
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -1923,15 +1965,57 @@
                         "collectionId": "1901805375573839874",
                         "list": [
                           {
-                            "id": 1723795236686,
-                            "parentId": 1723795236685,
+                            "id": 1789200000007,
+                            "parentId": 1789200000012,
                             "isTop": true,
+                            "type": "branch",
+                            "operator": "all",
                             "prop": "",
-                            "operator": "",
                             "valueType": "",
                             "value": "",
-                            "type": "leaf",
-                            "level": 1
+                            "level": 1,
+                            "children": [
+                              {
+                                "id": 1789200000008,
+                                "parentId": 1789200000009,
+                                "isTop": false,
+                                "type": "branch",
+                                "operator": "any",
+                                "level": 2,
+                                "children": [
+                                  {
+                                    "id": 1789200000010,
+                                    "parentId": 1789200000008,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{system:deptIds}}",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1789200000011,
+                                    "parentId": 1789200000008,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:deptParentId}}",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal",
+                                    "valueTypeLabel": "值"
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -3758,15 +3842,72 @@
                     "collectionId": "1902195284188975106",
                     "list": [
                       {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
+                        "id": 1789200000025,
+                        "parentId": 1789200000031,
                         "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
                         "prop": "",
-                        "operator": "",
                         "valueType": "",
                         "value": "",
-                        "type": "leaf",
-                        "level": 1
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1789200000026,
+                            "parentId": 1789200000025,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal",
+                            "valueTypeLabel": "值"
+                          },
+                          {
+                            "id": 1789200000027,
+                            "parentId": 1789200000028,
+                            "isTop": false,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1789200000029,
+                                "parentId": 1789200000027,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{system:deptIds}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              },
+                              {
+                                "id": 1789200000030,
+                                "parentId": 1789200000027,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{global:deptParentId}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              }
+                            ]
+                          }
+                        ]
                       }
                     ]
                   },
@@ -3972,15 +4113,57 @@
                     "collectionId": "1901981572257665025",
                     "list": [
                       {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
+                        "id": 1789200000013,
+                        "parentId": 1789200000018,
                         "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
                         "prop": "",
-                        "operator": "",
                         "valueType": "",
                         "value": "",
-                        "type": "leaf",
-                        "level": 1
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1789200000014,
+                            "parentId": 1789200000015,
+                            "isTop": false,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1789200000016,
+                                "parentId": 1789200000014,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{system:deptIds}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              },
+                              {
+                                "id": 1789200000017,
+                                "parentId": 1789200000014,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{global:deptParentId}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              }
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -4266,15 +4449,57 @@
                     "collectionId": "1901805375573839874",
                     "list": [
                       {
-                        "id": 1723795236686,
-                        "parentId": 1723795236685,
+                        "id": 1789200000019,
+                        "parentId": 1789200000024,
                         "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
                         "prop": "",
-                        "operator": "",
                         "valueType": "",
                         "value": "",
-                        "type": "leaf",
-                        "level": 1
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1789200000020,
+                            "parentId": 1789200000021,
+                            "isTop": false,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1789200000022,
+                                "parentId": 1789200000020,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{system:deptIds}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              },
+                              {
+                                "id": 1789200000023,
+                                "parentId": 1789200000020,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{global:deptParentId}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              }
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -5100,7 +5325,7 @@
             "key": "avmr8seq",
             "action": "js",
             "options": {
-              "func": "// BOM_SAVE — the server-side save; see Item Assembly & BOM/BOMsaveWorkflow.json.\nconst BOM_SAVE_WORKFLOW_ID = \"REPLACE_WITH_BOM_SAVE_WORKFLOW_ID\";\n\nconst closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst findFieldMessage = (obj) => {\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\n(async () => {\n  try {\n    await this.validate();\n\n    this.showLoading(\"Saving Bill of Materials...\");\n\n    const rawData = this.getValues();\n    // default_dialog is the confirmation model, not a column on the table.\n    const { default_dialog, ...data } = rawData;\n    const pageStatus = data.page_status;\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      BOM_SAVE_WORKFLOW_ID,\n      { allData: data, pageStatus },\n      (res) => {\n        workflowResult = res;\n      },\n      (err) => {\n        workflowResult = err;\n      },\n    );\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    const code = workflowResult.data.code;\n    if (code && String(code) !== \"200\") {\n      this.hideLoading();\n      this.$message.error(\n        workflowResult.data.msg ||\n          workflowResult.data.message ||\n          \"Failed to save the Bill of Materials\",\n      );\n      return;\n    }\n\n    this.$message.success(\n      `${pageStatus === \"Edit\" ? \"Update\" : \"Add\"} successfully.`,\n    );\n    this.hideLoading();\n    closeDialog();\n  } catch (error) {\n    this.hideLoading();\n    console.error(error);\n\n    let errorMessage = \"\";\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n  }\n})();\n"
+              "func": "// BOM_SAVE — the server-side save; see Item Assembly & BOM/BOMsaveWorkflow.json.\nconst BOM_SAVE_WORKFLOW_ID = \"2098308362750185474\";\n\nconst closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst findFieldMessage = (obj) => {\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\n(async () => {\n  try {\n    await this.validate();\n\n    this.showLoading(\"Saving Bill of Materials...\");\n\n    const rawData = this.getValues();\n    // default_dialog is the confirmation model, not a column on the table.\n    const { default_dialog, ...data } = rawData;\n    const pageStatus = data.page_status;\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      BOM_SAVE_WORKFLOW_ID,\n      { allData: data, pageStatus },\n      (res) => {\n        workflowResult = res;\n      },\n      (err) => {\n        workflowResult = err;\n      },\n    );\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    const code = workflowResult.data.code;\n    if (code && String(code) !== \"200\") {\n      this.hideLoading();\n      this.$message.error(\n        workflowResult.data.msg ||\n          workflowResult.data.message ||\n          \"Failed to save the Bill of Materials\",\n      );\n      return;\n    }\n\n    this.$message.success(\n      `${pageStatus === \"Edit\" ? \"Update\" : \"Add\"} successfully.`,\n    );\n    this.hideLoading();\n    closeDialog();\n  } catch (error) {\n    this.hideLoading();\n    console.error(error);\n\n    let errorMessage = \"\";\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n  }\n})();\n"
             }
           }
         ]
