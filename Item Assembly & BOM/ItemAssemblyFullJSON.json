@@ -1485,7 +1485,7 @@
                       "options": {
                         "defaultValue": "",
                         "multiple": false,
-                        "disabled": "{{this.isEdit && this.getValue('stock_movement_status') === 'Created'}}",
+                        "disabled": "{{this.isEdit && this.getValue('item_assembly_status') === 'Created'}}",
                         "clearable": false,
                         "placeholder": "",
                         "required": false,
@@ -1959,7 +1959,7 @@
                 "desensitization_replace": ""
               },
               "events": {
-                "onChange": "",
+                "onChange": "iaqty01x",
                 "onFocus": "",
                 "onBlur": ""
               },
@@ -2350,7 +2350,7 @@
                 "patternCheck": false,
                 "patternMessage": "",
                 "validatorCheck": false,
-                "validator": "const page_status = this.getValue('page_status');\n\nif (page_status === 'View' || !value) {\n    callback();\n    return;\n}\n\nlet organizationId = this.getVarGlobal('deptParentId');\nif(organizationId === '0'){\n    organizationId = this.getVarSystem('deptIds').split(',')[0];\n}\n\ndb.collection(\"mc2_stock_movement\")\n    .where({ item_assembly_batch: value, organization_id: organizationId })\n    .get()\n    .then(response => {\n        const matchingItemAssembly = response.data || [];\n\n        if (matchingItemAssembly.length === 0) {\n            callback();\n            return;\n        }\n\n        if (page_status === 'Edit') {\n            const currentItemAssemblyId = this.getValue('id');\n            const isSamePO = matchingItemAssembly.some(item_assembly => item_assembly.id === currentItemAssemblyId);\n            callback(isSamePO ? undefined : 'Item assembly number already exists.');\n        } else {\n            callback('Item assembly number already exists.');\n        }\n    })\n    .catch(error => {\n        console.error(\"Error checking item assembly:\", error);\n        callback(\"Error validating item assembly number.\");\n    });",
+                "validator": "",
                 "placeholder": "",
                 "customClass": "",
                 "disabled": false,
@@ -2592,7 +2592,7 @@
                             "prop": "plant_id",
                             "operator": "numberEqual",
                             "valueType": "field",
-                            "value": "{{value:plant_id}}",
+                            "value": "{{value:issuing_operation_faci}}",
                             "type": "leaf",
                             "level": 2,
                             "propLabel": "Plant",
@@ -2735,7 +2735,7 @@
                             "prop": "plant_id",
                             "operator": "numberEqual",
                             "valueType": "field",
-                            "value": "{{value:plant_id}}",
+                            "value": "{{value:issuing_operation_faci}}",
                             "type": "leaf",
                             "level": 2,
                             "propLabel": "Plant",
@@ -3142,8 +3142,8 @@
                 "autoPaging": false,
                 "autoPageSize": 10,
                 "autoLoadDelay": 200,
-                "isAdd": true,
-                "isDelete": true,
+                "isAdd": false,
+                "isDelete": false,
                 "showControl": true,
                 "virtualTable": true,
                 "sortable": true,
@@ -3208,7 +3208,7 @@
                 "onChange": "",
                 "onRowAdd": "",
                 "onRowBatchAdd": "",
-                "onRowRemove": "mr6auqmc",
+                "onRowRemove": "",
                 "onPageChange": "",
                 "onRowImport": ""
               },
@@ -3304,7 +3304,7 @@
                                     "id": 1748536144194,
                                     "parentId": 1748536144195,
                                     "isTop": false,
-                                    "prop": "organization_id_1",
+                                    "prop": "organization_id",
                                     "operator": "equal",
                                     "valueType": "field",
                                     "value": "{{global:deptParentId}}",
@@ -3319,7 +3319,7 @@
                                     "id": 1748536144196,
                                     "parentId": 1748536144195,
                                     "isTop": false,
-                                    "prop": "organization_id_1",
+                                    "prop": "organization_id",
                                     "operator": "equal",
                                     "valueType": "field",
                                     "value": "{{system:deptIds}}",
@@ -3459,7 +3459,7 @@
                     "sorts": []
                   },
                   "events": {
-                    "onChange": "llytn27o"
+                    "onChange": ""
                   },
                   "type": "custom",
                   "novalid": {},
@@ -3632,6 +3632,64 @@
                   "novalid": {},
                   "key": "ke19t3c9",
                   "model": "transfer_stock",
+                  "rules": []
+                },
+                {
+                  "name": "Requested Quantity",
+                  "type": "number",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": true,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_ctr4vwvd",
+                    "remoteOption": "option_ctr4vwvd",
+                    "tableColumn": true,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "novalid": {},
+                  "key": "ctr4vwvd",
+                  "model": "requested_qty",
                   "rules": []
                 },
                 {
@@ -5617,6 +5675,60 @@
                   "key": "s1gga2kf",
                   "model": "row_index",
                   "rules": []
+                },
+                {
+                  "type": "textarea",
+                  "mainIcon": "多行文本",
+                  "typeIcon": "多行文本",
+                  "icon": "icon-diy-com-textarea",
+                  "group": "Text",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "disabled": true,
+                    "pattern": "",
+                    "patternMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "placeholder": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": true,
+                    "dataBind": false,
+                    "clearable": false,
+                    "maxlength": "",
+                    "showWordLimit": false,
+                    "rows": 2,
+                    "autosize": false,
+                    "customProps": {},
+                    "tip": "",
+                    "remoteFunc": "func_2bx2dlcx",
+                    "remoteOption": "option_2bx2dlcx",
+                    "tableColumn": false,
+                    "subform": false,
+                    "select-card_n7ge7fmb": ["dataBind"],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "select-card_4c8m22dh": []
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Raw Table",
+                  "novalid": {},
+                  "key": "2bx2dlcx",
+                  "model": "table_item_balance_raw",
+                  "rules": []
                 }
               ],
               "key": "55hjfwwa"
@@ -7075,6 +7187,240 @@
               "name": "loose",
               "list": [
                 {
+                  "type": "flex",
+                  "el": "su-fm-flex",
+                  "mainIcon": "自动布局",
+                  "typeIcon": "自动布局",
+                  "icon": "icon-zhediemianban",
+                  "group": "Design",
+                  "groupSort": 1,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "pagingEnabled": true,
+                    "customClass": "",
+                    "hidden": false,
+                    "recursive": false,
+                    "recursiveStyleFx": "",
+                    "slotTarget": "",
+                    "defaultValue": "",
+                    "flexDirection": "row",
+                    "flexWrap": "nowrap",
+                    "alignItems": "flex-start",
+                    "justifyContent": "flex-end",
+                    "hGap": "3px",
+                    "vGap": "",
+                    "grid": {
+                      "row": {
+                        "value": "",
+                        "visible": true
+                      },
+                      "col": {
+                        "value": "",
+                        "visible": true
+                      },
+                      "use": false
+                    },
+                    "padding": ["", "", "", ""],
+                    "margin": ["", "", "", ""],
+                    "boxSizing": "border-box",
+                    "width": "",
+                    "height": "",
+                    "radius": ["", "", "", ""],
+                    "position": "relative",
+                    "positions": ["", "", "", ""],
+                    "zIndex": "",
+                    "flex": "",
+                    "flexGrow": "",
+                    "flexShrink": "",
+                    "fills": [],
+                    "borders": [],
+                    "effects": [],
+                    "states": [],
+                    "hoverClass": "",
+                    "overflow": "",
+                    "styleFx": "",
+                    "behave": "",
+                    "remoteFunc": "func_a2xyamgv",
+                    "remoteOption": "option_a2xyamgv",
+                    "tableColumn": false,
+                    "subform": false,
+                    "datasource": {
+                      "rules": {
+                        "collectionId": "",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "options": [],
+                    "props": {
+                      "value": "",
+                      "label": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remote": false,
+                    "remoteType": "datasource",
+                    "auto_refresh": 0,
+                    "auto_refresh_debounce": 100,
+                    "limit_count": null
+                  },
+                  "list": [
+                    {
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "Search Serial Number",
+                        "customClass": "",
+                        "disabled": false,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": false,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_by338wqx",
+                        "remoteOption": "option_by338wqx",
+                        "tableColumn": false,
+                        "subform": false,
+                        "hideLabel": true,
+                        "select-card_n7ge7fmb": ["dataBind"],
+                        "left": 3,
+                        "right": 4,
+                        "pad": "*",
+                        "desensitization_pattern": "",
+                        "desensitization_replace": "",
+                        "select-card_4c8m22dh": []
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Search",
+                      "key": "by338wqx",
+                      "model": "search_serial_number",
+                      "rules": []
+                    },
+                    {
+                      "type": "button",
+                      "mainIcon": "按钮",
+                      "typeIcon": "按钮",
+                      "icon": "icon-button",
+                      "group": "Buttons",
+                      "groupSort": 0,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "customClass": "",
+                        "disabled": false,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hideLabel": true,
+                        "hidden": true,
+                        "buttonSize": "default",
+                        "buttonType": "primary",
+                        "buttonPlain": false,
+                        "buttonRound": false,
+                        "buttonCircle": false,
+                        "buttonName": "Confirm",
+                        "width": "",
+                        "customProps": {},
+                        "tip": "",
+                        "enabled": false,
+                        "remoteFunc": "func_atevsggp",
+                        "remoteOption": "option_atevsggp",
+                        "tableColumn": false,
+                        "subform": false
+                      },
+                      "events": {
+                        "onClick": "efnv3l7q"
+                      },
+                      "name": "",
+                      "key": "atevsggp",
+                      "model": "confirm_search",
+                      "rules": []
+                    },
+                    {
+                      "type": "button",
+                      "mainIcon": "按钮",
+                      "typeIcon": "按钮",
+                      "icon": "icon-button",
+                      "group": "Buttons",
+                      "groupSort": 0,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "customClass": "",
+                        "disabled": false,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hideLabel": true,
+                        "hidden": true,
+                        "buttonSize": "default",
+                        "buttonType": "danger",
+                        "buttonPlain": false,
+                        "buttonRound": false,
+                        "buttonCircle": false,
+                        "buttonName": "Reset",
+                        "width": "",
+                        "customProps": {},
+                        "tip": "",
+                        "enabled": false,
+                        "remoteFunc": "func_599dur3j",
+                        "remoteOption": "option_599dur3j",
+                        "tableColumn": false,
+                        "subform": false
+                      },
+                      "events": {
+                        "onClick": "vlxg4fno"
+                      },
+                      "name": "Button",
+                      "key": "599dur3j",
+                      "model": "reset_search",
+                      "rules": []
+                    }
+                  ],
+                  "events": {
+                    "onClick": ""
+                  },
+                  "name": "Flex",
+                  "key": "a2xyamgv",
+                  "model": "flex_a2xyamgv",
+                  "rules": []
+                },
+                {
                   "name": "Item Balance",
                   "type": "table",
                   "mainIcon": "子表单",
@@ -7309,6 +7655,109 @@
                       "novalid": {},
                       "key": "3dyl9zoe",
                       "model": "batch_id",
+                      "rules": []
+                    },
+                    {
+                      "name": "material",
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "多行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_jiryscj4",
+                        "remoteOption": "option_jiryscj4",
+                        "tableColumn": true,
+                        "subform": false,
+                        "hideLabel": false
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "novalid": {},
+                      "key": "petxeeq8",
+                      "model": "material_id",
+                      "rules": []
+                    },
+                    {
+                      "type": "input",
+                      "mainIcon": "单行文本",
+                      "typeIcon": "单行文本",
+                      "icon": "icon-input",
+                      "group": "Text",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "el": "fm-input",
+                      "options": {
+                        "width": "",
+                        "defaultValue": "",
+                        "required": false,
+                        "requiredMessage": "",
+                        "dataType": "",
+                        "dataTypeCheck": false,
+                        "dataTypeMessage": "",
+                        "pattern": "",
+                        "patternCheck": false,
+                        "patternMessage": "",
+                        "validatorCheck": false,
+                        "validator": "",
+                        "placeholder": "",
+                        "customClass": "",
+                        "disabled": true,
+                        "labelWidth": 100,
+                        "isLabelWidth": false,
+                        "hidden": true,
+                        "dataBind": true,
+                        "showPassword": false,
+                        "clearable": false,
+                        "maxlength": "",
+                        "showWordLimit": false,
+                        "customProps": {},
+                        "tip": "",
+                        "remoteFunc": "func_syqn8fvi",
+                        "remoteOption": "option_syqn8fvi",
+                        "tableColumn": true,
+                        "subform": false
+                      },
+                      "events": {
+                        "onChange": "",
+                        "onFocus": "",
+                        "onBlur": ""
+                      },
+                      "name": "Serial Number",
+                      "novalid": {},
+                      "key": "syqn8fvi",
+                      "model": "serial_number",
                       "rules": []
                     },
                     {
@@ -8279,7 +8728,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "// Helper functions\nconst showStatusHTML = (status) => {\n  switch (status) {\n    case \"Issued\":\n      this.display([\"issued_status\"]);\n      break;\n    case \"Completed\":\n      this.display([\"completed_status\"]);\n      break;\n    case \"Fully Posted\":\n      this.display([\"fullyposted_status\"]);\n      break;\n    default:\n      break;\n  }\n};\n\n// Main execution function\n(async () => {\n  try {\n    let pageStatus = \"\";\n\n    // Determine page status\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    // Get organization ID\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    this.setData({ page_status: pageStatus });\n    const status = await this.getValue(\"item_assembly_status\");\n    switch (pageStatus) {\n      case \"Add\":\n      case \"Clone\":\n        this.setData({\n          organization_id: organizationId,\n        });\n\n        this.display([\"issued_status\", \"button_completed\", \"comp_post_button\"]);\n\n        break;\n\n      case \"Edit\":\n        await showStatusHTML(status);\n\n        this.disabled(\n          [\n            \"item_id\",\n            \"item_desc\",\n            \"item_qty\",\n            \"item_assembly_date\",\n            \"batch_no\",\n            \"plant_id\",\n            \"remarks\",\n            \"reference_documents\",\n            \"assembly_batch_set\",\n            \"item_assembly_set\",\n            \"item_type\",\n            \"net_weight\",\n            \"gross_weight\",\n            \"udf_fabric\",\n          ],\n          true\n        );\n\n        if (status === \"Completed\") {\n          this.display(\"button_post\");\n          this.disabled([\"stock_movement\"], true);\n        } else this.display([\"button_completed\", \"comp_post_button\"]);\n\n        break;\n\n      case \"View\":\n        await showStatusHTML(status);\n\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n",
+        "func": "const showStatusHTML = (status) => {\n  const statusMap = {\n    Issued: \"issued_status\",\n    Completed: \"completed_status\",\n    \"Fully Posted\": \"fullyposted_status\",\n  };\n  if (statusMap[status]) {\n    this.display([statusMap[status]]);\n  }\n};\n\nconst EDIT_DISABLED_FIELDS = [\n  \"issuing_operation_faci\",\n  \"stock_movement_no\",\n  \"stock_movement_no_type\",\n  \"item_id\",\n  \"item_name\",\n  \"item_desc\",\n  \"item_qty\",\n  \"item_uom\",\n  \"issued_by\",\n  \"project_id\",\n  \"batch_no\",\n  \"manufacturing_date\",\n  \"expired_date\",\n  \"storage_location_id\",\n  \"location_id\",\n  \"item_assembly_date\",\n  \"reference_documents\",\n  \"net_weight\",\n  \"gross_weight\",\n  \"remarks\",\n];\n\n(async () => {\n  try {\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page state\");\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    this.setData({ page_status: pageStatus });\n    const status = this.getValue(\"item_assembly_status\");\n\n    switch (pageStatus) {\n      case \"Add\":\n      case \"Clone\":\n        this.setData({\n          organization_id: organizationId,\n          issued_by: this.getVarGlobal(\"nickname\"),\n          item_assembly_date: new Date().toISOString().split(\"T\")[0],\n        });\n        this.display([\"issued_status\", \"button_completed\", \"comp_post_button\"]);\n        break;\n\n      case \"Edit\":\n        showStatusHTML(status);\n        this.disabled(EDIT_DISABLED_FIELDS, true);\n\n        if (status === \"Completed\") {\n          this.display([\"button_post\"]);\n          this.disabled([\"stock_movement\"], true);\n        } else {\n          this.display([\"button_completed\", \"comp_post_button\"]);\n        }\n        break;\n\n      case \"View\":\n        showStatusHTML(status);\n        this.disabled(EDIT_DISABLED_FIELDS.concat([\"stock_movement\"]), true);\n        break;\n    }\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n\nsetTimeout(async () => {\n  if (!this.isAdd && !this.isCopy) return;\n\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"stock_movement_no_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n\n  const params = this.getComponent(\"stock_movement_no\");\n  const { options } = params;\n  const optionsData = this.getOptionData(\"stock_movement_no_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n\n  if (options?.canManualInput) {\n    if (!optionsData.some((option) => option.value === -9999)) {\n      this.setOptionData(\"stock_movement_no_type\", [\n        { label: \"Manual Input\", value: -9999 },\n        ...optionsData,\n      ]);\n    }\n    this.setData({\n      stock_movement_no_type: defaultData ? defaultData.value : -9999,\n    });\n  } else if (defaultData) {\n    this.setData({ stock_movement_no_type: defaultData.value });\n  }\n}, 200);\n",
         "type": "js",
         "rules": []
       },
@@ -8363,30 +8812,9 @@
         ]
       },
       {
-        "key": "mr6auqmc",
-        "name": "onRowRemove_SMtable",
-        "func": "(async () => {\n  setTimeout(async () => {\n    const tableSM = await this.getValue(\"stock_movement_1\");\n    const movementType = await this.getValue(\"movement_type\");\n    console.log(\"tableSM\", tableSM);\n    tableSM.forEach((sm, index) => {\n      if (\n        movementType === \"Miscellaneous Receipt\" &&\n        sm.is_serialized_item === 1\n      ) {\n        this.disabled(`stock_movement_1.${index}.select_serial_number`, false);\n        this.disabled(`stock_movement_1.${index}.received_quantity`, true);\n      } else {\n        this.disabled(`stock_movement_1.${index}.select_serial_number`, true);\n        this.disabled(`stock_movement_1.${index}.received_quantity`, false);\n      }\n    });\n  }, 100);\n})();\n",
-        "type": "js"
-      },
-      {
-        "key": "llytn27o",
-        "name": "onAfterUpdate_item",
-        "func": "const handleUOM = async (itemData, rowIndex) => {\n  const altUoms = itemData.table_uom_conversion?.map((data) => data.alt_uom_id);\n\n  const uomPromises = altUoms.map((uomId) =>\n    db.collection(\"unit_of_measurement\").where({ id: uomId }).get(),\n  );\n  const uomResults = await Promise.all(uomPromises);\n  const uomOptions = uomResults.map((res) => res.data[0]).filter(Boolean);\n\n  this.setOptionData([`stock_movement_1.${rowIndex}.quantity_uom`], uomOptions);\n\n  this.setData({\n    [`stock_movement_1.${rowIndex}.uom_options`]: uomOptions,\n  });\n};\n\n(async () => {\n  const rowIndex = arguments[0].rowIndex;\n  console.log(\"arguments[0]\", arguments[0]);\n  if (arguments[0].value) {\n    const itemData = arguments[0]?.fieldModel?.item;\n\n    if (itemData) {\n      await handleUOM(itemData, rowIndex);\n\n      this.setData({\n        [`stock_movement_1.${rowIndex}.stock_summary`]: \"\",\n        [`stock_movement_1.${rowIndex}.item_name_1`]: itemData.material_name,\n        [`stock_movement_1.${rowIndex}.item_desc_1`]: itemData.material_desc,\n        [`stock_movement_1.${rowIndex}.quantity_uom`]: itemData.based_uom,\n        [`stock_movement_1.${rowIndex}.unit_price`]:\n          itemData.table_uom_conversion.find(\n            (data) => data.alt_uom_id === itemData.based_uom,\n          )?.purchase_unit_price || 0,\n        // Clear prior item's stock picks so the dialog opens fresh for the new item\n        [`stock_movement_1.${rowIndex}.requested_qty`]: 0,\n        [`stock_movement_1.${rowIndex}.total_quantity`]: 0,\n        [`stock_movement_1.${rowIndex}.balance_id`]: \"\",\n        [`stock_movement_1.${rowIndex}.temp_qty_data`]: \"\",\n        [`stock_movement_1.${rowIndex}.temp_hu_data`]: \"\",\n      });\n    } else {\n      const tableSM = this.getValue(\"stock_movement_1\");\n      for (const [idx, sm] of tableSM.entries()) {\n        this.setOptionData(\n          [`stock_movement_1.${idx}.quantity_uom`],\n          sm.uom_options,\n        );\n      }\n    }\n  } else {\n    this.setData({\n      [`stock_movement_1.${rowIndex}.requested_qty`]: 0,\n      [`stock_movement_1.${rowIndex}.total_quantity`]: 0,\n      [`stock_movement_1.${rowIndex}.quantity_uom`]: \"\",\n      [`stock_movement_1.${rowIndex}.stock_summary`]: \"\",\n      [`stock_movement_1.${rowIndex}.balance_id`]: \"\",\n      [`stock_movement_1.${rowIndex}.temp_qty_data`]: \"\",\n      [`stock_movement_1.${rowIndex}.temp_hu_data`]: \"\",\n      [`stock_movement_1.${rowIndex}.item_name_1`]: \"\",\n      [`stock_movement_1.${rowIndex}.item_desc_1`]: \"\",\n    });\n  }\n})();\n",
-        "type": "js",
-        "rules": [
-          {
-            "key": "w9mbkylr",
-            "action": "js",
-            "options": {
-              "func": ""
-            }
-          }
-        ]
-      },
-      {
         "key": "fgivan7v",
         "name": "onChange_Plant",
-        "func": "const resetFormData = () => {\n  this.setData({\n    receiving_operation_faci: \"\",\n    stock_movement: [],\n    delivery_method_text: \"\",\n    default_bin: \"\",\n    default_storage_location: \"\",\n  });\n};\n\n(async () => {\n  const plantID = arguments[0].value;\n  resetFormData();\n\n  if (plantID) {\n    this.disabled('stock_movement', false)\n    let defaultStorageLocationID = \"\";\n\n    const resStorageLocation = await db\n      .collection(\"storage_location\")\n      .where({\n        plant_id: plantID,\n        is_deleted: 0,\n        is_default: 1,\n        storage_status: 1,\n        location_type: \"Common\",\n      })\n      .get();\n\n    if (resStorageLocation.data && resStorageLocation.data.length > 0) {\n      defaultStorageLocationID = resStorageLocation.data[0].id;\n      this.setData({\n        default_storage_location: defaultStorageLocationID,\n      });\n    }\n\n    if (defaultStorageLocationID && defaultStorageLocationID !== \"\") {\n      const resBinLocation = await db\n        .collection(\"bin_location\")\n        .where({\n          plant_id: plantID,\n          storage_location_id: defaultStorageLocationID,\n          is_deleted: 0,\n          is_default: 1,\n          bin_status: 1,\n        })\n        .get();\n\n      if (resBinLocation.data && resBinLocation.data.length > 0) {\n        this.setData({\n          default_bin: resBinLocation.data[0].id,\n        });\n      }\n    }\n  }\n})();\n",
+        "func": "(async () => {\n  try {\n    const plantID = arguments[0].value;\n\n    this.setData({\n      storage_location_id: \"\",\n      location_id: \"\",\n      stock_movement: [],\n    });\n\n    if (!plantID) return;\n\n    const resStorageLocation = await db\n      .collection(\"storage_location\")\n      .where({\n        plant_id: plantID,\n        is_deleted: 0,\n        is_default: 1,\n        storage_status: 1,\n        location_type: \"Common\",\n      })\n      .get();\n\n    const defaultStorageLocationID = resStorageLocation.data?.[0]?.id;\n    if (!defaultStorageLocationID) return;\n\n    this.setData({ storage_location_id: defaultStorageLocationID });\n\n    const resBinLocation = await db\n      .collection(\"bin_location\")\n      .where({\n        plant_id: plantID,\n        storage_location_id: defaultStorageLocationID,\n        is_deleted: 0,\n        is_default: 1,\n        bin_status: 1,\n      })\n      .get();\n\n    if (resBinLocation.data?.[0]?.id) {\n      this.setData({ location_id: resBinLocation.data[0].id });\n    }\n  } catch (error) {\n    console.error(\"Error loading plant defaults:\", error);\n    this.$message.error(error.message || \"Failed to load the plant defaults\");\n  }\n})();\n",
         "type": "js",
         "rules": []
       },
@@ -8410,19 +8838,19 @@
       {
         "key": "5y8a2wfi",
         "name": "onConfirm_Stock",
-        "func": "(async () => {\n  console.log(\"test\");\n  const allData = this.getValues();\n  console.log(\"allData\", allData);\n  const temporaryData = allData.sm_item_balance.table_item_balance;\n  const huData = allData.sm_item_balance.table_hu || [];\n  const rowIndex = allData.sm_item_balance.row_index;\n  const quantityUOM = allData.stock_movement[rowIndex].quantity_uom;\n  const selectedUOM = allData.sm_item_balance.material_uom;\n\n  let isValid = true;\n\n  // const allValid = temporaryData.every((item, idx) => {\n  //   console.log('window.validationState', window.validationState)\n  //   const valid =\n  //     window.validationState && window.validationState[idx] !== false;\n  //   return valid;\n  // });\n\n  // if (!allValid) {\n  //   console.log('allValid', allValid)\n  //   return;\n  // }\n\n  const gdUOM = await db\n    .collection(\"unit_of_measurement\")\n    .where({ id: quantityUOM })\n    .get()\n    .then((res) => res.data[0]?.uom_name || \"\");\n\n  const materialId = allData.stock_movement[rowIndex].item_selection;\n  let itemData = null;\n  try {\n    const itemResponse = await db\n      .collection(\"Item\")\n      .where({ id: materialId })\n      .get();\n    itemData = itemResponse.data[0];\n  } catch (error) {\n    console.error(\"Error fetching item data:\", error);\n  }\n\n  let processedTemporaryData = temporaryData;\n  let processedHuData = huData;\n\n  if (selectedUOM !== quantityUOM && itemData) {\n    const tableUOMConversion = itemData.table_uom_conversion;\n    const baseUOM = itemData.based_uom;\n\n    const convertQuantityFromTo = (\n      value,\n      table_uom_conversion,\n      fromUOM,\n      toUOM,\n      baseUOM,\n    ) => {\n      if (!value || fromUOM === toUOM) return value;\n\n      let baseQty = value;\n      if (fromUOM !== baseUOM) {\n        const fromConversion = table_uom_conversion.find(\n          (conv) => conv.alt_uom_id === fromUOM,\n        );\n        if (fromConversion && fromConversion.base_qty) {\n          baseQty = value * fromConversion.base_qty;\n        }\n      }\n\n      if (toUOM !== baseUOM) {\n        const toConversion = table_uom_conversion.find(\n          (conv) => conv.alt_uom_id === toUOM,\n        );\n        if (toConversion && toConversion.base_qty) {\n          return Math.round((baseQty / toConversion.base_qty) * 1000) / 1000;\n        }\n      }\n\n      return baseQty;\n    };\n\n    const balanceFields = [\n      \"block_qty\",\n      \"reserved_qty\",\n      \"unrestricted_qty\",\n      \"qualityinsp_qty\",\n      \"intransit_qty\",\n      \"balance_quantity\",\n      \"sm_quantity_1\",\n    ];\n\n    processedTemporaryData = temporaryData.map((record) => {\n      const convertedRecord = { ...record };\n      balanceFields.forEach((field) => {\n        if (convertedRecord[field]) {\n          convertedRecord[field] = convertQuantityFromTo(\n            convertedRecord[field],\n            tableUOMConversion,\n            selectedUOM,\n            quantityUOM,\n            baseUOM,\n          );\n        }\n      });\n      return convertedRecord;\n    });\n\n    processedHuData = huData.map((record) => {\n      if (record.row_type !== \"item\") return { ...record };\n      const convertedRecord = { ...record };\n      [\"item_quantity\", \"sm_quantity_1\"].forEach((field) => {\n        if (convertedRecord[field]) {\n          convertedRecord[field] = convertQuantityFromTo(\n            convertedRecord[field],\n            tableUOMConversion,\n            selectedUOM,\n            quantityUOM,\n            baseUOM,\n          );\n        }\n      });\n      return convertedRecord;\n    });\n  }\n\n  // HU items the user actually wants to sm\n  const filteredHuData = processedHuData.filter(\n    (item) => item.row_type === \"item\" && parseFloat(item.sm_quantity_1 || 0) > 0,\n  );\n\n  // Validate HU rows: sm_quantity_1 must not exceed available item_quantity.\n  // HU items are always treated as Unrestricted, so no category check applies.\n  for (const huItem of filteredHuData) {\n    const smQty = parseFloat(huItem.sm_quantity_1 || 0);\n    const availableQty = parseFloat(huItem.item_quantity || 0);\n    if (smQty > availableQty) {\n      const huHeader = huData.find(\n        (row) =>\n          row.row_type === \"header\" &&\n          row.handling_unit_id === huItem.handling_unit_id,\n      );\n      const huName = huHeader?.handling_no || huItem.handling_unit_id;\n      this.setData({\n        error_message: `HU ${huName}: sm quantity (${smQty}) exceeds available (${availableQty}).`,\n      });\n      isValid = false;\n      break;\n    }\n  }\n  if (!isValid) return;\n\n  const totalSmQuantity = processedTemporaryData\n    .filter((item) => (item.sm_quantity_1 || 0) > 0)\n    .reduce((sum, item) => {\n      const category_type = item.category ?? item.category_from;\n      const quantity = item.sm_quantity_1 || 0;\n\n      if (quantity > 0) {\n        let selectedField;\n\n        switch (category_type) {\n          case \"Unrestricted\":\n            selectedField = item.unrestricted_qty;\n            break;\n          case \"Reserved\":\n            selectedField = item.reserved_qty;\n            break;\n          case \"Quality Inspection\":\n            selectedField = item.qualityinsp_qty;\n            break;\n          case \"Blocked\":\n            selectedField = item.block_qty;\n            break;\n          case \"In Transit\":\n            selectedField = item.intransit_qty;\n            break;\n          default:\n            this.setData({ error_message: \"Invalid category type\" });\n            isValid = false;\n            return sum;\n        }\n\n        if (selectedField < quantity) {\n          this.setData({\n            error_message: `Quantity in ${category_type} is not enough.`,\n          });\n          isValid = false;\n          return sum;\n        }\n      }\n\n      return sum + quantity;\n    }, 0);\n\n  if (!isValid) return;\n\n  const totalHuQuantity = filteredHuData.reduce(\n    (sum, item) => sum + parseFloat(item.sm_quantity_1 || 0),\n    0,\n  );\n  const totalCombined = totalSmQuantity + totalHuQuantity;\n\n  this.setData({\n    [`stock_movement.${rowIndex}.total_quantity`]: totalCombined,\n  });\n\n  const rowsToUpdate = processedTemporaryData.filter(\n    (item) => (item.sm_quantity_1 || 0) > 0,\n  );\n\n  // HU items in balance-shape; category always \"Unrestricted\" for HU items.\n  const huAsBalanceRowsBase = filteredHuData.map((huItem) => ({\n    material_id_2: huItem.material_id_2,\n    location_id_2: huItem.location_id_2,\n    storage_location_id_1: huItem.storage_location_id_1 || null,\n    batch_id_1: huItem.batch_id_1 || null,\n    balance_id_1: huItem.balance_id_1 || \"\",\n    sm_quantity_1: parseFloat(huItem.sm_quantity_1) || 0,\n    category: \"Unrestricted\",\n    handling_unit_id: huItem.handling_unit_id,\n    plant_id: allData.issuing_operation_faci,\n    organization_id: allData.organization_id,\n    is_deleted: 0,\n    expired_date: huItem.expired_date || null,\n    manufacturing_date: huItem.manufacturing_date || null,\n  }));\n\n  // Cross-line serial dup check: scan other rows' persisted temp_qty_data,\n  // plus this row's new loose + HU entries.\n  const otherRowEntries = [];\n  (allData.stock_movement || []).forEach((line, idx) => {\n    if (String(idx) === String(rowIndex)) return;\n    if (!line.temp_qty_data) return;\n    try {\n      const parsed = JSON.parse(line.temp_qty_data);\n      if (Array.isArray(parsed)) otherRowEntries.push(...parsed);\n    } catch (e) {}\n  });\n\n  const serialLocationBatchMap = new Map();\n\n  [...otherRowEntries, ...rowsToUpdate, ...huAsBalanceRowsBase].forEach((entry) => {\n    if (entry.serial_number && entry.serial_number.trim() !== \"\") {\n      const serialNumber = entry.serial_number.trim();\n      const locationId = entry.location_id_2 || \"no-location\";\n      const batchId = entry.batch_id_1 || \"no-batch\";\n\n      const combinationKey = `${serialNumber}|${locationId}|${batchId}`;\n\n      if (!serialLocationBatchMap.has(combinationKey)) {\n        serialLocationBatchMap.set(combinationKey, []);\n      }\n\n      serialLocationBatchMap.get(combinationKey).push({\n        serialNumber: serialNumber,\n        locationId: locationId,\n        batchId: batchId,\n      });\n    }\n  });\n\n  const duplicates = [];\n  for (const [combinationKey, entries] of serialLocationBatchMap.entries()) {\n    if (entries.length > 1) {\n      duplicates.push({\n        combinationKey: combinationKey,\n        serialNumber: entries[0].serialNumber,\n      });\n    }\n  }\n\n  if (duplicates.length > 0) {\n    const duplicateMessages = duplicates\n      .map((dup) => `• Serial Number \"${dup.serialNumber}\".`)\n      .join(\"\\n\");\n\n    this.$message.error(\n      `Duplicate serial numbers detected in the same location/batch combination:\\n\\n${duplicateMessages}\\n\\nThe same serial number cannot be allocated multiple times to the same location and batch. Please remove the duplicates and try again.`,\n    );\n    return;\n  }\n\n  const formatLooseDetails = async (filteredData) => {\n    const locationIds = [\n      ...new Set(filteredData.map((item) => item.location_id_2)),\n    ];\n\n    const batchIds = [\n      ...new Set(\n        filteredData\n          .map((item) => item.batch_id_1)\n          .filter((batchId) => batchId != null && batchId !== \"\"),\n      ),\n    ];\n\n    const locationPromises = locationIds.map(async (locationId) => {\n      try {\n        const resBinLocation = await db\n          .collection(\"bin_location\")\n          .where({ id: locationId })\n          .get();\n        return {\n          id: locationId,\n          name:\n            resBinLocation.data?.[0]?.bin_location_combine ||\n            `Location ID: ${locationId}`,\n        };\n      } catch (error) {\n        console.error(`Error fetching location ${locationId}:`, error);\n        return { id: locationId, name: `${locationId} (Error)` };\n      }\n    });\n\n    const batchPromises = batchIds.map(async (batchId) => {\n      try {\n        const resBatch = await db\n          .collection(\"batch\")\n          .where({ id: batchId })\n          .get();\n        return {\n          id: batchId,\n          name: resBatch.data?.[0]?.batch_number || `Batch ID: ${batchId}`,\n        };\n      } catch (error) {\n        console.error(`Error fetching batch ${batchId}:`, error);\n        return { id: batchId, name: `${batchId} (Error)` };\n      }\n    });\n\n    const [locations, batches] = await Promise.all([\n      Promise.all(locationPromises),\n      Promise.all(batchPromises),\n    ]);\n\n    const categoryMap = {\n      Blocked: \"BLK\",\n      Reserved: \"RES\",\n      Unrestricted: \"UNR\",\n      \"Quality Inspection\": \"QIP\",\n      \"In Transit\": \"INT\",\n    };\n\n    const locationMap = locations.reduce((map, loc) => {\n      map[loc.id] = loc.name;\n      return map;\n    }, {});\n\n    const batchMap = batches.reduce((map, batch) => {\n      map[batch.id] = batch.name;\n      return map;\n    }, {});\n\n    return filteredData\n      .map((item, index) => {\n        const locationName = locationMap[item.location_id_2] || item.location_id_2;\n        const qty = item.sm_quantity_1 || 0;\n        const category = item.category;\n        const categoryAbbr = categoryMap[category] || category || \"UNR\";\n\n        let itemDetail = `${\n          index + 1\n        }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr})`;\n\n        if (itemData?.serial_number_management === 1 && item.serial_number) {\n          itemDetail += `\\nSerial: ${item.serial_number}`;\n        }\n\n        if (item.batch_id_1) {\n          const batchName = batchMap[item.batch_id_1] || item.batch_id_1;\n          itemDetail += `\\n${\n            itemData?.serial_number_management === 1 ? \"Batch: \" : \"[\"\n          }${batchName}${itemData?.serial_number_management === 1 ? \"\" : \"]\"}`;\n        }\n\n        if (item.remarks && item.remarks.trim() !== \"\") {\n          itemDetail += `\\nRemarks: ${item.remarks}`;\n        }\n\n        return itemDetail;\n      })\n      .join(\"\\n\");\n  };\n\n  const formatHuDetails = async (filteredHuList) => {\n    const batchIds = [\n      ...new Set(\n        filteredHuList\n          .map((item) => item.batch_id_1)\n          .filter((batchId) => batchId != null && batchId !== \"\"),\n      ),\n    ];\n\n    const batchPromises = batchIds.map(async (batchId) => {\n      try {\n        const resBatch = await db\n          .collection(\"batch\")\n          .where({ id: batchId })\n          .get();\n        return {\n          id: batchId,\n          name: resBatch.data?.[0]?.batch_number || `Batch ID: ${batchId}`,\n        };\n      } catch (error) {\n        console.error(`Error fetching batch ${batchId}:`, error);\n        return { id: batchId, name: `${batchId} (Error)` };\n      }\n    });\n\n    const batches = await Promise.all(batchPromises);\n    const batchMap = batches.reduce((map, batch) => {\n      map[batch.id] = batch.name;\n      return map;\n    }, {});\n\n    return filteredHuList\n      .map((item, index) => {\n        const huHeader = huData.find(\n          (row) =>\n            row.row_type === \"header\" &&\n            row.handling_unit_id === item.handling_unit_id,\n        );\n        const huName = huHeader?.handling_no || item.handling_unit_id;\n        let detail = `${index + 1}. ${huName}: ${item.sm_quantity_1} ${gdUOM}`;\n        if (item.batch_id_1) {\n          const batchName = batchMap[item.batch_id_1] || item.batch_id_1;\n          detail += `\\n   [Batch: ${batchName}]`;\n        }\n        return detail;\n      })\n      .join(\"\\n\");\n  };\n\n  const filteredLoose = processedTemporaryData.filter(\n    (item) => (item.sm_quantity_1 || 0) > 0,\n  );\n  const looseDetails = await formatLooseDetails(filteredLoose);\n  const hasHu = filteredHuData.length > 0;\n  const hasLoose = filteredLoose.length > 0;\n\n  let formattedString;\n  if (hasHu && hasLoose) {\n    formattedString = `Total: ${totalCombined} ${gdUOM}\\n\\nLOOSE STOCK:\\n${looseDetails}\\n\\nHANDLING UNIT:\\n${await formatHuDetails(\n      filteredHuData,\n    )}`;\n  } else if (hasHu) {\n    formattedString = `Total: ${totalHuQuantity} ${gdUOM}\\n\\nHANDLING UNIT:\\n${await formatHuDetails(\n      filteredHuData,\n    )}`;\n  } else {\n    formattedString = `Total: ${totalSmQuantity} ${gdUOM}\\n\\nDETAILS:\\n${looseDetails}`;\n  }\n\n  // temp_qty_data carries loose + HU rows in balance shape; HU rows are\n  // distinguishable via handling_unit_id. temp_hu_data carries the raw HU table\n  // rows so the dialog can re-hydrate sm_quantity_1 on next open.\n  const cleanedLooseTempData = processedTemporaryData\n    .filter((tempData) => tempData.sm_quantity_1 > 0)\n    .map((item) => {\n      const cleaned = { ...item };\n      if (cleaned.dialog_manufacturing_date !== undefined) {\n        cleaned.manufacturing_date = cleaned.dialog_manufacturing_date;\n        delete cleaned.dialog_manufacturing_date;\n      }\n      if (cleaned.dialog_expired_date !== undefined) {\n        cleaned.expired_date = cleaned.dialog_expired_date;\n        delete cleaned.dialog_expired_date;\n      }\n      return cleaned;\n    });\n\n  const combinedTempQty = [...cleanedLooseTempData, ...huAsBalanceRowsBase];\n\n  this.setData({\n    [`stock_movement.${rowIndex}.temp_qty_data`]:\n      JSON.stringify(combinedTempQty),\n    [`stock_movement.${rowIndex}.temp_hu_data`]: JSON.stringify(filteredHuData),\n    [`stock_movement.${rowIndex}.stock_summary`]: formattedString,\n  });\n\n  this.models[\"previous_material_uom\"] = undefined;\n  this.setData({ error_message: \"\" });\n  this.closeDialog(\"sm_item_balance\");\n})();\n",
+        "func": "(async () => {\n  console.log(\"test\");\n  const allData = this.getValues();\n  console.log(\"allData\", allData);\n  const temporaryData = allData.sm_item_balance.table_item_balance;\n  const huData = allData.sm_item_balance.table_hu || [];\n  const rowIndex = allData.sm_item_balance.row_index;\n  const quantityUOM = allData.stock_movement[rowIndex].quantity_uom;\n  const selectedUOM = allData.sm_item_balance.material_uom;\n\n  let isValid = true;\n\n  // const allValid = temporaryData.every((item, idx) => {\n  //   console.log('window.validationState', window.validationState)\n  //   const valid =\n  //     window.validationState && window.validationState[idx] !== false;\n  //   return valid;\n  // });\n\n  // if (!allValid) {\n  //   console.log('allValid', allValid)\n  //   return;\n  // }\n\n  const gdUOM = await db\n    .collection(\"unit_of_measurement\")\n    .where({ id: quantityUOM })\n    .get()\n    .then((res) => res.data[0]?.uom_name || \"\");\n\n  const materialId = allData.stock_movement[rowIndex].item_selection;\n  let itemData = null;\n  try {\n    const itemResponse = await db\n      .collection(\"Item\")\n      .field(\n        \"material_name,material_desc,based_uom,serial_number_management,item_batch_management,table_uom_conversion\",\n      )\n      .where({ id: materialId })\n      .get();\n    itemData = itemResponse.data[0];\n  } catch (error) {\n    console.error(\"Error fetching item data:\", error);\n  }\n\n  let processedTemporaryData = temporaryData;\n  let processedHuData = huData;\n\n  if (selectedUOM !== quantityUOM && itemData) {\n    const tableUOMConversion = itemData.table_uom_conversion;\n    const baseUOM = itemData.based_uom;\n\n    const convertQuantityFromTo = (\n      value,\n      table_uom_conversion,\n      fromUOM,\n      toUOM,\n      baseUOM,\n    ) => {\n      if (!value || fromUOM === toUOM) return value;\n\n      let baseQty = value;\n      if (fromUOM !== baseUOM) {\n        const fromConversion = table_uom_conversion.find(\n          (conv) => conv.alt_uom_id === fromUOM,\n        );\n        if (fromConversion && fromConversion.base_qty) {\n          baseQty = value * fromConversion.base_qty;\n        }\n      }\n\n      if (toUOM !== baseUOM) {\n        const toConversion = table_uom_conversion.find(\n          (conv) => conv.alt_uom_id === toUOM,\n        );\n        if (toConversion && toConversion.base_qty) {\n          return Math.round((baseQty / toConversion.base_qty) * 1000) / 1000;\n        }\n      }\n\n      return baseQty;\n    };\n\n    const balanceFields = [\n      \"block_qty\",\n      \"reserved_qty\",\n      \"unrestricted_qty\",\n      \"qualityinsp_qty\",\n      \"intransit_qty\",\n      \"balance_quantity\",\n      \"sm_quantity\",\n    ];\n\n    processedTemporaryData = temporaryData.map((record) => {\n      const convertedRecord = { ...record };\n      balanceFields.forEach((field) => {\n        if (convertedRecord[field]) {\n          convertedRecord[field] = convertQuantityFromTo(\n            convertedRecord[field],\n            tableUOMConversion,\n            selectedUOM,\n            quantityUOM,\n            baseUOM,\n          );\n        }\n      });\n      return convertedRecord;\n    });\n\n    processedHuData = huData.map((record) => {\n      if (record.row_type !== \"item\") return { ...record };\n      const convertedRecord = { ...record };\n      [\"item_quantity\", \"sm_quantity\"].forEach((field) => {\n        if (convertedRecord[field]) {\n          convertedRecord[field] = convertQuantityFromTo(\n            convertedRecord[field],\n            tableUOMConversion,\n            selectedUOM,\n            quantityUOM,\n            baseUOM,\n          );\n        }\n      });\n      return convertedRecord;\n    });\n  }\n\n  // HU items the user actually wants to sm\n  const filteredHuData = processedHuData.filter(\n    (item) => item.row_type === \"item\" && parseFloat(item.sm_quantity || 0) > 0,\n  );\n\n  // Validate HU rows: sm_quantity must not exceed available item_quantity.\n  // HU items are always treated as Unrestricted, so no category check applies.\n  for (const huItem of filteredHuData) {\n    const smQty = parseFloat(huItem.sm_quantity || 0);\n    const availableQty = parseFloat(huItem.item_quantity || 0);\n    if (smQty > availableQty) {\n      const huHeader = huData.find(\n        (row) =>\n          row.row_type === \"header\" &&\n          row.handling_unit_id === huItem.handling_unit_id,\n      );\n      const huName = huHeader?.handling_no || huItem.handling_unit_id;\n      this.$message.error(\n        `HU ${huName}: sm quantity (${smQty}) exceeds available (${availableQty}).`,\n      );\n      isValid = false;\n      break;\n    }\n  }\n  if (!isValid) return;\n\n  const totalSmQuantity = processedTemporaryData\n    .filter((item) => (item.sm_quantity || 0) > 0)\n    .reduce((sum, item) => {\n      const category_type = item.category ?? item.category_from;\n      const quantity = item.sm_quantity || 0;\n\n      if (quantity > 0) {\n        let selectedField;\n\n        switch (category_type) {\n          case \"Unrestricted\":\n            selectedField = item.unrestricted_qty;\n            break;\n          case \"Reserved\":\n            selectedField = item.reserved_qty;\n            break;\n          case \"Quality Inspection\":\n            selectedField = item.qualityinsp_qty;\n            break;\n          case \"Blocked\":\n            selectedField = item.block_qty;\n            break;\n          case \"In Transit\":\n            selectedField = item.intransit_qty;\n            break;\n          default:\n            this.$message.error(\"Invalid category type\");\n            isValid = false;\n            return sum;\n        }\n\n        if (selectedField < quantity) {\n          this.$message.error(\n            `Quantity in ${category_type} is not enough.`,\n          );\n          isValid = false;\n          return sum;\n        }\n      }\n\n      return sum + quantity;\n    }, 0);\n\n  if (!isValid) return;\n\n  const totalHuQuantity = filteredHuData.reduce(\n    (sum, item) => sum + parseFloat(item.sm_quantity || 0),\n    0,\n  );\n  const totalCombined = totalSmQuantity + totalHuQuantity;\n\n  this.setData({\n    [`stock_movement.${rowIndex}.total_quantity`]: totalCombined,\n  });\n\n  const rowsToUpdate = processedTemporaryData.filter(\n    (item) => (item.sm_quantity || 0) > 0,\n  );\n\n  // HU items in balance-shape; category always \"Unrestricted\" for HU items.\n  const huAsBalanceRowsBase = filteredHuData.map((huItem) => ({\n    material_id: huItem.material_id,\n    location_id: huItem.location_id,\n    storage_location_id: huItem.storage_location_id || null,\n    batch_id: huItem.batch_id || null,\n    balance_id: huItem.balance_id || \"\",\n    sm_quantity: parseFloat(huItem.sm_quantity) || 0,\n    category: \"Unrestricted\",\n    handling_unit_id: huItem.handling_unit_id,\n    plant_id: allData.issuing_operation_faci,\n    organization_id: allData.organization_id,\n    is_deleted: 0,\n    expired_date: huItem.expired_date || null,\n    manufacturing_date: huItem.manufacturing_date || null,\n  }));\n\n  // Cross-line serial dup check: scan other rows' persisted temp_qty_data,\n  // plus this row's new loose + HU entries.\n  const otherRowEntries = [];\n  (allData.stock_movement || []).forEach((line, idx) => {\n    if (String(idx) === String(rowIndex)) return;\n    if (!line.temp_qty_data) return;\n    try {\n      const parsed = JSON.parse(line.temp_qty_data);\n      if (Array.isArray(parsed)) otherRowEntries.push(...parsed);\n    } catch (e) {}\n  });\n\n  const serialLocationBatchMap = new Map();\n\n  [...otherRowEntries, ...rowsToUpdate, ...huAsBalanceRowsBase].forEach((entry) => {\n    if (entry.serial_number && entry.serial_number.trim() !== \"\") {\n      const serialNumber = entry.serial_number.trim();\n      const locationId = entry.location_id || \"no-location\";\n      const batchId = entry.batch_id || \"no-batch\";\n\n      const combinationKey = `${serialNumber}|${locationId}|${batchId}`;\n\n      if (!serialLocationBatchMap.has(combinationKey)) {\n        serialLocationBatchMap.set(combinationKey, []);\n      }\n\n      serialLocationBatchMap.get(combinationKey).push({\n        serialNumber: serialNumber,\n        locationId: locationId,\n        batchId: batchId,\n      });\n    }\n  });\n\n  const duplicates = [];\n  for (const [combinationKey, entries] of serialLocationBatchMap.entries()) {\n    if (entries.length > 1) {\n      duplicates.push({\n        combinationKey: combinationKey,\n        serialNumber: entries[0].serialNumber,\n      });\n    }\n  }\n\n  if (duplicates.length > 0) {\n    const duplicateMessages = duplicates\n      .map((dup) => `• Serial Number \"${dup.serialNumber}\".`)\n      .join(\"\\n\");\n\n    this.$message.error(\n      `Duplicate serial numbers detected in the same location/batch combination:\\n\\n${duplicateMessages}\\n\\nThe same serial number cannot be allocated multiple times to the same location and batch. Please remove the duplicates and try again.`,\n    );\n    return;\n  }\n\n  const formatLooseDetails = async (filteredData) => {\n    const locationIds = [\n      ...new Set(filteredData.map((item) => item.location_id)),\n    ];\n\n    const batchIds = [\n      ...new Set(\n        filteredData\n          .map((item) => item.batch_id)\n          .filter((batchId) => batchId != null && batchId !== \"\"),\n      ),\n    ];\n\n    const locationPromises = locationIds.map(async (locationId) => {\n      try {\n        const resBinLocation = await db\n          .collection(\"bin_location\")\n          .where({ id: locationId })\n          .get();\n        return {\n          id: locationId,\n          name:\n            resBinLocation.data?.[0]?.bin_location_combine ||\n            `Location ID: ${locationId}`,\n        };\n      } catch (error) {\n        console.error(`Error fetching location ${locationId}:`, error);\n        return { id: locationId, name: `${locationId} (Error)` };\n      }\n    });\n\n    const batchPromises = batchIds.map(async (batchId) => {\n      try {\n        const resBatch = await db\n          .collection(\"batch\")\n          .where({ id: batchId })\n          .get();\n        return {\n          id: batchId,\n          name: resBatch.data?.[0]?.batch_number || `Batch ID: ${batchId}`,\n        };\n      } catch (error) {\n        console.error(`Error fetching batch ${batchId}:`, error);\n        return { id: batchId, name: `${batchId} (Error)` };\n      }\n    });\n\n    const [locations, batches] = await Promise.all([\n      Promise.all(locationPromises),\n      Promise.all(batchPromises),\n    ]);\n\n    const categoryMap = {\n      Blocked: \"BLK\",\n      Reserved: \"RES\",\n      Unrestricted: \"UNR\",\n      \"Quality Inspection\": \"QIP\",\n      \"In Transit\": \"INT\",\n    };\n\n    const locationMap = locations.reduce((map, loc) => {\n      map[loc.id] = loc.name;\n      return map;\n    }, {});\n\n    const batchMap = batches.reduce((map, batch) => {\n      map[batch.id] = batch.name;\n      return map;\n    }, {});\n\n    return filteredData\n      .map((item, index) => {\n        const locationName = locationMap[item.location_id] || item.location_id;\n        const qty = item.sm_quantity || 0;\n        const category = item.category;\n        const categoryAbbr = categoryMap[category] || category || \"UNR\";\n\n        let itemDetail = `${\n          index + 1\n        }. ${locationName}: ${qty} ${gdUOM} (${categoryAbbr})`;\n\n        if (itemData?.serial_number_management === 1 && item.serial_number) {\n          itemDetail += `\\nSerial: ${item.serial_number}`;\n        }\n\n        if (item.batch_id) {\n          const batchName = batchMap[item.batch_id] || item.batch_id;\n          itemDetail += `\\n${\n            itemData?.serial_number_management === 1 ? \"Batch: \" : \"[\"\n          }${batchName}${itemData?.serial_number_management === 1 ? \"\" : \"]\"}`;\n        }\n\n        if (item.remarks && item.remarks.trim() !== \"\") {\n          itemDetail += `\\nRemarks: ${item.remarks}`;\n        }\n\n        return itemDetail;\n      })\n      .join(\"\\n\");\n  };\n\n  const formatHuDetails = async (filteredHuList) => {\n    const batchIds = [\n      ...new Set(\n        filteredHuList\n          .map((item) => item.batch_id)\n          .filter((batchId) => batchId != null && batchId !== \"\"),\n      ),\n    ];\n\n    const batchPromises = batchIds.map(async (batchId) => {\n      try {\n        const resBatch = await db\n          .collection(\"batch\")\n          .where({ id: batchId })\n          .get();\n        return {\n          id: batchId,\n          name: resBatch.data?.[0]?.batch_number || `Batch ID: ${batchId}`,\n        };\n      } catch (error) {\n        console.error(`Error fetching batch ${batchId}:`, error);\n        return { id: batchId, name: `${batchId} (Error)` };\n      }\n    });\n\n    const batches = await Promise.all(batchPromises);\n    const batchMap = batches.reduce((map, batch) => {\n      map[batch.id] = batch.name;\n      return map;\n    }, {});\n\n    return filteredHuList\n      .map((item, index) => {\n        const huHeader = huData.find(\n          (row) =>\n            row.row_type === \"header\" &&\n            row.handling_unit_id === item.handling_unit_id,\n        );\n        const huName = huHeader?.handling_no || item.handling_unit_id;\n        let detail = `${index + 1}. ${huName}: ${item.sm_quantity} ${gdUOM}`;\n        if (item.batch_id) {\n          const batchName = batchMap[item.batch_id] || item.batch_id;\n          detail += `\\n   [Batch: ${batchName}]`;\n        }\n        return detail;\n      })\n      .join(\"\\n\");\n  };\n\n  const filteredLoose = processedTemporaryData.filter(\n    (item) => (item.sm_quantity || 0) > 0,\n  );\n  const looseDetails = await formatLooseDetails(filteredLoose);\n  const hasHu = filteredHuData.length > 0;\n  const hasLoose = filteredLoose.length > 0;\n\n  let formattedString;\n  if (hasHu && hasLoose) {\n    formattedString = `Total: ${totalCombined} ${gdUOM}\\n\\nLOOSE STOCK:\\n${looseDetails}\\n\\nHANDLING UNIT:\\n${await formatHuDetails(\n      filteredHuData,\n    )}`;\n  } else if (hasHu) {\n    formattedString = `Total: ${totalHuQuantity} ${gdUOM}\\n\\nHANDLING UNIT:\\n${await formatHuDetails(\n      filteredHuData,\n    )}`;\n  } else {\n    formattedString = `Total: ${totalSmQuantity} ${gdUOM}\\n\\nDETAILS:\\n${looseDetails}`;\n  }\n\n  // temp_qty_data carries loose + HU rows in balance shape; HU rows are\n  // distinguishable via handling_unit_id. temp_hu_data carries the raw HU table\n  // rows so the dialog can re-hydrate sm_quantity on next open.\n  const cleanedLooseTempData = processedTemporaryData\n    .filter((tempData) => tempData.sm_quantity > 0)\n    .map((item) => {\n      const cleaned = { ...item };\n      if (cleaned.dialog_manufacturing_date !== undefined) {\n        cleaned.manufacturing_date = cleaned.dialog_manufacturing_date;\n        delete cleaned.dialog_manufacturing_date;\n      }\n      if (cleaned.dialog_expired_date !== undefined) {\n        cleaned.expired_date = cleaned.dialog_expired_date;\n        delete cleaned.dialog_expired_date;\n      }\n      return cleaned;\n    });\n\n  const combinedTempQty = [...cleanedLooseTempData, ...huAsBalanceRowsBase];\n\n  this.setData({\n    [`stock_movement.${rowIndex}.temp_qty_data`]:\n      JSON.stringify(combinedTempQty),\n    [`stock_movement.${rowIndex}.temp_hu_data`]: JSON.stringify(filteredHuData),\n    [`stock_movement.${rowIndex}.stock_summary`]: formattedString,\n  });\n\n  this.models[\"previous_material_uom\"] = undefined;\n  this.closeDialog(\"sm_item_balance\");\n})();\n",
         "type": "js"
       },
       {
         "key": "1yc5v4i4",
         "name": "onChange_dialogUOM",
-        "func": "(async () => {\n  const fetchItemData = async (itemId) => {\n    const itemData = await db.collection(\"Item\").where({ id: itemId }).get();\n    return itemData.data[0];\n  };\n\n  const allData = this.getValues();\n\n  const selectedUOM = arguments[0].value;\n  const rowIndex = allData.sm_item_balance.row_index;\n\n  console.log(\"DEBUG - UOM Change:\");\n  console.log(\"selectedUOM:\", selectedUOM);\n\n  const quantityUOM = allData.stock_movement[rowIndex].quantity_uom;\n  const itemId = allData.stock_movement[rowIndex].item_selection;\n  const itemData = await fetchItemData(itemId);\n  const tableUOMConversion = itemData.table_uom_conversion;\n  const tableItemBalance = allData.sm_item_balance.table_item_balance;\n\n  // Use stored current_table_uom if set, otherwise fall back to quantityUOM\n  // This tracks the actual current UOM state of the table data\n  const currentTableUOM =\n    allData.sm_item_balance.current_table_uom || quantityUOM;\n\n  console.log(\"quantityUOM:\", quantityUOM);\n  console.log(\"currentTableUOM:\", currentTableUOM);\n  console.log(\"itemData.based_uom:\", itemData.based_uom);\n  console.log(\"tableItemBalance length:\", tableItemBalance?.length);\n  console.log(\"tableUOMConversion:\", tableUOMConversion);\n\n  const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {\n    if (\n      !Array.isArray(table_uom_conversion) ||\n      table_uom_conversion.length === 0 ||\n      !uom\n    ) {\n      return baseQty;\n    }\n\n    const uomConversion = table_uom_conversion.find(\n      (conv) => conv.alt_uom_id === uom,\n    );\n\n    if (!uomConversion || !uomConversion.base_qty) {\n      return baseQty;\n    }\n\n    return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;\n  };\n\n  const convertQuantityFromTo = (\n    value,\n    table_uom_conversion,\n    fromUOM,\n    toUOM,\n    baseUOM,\n  ) => {\n    if (!value || fromUOM === toUOM) return value;\n\n    // First convert from current UOM back to base UOM\n    let baseQty = value;\n    if (fromUOM !== baseUOM) {\n      const fromConversion = table_uom_conversion.find(\n        (conv) => conv.alt_uom_id === fromUOM,\n      );\n      if (fromConversion && fromConversion.base_qty) {\n        baseQty = value * fromConversion.base_qty;\n      }\n    }\n\n    // Then convert from base UOM to target UOM\n    return convertBaseToAlt(baseQty, table_uom_conversion, toUOM);\n  };\n\n  // Only convert if the selected UOM is different from the current table UOM\n  if (currentTableUOM !== selectedUOM) {\n    console.log(\n      `UOMs are different, converting from ${currentTableUOM} to ${selectedUOM}`,\n    );\n\n    const quantityFields = [\n      \"block_qty\",\n      \"reserved_qty\",\n      \"unrestricted_qty\",\n      \"qualityinsp_qty\",\n      \"intransit_qty\",\n      \"balance_quantity\",\n      \"sm_quantity_1\",\n    ];\n\n    const updatedTableItemBalance = tableItemBalance.map((record, index) => {\n      const updatedRecord = { ...record };\n\n      console.log(`Processing record ${index}:`, record);\n\n      quantityFields.forEach((field) => {\n        if (updatedRecord[field]) {\n          const originalValue = updatedRecord[field];\n          updatedRecord[field] = convertQuantityFromTo(\n            updatedRecord[field],\n            tableUOMConversion,\n            currentTableUOM,\n            selectedUOM,\n            itemData.based_uom,\n          );\n          console.log(`${field}: ${originalValue} -> ${updatedRecord[field]}`);\n        }\n      });\n\n      return updatedRecord;\n    });\n\n    console.log(\"Final updatedTableItemBalance:\", updatedTableItemBalance);\n\n    await this.setData({\n      [`sm_item_balance.table_item_balance`]: updatedTableItemBalance,\n      [`sm_item_balance.current_table_uom`]: selectedUOM,\n    });\n\n    console.log(\n      `Updated table_item_balance quantities from ${currentTableUOM} to ${selectedUOM}`,\n    );\n  } else {\n    console.log(\"Table is already in selected UOM, no conversion needed\");\n  }\n})();\n",
+        "func": "(async () => {\n  const fetchItemData = async (itemId) => {\n    const itemData = await db.collection(\"Item\").where({ id: itemId }).get();\n    return itemData.data[0];\n  };\n\n  const allData = this.getValues();\n\n  const selectedUOM = arguments[0].value;\n  const rowIndex = allData.sm_item_balance.row_index;\n\n  console.log(\"DEBUG - UOM Change:\");\n  console.log(\"selectedUOM:\", selectedUOM);\n\n  const quantityUOM = allData.stock_movement[rowIndex].quantity_uom;\n  const itemId = allData.stock_movement[rowIndex].item_selection;\n  const itemData = await fetchItemData(itemId);\n  const tableUOMConversion = itemData.table_uom_conversion;\n  const tableItemBalance = allData.sm_item_balance.table_item_balance;\n\n  // Use stored current_table_uom if set, otherwise fall back to quantityUOM\n  // This tracks the actual current UOM state of the table data\n  const currentTableUOM =\n    allData.sm_item_balance.current_table_uom || quantityUOM;\n\n  console.log(\"quantityUOM:\", quantityUOM);\n  console.log(\"currentTableUOM:\", currentTableUOM);\n  console.log(\"itemData.based_uom:\", itemData.based_uom);\n  console.log(\"tableItemBalance length:\", tableItemBalance?.length);\n  console.log(\"tableUOMConversion:\", tableUOMConversion);\n\n  const convertBaseToAlt = (baseQty, table_uom_conversion, uom) => {\n    if (\n      !Array.isArray(table_uom_conversion) ||\n      table_uom_conversion.length === 0 ||\n      !uom\n    ) {\n      return baseQty;\n    }\n\n    const uomConversion = table_uom_conversion.find(\n      (conv) => conv.alt_uom_id === uom,\n    );\n\n    if (!uomConversion || !uomConversion.base_qty) {\n      return baseQty;\n    }\n\n    return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;\n  };\n\n  const convertQuantityFromTo = (\n    value,\n    table_uom_conversion,\n    fromUOM,\n    toUOM,\n    baseUOM,\n  ) => {\n    if (!value || fromUOM === toUOM) return value;\n\n    // First convert from current UOM back to base UOM\n    let baseQty = value;\n    if (fromUOM !== baseUOM) {\n      const fromConversion = table_uom_conversion.find(\n        (conv) => conv.alt_uom_id === fromUOM,\n      );\n      if (fromConversion && fromConversion.base_qty) {\n        baseQty = value * fromConversion.base_qty;\n      }\n    }\n\n    // Then convert from base UOM to target UOM\n    return convertBaseToAlt(baseQty, table_uom_conversion, toUOM);\n  };\n\n  // Only convert if the selected UOM is different from the current table UOM\n  if (currentTableUOM !== selectedUOM) {\n    console.log(\n      `UOMs are different, converting from ${currentTableUOM} to ${selectedUOM}`,\n    );\n\n    const quantityFields = [\n      \"block_qty\",\n      \"reserved_qty\",\n      \"unrestricted_qty\",\n      \"qualityinsp_qty\",\n      \"intransit_qty\",\n      \"balance_quantity\",\n      \"sm_quantity\",\n    ];\n\n    const updatedTableItemBalance = tableItemBalance.map((record, index) => {\n      const updatedRecord = { ...record };\n\n      console.log(`Processing record ${index}:`, record);\n\n      quantityFields.forEach((field) => {\n        if (updatedRecord[field]) {\n          const originalValue = updatedRecord[field];\n          updatedRecord[field] = convertQuantityFromTo(\n            updatedRecord[field],\n            tableUOMConversion,\n            currentTableUOM,\n            selectedUOM,\n            itemData.based_uom,\n          );\n          console.log(`${field}: ${originalValue} -> ${updatedRecord[field]}`);\n        }\n      });\n\n      return updatedRecord;\n    });\n\n    console.log(\"Final updatedTableItemBalance:\", updatedTableItemBalance);\n\n    await this.setData({\n      [`sm_item_balance.table_item_balance`]: updatedTableItemBalance,\n      [`sm_item_balance.current_table_uom`]: selectedUOM,\n    });\n\n    console.log(\n      `Updated table_item_balance quantities from ${currentTableUOM} to ${selectedUOM}`,\n    );\n  } else {\n    console.log(\"Table is already in selected UOM, no conversion needed\");\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "5ulwgpus",
         "name": "onChange_selectHU",
-        "func": "// onChange handler for hu_select checkbox on HU header rows in the LOT inventory dialog.\n// When checked (1): sets sm_quantity_1 = item_quantity for all item rows in this HU.\n// When unchecked (0): sets sm_quantity_1 = 0 for all item rows in this HU.\n// LOT enforces NO_SPLIT (whole-HU pick), so this is always active.\n\n(async () => {\n  const data = this.getValues();\n  const { rowIndex, value } = arguments[0];\n\n  const huTableData = data.sm_item_balance?.table_hu || [];\n  const currentRow = huTableData[rowIndex];\n\n  // Only header rows have hu_select\n  if (!currentRow || currentRow.row_type !== \"header\") return;\n\n  // Don't allow selection of disabled HUs (defensive — LOT skips reserved HUs at load)\n  if (currentRow.hu_disabled) {\n    this.setData({\n      [`sm_item_balance.table_hu.${rowIndex}.hu_select`]: 0,\n    });\n    return;\n  }\n\n  const isSelected = value === 1 || value === true;\n  const handlingUnitId = currentRow.handling_unit_id;\n\n  // Find all item rows belonging to this HU\n  const updates = {};\n  huTableData.forEach((row, idx) => {\n    if (row.row_type === \"item\" && row.handling_unit_id === handlingUnitId) {\n      if (isSelected) {\n        // Checked: set sm_quantity_1 to full item_quantity\n        updates[`sm_item_balance.table_hu.${idx}.sm_quantity_1`] =\n          parseFloat(row.item_quantity) || 0;\n      } else {\n        // Unchecked: reset sm_quantity_1 to 0\n        updates[`sm_item_balance.table_hu.${idx}.sm_quantity_1`] = 0;\n      }\n    }\n  });\n\n  if (Object.keys(updates).length > 0) {\n    this.setData(updates);\n  }\n})();\n",
+        "func": "// onChange handler for hu_select checkbox on HU header rows in the LOT inventory dialog.\n// When checked (1): sets sm_quantity = item_quantity for all item rows in this HU.\n// When unchecked (0): sets sm_quantity = 0 for all item rows in this HU.\n// LOT enforces NO_SPLIT (whole-HU pick), so this is always active.\n\n(async () => {\n  const data = this.getValues();\n  const { rowIndex, value } = arguments[0];\n\n  const huTableData = data.sm_item_balance?.table_hu || [];\n  const currentRow = huTableData[rowIndex];\n\n  // Only header rows have hu_select\n  if (!currentRow || currentRow.row_type !== \"header\") return;\n\n  // Don't allow selection of disabled HUs (defensive — LOT skips reserved HUs at load)\n  if (currentRow.hu_disabled) {\n    this.setData({\n      [`sm_item_balance.table_hu.${rowIndex}.hu_select`]: 0,\n    });\n    return;\n  }\n\n  const isSelected = value === 1 || value === true;\n  const handlingUnitId = currentRow.handling_unit_id;\n\n  // Find all item rows belonging to this HU\n  const updates = {};\n  huTableData.forEach((row, idx) => {\n    if (row.row_type === \"item\" && row.handling_unit_id === handlingUnitId) {\n      if (isSelected) {\n        // Checked: set sm_quantity to full item_quantity\n        updates[`sm_item_balance.table_hu.${idx}.sm_quantity`] =\n          parseFloat(row.item_quantity) || 0;\n      } else {\n        // Unchecked: reset sm_quantity to 0\n        updates[`sm_item_balance.table_hu.${idx}.sm_quantity`] = 0;\n      }\n    }\n  });\n\n  if (Object.keys(updates).length > 0) {\n    this.setData(updates);\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -8444,55 +8872,9 @@
         "type": "js"
       },
       {
-        "key": "gdmh7k1i",
-        "name": "onChange_categoryFrom",
-        "func": "(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const category_from = arguments[0].value;\n\n    const serialNumber = await this.getValue(\n      `sm_item_balance.table_item_balance.${rowIndex}.serial_number`\n    );\n\n    if (!serialNumber || serialNumber === \"\") {\n      return;\n    }\n\n    let tableItemBalanceRaw = JSON.parse(\n      await this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    tableItemBalanceRaw.forEach((item) => {\n      if (item.serial_number === serialNumber) {\n        item.category_from = category_from;\n      }\n    });\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_raw\":\n        JSON.stringify(tableItemBalanceRaw),\n    });\n\n        console.log(\"Table Raw Updated\")\n\n  } catch (error) {\n    console.error(\"Unexpected error in on change SN qty handler:\", error);\n  }\n})();\n",
-        "type": "js"
-      },
-      {
-        "key": "umqs4zz3",
-        "name": "onClick_CategoryFrom",
-        "func": "const allData = this.getValues();\nconst movementType = String(allData.movement_type || \"\");\nconst rowIndex = arguments[0]?.rowIndex;\nconst movementTypeCategories = {\n  \"Inter Operation Facility Transfer\": [\"Unrestricted\", \"Blocked\"],\n  \"Inter Operation Facility Transfer (Receiving)\": [\"Unrestricted\", \"Blocked\"],\n  \"Location Transfer\": [\"Unrestricted\", \"Blocked\"],\n  \"Miscellaneous Issue\": [\"Unrestricted\"],\n  \"Miscellaneous Receipt\": [\"Unrestricted\", \"Blocked\"],\n  \"Disposal/Scrap\": [\"Unrestricted\", \"Blocked\"],\n  \"Inventory Category Transfer Posting\": [\"Unrestricted\", \"Blocked\"],\n};\n\nconst fetchCategory = async () => {\n  try {\n    const categoryObjectResponse = await db\n      .collection(\"blade_dict\")\n      .where({ code: \"inventory_category\" })\n      .get();\n\n    // Filter categories based on movement type\n    const allowedCategories = movementTypeCategories[movementType] || [\n      \"Unrestricted\",\n    ];\n    const filteredCategories = categoryObjectResponse.data.filter((category) =>\n      allowedCategories.includes(category.dict_key)\n    );\n\n    // Conditionally set fields based on movement type\n    if (movementType === \"Inventory Category Transfer Posting\") {\n      this.setOptionData(\n        [\n          `sm_item_balance.table_item_balance.${rowIndex}.category_from`,\n          `sm_item_balance.table_item_balance.${rowIndex}.category_to`,\n        ],\n        filteredCategories\n      );\n    } else {\n      this.setOptionData(\n        [`sm_item_balance.table_item_balance.${rowIndex}.category`],\n        filteredCategories\n      );\n    }\n  } catch (error) {\n    console.error(\"Error fetching category:\", error);\n  }\n};\n\nfetchCategory();\n",
-        "type": "js",
-        "rules": [
-          {
-            "key": "4ebhog9j",
-            "action": "js",
-            "options": {
-              "func": "const allData = this.getValues();\nconst movementType = String(allData.movement_type || \"\");\nconst rowIndex = arguments[0]?.rowIndex;\nconst movementTypeCategories = {\n  \"Inter Operation Facility Transfer\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n  \"Inter Operation Facility Transfer (Receiving)\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n  \"Location Transfer\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n    \"Reserved\",\n  ],\n  \"Miscellaneous Issue\": [\"Unrestricted\"],\n  \"Miscellaneous Receipt\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n  \"Disposal/Scrap\": [\"Unrestricted\", \"Quality Inspection\", \"Blocked\"],\n  \"Inventory Category Transfer Posting\": [\n    \"Unrestricted\",\n    \"Quality Inspection\",\n    \"Blocked\",\n  ],\n};\n\nconst fetchCategory = async () => {\n  try {\n    const categoryObjectResponse = await db\n      .collection(\"inventory_category\")\n      .get();\n\n    // Filter categories based on movement type\n    const allowedCategories = movementTypeCategories[movementType] || [\n      \"Unrestricted\",\n    ];\n    const filteredCategories = categoryObjectResponse.data.filter((category) =>\n      allowedCategories.includes(category.inventory_category_name)\n    );\n\n    // Conditionally set fields based on movement type\n    if (movementType === \"Inventory Category Transfer Posting\") {\n      this.setOptionData(\n        [\n          `sm_item_balance.table_item_balance.${rowIndex}.category_from`,\n          `sm_item_balance.table_item_balance.${rowIndex}.category_to`,\n        ],\n        filteredCategories\n      );\n    } else {\n      this.setOptionData(\n        [`sm_item_balance.table_item_balance.${rowIndex}.category`],\n        filteredCategories\n      );\n    }\n  } catch (error) {\n    console.error(\"Error fetching category:\", error);\n  }\n};\n\nfetchCategory();\n"
-            }
-          },
-          {
-            "key": "ho452hxn",
-            "action": "refreshFieldOptionData",
-            "options": {
-              "condition": "",
-              "isCondition": false,
-              "field": "sm_item_balance.table_item_balance.category_to",
-              "valueTypes": {},
-              "dataSource": {
-                "args": {}
-              }
-            }
-          }
-        ]
-      },
-      {
-        "key": "dc23nkxc",
-        "name": "onChange_categoryTo",
-        "func": "(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const category_to = arguments[0].value;\n\n    const serialNumber = await this.getValue(\n      `sm_item_balance.table_item_balance.${rowIndex}.serial_number`\n    );\n\n    if (!serialNumber || serialNumber === \"\") {\n      return;\n    }\n\n    let tableItemBalanceRaw = JSON.parse(\n      await this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    tableItemBalanceRaw.forEach((item) => {\n      if (item.serial_number === serialNumber) {\n        item.category_to = category_to;\n      }\n    });\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_raw\":\n        JSON.stringify(tableItemBalanceRaw),\n    });\n\n        console.log(\"Table Raw Updated\")\n  } catch (error) {\n    console.error(\"Unexpected error in on change SN qty handler:\", error);\n  }\n})();\n",
-        "type": "js"
-      },
-      {
-        "key": "ana28wmu",
-        "name": "onClick_CategoryTo",
-        "func": "const allData = this.getValues();\nconst movementType = String(allData.movement_type || \"\");\nconst rowIndex = arguments[0]?.rowIndex;\nconst movementTypeCategories = {\n  \"Inter Operation Facility Transfer\": [\"Unrestricted\", \"Blocked\"],\n  \"Inter Operation Facility Transfer (Receiving)\": [\"Unrestricted\", \"Blocked\"],\n  \"Location Transfer\": [\"Unrestricted\", \"Blocked\"],\n  \"Miscellaneous Issue\": [\"Unrestricted\"],\n  \"Miscellaneous Receipt\": [\"Unrestricted\", \"Blocked\"],\n  \"Disposal/Scrap\": [\"Unrestricted\", \"Blocked\"],\n  \"Inventory Category Transfer Posting\": [\"Unrestricted\", \"Blocked\"],\n};\n\nconst fetchCategory = async () => {\n  try {\n    const categoryObjectResponse = await db\n      .collection(\"blade_dict\")\n      .where({ code: \"inventory_category\" })\n      .get();\n\n    // Filter categories based on movement type\n    const allowedCategories = movementTypeCategories[movementType] || [\n      \"Unrestricted\",\n    ];\n    const filteredCategories = categoryObjectResponse.data.filter((category) =>\n      allowedCategories.includes(category.dict_key)\n    );\n\n    // Conditionally set fields based on movement type\n    if (movementType === \"Inventory Category Transfer Posting\") {\n      this.setOptionData(\n        [\n          `sm_item_balance.table_item_balance.${rowIndex}.category_from`,\n          `sm_item_balance.table_item_balance.${rowIndex}.category_to`,\n        ],\n        filteredCategories\n      );\n    } else {\n      this.setOptionData(\n        [`sm_item_balance.table_item_balance.${rowIndex}.category`],\n        filteredCategories\n      );\n    }\n  } catch (error) {\n    console.error(\"Error fetching category:\", error);\n  }\n};\n\nfetchCategory();\n",
-        "type": "js"
-      },
-      {
         "key": "cxk2kor9",
         "name": "onChange_smQuantity",
-        "func": "(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const sm_quantity_1 = arguments[0].value;\n\n    const serialNumber = await this.getValue(\n      `sm_item_balance.table_item_balance.${rowIndex}.serial_number`\n    );\n\n    if (!serialNumber || serialNumber === \"\") {\n      return;\n    }\n\n    let tableItemBalanceRaw = JSON.parse(\n      await this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    tableItemBalanceRaw.forEach((item) => {\n      if (item.serial_number === serialNumber) {\n        item.sm_quantity_1 = sm_quantity_1;\n      }\n    });\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_raw\":\n        JSON.stringify(tableItemBalanceRaw),\n    });\n\n        console.log(\"Table Raw Updated\")\n  } catch (error) {\n    console.error(\"Unexpected error in on change SN qty handler:\", error);\n  }\n})();\n",
+        "func": "(async () => {\n  try {\n    const rowIndex = arguments[0].rowIndex;\n    const sm_quantity = arguments[0].value;\n\n    const serialNumber = await this.getValue(\n      `sm_item_balance.table_item_balance.${rowIndex}.serial_number`\n    );\n\n    if (!serialNumber || serialNumber === \"\") {\n      return;\n    }\n\n    let tableItemBalanceRaw = JSON.parse(\n      await this.getValue(\"sm_item_balance.table_item_balance_raw\")\n    );\n\n    tableItemBalanceRaw.forEach((item) => {\n      if (item.serial_number === serialNumber) {\n        item.sm_quantity = sm_quantity;\n      }\n    });\n\n    await this.setData({\n      \"sm_item_balance.table_item_balance_raw\":\n        JSON.stringify(tableItemBalanceRaw),\n    });\n\n        console.log(\"Table Raw Updated\")\n  } catch (error) {\n    console.error(\"Unexpected error in on change SN qty handler:\", error);\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -8505,6 +8887,18 @@
         "key": "26v09azx",
         "name": "onChange_26v09azx",
         "func": "const { value } = arguments[0];\nthis.setData({\n  stock_movement_no: ''\n});\nif(value === -9999) {\n   this.disabled('stock_movement_no', false)\n} else {\n   this.disabled('stock_movement_no', true)\n}",
+        "type": "js"
+      },
+      {
+        "key": "wv07g9xe",
+        "name": "onChange_assembledItem",
+        "func": "// Explodes the assembled item's BOM into the BOM Components table, then\n// auto-allocates loose stock against each component line.\n//\n// Fetch budget is fixed at 8 queries regardless of how many sub-materials the\n// BOM has: every lookup is batched across the whole component set.\n\nconst getOrganizationId = () => {\n  let organizationId = this.getVarGlobal(\"deptParentId\");\n  if (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  }\n  return organizationId;\n};\n\nconst clearComponents = () => {\n  this.setData({\n    item_name: \"\",\n    item_desc: \"\",\n    item_uom: \"\",\n    stock_movement: [],\n  });\n};\n\nconst fetchByIds = (collection, ids, fields) => {\n  let query = db.collection(collection);\n  if (fields) query = query.field(fields);\n  return query\n    .filter([\n      {\n        type: \"branch\",\n        operator: \"all\",\n        children: [\n          { prop: \"id\", operator: \"in\", value: ids },\n          { prop: \"is_deleted\", operator: \"equal\", value: 0 },\n        ],\n      },\n    ])\n    .get()\n    .catch((error) => {\n      console.error(`Error fetching ${collection}:`, error);\n      return { data: [] };\n    });\n};\n\nconst fetchBalances = (collection, materialIds, plantId, organizationId) =>\n  db\n    .collection(collection)\n    .filter([\n      {\n        type: \"branch\",\n        operator: \"all\",\n        children: [\n          { prop: \"material_id\", operator: \"in\", value: materialIds },\n          { prop: \"plant_id\", operator: \"equal\", value: plantId },\n          { prop: \"organization_id\", operator: \"equal\", value: organizationId },\n          { prop: \"is_deleted\", operator: \"equal\", value: 0 },\n        ],\n      },\n    ])\n    .get()\n    .catch((error) => {\n      console.error(`Error fetching ${collection}:`, error);\n      return { data: [] };\n    });\n\n// Loose availability, mirroring the rules the Transfer Stock dialog applies:\n// item_balance.unrestricted_qty is already net of Allocated loose reservations\n// (they bucket-shift to reserved_qty on save), so only HU-held stock has to be\n// deducted here to isolate what is genuinely loose.\nconst autoAllocate = async (rows, itemMap, plantId, organizationId) => {\n  const allocatable = rows.filter(\n    (row) => itemMap.get(row.item_selection)?.serial_number_management !== 1\n  );\n  if (allocatable.length === 0) return;\n\n  const batchIds = [];\n  const looseIds = [];\n  allocatable.forEach((row) => {\n    const item = itemMap.get(row.item_selection);\n    (item?.item_batch_management === 1 ? batchIds : looseIds).push(\n      row.item_selection\n    );\n  });\n  const allIds = allocatable.map((row) => row.item_selection);\n\n  const [looseRes, batchRes, huSubRes, reservationRes] = await Promise.all([\n    looseIds.length\n      ? fetchBalances(\"item_balance\", looseIds, plantId, organizationId)\n      : Promise.resolve({ data: [] }),\n    batchIds.length\n      ? fetchBalances(\"item_batch_balance\", batchIds, plantId, organizationId)\n      : Promise.resolve({ data: [] }),\n    db\n      .collection(\"handling_unit_atu7sreg_sub\")\n      .filter([\n        {\n          type: \"branch\",\n          operator: \"all\",\n          children: [\n            { prop: \"material_id\", operator: \"in\", value: allIds },\n            { prop: \"is_deleted\", operator: \"equal\", value: 0 },\n          ],\n        },\n      ])\n      .get()\n      .catch(() => ({ data: [] })),\n    db\n      .collection(\"on_reserved_gd\")\n      .filter([\n        {\n          type: \"branch\",\n          operator: \"all\",\n          children: [\n            { prop: \"material_id\", operator: \"in\", value: allIds },\n            { prop: \"plant_id\", operator: \"equal\", value: plantId },\n            { prop: \"organization_id\", operator: \"equal\", value: organizationId },\n            { prop: \"is_deleted\", operator: \"equal\", value: 0 },\n          ],\n        },\n      ])\n      .get()\n      .catch(() => ({ data: [] })),\n  ]);\n\n  const huIds = [\n    ...new Set(\n      (huSubRes.data || []).map((sub) => sub.handling_unit_id).filter(Boolean)\n    ),\n  ];\n  const huRes = huIds.length\n    ? await fetchByIds(\"handling_unit\", huIds)\n    : { data: [] };\n\n  // An Allocated reservation against an HU is logically Reserved, so that\n  // portion never sat in unrestricted_qty and must not be deducted twice.\n  const huReservedMap = new Map();\n  (reservationRes.data || [])\n    .filter(\n      (r) => parseFloat(r.open_qty || 0) > 0 && r.status === \"Allocated\"\n    )\n    .forEach((r) => {\n      if (!r.handling_unit_id) return;\n      const key = `${r.handling_unit_id}|${r.batch_id || \"\"}`;\n      huReservedMap.set(\n        key,\n        (huReservedMap.get(key) || 0) + parseFloat(r.open_qty || 0)\n      );\n    });\n\n  const huQtyMap = new Map();\n  (huRes.data || []).forEach((hu) => {\n    (hu.table_hu_items || [])\n      .filter((huItem) => huItem.is_deleted !== 1)\n      .forEach((huItem) => {\n        const locationId = huItem.location_id || hu.location_id;\n        const reservedKey = `${hu.id}|${huItem.batch_id || \"\"}`;\n        const qty = Math.max(\n          0,\n          (parseFloat(huItem.quantity) || 0) -\n            (huReservedMap.get(reservedKey) || 0)\n        );\n        if (qty <= 0) return;\n        const key = `${huItem.material_id}|${locationId}|${\n          huItem.batch_id || \"no_batch\"\n        }`;\n        huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);\n      });\n  });\n\n  const balancesByMaterial = new Map();\n  [...(looseRes.data || []), ...(batchRes.data || [])].forEach((balance) => {\n    const key = `${balance.material_id}|${balance.location_id}|${\n      balance.batch_id || \"no_batch\"\n    }`;\n    const available = Math.max(\n      0,\n      (parseFloat(balance.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0)\n    );\n    if (available <= 0) return;\n    const list = balancesByMaterial.get(String(balance.material_id)) || [];\n    list.push({ balance, available });\n    balancesByMaterial.set(String(balance.material_id), list);\n  });\n\n  // Oldest stock first, matching the dialog's stated suggestion order.\n  balancesByMaterial.forEach((list) =>\n    list.sort((a, b) =>\n      String(a.balance.create_time || \"\").localeCompare(\n        String(b.balance.create_time || \"\")\n      )\n    )\n  );\n\n  const updates = {};\n  const shortfalls = [];\n\n  rows.forEach((row, rowIndex) => {\n    const item = itemMap.get(row.item_selection);\n    if (!item || item.serial_number_management === 1) return;\n\n    let remaining = parseFloat(row.requested_qty) || 0;\n    if (remaining <= 0) return;\n\n    const picks = [];\n    const candidates = balancesByMaterial.get(String(row.item_selection)) || [];\n\n    for (const candidate of candidates) {\n      if (remaining <= 0) break;\n      if (candidate.available <= 0) continue;\n\n      const take = Math.min(candidate.available, remaining);\n      // Deduct in place so a second line for the same material cannot claim\n      // stock this line just took.\n      candidate.available -= take;\n      remaining = parseFloat((remaining - take).toFixed(3));\n\n      const balance = candidate.balance;\n      picks.push({\n        material_id: balance.material_id,\n        location_id: balance.location_id,\n        storage_location_id: balance.storage_location_id || null,\n        batch_id: balance.batch_id || null,\n        balance_id: balance.id,\n        sm_quantity: parseFloat(take.toFixed(3)),\n        category: \"Unrestricted\",\n        plant_id: plantId,\n        organization_id: organizationId,\n        is_deleted: 0,\n        expired_date: balance.expired_date || null,\n        manufacturing_date: balance.manufacturing_date || null,\n        unrestricted_qty: parseFloat(balance.unrestricted_qty) || 0,\n        balance_quantity: parseFloat(balance.balance_quantity) || 0,\n      });\n    }\n\n    const allocated = picks.reduce((sum, pick) => sum + pick.sm_quantity, 0);\n    const total = parseFloat(allocated.toFixed(3));\n\n    updates[`stock_movement.${rowIndex}.total_quantity`] = total;\n    updates[`stock_movement.${rowIndex}.temp_qty_data`] = picks.length\n      ? JSON.stringify(picks)\n      : \"\";\n    updates[`stock_movement.${rowIndex}.stock_summary`] = picks.length\n      ? `Total: ${total}\\n\\nDETAILS:\\n` +\n        picks\n          .map(\n            (pick, i) =>\n              `${i + 1}. Bin: ${pick.location_id}: ${pick.sm_quantity}` +\n              (pick.batch_id ? `\\n   [Batch: ${pick.batch_id}]` : \"\")\n          )\n          .join(\"\\n\")\n      : \"\";\n\n    if (remaining > 0) {\n      shortfalls.push(`${row.item_name || row.item_selection} (${remaining})`);\n    }\n  });\n\n  await this.setData(updates);\n\n  if (shortfalls.length > 0) {\n    this.$message.warning(\n      `Not enough loose stock for: ${shortfalls.join(\n        \", \"\n      )}. Open Transfer Stock on those lines to pick from handling units.`\n    );\n  }\n};\n\n(async () => {\n  try {\n    const { value, fieldModel } = arguments[0];\n\n    if (!value) {\n      clearComponents();\n      return;\n    }\n\n    const organizationId = getOrganizationId();\n    const allData = this.getValues();\n    const plantId = allData.issuing_operation_faci;\n\n    // triggerEvent (the item_qty re-scale path) supplies no fieldModel.\n    let parentItem = fieldModel?.item;\n    if (!parentItem) {\n      const parentRes = await fetchByIds(\n        \"item\",\n        [value],\n        \"material_name,material_desc,based_uom\"\n      );\n      parentItem = (parentRes.data || [])[0];\n    }\n\n    this.setData({\n      item_name: parentItem?.material_name || \"\",\n      item_desc: parentItem?.material_desc || \"\",\n      item_uom: parentItem?.based_uom || \"\",\n    });\n\n    const bomRes = await db\n      .collection(\"bill_of_materials\")\n      .where({\n        parent_material_code: value,\n        organization_id: organizationId,\n        is_deleted: 0,\n        is_active: 1,\n      })\n      .get();\n\n    const boms = bomRes.data || [];\n    if (boms.length === 0) {\n      this.setData({ stock_movement: [] });\n      this.$message.warning(\n        \"No active Bill of Materials found for this item. Create a BOM before assembling it.\"\n      );\n      return;\n    }\n\n    // Default version wins; otherwise the highest V-number.\n    const versionOf = (bom) => {\n      const match = /^V(\\d+)$/.exec(\n        String(bom.parent_mat_bom_version || \"\").trim()\n      );\n      return match ? parseInt(match[1], 10) : 0;\n    };\n    boms.sort((a, b) => {\n      const byDefault =\n        (b.parent_mat_is_default === 1 ? 1 : 0) -\n        (a.parent_mat_is_default === 1 ? 1 : 0);\n      return byDefault !== 0 ? byDefault : versionOf(b) - versionOf(a);\n    });\n    const bom = boms[0];\n\n    if (boms.length > 1 && bom.parent_mat_is_default !== 1) {\n      this.$message.info(\n        `Using BOM ${bom.parent_mat_bom_version}; ${boms.length} BOMs exist for this item and none is marked default.`\n      );\n    }\n\n    // REF lines are reference-only and are never consumed.\n    const subMaterials = (bom.subform_sub_material || []).filter(\n      (sub) => sub.bom_material_code && sub.consume_type !== \"REF\"\n    );\n\n    if (subMaterials.length === 0) {\n      this.setData({ stock_movement: [] });\n      this.$message.warning(\n        `BOM ${bom.parent_mat_bom_version} has no consumable sub materials.`\n      );\n      return;\n    }\n\n    const componentIds = [\n      ...new Set(subMaterials.map((sub) => sub.bom_material_code)),\n    ];\n\n    const itemsRes = await fetchByIds(\n      \"item\",\n      componentIds,\n      \"material_name,material_desc,based_uom,serial_number_management,item_batch_management,table_uom_conversion\"\n    );\n    const itemMap = new Map(\n      (itemsRes.data || []).map((item) => [item.id, item])\n    );\n\n    const uomIds = [\n      ...new Set(\n        subMaterials\n          .flatMap((sub) => {\n            const item = itemMap.get(sub.bom_material_code);\n            return [\n              sub.sub_material_qty_uom,\n              item?.based_uom,\n              ...(item?.table_uom_conversion || []).map(\n                (conv) => conv.alt_uom_id\n              ),\n            ];\n          })\n          .filter(Boolean)\n      ),\n    ];\n    const uomRes = uomIds.length\n      ? await fetchByIds(\"unit_of_measurement\", uomIds)\n      : { data: [] };\n    const uomMap = new Map((uomRes.data || []).map((uom) => [uom.id, uom]));\n\n    const itemQty = parseFloat(allData.item_qty) || 0;\n    const bomBaseQty = parseFloat(bom.parent_mat_base_quantity) || 0;\n\n    if (bomBaseQty <= 0) {\n      this.setData({ stock_movement: [] });\n      this.$message.error(\n        `BOM ${bom.parent_mat_bom_version} has a base quantity of 0 and cannot be scaled.`\n      );\n      return;\n    }\n\n    const rows = subMaterials.map((sub, index) => {\n      const item = itemMap.get(sub.bom_material_code);\n      const wastage = parseFloat(sub.sub_material_wastage) || 0;\n      let requestedQty = parseFloat(\n        (\n          (itemQty / bomBaseQty) *\n          (parseFloat(sub.sub_material_qty) || 0) *\n          (1 + wastage / 100)\n        ).toFixed(3)\n      );\n      // A serialized component cannot be issued in fractions.\n      if (item?.serial_number_management === 1) {\n        requestedQty = Math.ceil(requestedQty);\n      }\n\n      const rowUoms = [\n        sub.sub_material_qty_uom,\n        item?.based_uom,\n        ...(item?.table_uom_conversion || []).map((conv) => conv.alt_uom_id),\n      ]\n        .filter(Boolean)\n        .filter((id, i, arr) => arr.indexOf(id) === i)\n        .map((id) => uomMap.get(id))\n        .filter(Boolean);\n\n      return {\n        item_selection: sub.bom_material_code,\n        item_name: sub.sub_material_name || item?.material_name || \"\",\n        item_desc: sub.sub_material_desc || item?.material_desc || \"\",\n        requested_qty: requestedQty,\n        total_quantity: 0,\n        quantity_uom: sub.sub_material_qty_uom || item?.based_uom || \"\",\n        uom_options: JSON.stringify(rowUoms),\n        item_remark: sub.sub_material_remark || \"\",\n        organization_id: organizationId,\n        issuing_plant: plantId,\n        line_index: index + 1,\n        balance_id: \"\",\n        temp_qty_data: \"\",\n        temp_hu_data: \"\",\n        stock_summary: \"\",\n      };\n    });\n\n    await this.setData({ stock_movement: rows });\n\n    rows.forEach((row, rowIndex) => {\n      let options = [];\n      try {\n        options = JSON.parse(row.uom_options);\n      } catch (e) {}\n      this.setOptionData(\n        [`stock_movement.${rowIndex}.quantity_uom`],\n        options\n      );\n    });\n\n    if (!plantId) {\n      this.$message.warning(\n        \"Select a Plant to auto-allocate stock for these components.\"\n      );\n      return;\n    }\n\n    await autoAllocate(rows, itemMap, plantId, organizationId);\n  } catch (error) {\n    console.error(\"Error exploding the BOM:\", error);\n    this.$message.error(error.message || \"Failed to load the Bill of Materials\");\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "iaqty01x",
+        "name": "onChange_itemQty",
+        "func": "// Component quantities are derived from item_qty, so a change has to re-scale\n// them. Re-running the explosion keeps one copy of the formula.\nconst itemId = this.getValue(\"item_id\");\nif (itemId) {\n  this.triggerEvent(\"onChange_assembledItem\", { value: itemId });\n}\n",
         "type": "js"
       }
     ],

@@ -747,7 +747,7 @@
                     "hidden": false,
                     "disabled": false,
                     "dataBind": true,
-                    "required": false,
+                    "required": true,
                     "validator": "",
                     "hideLabel": false,
                     "pageSourceId": "1921600217086271489",
@@ -1010,7 +1010,7 @@
                     "desensitization_replace": ""
                   },
                   "events": {
-                    "onChange": "4rfxs5xg",
+                    "onChange": "",
                     "onFocus": "",
                     "onBlur": ""
                   },
@@ -1804,7 +1804,7 @@
                   "el": "fm-number",
                   "options": {
                     "width": "",
-                    "required": false,
+                    "required": true,
                     "requiredMessage": "",
                     "validatorCheck": false,
                     "validator": "",
@@ -3301,7 +3301,7 @@
                 "hidden": false,
                 "disabled": false,
                 "dataBind": true,
-                "required": false,
+                "required": true,
                 "validator": "",
                 "hideLabel": false,
                 "pageSourceId": "1921600217086271489",
@@ -3529,7 +3529,7 @@
               "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
-                "defaultValue": "",
+                "defaultValue": "standard",
                 "multiple": false,
                 "disabled": false,
                 "clearable": false,
@@ -3603,7 +3603,7 @@
               },
               "events": {
                 "onReady": "",
-                "onChange": "",
+                "onChange": "bomtype1",
                 "onFocus": "",
                 "onBlur": ""
               },
@@ -3623,7 +3623,7 @@
               "enableScopes": ["Component", "Table", "Page"],
               "el": "fm-select",
               "options": {
-                "defaultValue": "",
+                "defaultValue": "USE",
                 "multiple": false,
                 "disabled": false,
                 "clearable": false,
@@ -3719,7 +3719,7 @@
               "options": {
                 "defaultValue": "",
                 "multiple": false,
-                "disabled": false,
+                "disabled": true,
                 "clearable": false,
                 "placeholder": "",
                 "required": false,
@@ -3727,18 +3727,7 @@
                 "validatorCheck": false,
                 "validator": "",
                 "width": "",
-                "options": [
-                  {
-                    "value": "Add New",
-                    "label": "Add New",
-                    "explain": ""
-                  },
-                  {
-                    "value": "Reference BOM",
-                    "label": "Reference BOM",
-                    "explain": ""
-                  }
-                ],
+                "options": [],
                 "remote": true,
                 "remoteType": "innerdatasource",
                 "remoteOption": "option_72i88a2o",
@@ -4167,7 +4156,7 @@
               "el": "fm-number",
               "options": {
                 "width": "",
-                "required": false,
+                "required": true,
                 "requiredMessage": "",
                 "validatorCheck": false,
                 "validator": "",
@@ -4460,7 +4449,7 @@
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": false,
+                "hidden": true,
                 "dataBind": true,
                 "customProps": {},
                 "tip": "",
@@ -4954,7 +4943,7 @@
             "subform": false
           },
           "events": {
-            "onClick": ""
+            "onClick": "bomcncl1"
           },
           "key": "3xqjr9uc",
           "model": "button_cancel",
@@ -5026,7 +5015,7 @@
       {
         "key": "mounted",
         "name": "mounted",
-        "func": "// Helper functions\nconst showStatusHTML = (status) => {\n  switch (status) {\n    case 1:\n      this.display([\"active_status\"]);\n      break;\n    case 0:\n      this.display([\"inactive_status\"]);\n      break;\n    default:\n      this.display([\"inactive_status\"]);\n      break;\n  }\n};\n\n// Main execution function\n(async () => {\n  try {\n    let pageStatus = \"\";\n\n    // Determine page status using multiple methods for compatibility\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page status\");\n\n    // Set page status in data for reference\n    this.setData({ page_status: pageStatus });\n\n    if (pageStatus !== \"Add\") {\n      try {\n        const bomId = this.getValue(\"id\");\n\n        if (!bomId) {\n          throw new Error(\"Bill of Materials ID not found\");\n        }\n\n        // Fetch BOM data\n        const bomResponse = await db\n          .collection(\"bill_of_materials\")\n          .where({ id: bomId })\n          .get();\n\n        if (!bomResponse.data || bomResponse.data.length === 0) {\n          throw new Error(`Bill of Materials with ID ${bomId} not found`);\n        }\n\n        const bomData = bomResponse.data[0];\n        console.log(\"BOM data retrieved:\", bomData);\n\n        // Extract all necessary fields\n        const {\n          id,\n          subform_sub_material,\n          bom_remark,\n          is_active,\n          parent_mat_base_quantity,\n          parent_mat_bom_version,\n          parent_material_category,\n          parent_mat_is_default,\n          parent_material_code,\n          parent_material_name,\n          parent_material_desc,\n        } = bomData;\n\n        // Set data for all modes\n        await this.setData({\n          id,\n          subform_sub_material,\n          bom_remark,\n          is_active,\n          parent_mat_base_quantity,\n          parent_mat_bom_version,\n          parent_material_category,\n          parent_mat_is_default,\n          parent_material_code,\n          parent_material_name,\n          parent_material_desc,\n        });\n\n        // Show appropriate status UI\n        showStatusHTML(is_active);\n\n        // Always disable parent material code in Edit/View modes\n        this.disabled([\"parent_material_code\"], true);\n\n        // Handle View mode\n        if (pageStatus === \"View\") {\n          this.disabled(\n            [\n              \"subform_sub_material\",\n              \"subform_sub_material.sub_material_wastage\",\n              \"bom_remark\",\n              \"parent_mat_base_quantity\",\n              \"parent_mat_bom_version\",\n              \"parent_material_category\",\n              \"parent_mat_is_default\",\n              \"parent_material_code\",\n              \"parent_material_name\",\n              \"parent_material_desc\",\n              \"is_active\",\n            ],\n            true\n          );\n\n          this.hide([\"button_save\", \"button_cancel\"], true);\n\n          // Disable subform edit buttons if necessary\n          this.$nextTick(() => {\n            try {\n              const addButtons = document.querySelectorAll(\n                \".form-subform-action .el-button--primary\"\n              );\n              if (addButtons && addButtons.length > 0) {\n                addButtons.forEach((button) => {\n                  button.style.display = \"none\";\n                });\n              }\n            } catch (e) {\n              console.error(\"Error hiding subform buttons:\", e);\n            }\n          });\n        }\n      } catch (error) {\n        console.error(\"Error loading BOM data:\", error);\n        this.$message.error(\n          `Failed to load Bill of Materials data: ${error.message}`\n        );\n      }\n    } else {\n      this.setData({ is_active: 0 });\n      showStatusHTML(0);\n    }\n  } catch (error) {\n    console.error(\"Error in BOM mounted function:\", error);\n    this.$message.error(\"An error occurred while initializing the form\");\n  }\n})();\n\n\nsetTimeout(async()=> {\n  if(this.isAdd) {\n    const op = await this.onDropdownVisible('parent_mat_bom_version_type', true);\n    function getDefaultItem(arr) {\n      return arr?.find(item => item?.item?.item?.is_default === 1);\n    }\n    setTimeout(()=> {\n      const optionsData = this.getOptionData('parent_mat_bom_version_type') || [];\n      const data = getDefaultItem(optionsData);\n      if(data) {\n        this.setData({\n          'parent_mat_bom_version_type': data.value\n        });\n      }\n    }, 500)\n    \n  }\n}, 500)",
+        "func": "const showStatusHTML = (status) => {\n  if (status === 1) {\n    this.display([\"active_status\"]);\n  } else {\n    this.display([\"inactive_status\"]);\n  }\n};\n\nconst getOrganizationId = () => {\n  let organizationId = this.getVarGlobal(\"deptParentId\");\n  if (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  }\n  return organizationId;\n};\n\nconst HEADER_FIELDS = [\n  \"is_active\",\n  \"parent_material_code\",\n  \"parent_material_name\",\n  \"parent_material_desc\",\n  \"parent_material_category\",\n  \"parent_mat_is_default\",\n  \"parent_mat_bom_version\",\n  \"parent_mat_bom_version_type\",\n  \"parent_mat_base_quantity\",\n  \"parent_mat_base_uom\",\n  \"bom_remark\",\n];\n\nconst SUBFORM_COLUMNS = [\n  \"bom_material_code\",\n  \"bom_type\",\n  \"consume_type\",\n  \"ref_bom_id\",\n  \"sub_material_name\",\n  \"sub_material_desc\",\n  \"sub_material_category\",\n  \"process_category\",\n  \"sub_material_qty\",\n  \"sub_material_qty_uom\",\n  \"sub_material_wastage\",\n  \"sub_material_remark\",\n];\n\n// Each parent material carries its own V1, V2, V3... series, so the scan is\n// scoped to the material and the org rather than using a global counter.\nconst computeNextVersion = async (materialId, organizationId) => {\n  const res = await db\n    .collection(\"bill_of_materials\")\n    .where({\n      parent_material_code: materialId,\n      organization_id: organizationId,\n      is_deleted: 0,\n    })\n    .get();\n\n  const highest = (res.data || []).reduce((max, record) => {\n    const match = /^V(\\d+)$/.exec(\n      String(record.parent_mat_bom_version || \"\").trim()\n    );\n    return match ? Math.max(max, parseInt(match[1], 10)) : max;\n  }, 0);\n\n  return \"V\" + (highest + 1);\n};\n\n// ref_bom_id stores a raw BOM id, so without its options the select renders a\n// bare snowflake. Rehydrate one row at a time against the sub-material's BOMs.\nconst loadRefBomOptions = async (rowIndex, subMaterialId, organizationId) => {\n  if (!subMaterialId) return;\n\n  const res = await db\n    .collection(\"bill_of_materials\")\n    .where({\n      parent_material_code: subMaterialId,\n      organization_id: organizationId,\n      is_deleted: 0,\n      is_active: 1,\n    })\n    .get();\n\n  this.setOptionData(\n    `subform_sub_material.${rowIndex}.ref_bom_id`,\n    (res.data || []).map((record) => ({\n      id: record.id,\n      parent_mat_bom_version: record.parent_mat_bom_version,\n      value: record.id,\n      label: record.parent_mat_bom_version,\n    }))\n  );\n};\n\nconst applyViewMode = () => {\n  this.disabled(\n    HEADER_FIELDS.concat(\n      [\"subform_sub_material\"],\n      SUBFORM_COLUMNS.map((column) => `subform_sub_material.${column}`)\n    ),\n    true\n  );\n  this.hide([\"button_save\", \"button_cancel\"]);\n};\n\n(async () => {\n  try {\n    let pageStatus = \"\";\n\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page status\");\n\n    const organizationId = getOrganizationId();\n    this.setData({ page_status: pageStatus, organization_id: organizationId });\n\n    if (pageStatus === \"Add\") {\n      this.setData({ is_active: 1 });\n      showStatusHTML(1);\n      return;\n    }\n\n    const bomId = this.getValue(\"id\");\n    if (!bomId) {\n      throw new Error(\"Bill of Materials ID not found\");\n    }\n\n    const bomResponse = await db\n      .collection(\"bill_of_materials\")\n      .where({ id: bomId })\n      .get();\n\n    if (!bomResponse.data || bomResponse.data.length === 0) {\n      throw new Error(`Bill of Materials with ID ${bomId} not found`);\n    }\n\n    const bomData = bomResponse.data[0];\n    const subMaterials = bomData.subform_sub_material || [];\n\n    if (pageStatus === \"Clone\") {\n      // A clone is the next version of the same material, so it must not carry\n      // the source's row ids - reusing them would rewrite the source's children.\n      const clonedRows = subMaterials.map((row) => {\n        const { id, bill_of_materials_id, ...rest } = row;\n        return rest;\n      });\n\n      await this.setData({\n        id: null,\n        is_active: bomData.is_active,\n        parent_material_code: bomData.parent_material_code,\n        parent_material_name: bomData.parent_material_name,\n        parent_material_desc: bomData.parent_material_desc,\n        parent_material_category: bomData.parent_material_category,\n        parent_mat_base_quantity: bomData.parent_mat_base_quantity,\n        parent_mat_base_uom: bomData.parent_mat_base_uom,\n        parent_mat_bom_version_type: bomData.parent_mat_bom_version_type,\n        parent_mat_is_default: 0,\n        bom_remark: bomData.bom_remark,\n        subform_sub_material: clonedRows,\n      });\n\n      await this.setData({\n        parent_mat_bom_version: await computeNextVersion(\n          bomData.parent_material_code,\n          organizationId\n        ),\n      });\n    } else {\n      await this.setData({\n        id: bomData.id,\n        is_active: bomData.is_active,\n        parent_material_code: bomData.parent_material_code,\n        parent_material_name: bomData.parent_material_name,\n        parent_material_desc: bomData.parent_material_desc,\n        parent_material_category: bomData.parent_material_category,\n        parent_mat_base_quantity: bomData.parent_mat_base_quantity,\n        parent_mat_base_uom: bomData.parent_mat_base_uom,\n        parent_mat_bom_version_type: bomData.parent_mat_bom_version_type,\n        parent_mat_is_default: bomData.parent_mat_is_default,\n        bom_remark: bomData.bom_remark,\n        subform_sub_material: subMaterials,\n      });\n\n      // Re-assert the version: setting parent_mat_bom_version_type above fires\n      // its own onChange, which clears the version field.\n      await this.setData({\n        parent_mat_bom_version: bomData.parent_mat_bom_version,\n      });\n    }\n\n    showStatusHTML(bomData.is_active);\n    this.disabled([\"parent_material_code\"], true);\n\n    const rows = this.getValue(\"subform_sub_material\") || [];\n    await Promise.all(\n      rows.map(async (row, rowIndex) => {\n        await loadRefBomOptions(\n          rowIndex,\n          row.bom_material_code,\n          organizationId\n        );\n        this.disabled(\n          [`subform_sub_material.${rowIndex}.ref_bom_id`],\n          row.bom_type !== \"reference\"\n        );\n      })\n    );\n\n    if (pageStatus === \"View\") {\n      applyViewMode();\n    }\n  } catch (error) {\n    console.error(\"Error in BOM mounted function:\", error);\n    this.$message.error(error.message || \"An error occurred\");\n  }\n})();\n\nsetTimeout(async () => {\n  if (!this.isAdd && !this.isCopy) return;\n\n  const maxRetries = 10;\n  const interval = 500;\n  for (let i = 0; i < maxRetries; i++) {\n    const op = await this.onDropdownVisible(\"parent_mat_bom_version_type\", true);\n    if (op != null) break;\n    await new Promise((resolve) => setTimeout(resolve, interval));\n  }\n\n  function getDefaultItem(arr) {\n    return arr?.find((item) => item?.item?.is_default === 1);\n  }\n\n  const params = this.getComponent(\"parent_mat_bom_version\");\n  const { options } = params;\n  const optionsData = this.getOptionData(\"parent_mat_bom_version_type\") || [];\n  const defaultData = getDefaultItem(optionsData);\n\n  if (options?.canManualInput) {\n    if (!optionsData.some((option) => option.value === -9999)) {\n      this.setOptionData(\"parent_mat_bom_version_type\", [\n        { label: \"Manual Input\", value: -9999 },\n        ...optionsData,\n      ]);\n    }\n    this.setData({\n      parent_mat_bom_version_type: defaultData ? defaultData.value : -9999,\n    });\n  } else if (defaultData) {\n    this.setData({ parent_mat_bom_version_type: defaultData.value });\n  }\n}, 200);\n",
         "type": "js"
       },
       {
@@ -5067,21 +5056,21 @@
       {
         "key": "iky7wors",
         "name": "onChange_parent_update_name_category",
-        "func": "const self = this; // Store the context\nconst allData = this.getValues();\n\nif(arguments[0].value) {\n  this.setData({\n    'parent_material_name': arguments[0].fieldModel.item.material_name,\n    'parent_material_category': arguments[0].fieldModel.item.item_category,\n    'parent_material_desc': arguments[0].fieldModel.item.material_desc,\n    [`subform_sub_material`] : [],\n    'parent_mat_base_quantity': 1,\n    'parent_mat_is_default': 0,\n    'parent_mat_base_uom': arguments[0].fieldModel.item.based_uom\n  });\n  \n  const materialId = allData.parent_material_code;\n\n  db.collection(\"prefix_configuration\")\n    .where({\n      document_types: \"Bill Of Materials\",\n      is_active: 1\n    })\n    .get()\n    .then((result) => {\n      if (!result.data.length > 0) {\n        console.log(\"result\", result);\n        this.setData({'parent_mat_bom_version': ''});\n        return Promise.resolve(null);\n      }\n      return db.collection(\"bill_of_materials\")\n        .where({\n          parent_material_code: materialId\n        })\n        //.orderBy(\"create_time\", \"desc\") // Fetch latest records first\n        .get();\n    })\n    .then(function(bomResult) {\n      console.log(\"bomResult\", bomResult);\n      var highestVersion = 0;\n  \n      // Find the highest version number among the fetched records\n      if (bomResult && bomResult.data.length > 0) {\n        bomResult.data.forEach(record => {\n          const version = record.parent_mat_bom_version;\n          const versionMatch = version.match(/V(\\d+)$/);\n          if (versionMatch) {\n            const versionNum = parseInt(versionMatch[1]);\n            if (versionNum > highestVersion) {\n              highestVersion = versionNum;\n            }\n          }\n        });\n      }\n  \n      // Increment to the next version\n      const nextVersion = highestVersion + 1;\n      var newMaterialCode = \"V\" + nextVersion;\n      console.log(\"newMaterialCode\", newMaterialCode);\n      self.setData({'parent_mat_bom_version': newMaterialCode});\n      return newMaterialCode;\n    })\n    .catch(function(error) {\n      console.error(\"Error in material code generation:\", error);\n      throw error;\n    });\n} else {\n  this.setData({\n    parent_material_name: '',\n    parent_material_category: '',\n    parent_material_desc: '',\n    parent_mat_bom_version: '',\n    parent_mat_is_default: 0,\n    parent_mat_base_quantity: 0,\n    parent_mat_base_uom: '',\n    subform_sub_material: []\n  })\n}",
+        "func": "const getOrganizationId = () => {\n  let organizationId = this.getVarGlobal(\"deptParentId\");\n  if (organizationId === \"0\") {\n    organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n  }\n  return organizationId;\n};\n\n// Each parent material carries its own V1, V2, V3... series, so the scan is\n// scoped to the material and the org rather than using a global counter.\nconst computeNextVersion = async (materialId, organizationId) => {\n  const res = await db\n    .collection(\"bill_of_materials\")\n    .where({\n      parent_material_code: materialId,\n      organization_id: organizationId,\n      is_deleted: 0,\n    })\n    .get();\n\n  const highest = (res.data || []).reduce((max, record) => {\n    const match = /^V(\\d+)$/.exec(\n      String(record.parent_mat_bom_version || \"\").trim()\n    );\n    return match ? Math.max(max, parseInt(match[1], 10)) : max;\n  }, 0);\n\n  return \"V\" + (highest + 1);\n};\n\n(async () => {\n  try {\n    const { value, fieldModel } = arguments[0];\n\n    if (!value) {\n      this.setData({\n        parent_material_name: \"\",\n        parent_material_desc: \"\",\n        parent_material_category: null,\n        parent_mat_base_uom: null,\n        parent_mat_bom_version: \"\",\n        parent_mat_is_default: 0,\n        parent_mat_base_quantity: 0,\n        subform_sub_material: [],\n      });\n      return;\n    }\n\n    const item = fieldModel?.item || {};\n\n    await this.setData({\n      parent_material_name: item.material_name,\n      parent_material_desc: item.material_desc,\n      parent_material_category: item.item_category,\n      parent_mat_base_uom: item.based_uom,\n      parent_mat_base_quantity: 1,\n      parent_mat_is_default: 0,\n      subform_sub_material: [],\n    });\n\n    // -9999 is the Manual Input rule: the user types the version themselves.\n    if (this.getValue(\"parent_mat_bom_version_type\") === -9999) return;\n\n    this.setData({\n      parent_mat_bom_version: await computeNextVersion(\n        value,\n        getOrganizationId()\n      ),\n    });\n  } catch (error) {\n    console.error(\"Error generating BOM version:\", error);\n    this.$message.error(error.message || \"Failed to generate the BOM version\");\n  }\n})();\n",
         "type": "js",
         "rules": []
       },
       {
         "key": "rxwwwgd8",
         "name": "onChange_sub_update_name_category",
-        "func": "this.setData({'subform_sub_material.sub_material_name' : arguments[0].fieldModel.item.material_name})\n\n\nthis.setData({'subform_sub_material.sub_material_category' : arguments[0].fieldModel.item.material_category})",
+        "func": "",
         "type": "rule",
         "rules": [
           {
             "key": "tuzs7pu3",
             "action": "js",
             "options": {
-              "func": "if(arguments[0].value){\n    db.collection(\"bill_of_materials\")\n      .where({\"parent_material_code\": arguments[0].value})\n      .get()\n      .then((re) => {\n        console.log(\"re\", re);\n        \n        // Set the BOM version options\n        this.setOptionData(\n          `subform_sub_material.${arguments[0].rowIndex}.sub_material_bom_version`,\n          re.data\n        );\n    \n        // Enable/disable the BOM version field based on data availability\n        const fieldPath = `subform_sub_material.${arguments[0].rowIndex}.sub_material_bom_version`;\n        const hasData = re.data && re.data.length > 0;\n        this.disabled([fieldPath], !hasData);\n      })\n      .catch((error) => {\n        console.error(\"Error fetching BOM data:\", error);\n      });\n    \n    // Set additional sub-material fields\n    const rowPrefix = `subform_sub_material.${arguments[0].rowIndex}`;\n    this.setData({\n      [`${rowPrefix}.sub_material_name`]: arguments[0].fieldModel.item.material_name,\n      [`${rowPrefix}.sub_material_desc`]: arguments[0].fieldModel.item.material_desc,\n      [`${rowPrefix}.sub_material_qty_uom`]: arguments[0].fieldModel.item.based_uom,\n      [`${rowPrefix}.sub_material_category`]: arguments[0].fieldModel.item.item_category\n    });\n} else {\n    const rowPrefix = `subform_sub_material.${arguments[0].rowIndex}`;\n\n    this.setData({\n      [`${rowPrefix}.sub_material_name`]: '',\n      [`${rowPrefix}.sub_material_desc`]: '',\n      [`${rowPrefix}.sub_material_qty_uom`]: '',\n      [`${rowPrefix}.sub_material_category`]: '',\n      [`${rowPrefix}.sub_material_qty`]: 0,\n      [`${rowPrefix}.sub_material_wastage`]: '',\n      [`${rowPrefix}.sub_material_bom_version`]: '',\n      [`${rowPrefix}.sub_material_remark`]: '',\n    });\n\n    this.disabled(`${rowPrefix}.sub_material_bom_version`, true)\n}"
+              "func": "(async () => {\n  try {\n    const { value, rowIndex, fieldModel } = arguments[0];\n    const rowPrefix = `subform_sub_material.${rowIndex}`;\n\n    if (!value) {\n      this.setData({\n        [`${rowPrefix}.sub_material_name`]: \"\",\n        [`${rowPrefix}.sub_material_desc`]: \"\",\n        [`${rowPrefix}.sub_material_category`]: null,\n        [`${rowPrefix}.sub_material_qty_uom`]: null,\n        [`${rowPrefix}.sub_material_qty`]: 0,\n        [`${rowPrefix}.sub_material_wastage`]: 0,\n        [`${rowPrefix}.sub_material_remark`]: \"\",\n        [`${rowPrefix}.bom_type`]: \"standard\",\n        [`${rowPrefix}.consume_type`]: \"USE\",\n        [`${rowPrefix}.ref_bom_id`]: null,\n      });\n      this.setOptionData(`${rowPrefix}.ref_bom_id`, []);\n      this.disabled([`${rowPrefix}.ref_bom_id`], true);\n      return;\n    }\n\n    const item = fieldModel?.item || {};\n\n    this.setData({\n      [`${rowPrefix}.sub_material_name`]: item.material_name,\n      [`${rowPrefix}.sub_material_desc`]: item.material_desc,\n      [`${rowPrefix}.sub_material_category`]: item.item_category,\n      [`${rowPrefix}.sub_material_qty_uom`]: item.based_uom,\n      [`${rowPrefix}.bom_type`]: \"standard\",\n      [`${rowPrefix}.consume_type`]: \"USE\",\n      [`${rowPrefix}.ref_bom_id`]: null,\n    });\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    const res = await db\n      .collection(\"bill_of_materials\")\n      .where({\n        parent_material_code: value,\n        organization_id: organizationId,\n        is_deleted: 0,\n        is_active: 1,\n      })\n      .get();\n\n    // Raw rows would drag their whole subform_sub_material array into the\n    // option store; project down to what props + {label,value} need.\n    this.setOptionData(\n      `${rowPrefix}.ref_bom_id`,\n      (res.data || []).map((record) => ({\n        id: record.id,\n        parent_mat_bom_version: record.parent_mat_bom_version,\n        value: record.id,\n        label: record.parent_mat_bom_version,\n      }))\n    );\n\n    // ref_bom_id only applies to a reference line; onChange_bom_type owns it.\n    this.disabled([`${rowPrefix}.ref_bom_id`], true);\n  } catch (error) {\n    console.error(\"Error loading sub material data:\", error);\n    this.$message.error(error.message || \"Failed to load the sub material\");\n  }\n})();\n"
             }
           }
         ]
@@ -5096,7 +5085,7 @@
             "key": "a4xwo8n9",
             "action": "js",
             "options": {
-              "func": "this.setData({\n[`subform_sub_material`] : [],\n'parent_mat_base_quantity': '',\n'parent_mat_is_default': 0\n});"
+              "func": ""
             }
           }
         ]
@@ -5111,7 +5100,7 @@
             "key": "avmr8seq",
             "action": "js",
             "options": {
-              "func": "const allData = this.getValues();\nconst self = this;\nconst page_status = this.getValue('page_status');\nconsole.log(\"allData\", allData);\nconst bomId = allData.default_dialog?.bom_id;\n\nconst closeDialog = () => {\n    if (self.parentGenerateForm) {\n        self.parentGenerateForm.$refs.SuPageDialogRef.hide();\n        self.parentGenerateForm.refresh();\n    }\n};\n\ntry {\n    if (page_status === 'Add') {\n        if (bomId && bomId !== 'null') {\n            db.collection(\"bill_of_materials\")\n                .where({ id: bomId })\n                .update({ parent_mat_is_default: 0 })\n                .then(function(bomResult) {\n                    console.log(\"bomResult\", bomResult);\n                })\n                .catch(error => {\n                    console.error(\"Error updating BOM:\", error);\n                });\n        }\n        let organizationId = this.getVarGlobal('deptParentId');\n        if (organizationId === '0') {\n          organizationId = this.getVarSystem('deptIds').split(',')[0];\n        }\n\n        db.collection(\"bill_of_materials\")\n            .add({\n                bom_remark: allData.bom_remark,\n                parent_mat_base_quantity: allData.parent_mat_base_quantity,\n                is_active: allData.is_active,\n                parent_mat_base_uom: allData.parent_mat_base_uom,\n                parent_mat_bom_version: allData.parent_mat_bom_version,\n                parent_material_category: allData.parent_material_category,\n                parent_mat_is_default: allData.parent_mat_is_default,\n                parent_material_code: allData.parent_material_code,\n                parent_material_name: allData.parent_material_name,\n                parent_material_desc: allData.parent_material_desc,\n                subform_sub_material: allData.subform_sub_material,\n                organization_id: organizationId\n            })\n            .then(() => {\n                closeDialog();\n            })\n            .catch(error => {\n                console.error(\"Error adding BOM:\", error);\n            });\n\n    } else if (page_status === 'Edit') {\n        const existingBomId = this.getValue('id');\n        \n        db.collection(\"bill_of_materials\")\n            .where({ id: existingBomId })\n            .update({\n                bom_remark: allData.bom_remark,\n                parent_mat_base_quantity: allData.parent_mat_base_quantity,\n                parent_mat_bom_version: allData.parent_mat_bom_version,\n                parent_mat_base_uom: allData.parent_mat_base_uom,\n                parent_material_category: allData.parent_material_category,\n                is_active: allData.is_active,\n                parent_mat_is_default: allData.parent_mat_is_default,\n                parent_material_code: allData.parent_material_code,\n                parent_material_name: allData.parent_material_name,\n                parent_material_desc: allData.parent_material_desc,\n                subform_sub_material: allData.subform_sub_material\n            })\n            .then(() => {\n                closeDialog();\n            })\n            .catch(error => {\n                console.error(\"Error updating BOM:\", error);\n            });\n    }\n} catch (error) {\n    console.error(\"Unexpected error:\", error);\n}"
+              "func": "// BOM_SAVE — the server-side save; see Item Assembly & BOM/BOMsaveWorkflow.json.\nconst BOM_SAVE_WORKFLOW_ID = \"REPLACE_WITH_BOM_SAVE_WORKFLOW_ID\";\n\nconst closeDialog = () => {\n  if (this.parentGenerateForm) {\n    this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n    this.parentGenerateForm.refresh();\n    this.hideLoading();\n  }\n};\n\nconst findFieldMessage = (obj) => {\n  if (obj && typeof obj === \"object\") {\n    if (obj.field && obj.message) {\n      return obj.message;\n    }\n\n    if (Array.isArray(obj)) {\n      for (const item of obj) {\n        const found = findFieldMessage(item);\n        if (found) return found;\n      }\n    }\n\n    for (const key in obj) {\n      if (Object.prototype.hasOwnProperty.call(obj, key)) {\n        const found = findFieldMessage(obj[key]);\n        if (found) return found;\n      }\n    }\n\n    return obj.toString();\n  }\n  return null;\n};\n\n(async () => {\n  try {\n    await this.validate();\n\n    this.showLoading(\"Saving Bill of Materials...\");\n\n    const rawData = this.getValues();\n    // default_dialog is the confirmation model, not a column on the table.\n    const { default_dialog, ...data } = rawData;\n    const pageStatus = data.page_status;\n\n    let workflowResult;\n\n    await this.runWorkflow(\n      BOM_SAVE_WORKFLOW_ID,\n      { allData: data, pageStatus },\n      (res) => {\n        workflowResult = res;\n      },\n      (err) => {\n        workflowResult = err;\n      },\n    );\n\n    if (!workflowResult || !workflowResult.data) {\n      this.hideLoading();\n      this.$message.error(\"No response from workflow\");\n      return;\n    }\n\n    const code = workflowResult.data.code;\n    if (code && String(code) !== \"200\") {\n      this.hideLoading();\n      this.$message.error(\n        workflowResult.data.msg ||\n          workflowResult.data.message ||\n          \"Failed to save the Bill of Materials\",\n      );\n      return;\n    }\n\n    this.$message.success(\n      `${pageStatus === \"Edit\" ? \"Update\" : \"Add\"} successfully.`,\n    );\n    this.hideLoading();\n    closeDialog();\n  } catch (error) {\n    this.hideLoading();\n    console.error(error);\n\n    let errorMessage = \"\";\n    if (error && typeof error === \"object\") {\n      errorMessage = findFieldMessage(error) || \"An error occurred\";\n    } else {\n      errorMessage = error;\n    }\n\n    this.$message.error(errorMessage);\n  }\n})();\n"
             }
           }
         ]
@@ -5126,7 +5115,7 @@
             "key": "bjmh0kq8",
             "action": "js",
             "options": {
-              "func": "const self = this;\nconst allData = this.getValues();\nconsole.log(\"allData\", allData);\nconst page_status = self.getValue('page_status');\nconst materialId = allData.parent_material_code;\nconst isDefault = allData.parent_mat_is_default;\nconsole.log(\"materialId\", materialId);\nself.setData({ \"default_dialog\": {} });\n\nif (isDefault === 1) {\n    db.collection(\"bill_of_materials\")\n        .where({\n            parent_material_code: materialId,\n            parent_mat_is_default: isDefault\n        })\n        .get()\n        .then(function(bomResult) {\n            if (bomResult.data[0] && bomResult.data.length > 0 && allData.id !== bomResult.data[0].id) {\n                console.log(\"bomResult\", bomResult.data[0].parent_mat_bom_version);\n                self.openDialog(\"default_dialog\");\n                self.setData({ \n                    \"default_dialog.bom_version\": bomResult.data[0].parent_mat_bom_version,\n                    \"default_dialog.bom_id\": bomResult.data[0].id\n                });\n                    \n            } else {\n                console.log(\"No default BOM found for this material\");\n            }\n        })\n        .catch(function(error) {\n            console.error(\"Error in material code generation:\", error);\n            throw error;\n        });\n}"
+              "func": "(async () => {\n  try {\n    const allData = this.getValues();\n    const materialId = allData.parent_material_code;\n    const currentId = allData.id;\n\n    this.setData({ default_dialog: {} });\n\n    if (allData.parent_mat_is_default !== 1 || !materialId) return;\n\n    let organizationId = this.getVarGlobal(\"deptParentId\");\n    if (organizationId === \"0\") {\n      organizationId = this.getVarSystem(\"deptIds\").split(\",\")[0];\n    }\n\n    const res = await db\n      .collection(\"bill_of_materials\")\n      .where({\n        parent_material_code: materialId,\n        parent_mat_is_default: 1,\n        organization_id: organizationId,\n        is_deleted: 0,\n      })\n      .get();\n\n    // Skip the record being edited, otherwise editing the current default\n    // pops a dialog warning about itself.\n    const previous = (res.data || []).find(\n      (record) => String(record.id) !== String(currentId)\n    );\n    if (!previous) return;\n\n    this.openDialog(\"default_dialog\");\n    this.setData({\n      \"default_dialog.bom_version\": previous.parent_mat_bom_version,\n      \"default_dialog.bom_id\": previous.id,\n    });\n  } catch (error) {\n    console.error(\"Error checking the default BOM:\", error);\n    this.$message.error(error.message || \"Failed to check the default BOM\");\n  }\n})();\n"
             }
           }
         ]
@@ -5141,7 +5130,7 @@
             "key": "ix8ufm2f",
             "action": "js",
             "options": {
-              "func": "const allData = this.getValues();\nconst isDefault = allData.parent_mat_is_default;\nthis.closeDialog(\"default_dialog\");\nconsole.log(\"bom_version\",isDefault)"
+              "func": "this.closeDialog(\"default_dialog\");\nthis.setData({ default_dialog: {} });\n"
             }
           }
         ]
@@ -5156,7 +5145,7 @@
             "key": "wh6l9621",
             "action": "js",
             "options": {
-              "func": "const allData = this.getValues();\nconst isDefault = allData.parent_mat_is_default;\n\nthis.setData({ \n    \"default_dialog\": {},\n    \"parent_mat_is_default\": 0\n});"
+              "func": "this.setData({\n  default_dialog: {},\n  parent_mat_is_default: 0,\n});\n"
             }
           }
         ]
@@ -5170,13 +5159,25 @@
       {
         "key": "fz5dx56d",
         "name": "onReady_fz5dx56d",
-        "func": "var params = this.getComponent('parent_mat_bom_version');\nconst { options } = params;\nif(options?.canManualInput) {\n  setTimeout(async()=> {\n    const getOpData = await this.onDropdownVisible('parent_mat_bom_version_type', true)||[];\n    const optionsData = this.getOptionData('parent_mat_bom_version_type') || [];\n    let newData = getOpData?.length> 0? getOpData:optionsData;\n      const newOptionsData = [{label: 'Manual Input', value: -9999}, ...newData];\n      this.setOptionData(\"parent_mat_bom_version_type\", newOptionsData);\n  }, 200)\n}",
+        "func": "const params = this.getComponent(\"parent_mat_bom_version\");\nconst { options } = params;\n\nif (options?.canManualInput) {\n  setTimeout(async () => {\n    const maxRetries = 10;\n    const interval = 500;\n    for (let i = 0; i < maxRetries; i++) {\n      const op = await this.onDropdownVisible(\n        \"parent_mat_bom_version_type\",\n        true\n      );\n      if (op != null) break;\n      await new Promise((resolve) => setTimeout(resolve, interval));\n    }\n\n    const optionsData = this.getOptionData(\"parent_mat_bom_version_type\") || [];\n    if (optionsData.some((option) => option.value === -9999)) return;\n\n    this.setOptionData(\"parent_mat_bom_version_type\", [\n      { label: \"Manual Input\", value: -9999 },\n      ...optionsData,\n    ]);\n  }, 200);\n}\n",
         "type": "js"
       },
       {
         "key": "piwzxkia",
         "name": "onChange_piwzxkia",
-        "func": "const { value } = arguments[0];\nthis.setData({\n  parent_mat_bom_version: ''\n});\nif(value === -9999) {\n   this.disabled('parent_mat_bom_version', false)\n} else {\n   this.disabled('parent_mat_bom_version', true)\n}",
+        "func": "const { value } = arguments[0];\nconst pageStatus = this.getValue(\"page_status\");\n\n// On Edit the version is already loaded; only a new record starts blank.\nif (pageStatus === \"Add\" || pageStatus === \"Clone\") {\n  this.setData({ parent_mat_bom_version: \"\" });\n}\n\nthis.disabled(\"parent_mat_bom_version\", value !== -9999);\n",
+        "type": "js"
+      },
+      {
+        "key": "bomcncl1",
+        "name": "onClick_cancel",
+        "func": "if (this.parentGenerateForm) {\n  this.parentGenerateForm.$refs.SuPageDialogRef.hide();\n  this.parentGenerateForm.refresh();\n  this.hideLoading();\n}\n",
+        "type": "js"
+      },
+      {
+        "key": "bomtype1",
+        "name": "onChange_bom_type",
+        "func": "const { value, rowIndex } = arguments[0];\nconst path = `subform_sub_material.${rowIndex}.ref_bom_id`;\n\nif (value === \"reference\") {\n  this.disabled([path], false);\n} else {\n  this.setData({ [path]: null });\n  this.disabled([path], true);\n}\n",
         "type": "js"
       }
     ],
