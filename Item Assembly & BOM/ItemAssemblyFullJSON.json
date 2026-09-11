@@ -1678,8 +1678,8 @@
                 "pagingEnabled": true,
                 "remoteOptions": [],
                 "props": {
-                  "value": "id",
-                  "label": "material_code",
+                  "value": "parent_material_code.id",
+                  "label": "parent_material_code.material_code",
                   "image": "",
                   "icon": "",
                   "cascade": "",
@@ -1698,11 +1698,11 @@
                 "subform": false,
                 "datasource": {
                   "rules": {
-                    "collectionId": "1901546842240438273",
+                    "collectionId": "1902195284188975106",
                     "list": [
                       {
-                        "id": 1752466696018,
-                        "parentId": 1752466696019,
+                        "id": 1789113380306,
+                        "parentId": 1789113380307,
                         "isTop": true,
                         "prop": "",
                         "operator": "any",
@@ -1712,23 +1712,8 @@
                         "level": 1,
                         "children": [
                           {
-                            "id": 1723795236686,
-                            "parentId": 1752466696018,
-                            "isTop": false,
-                            "prop": "organization_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{system:deptIds}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Organization",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal",
-                            "valueTypeLabel": "字段"
-                          },
-                          {
-                            "id": 1752466696020,
-                            "parentId": 1752466696018,
+                            "id": 1789113399697,
+                            "parentId": 1789113380306,
                             "isTop": false,
                             "prop": "organization_id",
                             "operator": "equal",
@@ -1738,14 +1723,27 @@
                             "level": 2,
                             "propLabel": "Organization",
                             "valueLabel": "",
-                            "operatorLabel": "Equal",
-                            "valueTypeLabel": "值"
+                            "operatorLabel": "Equal"
+                          },
+                          {
+                            "id": 1789113380308,
+                            "parentId": 1789113380306,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{system:deptIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
                           }
                         ]
                       }
                     ]
                   },
-                  "source": "Item:Table:1901546842240438273"
+                  "source": "Bill of Materials:Table:1902195284188975106"
                 },
                 "paging_enabled": 1,
                 "sorts": [],
@@ -1766,7 +1764,7 @@
                 "onFocus": "",
                 "onBlur": ""
               },
-              "name": "Item Code",
+              "name": "BOM Item Code",
               "novalid": {},
               "key": "3iudh1hv",
               "model": "item_id",
@@ -1778,7 +1776,7 @@
               ]
             },
             {
-              "name": "Item Name",
+              "name": "BOM Item Name",
               "type": "input",
               "mainIcon": "单行文本",
               "typeIcon": "多行文本",
@@ -1845,7 +1843,7 @@
               "rules": []
             },
             {
-              "name": "Item Description",
+              "name": "BOM Item Description",
               "type": "textarea",
               "mainIcon": "多行文本",
               "typeIcon": "多行文本(1)",

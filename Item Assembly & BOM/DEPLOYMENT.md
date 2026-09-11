@@ -15,30 +15,36 @@ List pages live in `su_code_pages` / `su_code_pages_history`, same
 
 **Outstanding:** re-paste `ItemAssemblyFullJSON.json` only.
 
-## Permission codes must be registered FIRST
+## Button permissions: why Add New was hidden
 
-`blade_menu` (category 2) is the button-permission registry. Of the 35 codes used
-across every list page in this repo, **31 are registered** — and the only 4 that
-are not are the ones on these two new pages. Every established page registers its
-codes, so treat registration as required, not optional.
+The Add New button on the new pages originally carried `bom_add`. That code *does*
+exist and is granted to 165 roles — but it is a **child of the legacy "Bill of
+Material" page's menu** (`1909203642444423170`), so it does not resolve on a
+different page. Emptying the permission was the right way to unblock testing.
 
-Create these five before pasting the pages:
+Button permissions are `blade_menu` rows with `category = 2` whose `parent_id` is
+the **page's own menu id**. Both new pages have a menu but no buttons under it:
 
-| Code | Page | Button |
-|---|---|---|
-| `bom_delete` | Basic BOM | Delete |
-| `ia_view` | Item Assembly | View |
-| `ia_edit` | Item Assembly | Edit |
-| `ia_delete` | Item Assembly | Delete |
-| `ia_add` | Item Assembly | Add New |
+| Page | Page id | Menu id | Buttons defined |
+|---|---|---|---|
+| Basic BOM | 2098296691163975682 | `2098296690920706050` | **0** |
+| Item Assembly | 2098312073316716546 | `2098312072972783618` | **0** |
+| *(legacy)* Bill of Material | 1909092705255301122 | 1909203642444423170 | 3 (`bom_add`/`bom_view`/`bom_edit`) |
 
-`bom_add`, `bom_view` and `bom_edit` already exist.
+So the fix is not simply "register the codes" — each button permission has to be
+created **under its own page's menu**, then granted to the roles that need it:
 
-**Ordering matters.** Item Assembly's Add New previously had an *empty*
-permission, i.e. no gate at all; it is now `ia_add` to match its siblings. If the
-platform hides buttons whose permission code is unknown, Add will disappear until
-`ia_add` is registered — which would block testing the form. Register the codes,
-then paste. If Add does vanish, that one field is the cause.
+- under menu `2098296690920706050`: a Delete button for `bom_delete` (View / Edit /
+  Add already point at the legacy menu's codes and have the same problem)
+- under menu `2098312072972783618`: `ia_view`, `ia_edit`, `ia_delete`, `ia_add`
+
+Of the 35 permission codes used across every list page in this repo, 31 are
+registered; the only 4 that are not are `bom_delete` and the three `ia_*` codes on
+these pages.
+
+**Until that is done, keep the live Add New permission empty** — the repo now has
+`ia_add`, so pasting `ItemAssemblyListPageJSON.json` will hide the button again
+and block form testing. Create the permissions, grant them, then paste.
 
 ## Deploy order
 
