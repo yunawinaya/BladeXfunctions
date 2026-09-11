@@ -7,8 +7,9 @@ const getOrganizationId = () => {
 };
 
 // Each parent material carries its own V1, V2, V3... series, so the scan is
-// scoped to the material and the org rather than using a global counter.
-const computeNextVersion = async (materialId, organizationId) => {
+// scoped to the material and the org rather than using a global counter. The
+// same rows answer "is this the material's first BOM?", so one fetch does both.
+const scanMaterialBoms = async (materialId, organizationId) => {
   const res = await db
     .collection("bill_of_materials")
     .where({
@@ -18,14 +19,19 @@ const computeNextVersion = async (materialId, organizationId) => {
     })
     .get();
 
-  const highest = (res.data || []).reduce((max, record) => {
+  const records = res.data || [];
+
+  const highest = records.reduce((max, record) => {
     const match = /^V(\d+)$/.exec(
       String(record.parent_mat_bom_version || "").trim()
     );
     return match ? Math.max(max, parseInt(match[1], 10)) : max;
   }, 0);
 
-  return "V" + (highest + 1);
+  return {
+    nextVersion: "V" + (highest + 1),
+    isFirstBom: records.length === 0,
+  };
 };
 
 (async () => {
@@ -72,14 +78,16 @@ const computeNextVersion = async (materialId, organizationId) => {
       subform_sub_material: [],
     });
 
-    // -9999 is the Manual Input rule: the user types the version themselves.
-    if (this.getValue("parent_mat_bom_version_type") === -9999) return;
+    const { nextVersion, isFirstBom } = await scanMaterialBoms(
+      value,
+      getOrganizationId()
+    );
 
+    // A material's first BOM has nothing to compete with, so it is the default
+    // without the user having to tick it.
     this.setData({
-      parent_mat_bom_version: await computeNextVersion(
-        value,
-        getOrganizationId()
-      ),
+      parent_mat_bom_version: nextVersion,
+      parent_mat_is_default: isFirstBom ? 1 : 0,
     });
   } catch (error) {
     console.error("Error generating BOM version:", error);

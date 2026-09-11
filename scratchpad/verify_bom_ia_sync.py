@@ -14,8 +14,6 @@ PAIRS = {
         ("wco16rzc", "BOMonChangeIsDefault.js",      "rule0"),
         ("o9ec1nsx", "BOMconfirmDefaultDialog.js",   "rule0"),
         ("hcxsdru3", "BOMcancelDefaultDialog.js",    "rule0"),
-        ("fz5dx56d", "BOMonReadyVersionType.js",     "func"),
-        ("piwzxkia", "BOMonChangeVersionType.js",    "func"),
         ("bomcncl1", "BOMcancel.js",                 "func"),
         ("bomtype1", "BOMonChangeBomType.js",        "func"),
     ],

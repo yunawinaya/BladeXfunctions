@@ -22,7 +22,6 @@ const HEADER_FIELDS = [
   "parent_material_category",
   "parent_mat_is_default",
   "parent_mat_bom_version",
-  "parent_mat_bom_version_type",
   "parent_mat_base_quantity",
   "parent_mat_base_uom",
   "bom_remark",
@@ -155,13 +154,12 @@ const applyViewMode = () => {
         parent_material_category: bomData.parent_material_category,
         parent_mat_base_quantity: bomData.parent_mat_base_quantity,
         parent_mat_base_uom: bomData.parent_mat_base_uom,
-        parent_mat_bom_version_type: bomData.parent_mat_bom_version_type,
         parent_mat_is_default: 0,
         bom_remark: bomData.bom_remark,
         subform_sub_material: clonedRows,
       });
 
-      await this.setData({
+      this.setData({
         parent_mat_bom_version: await computeNextVersion(
           bomData.parent_material_code,
           organizationId
@@ -177,16 +175,10 @@ const applyViewMode = () => {
         parent_material_category: bomData.parent_material_category,
         parent_mat_base_quantity: bomData.parent_mat_base_quantity,
         parent_mat_base_uom: bomData.parent_mat_base_uom,
-        parent_mat_bom_version_type: bomData.parent_mat_bom_version_type,
+        parent_mat_bom_version: bomData.parent_mat_bom_version,
         parent_mat_is_default: bomData.parent_mat_is_default,
         bom_remark: bomData.bom_remark,
         subform_sub_material: subMaterials,
-      });
-
-      // Re-assert the version: setting parent_mat_bom_version_type above fires
-      // its own onChange, which clears the version field.
-      await this.setData({
-        parent_mat_bom_version: bomData.parent_mat_bom_version,
       });
     }
 
@@ -216,38 +208,3 @@ const applyViewMode = () => {
     this.$message.error(error.message || "An error occurred");
   }
 })();
-
-setTimeout(async () => {
-  if (!this.isAdd && !this.isCopy) return;
-
-  const maxRetries = 10;
-  const interval = 500;
-  for (let i = 0; i < maxRetries; i++) {
-    const op = await this.onDropdownVisible("parent_mat_bom_version_type", true);
-    if (op != null) break;
-    await new Promise((resolve) => setTimeout(resolve, interval));
-  }
-
-  function getDefaultItem(arr) {
-    return arr?.find((item) => item?.item?.is_default === 1);
-  }
-
-  const params = this.getComponent("parent_mat_bom_version");
-  const { options } = params;
-  const optionsData = this.getOptionData("parent_mat_bom_version_type") || [];
-  const defaultData = getDefaultItem(optionsData);
-
-  if (options?.canManualInput) {
-    if (!optionsData.some((option) => option.value === -9999)) {
-      this.setOptionData("parent_mat_bom_version_type", [
-        { label: "Manual Input", value: -9999 },
-        ...optionsData,
-      ]);
-    }
-    this.setData({
-      parent_mat_bom_version_type: defaultData ? defaultData.value : -9999,
-    });
-  } else if (defaultData) {
-    this.setData({ parent_mat_bom_version_type: defaultData.value });
-  }
-}, 200);

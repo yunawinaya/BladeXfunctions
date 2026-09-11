@@ -121,6 +121,60 @@ Manual Input serial rule is used, and the confirm renders with
 `dangerouslyUseHTMLString`. (The same unescaped pattern exists in ~100 other repo
 files — not audited here.)
 
+## BOM version does not use the serial engine
+
+A BOM version is **per parent material**: Item A's first BOM is `V1`, and a
+different Item B's first BOM must also be `V1`. The platform's serial engine
+cannot express that — its rule is one `autoCounter` per department with
+`resetPeriod: 'none'`.
+
+**Writing a real value does not opt out.** Proven on dev 2026-09-11: the add-node
+sent `parent_mat_bom_version: "V1"` with `parent_mat_bom_version_type` holding a
+rule id, and the row saved as **V2** — the second BOM in the system, for an
+unrelated material. Generation fires off the `<field>_type` column holding a rule
+id, not off the `'draft'`/`'issued'` sentinel.
+
+So the apparatus is gone:
+
+- `parent_mat_bom_version` is a plain **disabled `fm-input`** (key `phv0n6qb`
+  retained), not a `su-fm-serial-number`.
+- The `parent_mat_bom_version_type` rule selector and its wrapper flexes are
+  removed, along with the `onReady` / `onChange` / `keyChange` handlers and the
+  serial block in `mounted`. 20 eventScript entries down to 17.
+- `BOMsaveWorkflow.json` **no longer writes `parent_mat_bom_version_type`**, so
+  the column stays NULL and the engine has nothing to fire on.
+
+The only source of a version is now `scanMaterialBoms` in
+`BOMonChangeParentMaterial.js` (and `computeNextVersion` on the Clone path in
+`BOMonMounted.js`): scan `bill_of_materials` for that material in that org, take
+the highest `V(\d+)`, add one.
+
+### The first BOM auto-defaults
+
+That same scan answers "does this material already have a BOM?", so picking a
+material with **no live BOM** sets `parent_mat_is_default: 1` as well as `V1` —
+one fetch, no extra round-trip. Picking a material that already has BOMs sets it
+back to `0`, so switching the picker between materials cannot strand a stale
+tick.
+
+The flag is written unconditionally on both branches rather than only on the
+first-BOM one; that is what makes the switch-between-materials case correct.
+
+It stays a client-side convenience: two users creating a material's first BOM at
+the same moment both see zero rows and both save `is_default: 1`. The save
+workflow's `prevDefaultIds` sweep un-defaults siblings on the *next* save, so
+the state self-corrects rather than compounding. The same exposure already
+existed on the manual tick.
+
+The Clone path deliberately does **not** auto-default — a clone always has a
+source BOM, so it is never the material's first.
+
+There is no Manual Input override any more — selecting a rule was the thing that
+broke versioning, so the escape hatch went with it.
+
+**Known dev data:** material `2094626841323700251` has a single BOM numbered `V2`
+from before this fix. Left as test data by decision; its next BOM will be `V3`.
+
 ## Datasource filters on the BOM form
 
 Five remote selects shipped with an empty rule list, listing every row in every

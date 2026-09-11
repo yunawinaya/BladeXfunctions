@@ -110,7 +110,7 @@ entry.is_active = entry.is_active === 1 ? 1 : 0;
 entry.parent_mat_is_default = entry.parent_mat_is_default === 1 ? 1 : 0;
 
 // An empty string into a bigint column is rejected by the platform; null is not.
-const BIGINT_HEADER = ['parent_material_category', 'parent_mat_base_uom', 'parent_mat_bom_version_type'];
+const BIGINT_HEADER = ['parent_material_category', 'parent_mat_base_uom'];
 const BIGINT_LINE = ['sub_material_category', 'sub_material_qty_uom', 'ref_bom_id'];
 
 BIGINT_HEADER.forEach(function (col) {
@@ -317,7 +317,10 @@ return {
 
 HEADER_COLUMNS = [
     "parent_material_code", "parent_material_name", "parent_material_desc",
-    "parent_material_category", "parent_mat_bom_version", "parent_mat_bom_version_type",
+    # parent_mat_bom_version_type is deliberately NOT written: a rule id in that
+    # column makes the platform overwrite the version with its own global counter,
+    # which cannot express a per-material V1/V2/V3.
+    "parent_material_category", "parent_mat_bom_version",
     "parent_mat_base_quantity", "parent_mat_base_uom", "parent_mat_is_default",
     "is_active", "bom_remark", "organization_id", "subform_sub_material",
 ]
