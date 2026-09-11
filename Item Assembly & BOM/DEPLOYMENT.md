@@ -8,6 +8,7 @@
 | `BOMsaveWorkflow.json` | **DEPLOYED dev** as `BOM_SAVE` id `2098308362750185474`, enabled v3, identical to repo |
 | `BOMFullJSON.json` | deployed v69, then **two bugs found by testing — needs re-paste** |
 | `BOMlistPageJSON.json` | repaired (filters, columns, Delete), **not deployed** |
+| `ItemAssemblyListPageJSON.json` | filled in (datasource, columns, filters, Delete), **not deployed** |
 
 The three new columns exist on dev: `sm_item_assembly_tlm8ve69_sub.requested_qty`
 `decimal(65,3)`, and `serial_number` / `material_id` on
@@ -60,6 +61,7 @@ Steps 1, 2 and 4 are done. What remains:
 3. **Paste `BOMFullJSON.json` again and enable it.**
 4. ~~Deploy `ItemAssemblyFullJSON.json`~~ — done, v8.
 5. **Paste `BOMlistPageJSON.json` and enable it.**
+6. **Paste `ItemAssemblyListPageJSON.json` and enable it.**
 
 ## Columns (done)
 
@@ -92,6 +94,35 @@ where all 7 custom buttons resolve).
 
 The existing `DELETE_BOM` workflow (`2005950986531250178`) was **not** wired: it
 operates on `bom_tree`, a different table.
+
+## The Item Assembly list page
+
+Created from the BOM list page and left unconfigured. Four fixes:
+
+- **The organization filter compared against a literal `null`**, so the grid
+  would have returned no rows at all. Now the same field-based `any` branch the
+  BOM page uses (`{{global:deptParentId}}` / `{{system:deptIds}}`).
+- **No columns.** Added Item Assembly No, Status, Item Code, Item Name, Quantity,
+  Date, Issued By, Posted Status.
+- **No filters.** Added Item Assembly No, Item Code, Item Name and a Status
+  select — the last cloned from the GD list page, which reads the same dictionary
+  parent (`1914242988707749889`).
+- **Delete pointed at `oh26x9gl`**, the BOM page's handler key, which does not
+  exist in this file. `ItemAssemblyListDelete.js` now supplies it: it refuses when
+  the assembly is `Completed` or `Fully Posted` (the components have already left
+  stock), confirms, then soft-deletes the header and **both** child tables
+  (`_tlm8ve69_sub` and `_mw10kf66_sub`).
+
+Column shapes were cloned from pages already in the repo rather than authored. A
+relation column turns out to be the *target* field's definition plus a `parent`
+stub carrying only `foreignKey`, so `item_id.material_code` is BOM's
+`parent_material_code.material_code` with a different `name`.
+
+Both delete confirms HTML-escape the document number before interpolating it:
+`stock_movement_no` and `parent_mat_bom_version` are free text whenever the
+Manual Input serial rule is used, and the confirm renders with
+`dangerouslyUseHTMLString`. (The same unescaped pattern exists in ~100 other repo
+files — not audited here.)
 
 ## Datasource filters on the BOM form
 
@@ -155,7 +186,8 @@ gone wrong.
     python3 scratchpad/validate.py "Item Assembly & BOM/BOMsaveWorkflow.json"
 
     python3 scratchpad/patch_bom_form_filters.py     # datasource scoping (idempotent)
-    python3 scratchpad/patch_bom_listpage.py         # list page filters/columns/Delete
+    python3 scratchpad/patch_bom_listpage.py         # BOM list page filters/columns/Delete
+    python3 scratchpad/patch_ia_listpage.py          # IA list page datasource/columns/filters/Delete
 
 `patch_bom_form.py`, `patch_bom_form_filters.py` and `patch_bom_listpage.py` are
 idempotent. `patch_ia_form.py` is **not** — it drops handlers and clones

@@ -32,6 +32,12 @@ PAIRS = {
         ("wv07g9xe", "ItemAssemblyOnChangeItem.js",       "func"),
         ("iaqty01x", "ItemAssemblyOnChangeItemQty.js",    "func"),
     ],
+    "BOMlistPageJSON.json": [
+        ("oh26x9gl", "BOMlistDelete.js", "func"),
+    ],
+    "ItemAssemblyListPageJSON.json": [
+        ("oh26x9gl", "ItemAssemblyListDelete.js", "func"),
+    ],
 }
 
 bad = 0
