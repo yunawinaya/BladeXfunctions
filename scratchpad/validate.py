@@ -44,6 +44,7 @@ SIDE_EFFECT_TYPES = {
     "condition-or-node",
     "condition-or-node-item",
     "condition-all-node",
+    "condition-all-node-item",
 }
 
 # Container keys that hold child nodes.
