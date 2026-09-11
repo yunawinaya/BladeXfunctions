@@ -1,0 +1,3983 @@
+{
+ "request_json": [
+  {
+   "key": "iawfalld",
+   "name": "allData",
+   "title": "allData",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "iawfsvas",
+   "name": "saveAs",
+   "title": "saveAs",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "iawfpgst",
+   "name": "pageStatus",
+   "title": "pageStatus",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "iawfrcod",
+   "name": "code",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "iawfrmsg",
+   "name": "message",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "iawfriid",
+   "name": "id",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node",
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_fillback",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "fillbackHeaderFields",
+    "isValidator": true,
+    "nodeName": "fillbackHeaderFields",
+    "name": "fillbackHeaderFields",
+    "script": {
+     "type": "javascript",
+     "code": "let allData = {{workflowparams:allData}};\nconst saveAs = {{workflowparams:saveAs}};\nconst pageStatus = {{workflowparams:pageStatus}};\n\n// Every decimal column is coerced to a fixed-scale STRING: a raw float is\n// serialized at full precision and the DB's BigDecimal multipleOf check then\n// rejects the whole save. This list is an ALLOW-LIST -- a decimal column missing\n// from it will crash a save.\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === '') return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nconst lines = [];\nfor (const [index, line] of (allData.stock_movement || []).entries()) {\n  line.requested_qty = formatNumber(line.requested_qty);\n  line.total_quantity = formatNumber(line.total_quantity);\n  line.organization_id = allData.organization_id;\n  line.issuing_plant = allData.issuing_operation_faci || null;\n  line.line_index = index + 1;\n  lines.push(line);\n}\nallData.stock_movement = lines;\n\n// item_qty is decimal(65,3) on the header -- MSI/MSR only format lines because\n// their header carries no quantity; this one does.\nallData.item_qty = formatNumber(allData.item_qty);\n\nconst storedStatus = pageStatus === 'Add' ? 'Draft' : (allData.item_assembly_status || 'Draft');\nallData.item_assembly_status = saveAs;\n\n// The platform replaces these sentinels with a real number on insert. -9999 is\n// Manual Input, where the user's typed number stands.\nif (saveAs === 'Draft') {\n  if (allData.stock_movement_no_type !== -9999 &&\n      (!allData.stock_movement_no || allData.stock_movement_no === '')) {\n    allData.stock_movement_no = 'draft';\n  }\n} else {\n  if (allData.stock_movement_no_type !== -9999 &&\n      (!allData.stock_movement_no || allData.stock_movement_no === '' ||\n       storedStatus !== 'Completed')) {\n    allData.stock_movement_no = 'issued';\n  }\n  // There is no acc_integration_type column on this table; posting is a later phase.\n  allData.posted_status = 'Unposted';\n}\n\nreturn { allData: allData, storedStatus: storedStatus };"
+    },
+    "response_json": [
+     {
+      "key": "iaallD00",
+      "name": "allData",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "iastor01",
+      "name": "storedStatus",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_required",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Required Fields",
+    "isValidator": true,
+    "nodeName": "Required Fields",
+    "name": "Required Fields",
+    "script": {
+     "type": "javascript",
+     "code": "const entry = {{node:code_fillback.data.allData}};\n\nconst requiredFields = [\n  { name: 'stock_movement_no', label: 'Item Assembly No' },\n  { name: 'issuing_operation_faci', label: 'Plant' },\n  { name: 'item_id', label: 'Item Code' },\n  { name: 'item_qty', label: 'Quantity' },\n  { name: 'storage_location_id', label: 'Storage Location' },\n  { name: 'location_id', label: 'Bin Location' },\n  { name: 'stock_movement', label: 'BOM Components', isArray: true, arrayType: 'object',\n    arrayFields: [{ name: 'item_selection', label: 'Item Code' }] }\n];\n\nreturn {\n  required_fields: JSON.stringify(requiredFields),\n  data: JSON.stringify({\n    stock_movement_no: entry.stock_movement_no,\n    issuing_operation_faci: entry.issuing_operation_faci,\n    item_id: entry.item_id,\n    item_qty: entry.item_qty,\n    storage_location_id: entry.storage_location_id,\n    location_id: entry.location_id,\n    stock_movement: entry.stock_movement\n  })\n};"
+    },
+    "response_json": [
+     {
+      "key": "iarequ00",
+      "name": "required_fields",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "iadata01",
+      "name": "data",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "wf_check_required",
+   "type": "workflow-node",
+   "data": {
+    "workflow_id": "",
+    "workflow_name": "",
+    "input_params": {},
+    "title": "Check Required Workflow",
+    "isValidator": true,
+    "nodeName": "Check Required Workflow",
+    "name": "Check Required Workflow",
+    "workflow": {
+     "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+     "rules": {
+      "collectionId": "1988831880511062018",
+      "list": [
+       {
+        "id": 1790000000001,
+        "parentId": 1790000000002,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "remote": true,
+    "remoteType": "innerdatasource",
+    "body_params": {
+     "list": [
+      {
+       "prop": "entry",
+       "propLabel": "entry",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_required.data.data}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "required_fields",
+       "propLabel": "required_fields",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_required.data.required_fields}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_required_failed",
+   "type": "if",
+   "data": {
+    "title": "IF Validation Failed",
+    "isValidator": true,
+    "nodeName": "IF Validation Failed",
+    "name": "IF Validation Failed",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1790000000003,
+       "parentId": 1790000000004,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:wf_check_required.data.data.status}}' == 'Failed'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_required_failed_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "return_required_400",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "value",
+           "valueTypeLabel": "",
+           "value": "400",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:wf_check_required.data.data.message}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_required_failed_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "if_validate",
+   "type": "if",
+   "data": {
+    "title": "IF !Draft",
+    "isValidator": true,
+    "nodeName": "IF !Draft",
+    "name": "IF !Draft",
+    "condition_type": "ConditionRule",
+    "filter": {
+     "list": [
+      {
+       "id": 1790000000017,
+       "parentId": 1790000000018,
+       "isTop": true,
+       "prop": "workflowparams.saveAs",
+       "operator": "notEqual",
+       "valueType": "value",
+       "value": "Draft",
+       "type": "leaf",
+       "level": 1,
+       "propLabel": "workflowparams.saveAs",
+       "valueLabel": "",
+       "operatorLabel": "notEqual"
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": ""
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_validate_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_item_ids",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Collect Item IDs",
+        "isValidator": true,
+        "nodeName": "Collect Item IDs",
+        "name": "Collect Item IDs",
+        "script": {
+         "type": "javascript",
+         "code": "const entry = {{node:code_fillback.data.allData}};\n\n// The assembled item plus every component, in one fetch.\nconst ids = [];\nif (entry.item_id) ids.push(String(entry.item_id));\n(entry.stock_movement || []).forEach(function (line) {\n  if (line.item_selection) ids.push(String(line.item_selection));\n});\n\nreturn { itemIds: ids.filter(function (v, i, a) { return a.indexOf(v) === i; }) };"
+        },
+        "response_json": [
+         {
+          "key": "iaitem00",
+          "name": "itemIds",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "search_items",
+       "type": "search-node",
+       "data": {
+        "table_id": {
+         "source": "Item:Table:1901546842240438273",
+         "rules": {
+          "collectionId": "1901546842240438273",
+          "list": [
+           {
+            "id": 1790000000005,
+            "parentId": 1790000000006,
+            "isTop": true,
+            "prop": "id",
+            "operator": "equalAny",
+            "valueType": "field",
+            "value": "{{node:code_item_ids.data.itemIds}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "id",
+            "valueLabel": "",
+            "operatorLabel": "equalAny"
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 1000,
+        "title": "Get Items",
+        "isValidator": true,
+        "nodeName": "Get Items",
+        "name": "Get Items"
+       },
+       "blocks": []
+      },
+      {
+       "id": "code_validate",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Validate Assembly",
+        "isValidator": true,
+        "nodeName": "Validate Assembly",
+        "name": "Validate Assembly",
+        "script": {
+         "type": "javascript",
+         "code": "const entry = {{node:code_fillback.data.allData}};\nconst storedStatus = {{node:code_fillback.data.storedStatus}};\nconst items = {{node:search_items.data.data}} || [];\n\nconst itemMap = {};\nitems.forEach(function (it) { itemMap[String(it.id)] = it; });\n\nconst round3 = function (v) { return Math.round((parseFloat(v) || 0) * 1000) / 1000; };\n\nlet message = '';\n\n// Re-completing an assembly would move stock a second time.\nif (storedStatus === 'Completed') {\n  message = 'This Item Assembly is already Completed and cannot be saved again.';\n}\n\nconst itemQty = round3(entry.item_qty);\nif (!message && itemQty <= 0) {\n  message = 'Quantity must be greater than zero.';\n}\n\nconst lines = entry.stock_movement || [];\nif (!message && lines.length === 0) {\n  message = 'No BOM components to consume. Choose an item that has an active Bill of Materials.';\n}\n\nfor (let i = 0; i < lines.length && !message; i++) {\n  const line = lines[i];\n  const label = line.item_name || line.item_selection;\n  const requested = round3(line.requested_qty);\n  const allocated = round3(line.total_quantity);\n\n  let picks = [];\n  try {\n    picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n  } catch (e) {\n    picks = [];\n  }\n  picks = picks.filter(function (p) { return round3(p.sm_quantity) > 0; });\n\n  if (picks.length === 0) {\n    message = 'Line ' + (i + 1) + ' (' + label + '): no stock has been allocated.';\n  } else if (Math.abs(allocated - requested) > 0.0005) {\n    message = 'Line ' + (i + 1) + ' (' + label + '): allocated ' + allocated +\n      ' but ' + requested + ' is required.';\n  }\n}\n\n// A manually-numbered batch item needs its batch before stock can be received.\nif (!message) {\n  const assembled = itemMap[String(entry.item_id)];\n  if (assembled && assembled.item_batch_management === 1 &&\n      assembled.batch_number_genaration === 'Manual Input' &&\n      (!entry.batch_no || String(entry.batch_no).trim() === '' || entry.batch_no === '-')) {\n    message = 'This item is batch managed with manual numbering, so a Batch No is required.';\n  }\n}\n\nreturn { status: message ? 'Failed' : 'Passed', message: message };"
+        },
+        "response_json": [
+         {
+          "key": "iastat00",
+          "name": "status",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iamess01",
+          "name": "message",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_validate_failed",
+       "type": "if",
+       "data": {
+        "title": "IF Assembly Invalid",
+        "isValidator": true,
+        "nodeName": "IF Assembly Invalid",
+        "name": "IF Assembly Invalid",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1790000000007,
+           "parentId": 1790000000008,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_validate.data.status}}' == 'Failed'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_validate_failed_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "return_validate_401",
+           "type": "return-node",
+           "data": {
+            "return_data": {},
+            "status_code": 200,
+            "title": "Return Data",
+            "isValidator": true,
+            "nodeName": "Return Data",
+            "name": "Return Data",
+            "response_value": {
+             "list": [
+              {
+               "prop": "code",
+               "propLabel": "code",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "value",
+               "valueTypeLabel": "",
+               "value": "401",
+               "valueLabel": ""
+              },
+              {
+               "prop": "message",
+               "propLabel": "message",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_validate.data.message}}",
+               "valueLabel": ""
+              }
+             ]
+            },
+            "return_raw_data": 0
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_validate_failed_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "loop_precheck_lines",
+       "type": "loop",
+       "data": {
+        "title": "Loop Components (pre-check)",
+        "isValidator": true,
+        "nodeName": "Loop Components (pre-check)",
+        "name": "Loop Components (pre-check)",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1790000000015,
+             "parentId": 1790000000016,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource",
+         "limit_count": ""
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_fillback.data.allData.stock_movement}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "code_precheck_line",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Pre-check Line Prep",
+          "isValidator": true,
+          "nodeName": "Pre-check Line Prep",
+          "name": "Pre-check Line Prep",
+          "script": {
+           "type": "javascript",
+           "code": "const line = {{node:loop_precheck_lines}};\nconst entry = {{node:code_fillback.data.allData}};\n\nlet picks = [];\ntry {\n  picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n} catch (e) {\n  picks = [];\n}\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  material_id: line.item_selection,\n  material_uom: line.quantity_uom,\n  item_name: line.item_name || line.item_selection,\n  balancesToProcess: picks.filter(function (p) {\n    return (parseFloat(p.sm_quantity) || 0) > 0;\n  })\n};"
+          },
+          "response_json": [
+           {
+            "key": "iaplan00",
+            "name": "plant_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iaorga01",
+            "name": "organization_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iamate02",
+            "name": "material_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iamate03",
+            "name": "material_uom",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iaitem04",
+            "name": "item_name",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iabala05",
+            "name": "balancesToProcess",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "loop_precheck_picks",
+         "type": "loop",
+         "data": {
+          "title": "Loop Picks (pre-check)",
+          "isValidator": true,
+          "nodeName": "Loop Picks (pre-check)",
+          "name": "Loop Picks (pre-check)",
+          "loopType": "Var",
+          "loopSeletSource": {
+           "datasource": {
+            "rules": {
+             "collectionId": "",
+             "list": [
+              {
+               "id": 1790000000013,
+               "parentId": 1790000000014,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            }
+           },
+           "auto_refresh": 1,
+           "auto_refresh_debounce": 100,
+           "options": [],
+           "props": {
+            "value": "",
+            "label": "",
+            "image": "",
+            "icon": "",
+            "explain": ""
+           },
+           "remote": false,
+           "remoteType": "datasource",
+           "limit_count": ""
+          },
+          "loopSeletVar": {
+           "type": "markdown",
+           "code": "{{node:code_precheck_line.data.balancesToProcess}}"
+          }
+         },
+         "blocks": [
+          {
+           "id": "code_precheck_pick",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Pre-check Pick Prep",
+            "isValidator": true,
+            "nodeName": "Pre-check Pick Prep",
+            "name": "Pre-check Pick Prep",
+            "script": {
+             "type": "javascript",
+             "code": "const pick = {{node:loop_precheck_picks}};\n\nreturn {\n  location_id: pick.location_id || '',\n  batch_id: pick.batch_id || '',\n  quantity: parseFloat(pick.sm_quantity) || 0,\n  inventory_category: pick.category || 'Unrestricted'\n};"
+            },
+            "response_json": [
+             {
+              "key": "ialoca00",
+              "name": "location_id",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iabatc01",
+              "name": "batch_id",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iaquan02",
+              "name": "quantity",
+              "title": "",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iainve03",
+              "name": "inventory_category",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "wf_check_inventory",
+           "type": "workflow-node",
+           "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "Check Inventory",
+            "isValidator": true,
+            "nodeName": "Check Inventory",
+            "name": "Check Inventory",
+            "workflow": {
+             "source": "GLOBAL_INVENTORY_VALIDATION:Workflow:2056291728334573570",
+             "rules": {
+              "collectionId": "2056291728334573570",
+              "list": [
+               {
+                "id": 1790000000009,
+                "parentId": 1790000000010,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+             "list": [
+              {
+               "prop": "material_id",
+               "propLabel": "material_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_precheck_line.data.material_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "quantity",
+               "propLabel": "quantity",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_precheck_pick.data.quantity}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "plant_id",
+               "propLabel": "plant_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_precheck_line.data.plant_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "organization_id",
+               "propLabel": "organization_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_precheck_line.data.organization_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "location_id",
+               "propLabel": "location_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_precheck_pick.data.location_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "batch_id",
+               "propLabel": "batch_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_precheck_pick.data.batch_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "orderUomId",
+               "propLabel": "orderUomId",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_precheck_line.data.material_uom}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "category",
+               "propLabel": "category",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_precheck_pick.data.inventory_category}}",
+               "valueLabel": ""
+              }
+             ]
+            }
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_check_failed",
+           "type": "if",
+           "data": {
+            "title": "IF Check Failed",
+            "isValidator": true,
+            "nodeName": "IF Check Failed",
+            "name": "IF Check Failed",
+            "condition_type": "Expression",
+            "filter": {
+             "list": [
+              {
+               "id": 1790000000011,
+               "parentId": 1790000000012,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            },
+            "expression": {
+             "type": "javascript",
+             "code": "'{{node:wf_check_inventory.data.code}}' == '400'"
+            }
+           },
+           "blocks": [
+            {
+             "id": "if_check_failed_t",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "return_check_402",
+               "type": "return-node",
+               "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                 "list": [
+                  {
+                   "prop": "code",
+                   "propLabel": "code",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "value",
+                   "valueTypeLabel": "",
+                   "value": "402",
+                   "valueLabel": ""
+                  },
+                  {
+                   "prop": "message",
+                   "propLabel": "message",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "field",
+                   "valueTypeLabel": "",
+                   "value": "{{node:wf_check_inventory.data.message}}",
+                   "valueLabel": ""
+                  }
+                 ]
+                },
+                "return_raw_data": 0
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_check_failed_f",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "if_validate_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "if_persist",
+   "type": "if",
+   "data": {
+    "title": "IF !Draft",
+    "isValidator": true,
+    "nodeName": "IF !Draft",
+    "name": "IF !Draft",
+    "condition_type": "ConditionRule",
+    "filter": {
+     "list": [
+      {
+       "id": 1790000000055,
+       "parentId": 1790000000056,
+       "isTop": true,
+       "prop": "workflowparams.saveAs",
+       "operator": "notEqual",
+       "valueType": "value",
+       "value": "Draft",
+       "type": "leaf",
+       "level": 1,
+       "propLabel": "workflowparams.saveAs",
+       "valueLabel": "",
+       "operatorLabel": "notEqual"
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": ""
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_persist_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "if_edit",
+       "type": "if",
+       "data": {
+        "title": "IF Edit Mode",
+        "isValidator": true,
+        "nodeName": "IF Edit Mode",
+        "name": "IF Edit Mode",
+        "condition_type": "ConditionRule",
+        "filter": {
+         "list": [
+          {
+           "id": 1790000000023,
+           "parentId": 1790000000024,
+           "isTop": true,
+           "prop": "workflowparams.pageStatus",
+           "operator": "equal",
+           "valueType": "value",
+           "value": "Edit",
+           "type": "leaf",
+           "level": 1,
+           "propLabel": "workflowparams.pageStatus",
+           "valueLabel": "",
+           "operatorLabel": "equal"
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": ""
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_edit_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "update_ia",
+           "type": "update-node",
+           "data": {
+            "table_id": {
+             "source": "Item Assembly:Table:2098256587713404929",
+             "rules": {
+              "collectionId": "2098256587713404929",
+              "list": [
+               {
+                "id": 1790000000019,
+                "parentId": 1790000000020,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_fillback.data.allData.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "id",
+                "valueLabel": "",
+                "operatorLabel": "in"
+               }
+              ]
+             }
+            },
+            "fields": [],
+            "condition": {},
+            "title": "Update Item Assembly",
+            "isValidator": true,
+            "nodeName": "Update Item Assembly",
+            "name": "Update Item Assembly",
+            "props": {
+             "modelName": "",
+             "list": [
+              {
+               "prop": "id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "id"
+              },
+              {
+               "prop": "item_assembly_status",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_assembly_status}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_assembly_status"
+              },
+              {
+               "prop": "issuing_operation_faci",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.issuing_operation_faci}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "issuing_operation_faci"
+              },
+              {
+               "prop": "item_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_id"
+              },
+              {
+               "prop": "item_name",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_name}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_name"
+              },
+              {
+               "prop": "item_desc",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_desc}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_desc"
+              },
+              {
+               "prop": "item_qty",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_qty}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_qty"
+              },
+              {
+               "prop": "item_uom",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_uom}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_uom"
+              },
+              {
+               "prop": "issued_by",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.issued_by}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "issued_by"
+              },
+              {
+               "prop": "remarks",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks"
+              },
+              {
+               "prop": "remarks_2",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks_2}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks_2"
+              },
+              {
+               "prop": "remarks_3",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks_3}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks_3"
+              },
+              {
+               "prop": "project_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.project_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "project_id"
+              },
+              {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.batch_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
+              },
+              {
+               "prop": "manufacturing_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.manufacturing_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "manufacturing_date"
+              },
+              {
+               "prop": "expired_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.expired_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "expired_date"
+              },
+              {
+               "prop": "storage_location_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.storage_location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "storage_location_id"
+              },
+              {
+               "prop": "location_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "location_id"
+              },
+              {
+               "prop": "item_assembly_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_assembly_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_assembly_date"
+              },
+              {
+               "prop": "reference_documents",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.reference_documents}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "reference_documents"
+              },
+              {
+               "prop": "organization_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.organization_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "organization_id"
+              },
+              {
+               "prop": "stock_movement",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement"
+              },
+              {
+               "prop": "stock_movement_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement_no"
+              },
+              {
+               "prop": "stock_movement_no_type",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement_no_type}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement_no_type"
+              },
+              {
+               "prop": "posted_status",
+               "valueType": "value",
+               "value": "Unposted",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "posted_status"
+              }
+             ]
+            }
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_edit_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": [
+          {
+           "id": "add_ia",
+           "type": "add-node",
+           "data": {
+            "table_id": {
+             "source": "Item Assembly:Table:2098256587713404929",
+             "rules": {
+              "collectionId": "2098256587713404929",
+              "list": [
+               {
+                "id": 1790000000021,
+                "parentId": 1790000000022,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "fields": [],
+            "title": "Add Item Assembly",
+            "isValidator": true,
+            "nodeName": "Add Item Assembly",
+            "name": "Add Item Assembly",
+            "props": {
+             "modelName": "",
+             "list": [
+              {
+               "prop": "item_assembly_status",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_assembly_status}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_assembly_status"
+              },
+              {
+               "prop": "issuing_operation_faci",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.issuing_operation_faci}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "issuing_operation_faci"
+              },
+              {
+               "prop": "item_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_id"
+              },
+              {
+               "prop": "item_name",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_name}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_name"
+              },
+              {
+               "prop": "item_desc",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_desc}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_desc"
+              },
+              {
+               "prop": "item_qty",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_qty}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_qty"
+              },
+              {
+               "prop": "item_uom",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_uom}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_uom"
+              },
+              {
+               "prop": "issued_by",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.issued_by}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "issued_by"
+              },
+              {
+               "prop": "remarks",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks"
+              },
+              {
+               "prop": "remarks_2",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks_2}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks_2"
+              },
+              {
+               "prop": "remarks_3",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks_3}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks_3"
+              },
+              {
+               "prop": "project_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.project_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "project_id"
+              },
+              {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.batch_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
+              },
+              {
+               "prop": "manufacturing_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.manufacturing_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "manufacturing_date"
+              },
+              {
+               "prop": "expired_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.expired_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "expired_date"
+              },
+              {
+               "prop": "storage_location_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.storage_location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "storage_location_id"
+              },
+              {
+               "prop": "location_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "location_id"
+              },
+              {
+               "prop": "item_assembly_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_assembly_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_assembly_date"
+              },
+              {
+               "prop": "reference_documents",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.reference_documents}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "reference_documents"
+              },
+              {
+               "prop": "organization_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.organization_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "organization_id"
+              },
+              {
+               "prop": "stock_movement",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement"
+              },
+              {
+               "prop": "stock_movement_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement_no"
+              },
+              {
+               "prop": "stock_movement_no_type",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement_no_type}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement_no_type"
+              },
+              {
+               "prop": "posted_status",
+               "valueType": "value",
+               "value": "Unposted",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "posted_status"
+              }
+             ]
+            }
+           },
+           "blocks": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "set_cache_cost_init",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Cost Accumulator",
+        "isValidator": true,
+        "nodeName": "Init Cost Accumulator",
+        "name": "Init Cost Accumulator",
+        "custom_ost_init": {
+         "type": "javascript",
+         "code": "'[]'"
+        },
+        "redis_key": "iaCostAccum_{{workflowparams:allData.issued_by}}"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_issue_lines",
+       "type": "loop",
+       "data": {
+        "title": "Loop Components (issue)",
+        "isValidator": true,
+        "nodeName": "Loop Components (issue)",
+        "name": "Loop Components (issue)",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1790000000031,
+             "parentId": 1790000000032,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource",
+         "limit_count": ""
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_fillback.data.allData.stock_movement}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "code_issue_line",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Issue Line Prep",
+          "isValidator": true,
+          "nodeName": "Issue Line Prep",
+          "name": "Issue Line Prep",
+          "script": {
+           "type": "javascript",
+           "code": "const line = {{node:loop_issue_lines}};\nconst entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\n\nlet picks = [];\ntry {\n  picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n} catch (e) {\n  picks = [];\n}\n\nconst itemData = items.find(function (it) {\n  return String(it.id) === String(line.item_selection);\n}) || null;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  stock_movement_no: entry.stock_movement_no,\n  doc_date: entry.item_assembly_date,\n  material_id: line.item_selection,\n  material_uom: line.quantity_uom,\n  remark: line.item_remark || '',\n  remark2: line.item_remark_2 || '',\n  remark3: line.item_remark_3 || '',\n  itemData: itemData,\n  balancesToProcess: picks.filter(function (p) {\n    return (parseFloat(p.sm_quantity) || 0) > 0;\n  })\n};"
+          },
+          "response_json": [
+           {
+            "key": "iaplan00",
+            "name": "plant_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iaorga01",
+            "name": "organization_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iastoc02",
+            "name": "stock_movement_no",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iadoc_03",
+            "name": "doc_date",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iamate04",
+            "name": "material_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iamate05",
+            "name": "material_uom",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iarema06",
+            "name": "remark",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iarema07",
+            "name": "remark2",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iarema08",
+            "name": "remark3",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iaitem09",
+            "name": "itemData",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iabala10",
+            "name": "balancesToProcess",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "loop_issue_picks",
+         "type": "loop",
+         "data": {
+          "title": "Loop Picks (issue)",
+          "isValidator": true,
+          "nodeName": "Loop Picks (issue)",
+          "name": "Loop Picks (issue)",
+          "loopType": "Var",
+          "loopSeletSource": {
+           "datasource": {
+            "rules": {
+             "collectionId": "",
+             "list": [
+              {
+               "id": 1790000000029,
+               "parentId": 1790000000030,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            }
+           },
+           "auto_refresh": 1,
+           "auto_refresh_debounce": 100,
+           "options": [],
+           "props": {
+            "value": "",
+            "label": "",
+            "image": "",
+            "icon": "",
+            "explain": ""
+           },
+           "remote": false,
+           "remoteType": "datasource",
+           "limit_count": ""
+          },
+          "loopSeletVar": {
+           "type": "markdown",
+           "code": "{{node:code_issue_line.data.balancesToProcess}}"
+          }
+         },
+         "blocks": [
+          {
+           "id": "code_issue_pick",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Issue Pick Prep",
+            "isValidator": true,
+            "nodeName": "Issue Pick Prep",
+            "name": "Issue Pick Prep",
+            "script": {
+             "type": "javascript",
+             "code": "const pick = {{node:loop_issue_picks}};\n\nreturn {\n  location_id: pick.location_id || '',\n  batch_id: pick.batch_id || '',\n  quantity: parseFloat(pick.sm_quantity) || 0,\n  inventory_category: pick.category || 'Unrestricted',\n  manufacturing_date: pick.manufacturing_date || '',\n  expired_date: pick.expired_date || '',\n  handling_unit_id: pick.handling_unit_id || ''\n};"
+            },
+            "response_json": [
+             {
+              "key": "ialoca00",
+              "name": "location_id",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iabatc01",
+              "name": "batch_id",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iaquan02",
+              "name": "quantity",
+              "title": "",
+              "description": "",
+              "bsonType": "decimal",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iainve03",
+              "name": "inventory_category",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iamanu04",
+              "name": "manufacturing_date",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iaexpi05",
+              "name": "expired_date",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iahand06",
+              "name": "handling_unit_id",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "wf_subtract",
+           "type": "workflow-node",
+           "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "Subtract Inventory",
+            "isValidator": true,
+            "nodeName": "Subtract Inventory",
+            "name": "Subtract Inventory",
+            "workflow": {
+             "source": "SUBTRACT_INVENTORY:Workflow:2012096660219564034",
+             "rules": {
+              "collectionId": "2012096660219564034",
+              "list": [
+               {
+                "id": 1790000000025,
+                "parentId": 1790000000026,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+             "list": [
+              {
+               "prop": "plant_id",
+               "propLabel": "plant_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_line.data.plant_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "organization_id",
+               "propLabel": "organization_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_line.data.organization_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "material_id",
+               "propLabel": "material_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_line.data.material_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "quantity",
+               "propLabel": "quantity",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_pick.data.quantity}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "material_uom",
+               "propLabel": "material_uom",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_line.data.material_uom}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "transaction_type",
+               "propLabel": "transaction_type",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "value",
+               "valueTypeLabel": "",
+               "value": "IA",
+               "valueLabel": ""
+              },
+              {
+               "prop": "trx_no",
+               "propLabel": "trx_no",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_line.data.stock_movement_no}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "inventory_category",
+               "propLabel": "inventory_category",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_pick.data.inventory_category}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "location_id",
+               "propLabel": "location_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_pick.data.location_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "batch_id",
+               "propLabel": "batch_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_pick.data.batch_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "manufacturing_date",
+               "propLabel": "manufacturing_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_pick.data.manufacturing_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "expired_date",
+               "propLabel": "expired_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_pick.data.expired_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "handling_unit_id",
+               "propLabel": "handling_unit_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_pick.data.handling_unit_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "doc_date",
+               "propLabel": "doc_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_line.data.doc_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "itemData",
+               "propLabel": "itemData",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_issue_line.data.itemData}}",
+               "valueLabel": ""
+              }
+             ]
+            }
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_subtract_failed",
+           "type": "if",
+           "data": {
+            "title": "IF Subtract Failed",
+            "isValidator": true,
+            "nodeName": "IF Subtract Failed",
+            "name": "IF Subtract Failed",
+            "condition_type": "Expression",
+            "filter": {
+             "list": [
+              {
+               "id": 1790000000027,
+               "parentId": 1790000000028,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            },
+            "expression": {
+             "type": "javascript",
+             "code": "'{{node:wf_subtract.data.code}}' == '400'"
+            }
+           },
+           "blocks": [
+            {
+             "id": "if_subtract_failed_t",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "return_subtract_400",
+               "type": "return-node",
+               "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                 "list": [
+                  {
+                   "prop": "code",
+                   "propLabel": "code",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "value",
+                   "valueTypeLabel": "",
+                   "value": "400",
+                   "valueLabel": ""
+                  },
+                  {
+                   "prop": "message",
+                   "propLabel": "message",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "field",
+                   "valueTypeLabel": "",
+                   "value": "{{node:wf_subtract.data.errorMessage}}",
+                   "valueLabel": ""
+                  }
+                 ]
+                },
+                "return_raw_data": 0
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_subtract_failed_f",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "get_cache_cost",
+           "type": "get-cache-node",
+           "data": {
+            "cache_key": "",
+            "title": "Get Cost Accumulator",
+            "isValidator": true,
+            "nodeName": "Get Cost Accumulator",
+            "name": "Get Cost Accumulator",
+            "redis_key": "iaCostAccum_{{workflowparams:allData.issued_by}}"
+           },
+           "blocks": []
+          },
+          {
+           "id": "code_accum_cost",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Accumulate Component Cost",
+            "isValidator": true,
+            "nodeName": "Accumulate Component Cost",
+            "name": "Accumulate Component Cost",
+            "script": {
+             "type": "javascript",
+             "code": "const raw = {{node:get_cache_cost}};\nconst qty = {{node:code_issue_pick.data.quantity}};\nconst unitPrice = {{node:wf_subtract.data.unit_price}};\n\nlet rows = [];\ntry {\n  rows = raw ? JSON.parse(raw) : [];\n} catch (e) {\n  rows = [];\n}\nif (!Array.isArray(rows)) rows = [];\n\nrows.push({ qty: parseFloat(qty) || 0, unitPrice: parseFloat(unitPrice) || 0 });\n\nreturn { costRows: JSON.stringify(rows) };"
+            },
+            "response_json": [
+             {
+              "key": "iacost00",
+              "name": "costRows",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "set_cache_cost",
+           "type": "set-cache-node",
+           "data": {
+            "cache_key": "",
+            "cache_value": "",
+            "expire_time": 3600,
+            "title": "Set Cost Accumulator",
+            "isValidator": true,
+            "nodeName": "Set Cost Accumulator",
+            "name": "Set Cost Accumulator",
+            "custom_che_cost": {
+             "type": "javascript",
+             "code": "{{node:code_accum_cost.data.costRows}}"
+            },
+            "redis_key": "iaCostAccum_{{workflowparams:allData.issued_by}}"
+           },
+           "blocks": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "get_cache_cost_final",
+       "type": "get-cache-node",
+       "data": {
+        "cache_key": "",
+        "title": "Get Cost Accumulator Final",
+        "isValidator": true,
+        "nodeName": "Get Cost Accumulator Final",
+        "name": "Get Cost Accumulator Final",
+        "redis_key": "iaCostAccum_{{workflowparams:allData.issued_by}}"
+       },
+       "blocks": []
+      },
+      {
+       "id": "code_batch_decide",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Batch Decision",
+        "isValidator": true,
+        "nodeName": "Batch Decision",
+        "name": "Batch Decision",
+        "script": {
+         "type": "javascript",
+         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nconst isBatch = assembled.item_batch_management === 1;\nconst auto = assembled.batch_number_genaration === 'According To System Settings';\n\nreturn {\n  needsGen: isBatch && auto ? 1 : 0,\n  manualBatch: isBatch && !auto ? String(entry.batch_no || '') : '',\n  isBatch: isBatch ? 'Y' : 'N',\n  item_id: String(entry.item_id || ''),\n  document_date: entry.item_assembly_date || '',\n  manufacturing_date: entry.manufacturing_date || '',\n  expired_date: entry.expired_date || ''\n};"
+        },
+        "response_json": [
+         {
+          "key": "ianeed00",
+          "name": "needsGen",
+          "title": "",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iamanu01",
+          "name": "manualBatch",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaisBa02",
+          "name": "isBatch",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaitem03",
+          "name": "item_id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iadocu04",
+          "name": "document_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iamanu05",
+          "name": "manufacturing_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaexpi06",
+          "name": "expired_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_needs_batch_gen",
+       "type": "if",
+       "data": {
+        "title": "IF Needs Batch Generation",
+        "isValidator": true,
+        "nodeName": "IF Needs Batch Generation",
+        "name": "IF Needs Batch Generation",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1790000000037,
+           "parentId": 1790000000038,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "{{node:code_batch_decide.data.needsGen}} == 1"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_needs_batch_gen_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "wf_generate_batch",
+           "type": "workflow-node",
+           "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "Generate Batch",
+            "isValidator": true,
+            "nodeName": "Generate Batch",
+            "name": "Generate Batch",
+            "workflow": {
+             "source": "GENERATE_BATCH:Workflow:2060178784435535873",
+             "rules": {
+              "collectionId": "2060178784435535873",
+              "list": [
+               {
+                "id": 1790000000033,
+                "parentId": 1790000000034,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+             "list": [
+              {
+               "prop": "item_id",
+               "propLabel": "item_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_batch_decide.data.item_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "document_date",
+               "propLabel": "document_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_batch_decide.data.document_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "manufacturing_date",
+               "propLabel": "manufacturing_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_batch_decide.data.manufacturing_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "expired_date",
+               "propLabel": "expired_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_batch_decide.data.expired_date}}",
+               "valueLabel": ""
+              }
+             ]
+            }
+           },
+           "blocks": []
+          },
+          {
+           "id": "code_normalize_batch",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Normalize Batch Result",
+            "isValidator": true,
+            "nodeName": "Normalize Batch Result",
+            "name": "Normalize Batch Result",
+            "script": {
+             "type": "javascript",
+             "code": "const raw = {{node:wf_generate_batch.data}};\nconst batchNumber = raw && raw.batch_number ? String(raw.batch_number) : '';\n\nreturn {\n  batchNumber: batchNumber,\n  isError: batchNumber === '' ? 1 : 0,\n  message: batchNumber === ''\n    ? 'Could not generate a batch number. Check the Batch Number Configuration for this item.'\n    : ''\n};"
+            },
+            "response_json": [
+             {
+              "key": "iabatc00",
+              "name": "batchNumber",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iaisEr01",
+              "name": "isError",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iamess02",
+              "name": "message",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_batch_failed",
+           "type": "if",
+           "data": {
+            "title": "IF Batch Error",
+            "isValidator": true,
+            "nodeName": "IF Batch Error",
+            "name": "IF Batch Error",
+            "condition_type": "Expression",
+            "filter": {
+             "list": [
+              {
+               "id": 1790000000035,
+               "parentId": 1790000000036,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            },
+            "expression": {
+             "type": "javascript",
+             "code": "{{node:code_normalize_batch.data.isError}} == 1"
+            }
+           },
+           "blocks": [
+            {
+             "id": "if_batch_failed_t",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "return_batch_400",
+               "type": "return-node",
+               "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                 "list": [
+                  {
+                   "prop": "code",
+                   "propLabel": "code",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "value",
+                   "valueTypeLabel": "",
+                   "value": "400",
+                   "valueLabel": ""
+                  },
+                  {
+                   "prop": "message",
+                   "propLabel": "message",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "field",
+                   "valueTypeLabel": "",
+                   "value": "{{node:code_normalize_batch.data.message}}",
+                   "valueLabel": ""
+                  }
+                 ]
+                },
+                "return_raw_data": 0
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_batch_failed_f",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "if_needs_batch_gen_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "code_receipt_prep",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Receipt Prep",
+        "isValidator": true,
+        "nodeName": "Receipt Prep",
+        "name": "Receipt Prep",
+        "script": {
+         "type": "javascript",
+         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\nconst rawCost = {{node:get_cache_cost_final}};\nconst decide = {{node:code_batch_decide.data}};\n// Lives inside if_needs_batch_gen, so it is null whenever generation was skipped.\nconst generated = {{node:code_normalize_batch.data.batchNumber}};\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nlet rows = [];\ntry {\n  rows = rawCost ? JSON.parse(rawCost) : [];\n} catch (e) {\n  rows = [];\n}\nif (!Array.isArray(rows)) rows = [];\n\n// Quantity-weighted roll-up of what the components actually cost, plus the\n// item's own assembly cost per unit.\nconst consumedValue = rows.reduce(function (sum, r) {\n  return sum + ((parseFloat(r.qty) || 0) * (parseFloat(r.unitPrice) || 0));\n}, 0);\n\nconst itemQty = parseFloat(entry.item_qty) || 0;\nconst materialUnitCost = itemQty > 0 ? consumedValue / itemQty : 0;\nconst assemblyCost = parseFloat(assembled.assembly_cost) || 0;\n\nconst batchNumber = decide.needsGen === 1\n  ? String(generated || '')\n  : String(decide.manualBatch || '');\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  material_id: entry.item_id,\n  material_uom: entry.item_uom,\n  quantity: parseFloat(itemQty.toFixed(3)),\n  unit_price: parseFloat((materialUnitCost + assemblyCost).toFixed(4)),\n  location_id: entry.location_id,\n  batch_number: batchNumber,\n  trx_no: entry.stock_movement_no,\n  doc_date: entry.item_assembly_date || '',\n  manufacturing_date: entry.manufacturing_date || '',\n  expired_date: entry.expired_date || '',\n  remark: entry.remarks || '',\n  remark2: entry.remarks_2 || '',\n  remark3: entry.remarks_3 || '',\n  itemData: assembled\n};"
+        },
+        "response_json": [
+         {
+          "key": "iaplan00",
+          "name": "plant_id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaorga01",
+          "name": "organization_id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iamate02",
+          "name": "material_id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iamate03",
+          "name": "material_uom",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaquan04",
+          "name": "quantity",
+          "title": "",
+          "description": "",
+          "bsonType": "decimal",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaunit05",
+          "name": "unit_price",
+          "title": "",
+          "description": "",
+          "bsonType": "decimal",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ialoca06",
+          "name": "location_id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iabatc07",
+          "name": "batch_number",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iatrx_08",
+          "name": "trx_no",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iadoc_09",
+          "name": "doc_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iamanu10",
+          "name": "manufacturing_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaexpi11",
+          "name": "expired_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iarema12",
+          "name": "remark",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iarema13",
+          "name": "remark2",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iarema14",
+          "name": "remark3",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaitem15",
+          "name": "itemData",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "wf_add",
+       "type": "workflow-node",
+       "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Add Inventory",
+        "isValidator": true,
+        "nodeName": "Add Inventory",
+        "name": "Add Inventory",
+        "workflow": {
+         "source": "ADD_INVENTORY:Workflow:2012005532688723970",
+         "rules": {
+          "collectionId": "2012005532688723970",
+          "list": [
+           {
+            "id": 1790000000039,
+            "parentId": 1790000000040,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+         "list": [
+          {
+           "prop": "plant_id",
+           "propLabel": "plant_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.plant_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "organization_id",
+           "propLabel": "organization_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.organization_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "material_id",
+           "propLabel": "material_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.material_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "quantity",
+           "propLabel": "quantity",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.quantity}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "material_uom",
+           "propLabel": "material_uom",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.material_uom}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "transaction_type",
+           "propLabel": "transaction_type",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "value",
+           "valueTypeLabel": "",
+           "value": "IA",
+           "valueLabel": ""
+          },
+          {
+           "prop": "trx_no",
+           "propLabel": "trx_no",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.trx_no}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "inventory_category",
+           "propLabel": "inventory_category",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "value",
+           "valueTypeLabel": "",
+           "value": "Unrestricted",
+           "valueLabel": ""
+          },
+          {
+           "prop": "location_id",
+           "propLabel": "location_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.location_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "batch_number",
+           "propLabel": "batch_number",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.batch_number}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "unit_price",
+           "propLabel": "unit_price",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.unit_price}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "doc_date",
+           "propLabel": "doc_date",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.doc_date}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "manufacturing_date",
+           "propLabel": "manufacturing_date",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.manufacturing_date}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "expired_date",
+           "propLabel": "expired_date",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.expired_date}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "remark",
+           "propLabel": "remark",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.remark}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "remark2",
+           "propLabel": "remark2",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.remark2}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "remark3",
+           "propLabel": "remark3",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.remark3}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "itemData",
+           "propLabel": "itemData",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_receipt_prep.data.itemData}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "isMovingInv",
+           "propLabel": "isMovingInv",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "value",
+           "valueTypeLabel": "",
+           "value": "0",
+           "valueLabel": ""
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_add_failed",
+       "type": "if",
+       "data": {
+        "title": "IF Add Failed",
+        "isValidator": true,
+        "nodeName": "IF Add Failed",
+        "name": "IF Add Failed",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1790000000041,
+           "parentId": 1790000000042,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:wf_add.data.code}}' == '400'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_add_failed_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "return_add_400",
+           "type": "return-node",
+           "data": {
+            "return_data": {},
+            "status_code": 200,
+            "title": "Return Data",
+            "isValidator": true,
+            "nodeName": "Return Data",
+            "name": "Return Data",
+            "response_value": {
+             "list": [
+              {
+               "prop": "code",
+               "propLabel": "code",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "value",
+               "valueTypeLabel": "",
+               "value": "400",
+               "valueLabel": ""
+              },
+              {
+               "prop": "message",
+               "propLabel": "message",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:wf_add.data.errorMessage}}",
+               "valueLabel": ""
+              }
+             ]
+            },
+            "return_raw_data": 0
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_add_failed_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "code_hu_unloads",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Aggregate HU Unloads",
+        "isValidator": true,
+        "nodeName": "Aggregate HU Unloads",
+        "name": "Aggregate HU Unloads",
+        "script": {
+         "type": "javascript",
+         "code": "const entry = {{node:code_fillback.data.allData}};\n\n// Components picked out of a handling unit have to be unloaded from it.\nconst byHu = {};\n(entry.stock_movement || []).forEach(function (line) {\n  let picks = [];\n  try {\n    picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n  } catch (e) {\n    picks = [];\n  }\n  picks.forEach(function (p) {\n    if (!p.handling_unit_id) return;\n    if ((parseFloat(p.sm_quantity) || 0) <= 0) return;\n    const key = String(p.handling_unit_id);\n    if (!byHu[key]) {\n      byHu[key] = {\n        handling_unit_id: key,\n        plant_id: entry.issuing_operation_faci,\n        organization_id: entry.organization_id,\n        location_id: p.location_id || '',\n        storage_location_id: p.storage_location_id || '',\n        table_hu_items: []\n      };\n    }\n    byHu[key].table_hu_items.push({\n      material_id: p.material_id || line.item_selection,\n      location_id: p.location_id || '',\n      batch_id: p.batch_id || '',\n      material_uom: line.quantity_uom,\n      quantity: parseFloat(p.sm_quantity) || 0,\n      balance_id: p.balance_id || ''\n    });\n  });\n});\n\nconst huUpdates = Object.keys(byHu).map(function (k) { return byHu[k]; });\n\nreturn { huUpdates: huUpdates, huUpdatesLength: huUpdates.length };"
+        },
+        "response_json": [
+         {
+          "key": "iahuUp00",
+          "name": "huUpdates",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iahuUp01",
+          "name": "huUpdatesLength",
+          "title": "",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_hu",
+       "type": "loop",
+       "data": {
+        "title": "Loop HU Unloads",
+        "isValidator": true,
+        "nodeName": "Loop HU Unloads",
+        "name": "Loop HU Unloads",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1790000000045,
+             "parentId": 1790000000046,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource",
+         "limit_count": ""
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_hu_unloads.data.huUpdates}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "code_hu_pick",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Pick HU Unload",
+          "isValidator": true,
+          "nodeName": "Pick HU Unload",
+          "name": "Pick HU Unload",
+          "script": {
+           "type": "javascript",
+           "code": "const hu = {{node:loop_hu}};\n\nreturn {\n  handling_unit_id: hu.handling_unit_id,\n  plant_id: hu.plant_id,\n  organization_id: hu.organization_id,\n  location_id: hu.location_id,\n  storage_location_id: hu.storage_location_id,\n  table_hu_items: hu.table_hu_items\n};"
+          },
+          "response_json": [
+           {
+            "key": "iahand00",
+            "name": "handling_unit_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iaplan01",
+            "name": "plant_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iaorga02",
+            "name": "organization_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "ialoca03",
+            "name": "location_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iastor04",
+            "name": "storage_location_id",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "iatabl05",
+            "name": "table_hu_items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_handling_unit",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Handling Unit Workflow",
+          "isValidator": true,
+          "nodeName": "Handling Unit Workflow",
+          "name": "Handling Unit Workflow",
+          "workflow": {
+           "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+           "rules": {
+            "collectionId": "2037062451509002241",
+            "list": [
+             {
+              "id": 1790000000043,
+              "parentId": 1790000000044,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "handling_unit_id",
+             "propLabel": "handling_unit_id",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:code_hu_pick.data.handling_unit_id}}",
+             "valueLabel": ""
+            },
+            {
+             "prop": "plant_id",
+             "propLabel": "plant_id",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:code_hu_pick.data.plant_id}}",
+             "valueLabel": ""
+            },
+            {
+             "prop": "organization_id",
+             "propLabel": "organization_id",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:code_hu_pick.data.organization_id}}",
+             "valueLabel": ""
+            },
+            {
+             "prop": "storage_location_id",
+             "propLabel": "storage_location_id",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:code_hu_pick.data.storage_location_id}}",
+             "valueLabel": ""
+            },
+            {
+             "prop": "location_id",
+             "propLabel": "location_id",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:code_hu_pick.data.location_id}}",
+             "valueLabel": ""
+            },
+            {
+             "prop": "table_hu_items",
+             "propLabel": "table_hu_items",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:code_hu_pick.data.table_hu_items}}",
+             "valueLabel": ""
+            },
+            {
+             "prop": "process_type",
+             "propLabel": "process_type",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "value",
+             "valueTypeLabel": "",
+             "value": "unload",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "code_item_txn",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "updateItemTransactionDate",
+        "isValidator": true,
+        "nodeName": "updateItemTransactionDate",
+        "name": "updateItemTransactionDate",
+        "script": {
+         "type": "javascript",
+         "code": "const entry = {{node:code_fillback.data.allData}};\n\nconst ids = [];\nif (entry.item_id) ids.push(String(entry.item_id));\n(entry.stock_movement || []).forEach(function (line) {\n  if (line.item_selection) ids.push(String(line.item_selection));\n});\n\nconst stamp = new Date().toISOString();\n\nconst updates = [];\nids.filter(function (v, i, a) { return a.indexOf(v) === i; }).forEach(function (id) {\n  updates.push({ id: id, last_transaction_date: stamp });\n});\n\nreturn { updates: updates };"
+        },
+        "response_json": [
+         {
+          "key": "iaupda00",
+          "name": "updates",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "update_item_txn",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Item:Table:1901546842240438273",
+         "rules": {
+          "collectionId": "1901546842240438273",
+          "list": [
+           {
+            "id": 1790000000047,
+            "parentId": 1790000000048,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_item_txn.data.updates.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "id",
+            "valueLabel": "",
+            "operatorLabel": "in"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update Item Transaction",
+        "isValidator": true,
+        "nodeName": "Update Item Transaction",
+        "name": "Update Item Transaction",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "valueType": "field",
+           "value": "{{node:code_item_txn.data.updates.id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "id"
+          },
+          {
+           "prop": "last_transaction_date",
+           "valueType": "field",
+           "value": "{{node:code_item_txn.data.updates.last_transaction_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "last_transaction_date"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_persist_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [
+      {
+       "id": "if_edit_draft",
+       "type": "if",
+       "data": {
+        "title": "IF Edit Mode",
+        "isValidator": true,
+        "nodeName": "IF Edit Mode",
+        "name": "IF Edit Mode",
+        "condition_type": "ConditionRule",
+        "filter": {
+         "list": [
+          {
+           "id": 1790000000053,
+           "parentId": 1790000000054,
+           "isTop": true,
+           "prop": "workflowparams.pageStatus",
+           "operator": "equal",
+           "valueType": "value",
+           "value": "Edit",
+           "type": "leaf",
+           "level": 1,
+           "propLabel": "workflowparams.pageStatus",
+           "valueLabel": "",
+           "operatorLabel": "equal"
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": ""
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_edit_draft_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "update_draft",
+           "type": "update-node",
+           "data": {
+            "table_id": {
+             "source": "Item Assembly:Table:2098256587713404929",
+             "rules": {
+              "collectionId": "2098256587713404929",
+              "list": [
+               {
+                "id": 1790000000049,
+                "parentId": 1790000000050,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_fillback.data.allData.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "id",
+                "valueLabel": "",
+                "operatorLabel": "in"
+               }
+              ]
+             }
+            },
+            "fields": [],
+            "condition": {},
+            "title": "Update Draft",
+            "isValidator": true,
+            "nodeName": "Update Draft",
+            "name": "Update Draft",
+            "props": {
+             "modelName": "",
+             "list": [
+              {
+               "prop": "id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "id"
+              },
+              {
+               "prop": "item_assembly_status",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_assembly_status}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_assembly_status"
+              },
+              {
+               "prop": "issuing_operation_faci",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.issuing_operation_faci}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "issuing_operation_faci"
+              },
+              {
+               "prop": "item_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_id"
+              },
+              {
+               "prop": "item_name",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_name}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_name"
+              },
+              {
+               "prop": "item_desc",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_desc}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_desc"
+              },
+              {
+               "prop": "item_qty",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_qty}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_qty"
+              },
+              {
+               "prop": "item_uom",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_uom}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_uom"
+              },
+              {
+               "prop": "issued_by",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.issued_by}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "issued_by"
+              },
+              {
+               "prop": "remarks",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks"
+              },
+              {
+               "prop": "remarks_2",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks_2}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks_2"
+              },
+              {
+               "prop": "remarks_3",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks_3}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks_3"
+              },
+              {
+               "prop": "project_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.project_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "project_id"
+              },
+              {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.batch_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
+              },
+              {
+               "prop": "manufacturing_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.manufacturing_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "manufacturing_date"
+              },
+              {
+               "prop": "expired_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.expired_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "expired_date"
+              },
+              {
+               "prop": "storage_location_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.storage_location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "storage_location_id"
+              },
+              {
+               "prop": "location_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "location_id"
+              },
+              {
+               "prop": "item_assembly_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_assembly_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_assembly_date"
+              },
+              {
+               "prop": "reference_documents",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.reference_documents}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "reference_documents"
+              },
+              {
+               "prop": "organization_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.organization_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "organization_id"
+              },
+              {
+               "prop": "stock_movement",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement"
+              }
+             ]
+            }
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_edit_draft_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": [
+          {
+           "id": "add_draft",
+           "type": "add-node",
+           "data": {
+            "table_id": {
+             "source": "Item Assembly:Table:2098256587713404929",
+             "rules": {
+              "collectionId": "2098256587713404929",
+              "list": [
+               {
+                "id": 1790000000051,
+                "parentId": 1790000000052,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "fields": [],
+            "title": "Add Draft",
+            "isValidator": true,
+            "nodeName": "Add Draft",
+            "name": "Add Draft",
+            "props": {
+             "modelName": "",
+             "list": [
+              {
+               "prop": "item_assembly_status",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_assembly_status}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_assembly_status"
+              },
+              {
+               "prop": "issuing_operation_faci",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.issuing_operation_faci}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "issuing_operation_faci"
+              },
+              {
+               "prop": "item_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_id"
+              },
+              {
+               "prop": "item_name",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_name}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_name"
+              },
+              {
+               "prop": "item_desc",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_desc}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_desc"
+              },
+              {
+               "prop": "item_qty",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_qty}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_qty"
+              },
+              {
+               "prop": "item_uom",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_uom}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_uom"
+              },
+              {
+               "prop": "issued_by",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.issued_by}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "issued_by"
+              },
+              {
+               "prop": "remarks",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks"
+              },
+              {
+               "prop": "remarks_2",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks_2}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks_2"
+              },
+              {
+               "prop": "remarks_3",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.remarks_3}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "remarks_3"
+              },
+              {
+               "prop": "project_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.project_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "project_id"
+              },
+              {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.batch_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
+              },
+              {
+               "prop": "manufacturing_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.manufacturing_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "manufacturing_date"
+              },
+              {
+               "prop": "expired_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.expired_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "expired_date"
+              },
+              {
+               "prop": "storage_location_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.storage_location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "storage_location_id"
+              },
+              {
+               "prop": "location_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "location_id"
+              },
+              {
+               "prop": "item_assembly_date",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.item_assembly_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "item_assembly_date"
+              },
+              {
+               "prop": "reference_documents",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.reference_documents}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "reference_documents"
+              },
+              {
+               "prop": "organization_id",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.organization_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "organization_id"
+              },
+              {
+               "prop": "stock_movement",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement"
+              },
+              {
+               "prop": "stock_movement_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement_no"
+              },
+              {
+               "prop": "stock_movement_no_type",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.stock_movement_no_type}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "stock_movement_no_type"
+              }
+             ]
+            }
+           },
+           "blocks": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_doc_id",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Resolve Document ID",
+    "isValidator": true,
+    "nodeName": "Resolve Document ID",
+    "name": "Resolve Document ID",
+    "script": {
+     "type": "javascript",
+     "code": "const entry = {{node:code_fillback.data.allData}};\n// Each add-node lives in a mutually exclusive branch, so at most one of these\n// resolves; the others come back null.\nconst addedIssued = {{node:add_ia.data}};\nconst addedDraft = {{node:add_draft.data}};\n\nconst firstId = function (raw) {\n  if (!raw) return '';\n  const row = raw.length > 0 ? raw[0] : raw;\n  return row && row.id ? String(row.id) : '';\n};\n\nreturn { id: firstId(addedIssued) || firstId(addedDraft) || String(entry.id || '') };"
+    },
+    "response_json": [
+     {
+      "key": "iaidxx00",
+      "name": "id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_ok",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return Data",
+    "isValidator": true,
+    "nodeName": "Return Data",
+    "name": "Return Data",
+    "response_value": {
+     "list": [
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "value",
+       "valueTypeLabel": "",
+       "value": "200",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "propLabel": "message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "value",
+       "valueTypeLabel": "",
+       "value": "Item Assembly saved.",
+       "valueLabel": ""
+      },
+      {
+       "prop": "id",
+       "propLabel": "id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_doc_id.data.id}}",
+       "valueLabel": ""
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node",
+    "nodeName": "End Node",
+    "name": "End Node",
+    "back_data_type": "Default",
+    "code": "",
+    "msg": {
+     "type": "javascript",
+     "code": ""
+    }
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

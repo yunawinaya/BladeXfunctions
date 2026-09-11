@@ -142,6 +142,52 @@ The components table is locked to the BOM (`isAdd: false`, `isDelete: false`,
 `item_selection` disabled): the only way to change it is to change the BOM or
 `item_qty`.
 
+## The save workflow
+
+`ItemAssemblySaveWorkflow.json` → `IA_SAVE` **2098335576774463489**. 79 nodes.
+`button_draft` and `button_completed` are wired to it; `comp_post_button` and
+`button_post` stay unbound (posting is a later phase).
+
+Two legs, matching the module's shape: **subtract** every component pick
+(`SUBTRACT_INVENTORY` 2012096660219564034), then **add** the assembled item
+(`ADD_INVENTORY` 2012005532688723970). Those are the ids every Stock Movement
+module uses — the repo filenames say "Old", but only Goods Delivery uses the
+`_NEW` pair.
+
+Order of operations on Completed: validate → pre-flight inventory check over
+every pick → persist the header → issue leg → cost roll-up → batch → receipt leg
+→ HU unload → item transaction date.
+
+**Validation, with distinct return codes** so the client can tell them apart:
+400 required fields / inventory-engine failure, **401** allocation mismatch,
+empty picks, zero quantity, missing manual batch, or an already-Completed
+document, **402** inventory shortfall found by the pre-flight check.
+
+**Costing.** Each `SUBTRACT_INVENTORY` returns the actual cost of what it
+consumed. Those are accumulated across the two nested loops in Redis
+(`iaCostAccum_<issued_by>`), then the assembled item is received at
+`(sum(qty x unit_price) / item_qty) + Item.assembly_cost`.
+
+> The Redis key is user-scoped, exactly as MSR's batch cache is. Two simultaneous
+> saves **by the same user** would share the accumulator. Keying on the document
+> id would be better, but whether `{{node:...}}` interpolates inside `redis_key`
+> is unverified, and a literal key would be shared by *every* concurrent save —
+> strictly worse. Inherited deliberately, not overlooked.
+
+**Batch for the assembled item**: not batch-managed → none; `Manual Input` →
+`batch_no` is passed as `batch_number` (a string makes ADD_INVENTORY resolve or
+create the Batch); `According To System Settings` → `GENERATE_BATCH` first.
+
+**Numbering** uses the sentinel: `'draft'` on Draft, `'issued'` otherwise, guarded
+on `stock_movement_no_type !== -9999`. A Draft *edit* does not renumber
+(`update_draft` omits both number columns); promoting Draft → Completed does.
+
+**Known limitation, stated plainly:** the pre-flight check makes a failure
+unlikely, but the commits are still line-by-line with no rollback. A failure
+midway through the issue leg leaves the earlier components already deducted. This
+is the same exposure MSI carries; compensating reversals were considered and
+judged disproportionate.
+
 ## How to read this module
 
 **The header is one MSR receipt line** — the assembled item going IN to stock.
