@@ -6,15 +6,47 @@
 |---|---|
 | `ItemAssemblyFullJSON.json` | **DEPLOYED dev v8** — all 26 handlers byte-identical, every structural change survived |
 | `BOMsaveWorkflow.json` | **DEPLOYED dev** as `BOM_SAVE` id `2098308362750185474`, enabled v3, identical to repo |
-| `BOMFullJSON.json` | repaired, **NOT enabled** — v68 sits in `designing`; dev still serves v67 |
+| `BOMFullJSON.json` | deployed v69, then **two bugs found by testing — needs re-paste** |
 | `BOMlistPageJSON.json` | repaired (filters, columns, Delete), **not deployed** |
 
 The three new columns exist on dev: `sm_item_assembly_tlm8ve69_sub.requested_qty`
 `decimal(65,3)`, and `serial_number` / `material_id` on
 `sm_item_assembly_mw10kf66_sub`.
 
-**Outstanding:** enable the BOM form (v68 or a fresh paste — the repo copy has
-moved since, see below) and paste the list page.
+**Outstanding:** re-paste the BOM form **and** the save workflow (both changed after
+the 2026-09-11 test), and paste the list page.
+
+## What the first live save exposed
+
+Run `2098311821994020865` completed in 165ms with no error, wrote the header and
+both child rows, and got version / version type / decimals / `bom_type` /
+`consume_type` right. Two things were wrong anyway — both silent:
+
+1. **`code_format` read `{{node:get_parent_item.data}}`.** That is the
+   `{count, data}` envelope, not the record. It is *truthy*, so the `if (item)`
+   guard passed and every field read `undefined`; the add-node then omitted those
+   columns entirely rather than failing. Result: `parent_material_name`,
+   `parent_material_desc`, `parent_material_category` and `parent_mat_base_uom`
+   saved empty. Fixed to `.data.data` — the form the deployed GD workflow uses.
+   The authoring skill has been corrected.
+2. **The client never sent those four fields either.** `arguments[0].fieldModel.item`
+   was empty on the header picker (it works on the subform one). Both pickers now
+   read the item back by id with a projected `.field()` query instead of trusting
+   the event payload, so the form displays them too.
+
+Re-saving the existing test BOM through the fixed form will backfill it — the Edit
+path re-derives all four from the Item.
+
+**`sub_tenant_id` is a non-issue here, contrary to the earlier note.** It is a
+physical column but is *not declared* in `bill_of_materials`'s `schema_json`, so
+the platform never stamps it and a workflow cannot write it. NULLs are normal on
+this table (and on `process_route_yes81y2n_sub`, 44 of 50). The carry-forward in
+`code_guard` still earns its place on edits of the 40 legacy rows that do have a
+value.
+
+The fork-join is genuinely parallel — verified from `nodes_data`:
+`search_sibling_boms` and `get_parent_item` both start at the same millisecond and
+`code_guard` waits for the slower one.
 
 ## Deploy order
 

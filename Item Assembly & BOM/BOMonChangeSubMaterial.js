@@ -21,13 +21,27 @@
       return;
     }
 
-    const item = fieldModel?.item || {};
+    // Same fallback as the header picker: read the item back when the event
+    // payload does not carry it.
+    let item = fieldModel?.item;
+    if (!item || !item.material_name) {
+      const res = await db
+        .collection("item")
+        .field("material_name,material_desc,item_category,based_uom")
+        .where({ id: value })
+        .get()
+        .catch((error) => {
+          console.error("Error fetching sub material item:", error);
+          return { data: [] };
+        });
+      item = (res.data || [])[0] || {};
+    }
 
     this.setData({
-      [`${rowPrefix}.sub_material_name`]: item.material_name,
-      [`${rowPrefix}.sub_material_desc`]: item.material_desc,
-      [`${rowPrefix}.sub_material_category`]: item.item_category,
-      [`${rowPrefix}.sub_material_qty_uom`]: item.based_uom,
+      [`${rowPrefix}.sub_material_name`]: item.material_name || "",
+      [`${rowPrefix}.sub_material_desc`]: item.material_desc || "",
+      [`${rowPrefix}.sub_material_category`]: item.item_category || null,
+      [`${rowPrefix}.sub_material_qty_uom`]: item.based_uom || null,
       [`${rowPrefix}.bom_type`]: "standard",
       [`${rowPrefix}.consume_type`]: "USE",
       [`${rowPrefix}.ref_bom_id`]: null,

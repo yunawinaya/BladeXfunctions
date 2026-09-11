@@ -46,13 +46,27 @@ const computeNextVersion = async (materialId, organizationId) => {
       return;
     }
 
-    const item = fieldModel?.item || {};
+    // fieldModel.item is not populated on this handler's payload, so the item is
+    // read back by id rather than trusted from the event.
+    let item = fieldModel?.item;
+    if (!item || !item.material_name) {
+      const res = await db
+        .collection("item")
+        .field("material_name,material_desc,item_category,based_uom")
+        .where({ id: value })
+        .get()
+        .catch((error) => {
+          console.error("Error fetching item:", error);
+          return { data: [] };
+        });
+      item = (res.data || [])[0] || {};
+    }
 
     await this.setData({
-      parent_material_name: item.material_name,
-      parent_material_desc: item.material_desc,
-      parent_material_category: item.item_category,
-      parent_mat_base_uom: item.based_uom,
+      parent_material_name: item.material_name || "",
+      parent_material_desc: item.material_desc || "",
+      parent_material_category: item.item_category || null,
+      parent_mat_base_uom: item.based_uom || null,
       parent_mat_base_quantity: 1,
       parent_mat_is_default: 0,
       subform_sub_material: [],

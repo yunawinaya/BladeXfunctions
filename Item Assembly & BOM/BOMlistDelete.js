@@ -8,6 +8,16 @@
 
     const label = row.parent_mat_bom_version || row.id;
 
+    // parent_mat_bom_version is free text whenever the Manual Input serial rule
+    // is used, so it cannot go into an HTML confirm unescaped.
+    const escapeHtml = (value) =>
+      String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
     // A BOM a production order was built from must not disappear under it.
     const inUse = await db
       .collection("production_order")
@@ -28,7 +38,9 @@
         : "";
 
     await this.$confirm(
-      `Delete Bill of Materials <strong>${label}</strong>?${warning}<br>This cannot be undone.`,
+      `Delete Bill of Materials <strong>${escapeHtml(
+        label
+      )}</strong>?${warning}<br>This cannot be undone.`,
       "Bill of Materials Deletion",
       {
         confirmButtonText: "Delete",

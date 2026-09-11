@@ -24,12 +24,18 @@ runtime), **UNDECLARED** (code-node returns a key its `response_json` omits), **
 
 | Need | Use | Output path |
 |---|---|---|
-| One record | get-node | `.data` (a single OBJECT when count=1 — handle both shapes) |
-| Many records | search-node | `.data.data`, has `limit` |
+| One record | get-node | `{{node:X.data.data}}` — a single OBJECT when count=1, handle both shapes |
+| Many records | search-node | `{{node:X.data.data}}`, has `limit` |
 | Transform / branch flag | code-node | declared keys only (see contract) |
 | Raw SQL, joins, aggregates | sql-node | single `.data`; placeholders **hand-quoted**; PHYSICAL lowercase table names |
 | N independent fetches | condition-all-node | fork-JOIN; see Optimization |
 | Per-item work | loop | `loopType:"Var"` + `loopSeletVar.code`; refs are `{{node:<loop_id>.<field>}}` |
+
+**Reference paths are written out in full above for a reason.** A get-node's record is at
+`{{node:X.data.data}}`; `{{node:X.data}}` is the `{count, data}` envelope. That envelope is
+**truthy**, so an `if (item)` guard passes and every field read comes back `undefined` — the write
+then silently omits those columns rather than failing. Cost a full debug cycle on BOM_SAVE
+(2026-09-11). Add-nodes are the exception: `{{node:add_X.data}}` is the inserted row array.
 
 **Code-nodes cannot call `db`.** DB access only via get/add/update/search/workflow nodes. Decompose
 client functions into fetch → transform → persist.

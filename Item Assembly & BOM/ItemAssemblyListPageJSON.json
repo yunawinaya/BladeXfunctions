@@ -1,0 +1,372 @@
+{
+  "list": [
+    {
+      "name": "业务表格",
+      "el": "su-fm-vtable-crud",
+      "mainIcon": "表格布局",
+      "typeIcon": "表格布局",
+      "group": "Business",
+      "groupSort": 0,
+      "enableScopes": ["Page"],
+      "generate": "whole",
+      "options": {
+        "defaultValue": {},
+        "customClass": "",
+        "labelWidth": 100,
+        "hideLabel": true,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "required": false,
+        "validator": "",
+        "customProps": {
+          "dataSource": {
+            "rules": {
+              "collectionId": "2098256587713404929",
+              "list": [
+                {
+                  "id": 1789111579017,
+                  "parentId": 1789111579016,
+                  "isTop": true,
+                  "prop": "organization_id",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": null,
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "Organization ID",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "source": "Item Assembly:Table:2098256587713404929"
+          },
+          "columns": [],
+          "filters": [],
+          "rowActions": [
+            {
+              "title": "View",
+              "permission": "bom_view",
+              "type": "viewBtn",
+              "styleType": "Link",
+              "icon": "eye",
+              "collapse": 1,
+              "events": [
+                {
+                  "key": "2o2jakth",
+                  "name": "func_view"
+                }
+              ],
+              "dialogPosition": "rtl",
+              "dialogWidth": "80%",
+              "showBottomBar": 0,
+              "viewBtnMode": "disabled",
+              "showApprovalRecords": 0,
+              "showRevisionHistory": 0,
+              "close_on_click_modal": 1,
+              "hidden": "",
+              "disabled": ""
+            },
+            {
+              "title": "Edit",
+              "permission": "bom_edit",
+              "type": "editBtn",
+              "styleType": "Link",
+              "icon": "pencil-square",
+              "collapse": 1,
+              "events": [
+                {
+                  "key": "vdyii39a",
+                  "name": "func_edit"
+                }
+              ],
+              "dialogPosition": "rtl",
+              "dialogWidth": "80%",
+              "showBottomBar": 0,
+              "viewBtnMode": "print",
+              "showApprovalRecords": 0,
+              "showRevisionHistory": 0,
+              "close_on_click_modal": 1,
+              "hidden": "{{arguments[0].row.posted_status.dict_key == 'Pending Post'}}",
+              "disabled": ""
+            },
+            {
+              "title": "Delete",
+              "permission": "bom_delete",
+              "type": "custom",
+              "styleType": "Link",
+              "icon": "trash3",
+              "collapse": 1,
+              "events": [
+                {
+                  "key": "oh26x9gl",
+                  "name": "delete"
+                }
+              ],
+              "viewBtnMode": "print",
+              "showBottomBar": 1,
+              "showApprovalRecords": 0,
+              "showRevisionHistory": 0,
+              "dialogPosition": "center",
+              "dialogWidth": "",
+              "close_on_click_modal": 1,
+              "hidden": "",
+              "disabled": ""
+            }
+          ],
+          "toolbar": [
+            {
+              "title": "列操作",
+              "permission": "",
+              "type": "columnBtn",
+              "icon": "",
+              "events": [],
+              "showBottomBar": 1,
+              "dialogPosition": "center",
+              "dialogWidth": "",
+              "close_on_click_modal": 1
+            },
+            {
+              "title": "刷新",
+              "permission": "",
+              "type": "refreshBtn",
+              "icon": "",
+              "events": []
+            },
+            {
+              "title": "Add New",
+              "permission": "bom_add",
+              "type": "addBtn",
+              "icon": "plus",
+              "events": [
+                {
+                  "key": "dhv5kqhx",
+                  "name": "func_add"
+                }
+              ],
+              "dialogPosition": "rtl",
+              "dialogWidth": "80%",
+              "showBottomBar": 0,
+              "close_on_click_modal": 1,
+              "collapse": 0
+            },
+            {
+              "title": "",
+              "permission": "",
+              "icon": "",
+              "type": "colorBtn",
+              "showBottomBar": 1,
+              "dialogPosition": "center",
+              "dialogWidth": "",
+              "close_on_click_modal": 1,
+              "collapse": 0,
+              "events": []
+            },
+            {
+              "title": "Sort",
+              "permission": "",
+              "icon": "",
+              "type": "sortBtn",
+              "showBottomBar": 1,
+              "dialogPosition": "center",
+              "dialogWidth": "",
+              "close_on_click_modal": 1,
+              "collapse": 0,
+              "events": []
+            },
+            {
+              "title": "Group",
+              "permission": "",
+              "icon": "",
+              "type": "groupBtn",
+              "showBottomBar": 1,
+              "dialogPosition": "center",
+              "dialogWidth": "",
+              "close_on_click_modal": 1,
+              "collapse": 0,
+              "events": []
+            }
+          ],
+          "batchActions": [],
+          "rowSelectionType": "Multiple",
+          "emptyTip": "",
+          "rowHeightType": "auto",
+          "showTableBorder": 1,
+          "stripe": 0,
+          "rowColor": "#FFFFFF",
+          "styles": {
+            "colorPrimary": "#335B57",
+            "backgroundColor": "",
+            "borderColor": "",
+            "cellTextColor": "",
+            "headerBackgroundColor": "#F9F9F9",
+            "headerTextColor": "",
+            "_sort": ["headerBackgroundColor", "colorPrimary"]
+          },
+          "resizable": 0,
+          "autoLoad": true,
+          "sorts": [],
+          "pagingEnabled": 1,
+          "pageWay": "Pagination",
+          "pageSize": 10,
+          "page_size_field": "",
+          "page_current_field": "",
+          "page_total_field": "",
+          "tree_field": "",
+          "filter_collapse": 1,
+          "multiView": true,
+          "tableHeightMode": "auto",
+          "tableFixedHeight": 1300,
+          "hideIndex": false,
+          "url_params": {
+            "list": [
+              {
+                "prop": "",
+                "propLabel": "",
+                "operator": "",
+                "operatorLabel": "",
+                "valueType": "formula",
+                "valueTypeLabel": "",
+                "valueLabel": ""
+              }
+            ]
+          },
+          "request_params": {
+            "list": [
+              {
+                "prop": "",
+                "propLabel": "",
+                "operator": "",
+                "operatorLabel": "",
+                "valueType": "formula",
+                "valueTypeLabel": "",
+                "valueLabel": ""
+              }
+            ]
+          },
+          "body_params": {
+            "list": [
+              {
+                "prop": "",
+                "propLabel": "",
+                "operator": "",
+                "operatorLabel": "",
+                "valueType": "formula",
+                "valueTypeLabel": "",
+                "valueLabel": ""
+              }
+            ]
+          },
+          "data_field": "",
+          "collapse_all": 0,
+          "grid_item": "",
+          "grid": true,
+          "grid_btn": true,
+          "grid_background": "#FFFFFF",
+          "grid_num": 3,
+          "treeDefaultExpand": false,
+          "parentNodeNonEditable": false,
+          "advancedFilter": true,
+          "searchMode": "collection",
+          "batchOperate": [],
+          "ignoreFormDisabled": 0,
+          "highlightSelectedRow": false,
+          "highlightHoverRow": false,
+          "headerBgColor": "#FFFFFF",
+          "allowView": "",
+          "ganttConfig": {},
+          "defaultConfig": {
+            "startDateField": "",
+            "endDateField": "",
+            "textField": "",
+            "scaleMode": "",
+            "color": "",
+            "colorColor": "",
+            "colorRules": []
+          },
+          "multipleView": [],
+          "calendarConfig": {},
+          "isScrollbar": false
+        },
+        "remoteFunc": "func_ad19kn8a",
+        "remoteOption": "option_ad19kn8a",
+        "tableColumn": false,
+        "subform": false,
+        "isGetTree": false,
+        "padding": ["", "", "", ""],
+        "radius": ["", "", "", ""],
+        "fills": [],
+        "borders": []
+      },
+      "type": "custom",
+      "key": "s6wz5vvo",
+      "model": "custom_7rq6zmn4",
+      "rules": [],
+      "events": {
+        "rowClick": "",
+        "rowDblclick": "",
+        "cellMouseEnter": "",
+        "cellMouseLeave": "",
+        "cellClick": "",
+        "cellDblclick": "",
+        "headerClick": ""
+      }
+    }
+  ],
+  "config": {
+    "labelWidth": 100,
+    "labelPosition": "right",
+    "size": "default",
+    "customClass": "",
+    "ui": "element",
+    "layout": "horizontal",
+    "width": "100%",
+    "hideLabel": false,
+    "hideErrorMessage": false,
+    "comment": false,
+    "nav_layout": false,
+    "eventScript": [
+      {
+        "key": "mounted",
+        "name": "mounted",
+        "func": ""
+      },
+      {
+        "key": "refresh",
+        "name": "refresh",
+        "func": ""
+      },
+      {
+        "key": "onParamUpdate",
+        "name": "onParamUpdate",
+        "func": ""
+      },
+      {
+        "key": "onCommentPublish",
+        "name": "onCommentPublish",
+        "func": ""
+      },
+      {
+        "key": "onCommentDelete",
+        "name": "onCommentDelete",
+        "func": ""
+      },
+      {
+        "key": "onMention",
+        "name": "onMention",
+        "func": ""
+      },
+      {
+        "key": "onLoad",
+        "name": "onLoad",
+        "func": ""
+      }
+    ],
+    "uniqueGroup": [],
+    "params": [],
+    "deps": {},
+    "paramsDeps": {},
+    "watchers": []
+  }
+}

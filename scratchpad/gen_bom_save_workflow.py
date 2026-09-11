@@ -241,7 +241,9 @@ return {
 };"""
 
 FORMAT = """const entry = {{node:code_guard.data.entry}};
-const itemRaw = {{node:get_parent_item.data}};
+// A get-node's record sits at .data.data -- one level less is the {count, data}
+// envelope, which is truthy and makes every field read undefined.
+const itemRaw = {{node:get_parent_item.data.data}};
 const subTenantId = {{node:code_guard.data.subTenantId}};
 
 const item = Array.isArray(itemRaw) ? itemRaw[0] : itemRaw;
