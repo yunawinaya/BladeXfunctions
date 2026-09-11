@@ -154,25 +154,46 @@ Two legs, matching the module's shape: **subtract** every component pick
 module uses — the repo filenames say "Old", but only Goods Delivery uses the
 `_NEW` pair.
 
-Order of operations on Completed: validate → pre-flight inventory check over
-every pick → persist the header → issue leg → cost roll-up → batch → receipt leg
-→ HU unload → item transaction date.
+Order of operations on Completed: validate → idempotency guard → pre-flight
+inventory check over every pick → resolve the batch → persist the header →
+re-read it for the real document number → issue leg → cost roll-up → receipt leg
+→ HU unload → item transaction date. The batch is resolved *before* the write so
+a generated number lands on `batch_no`, not just on the inventory movement.
 
 **Validation, with distinct return codes** so the client can tell them apart:
 400 required fields / inventory-engine failure, **401** allocation mismatch,
-empty picks, zero quantity, missing manual batch, or an already-Completed
-document, **402** inventory shortfall found by the pre-flight check.
+empty picks, zero quantity or a missing manual batch, **402** inventory shortfall
+found by the pre-flight check, **409** already Completed.
 
 **Costing.** Each `SUBTRACT_INVENTORY` returns the actual cost of what it
-consumed. Those are accumulated across the two nested loops in Redis
-(`iaCostAccum_<issued_by>`), then the assembled item is received at
+consumed. Those accumulate across the two nested loops in Redis, then the
+assembled item is received at
 `(sum(qty x unit_price) / item_qty) + Item.assembly_cost`.
 
-> The Redis key is user-scoped, exactly as MSR's batch cache is. Two simultaneous
-> saves **by the same user** would share the accumulator. Keying on the document
-> id would be better, but whether `{{node:...}}` interpolates inside `redis_key`
-> is unverified, and a literal key would be shared by *every* concurrent save —
-> strictly worse. Inherited deliberately, not overlooked.
+The Redis key is `iaCostAccum_{{node:code_unique.data.unique}}` — namespaced per
+**run**, not per user. `code_unique` mints `<issued_by>_<timestamp>` as node #2.
+MSR keys its equivalent on `issued_by` alone, so two concurrent saves by one user
+corrupt each other's accumulator; SRR and Putaway already mint a unique value.
+`{{node:...}}` interpolation inside `redis_key` is used 188 times across this repo.
+
+**`custom_wkbocgni` is a FIXED key name on a set-cache-node** — 127 uses repo-wide,
+never varying. The runtime looks it up by that exact name; deriving a suffix from
+the node id throws
+`NullPointerException ... because "custom" is null` at runtime, with nothing in
+the JSON to hint at it.
+
+**`trx_no` must be the RESOLVED document number.** The fillback node writes the
+literal `'issued'` sentinel, which the serial engine only replaces during the
+write. So the header is persisted first, `code_persisted` re-reads the saved row
+(`get_ia` on Edit, the add-node's response on Add), and every `SUBTRACT` /
+`ADD` stamps `trx_no` from there. Taking it from the fillback copy stamps the
+literal string `issued` onto every inventory movement — invisible until you go
+looking for the document's movements and find none.
+
+**Idempotency reads the DB, not `allData`.** `get_persisted_ia` +
+`code_idem_guard` refuse a re-save of a `Completed` / `Fully Posted` document
+with 409. The client payload carries whatever the browser had, so a stale tab or
+a double-click would otherwise move stock twice.
 
 **Batch for the assembled item**: not batch-managed → none; `Manual Input` →
 `batch_no` is passed as `batch_number` (a string makes ADD_INVENTORY resolve or

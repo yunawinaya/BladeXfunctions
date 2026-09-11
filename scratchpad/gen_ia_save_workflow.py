@@ -22,11 +22,10 @@ WF_ADD      = ("ADD_INVENTORY:Workflow:2012005532688723970", "201200553268872397
 WF_BATCH    = ("GENERATE_BATCH:Workflow:2060178784435535873", "2060178784435535873")
 WF_HU       = ("HANDLING_UNIT:Workflow:2037062451509002241", "2037062451509002241")
 
-# MSR keys its loop caches on issued_by. Whether {{node:...}} interpolates inside
-# redis_key is unverified, and a literal key would be shared by EVERY concurrent
-# save, so the proven user-scoped form is used. Caveat: two simultaneous saves by
-# the same user collide.
-COST_KEY = "iaCostAccum_{{workflowparams:allData.issued_by}}"
+# Namespaced per RUN, not per user. MSR keys its loop caches on issued_by alone,
+# so two concurrent saves by one user corrupt each other's accumulator; SRR and
+# Putaway already mint a unique value for this.
+COST_KEY = "iaCostAccum_{{node:code_unique.data.unique}}"
 
 _fid = itertools.count(1790000000001)
 def fid(): return next(_fid)
@@ -117,7 +116,10 @@ def set_cache(nid, title, key, js):
     return {"id": nid, "type": "set-cache-node",
             "data": {"cache_key": "", "cache_value": "", "expire_time": 3600,
                      "title": title, "isValidator": True, "nodeName": title, "name": title,
-                     "custom_%s" % nid[-8:]: {"type": "javascript", "code": js},
+                     # custom_wkbocgni is a FIXED platform key, not derived from the
+                     # node id: the runtime looks it up by name and a different
+                     # suffix throws "custom is null".
+                     "custom_wkbocgni": {"type": "javascript", "code": js},
                      "redis_key": key},
             "blocks": []}
 
@@ -155,6 +157,45 @@ def single_leaf(prop, operator, value, label=None):
 print("helpers ready")
 
 # ---------------------------------------------------------------- scripts
+
+UNIQUE = """const allData = {{workflowparams:allData}};
+
+// Every redis_key below carries this, so concurrent runs cannot share state.
+return { unique: String(allData.issued_by || 'ia') + '_' + Date.now() };"""
+
+IDEM_GUARD = """const raw = {{node:get_persisted_ia.data.data}};
+
+// Read the stored status from the DB, never from allData: a stale tab or a
+// double-click posts the pre-completion status and would move stock twice.
+const rec = Array.isArray(raw) ? raw[0] : raw;
+const status = rec ? rec.item_assembly_status : '';
+const blocked = status === 'Completed' || status === 'Fully Posted' ? 1 : 0;
+
+return {
+  blocked: blocked,
+  blockedMessage: blocked === 1
+    ? 'This Item Assembly is already ' + status + ' and cannot be saved again.'
+    : ''
+};"""
+
+PERSISTED = """const pageStatus = {{workflowparams:pageStatus}};
+const updated = {{node:get_ia.data.data}};
+const added = {{node:add_ia.data}};
+
+// One of these two ran; the other resolves null. Guarded on pageStatus.
+let rec = pageStatus === 'Edit' ? updated : added;
+if (Array.isArray(rec)) rec = rec[0];
+rec = rec || {};
+
+// The serial engine replaced the 'issued' sentinel during the write, so this is
+// the first point the REAL document number exists. Everything downstream stamps
+// trx_no from here -- stamping it from the fillback copy would write the literal
+// string 'issued' onto every inventory movement.
+return {
+  docId: rec.id ? String(rec.id) : '',
+  stock_movement_no: rec.stock_movement_no || '',
+  stock_movement: rec.stock_movement || []
+};"""
 
 FILLBACK = """let allData = {{workflowparams:allData}};
 const saveAs = {{workflowparams:saveAs}};
@@ -335,6 +376,7 @@ return {
 
 ISSUE_LINE = """const line = {{node:loop_issue_lines}};
 const entry = {{node:code_fillback.data.allData}};
+const persisted = {{node:code_persisted.data}};
 const items = {{node:search_items.data.data}} || [];
 
 let picks = [];
@@ -351,7 +393,7 @@ const itemData = items.find(function (it) {
 return {
   plant_id: entry.issuing_operation_faci,
   organization_id: entry.organization_id,
-  stock_movement_no: entry.stock_movement_no,
+  stock_movement_no: persisted.stock_movement_no,
   doc_date: entry.item_assembly_date,
   material_id: line.item_selection,
   material_uom: line.quantity_uom,
@@ -412,6 +454,13 @@ return {
   expired_date: entry.expired_date || ''
 };"""
 
+BATCH_NUMBER = """const needsGen = {{node:code_batch_decide.data.needsGen}};
+// Lives inside if_needs_batch_gen, so it is null whenever generation was skipped.
+const generated = {{node:code_normalize_batch.data.batchNumber}};
+const manual = {{node:code_batch_decide.data.manualBatch}};
+
+return { batchNumber: needsGen === 1 ? String(generated || '') : String(manual || '') };"""
+
 NORMALIZE_BATCH = """const raw = {{node:wf_generate_batch.data}};
 const batchNumber = raw && raw.batch_number ? String(raw.batch_number) : '';
 
@@ -426,9 +475,8 @@ return {
 RECEIPT_PREP = """const entry = {{node:code_fillback.data.allData}};
 const items = {{node:search_items.data.data}} || [];
 const rawCost = {{node:get_cache_cost_final}};
-const decide = {{node:code_batch_decide.data}};
-// Lives inside if_needs_batch_gen, so it is null whenever generation was skipped.
-const generated = {{node:code_normalize_batch.data.batchNumber}};
+const persisted = {{node:code_persisted.data}};
+const batchNumber = {{node:code_batch_number.data.batchNumber}};
 
 const assembled = items.find(function (it) {
   return String(it.id) === String(entry.item_id);
@@ -452,10 +500,6 @@ const itemQty = parseFloat(entry.item_qty) || 0;
 const materialUnitCost = itemQty > 0 ? consumedValue / itemQty : 0;
 const assemblyCost = parseFloat(assembled.assembly_cost) || 0;
 
-const batchNumber = decide.needsGen === 1
-  ? String(generated || '')
-  : String(decide.manualBatch || '');
-
 return {
   plant_id: entry.issuing_operation_faci,
   organization_id: entry.organization_id,
@@ -465,7 +509,7 @@ return {
   unit_price: parseFloat((materialUnitCost + assemblyCost).toFixed(4)),
   location_id: entry.location_id,
   batch_number: batchNumber,
-  trx_no: entry.stock_movement_no,
+  trx_no: persisted.stock_movement_no,
   doc_date: entry.item_assembly_date || '',
   manufacturing_date: entry.manufacturing_date || '',
   expired_date: entry.expired_date || '',
@@ -544,9 +588,9 @@ ids.filter(function (v, i, a) { return a.indexOf(v) === i; }).forEach(function (
 return { updates: updates };"""
 
 DOC_ID = """const entry = {{node:code_fillback.data.allData}};
+const persisted = {{node:code_persisted.data.docId}};
 // Each add-node lives in a mutually exclusive branch, so at most one of these
 // resolves; the others come back null.
-const addedIssued = {{node:add_ia.data}};
 const addedDraft = {{node:add_draft.data}};
 
 const firstId = function (raw) {
@@ -555,7 +599,7 @@ const firstId = function (raw) {
   return row && row.id ? String(row.id) : '';
 };
 
-return { id: firstId(addedIssued) || firstId(addedDraft) || String(entry.id || '') };"""
+return { id: String(persisted || '') || firstId(addedDraft) || String(entry.id || '') };"""
 
 print("scripts ready")
 
@@ -564,17 +608,24 @@ print("scripts ready")
 HEADER_COLUMNS = [
     "item_assembly_status", "issuing_operation_faci", "item_id", "item_name", "item_desc",
     "item_qty", "item_uom", "issued_by", "remarks", "remarks_2", "remarks_3",
-    "project_id", "batch_no", "manufacturing_date", "expired_date",
+    "project_id", "manufacturing_date", "expired_date",
     "storage_location_id", "location_id", "item_assembly_date", "reference_documents",
     "organization_id", "stock_movement",
 ]
 
-def header_props(include_id=False, include_no=True, include_posted=True):
+def header_props(include_id=False, include_no=True, include_posted=True,
+                 batch_from_node=True):
     pairs = []
     if include_id:
         pairs.append(("id", "{{node:code_fillback.data.allData.id}}", "field"))
     for col in HEADER_COLUMNS:
         pairs.append((col, "{{node:code_fillback.data.allData.%s}}" % col, "field"))
+    # A generated batch number has to land on the document, not just on the
+    # inventory movement, or the user never sees which batch was created.
+    if batch_from_node:
+        pairs.append(("batch_no", "{{node:code_batch_number.data.batchNumber}}", "field"))
+    else:
+        pairs.append(("batch_no", "{{node:code_fillback.data.allData.batch_no}}", "field"))
     if include_no:
         pairs.append(("stock_movement_no", "{{node:code_fillback.data.allData.stock_movement_no}}", "field"))
         pairs.append(("stock_movement_no_type", "{{node:code_fillback.data.allData.stock_movement_no_type}}", "field"))
@@ -582,16 +633,16 @@ def header_props(include_id=False, include_no=True, include_posted=True):
         pairs.append(("posted_status", "Unposted", "value"))
     return props(pairs)
 
-def add_node(nid, title, include_no=True, include_posted=True):
+def add_node(nid, title, include_no=True, include_posted=True, batch_from_node=True):
     return {"id": nid, "type": "add-node",
             "data": {"table_id": {"source": IA_TABLE,
                                   "rules": {"collectionId": IA_ID, "list": empty_leaf()["list"]}},
                      "fields": [], "title": title, "isValidator": True,
                      "nodeName": title, "name": title,
-                     "props": header_props(False, include_no, include_posted)},
+                     "props": header_props(False, include_no, include_posted, batch_from_node)},
             "blocks": []}
 
-def update_node(nid, title, include_no=True, include_posted=True):
+def update_node(nid, title, include_no=True, include_posted=True, batch_from_node=True):
     return {"id": nid, "type": "update-node",
             "data": {"table_id": {"source": IA_TABLE,
                                   "rules": {"collectionId": IA_ID,
@@ -599,7 +650,7 @@ def update_node(nid, title, include_no=True, include_posted=True):
                                                                 "{{node:code_fillback.data.allData.id}}")}},
                      "fields": [], "condition": {}, "title": title, "isValidator": True,
                      "nodeName": title, "name": title,
-                     "props": header_props(True, include_no, include_posted)},
+                     "props": header_props(True, include_no, include_posted, batch_from_node)},
             "blocks": []}
 
 # ---------------------------------------------------------------- assemble
@@ -609,6 +660,7 @@ nodes = [
      "data": {"isValidator": True, "title": "Start Node", "nodeName": "Start Node",
               "name": "Start Node"}, "blocks": []},
 
+    code_node("code_unique", "Unique Run Key", UNIQUE, "unique"),
     code_node("code_fillback", "fillbackHeaderFields", FILLBACK, "allData", "storedStatus"),
     code_node("code_required", "Required Fields", REQUIRED, "required_fields", "data"),
 
@@ -638,6 +690,23 @@ nodes = [
                 "'{{node:code_validate.data.status}}' == 'Failed'",
                 [ret("return_validate_401", 401, "{{node:code_validate.data.message}}")]),
 
+        if_rule("if_edit_guard", "IF Edit Mode", "workflowparams.pageStatus", "equal", "Edit", [
+            {"id": "get_persisted_ia", "type": "get-node",
+             "data": {"table_id": {"source": IA_TABLE,
+                                   "rules": {"collectionId": IA_ID,
+                                             "list": single_leaf("id", "in",
+                                                                 "{{node:code_fillback.data.allData.id}}")}},
+                      "condition": {}, "title": "Get Stored Assembly", "isValidator": True,
+                      "nodeName": "Get Stored Assembly", "name": "Get Stored Assembly"},
+             "blocks": []},
+            code_node("code_idem_guard", "Idempotency Guard", IDEM_GUARD,
+                      "blocked", "blockedMessage"),
+            if_expr("if_idem_blocked", "IF Already Completed",
+                    "{{node:code_idem_guard.data.blocked}} == 1",
+                    [ret("return_idem_409", 409,
+                         "{{node:code_idem_guard.data.blockedMessage}}")]),
+        ]),
+
         loop("loop_precheck_lines", "Loop Components (pre-check)",
              "{{node:code_fillback.data.allData.stock_movement}}", [
             code_node("code_precheck_line", "Pre-check Line Prep", PRECHECK_LINE,
@@ -666,9 +735,42 @@ nodes = [
 
     # ---------------- persistence + inventory movement
     if_rule("if_persist", "IF !Draft", "workflowparams.saveAs", "notEqual", "Draft", [
+        code_node("code_batch_decide", "Batch Decision", BATCH_DECIDE,
+                  "needsGen", "manualBatch", "isBatch", "item_id",
+                  "document_date", "manufacturing_date", "expired_date"),
+
+        if_expr("if_needs_batch_gen", "IF Needs Batch Generation",
+                "{{node:code_batch_decide.data.needsGen}} == 1", [
+            wf_node("wf_generate_batch", "Generate Batch", WF_BATCH[0], WF_BATCH[1], [
+                ("item_id", "{{node:code_batch_decide.data.item_id}}", "field"),
+                ("document_date", "{{node:code_batch_decide.data.document_date}}", "field"),
+                ("manufacturing_date", "{{node:code_batch_decide.data.manufacturing_date}}", "field"),
+                ("expired_date", "{{node:code_batch_decide.data.expired_date}}", "field"),
+            ]),
+            code_node("code_normalize_batch", "Normalize Batch Result", NORMALIZE_BATCH,
+                      "batchNumber", "isError", "message"),
+            if_expr("if_batch_failed", "IF Batch Error",
+                    "{{node:code_normalize_batch.data.isError}} == 1",
+                    [ret("return_batch_400", 400,
+                         "{{node:code_normalize_batch.data.message}}")]),
+        ]),
+
+        code_node("code_batch_number", "Resolve Batch Number", BATCH_NUMBER, "batchNumber"),
+
         if_rule("if_edit", "IF Edit Mode", "workflowparams.pageStatus", "equal", "Edit",
-                [update_node("update_ia", "Update Item Assembly")],
+                [update_node("update_ia", "Update Item Assembly"),
+                 {"id": "get_ia", "type": "get-node",
+                  "data": {"table_id": {"source": IA_TABLE,
+                                        "rules": {"collectionId": IA_ID,
+                                                  "list": single_leaf("id", "in",
+                                                                      "{{node:code_fillback.data.allData.id}}")}},
+                           "condition": {}, "title": "Get Saved Assembly", "isValidator": True,
+                           "nodeName": "Get Saved Assembly", "name": "Get Saved Assembly"},
+                  "blocks": []}],
                 [add_node("add_ia", "Add Item Assembly")]),
+
+        code_node("code_persisted", "Resolve Persisted Document", PERSISTED,
+                  "docId", "stock_movement_no", "stock_movement"),
 
         set_cache("set_cache_cost_init", "Init Cost Accumulator", COST_KEY, "'[]'"),
 
@@ -712,26 +814,6 @@ nodes = [
         ]),
 
         get_cache("get_cache_cost_final", "Get Cost Accumulator Final", COST_KEY),
-
-        code_node("code_batch_decide", "Batch Decision", BATCH_DECIDE,
-                  "needsGen", "manualBatch", "isBatch", "item_id",
-                  "document_date", "manufacturing_date", "expired_date"),
-
-        if_expr("if_needs_batch_gen", "IF Needs Batch Generation",
-                "{{node:code_batch_decide.data.needsGen}} == 1", [
-            wf_node("wf_generate_batch", "Generate Batch", WF_BATCH[0], WF_BATCH[1], [
-                ("item_id", "{{node:code_batch_decide.data.item_id}}", "field"),
-                ("document_date", "{{node:code_batch_decide.data.document_date}}", "field"),
-                ("manufacturing_date", "{{node:code_batch_decide.data.manufacturing_date}}", "field"),
-                ("expired_date", "{{node:code_batch_decide.data.expired_date}}", "field"),
-            ]),
-            code_node("code_normalize_batch", "Normalize Batch Result", NORMALIZE_BATCH,
-                      "batchNumber", "isError", "message"),
-            if_expr("if_batch_failed", "IF Batch Error",
-                    "{{node:code_normalize_batch.data.isError}} == 1",
-                    [ret("return_batch_400", 400,
-                         "{{node:code_normalize_batch.data.message}}")]),
-        ]),
 
         code_node("code_receipt_prep", "Receipt Prep", RECEIPT_PREP,
                   "plant_id", "organization_id", "material_id", "material_uom",
@@ -800,9 +882,10 @@ nodes = [
     ], [
         # ---------------- Draft
         if_rule("if_edit_draft", "IF Edit Mode", "workflowparams.pageStatus", "equal", "Edit",
-                [update_node("update_draft", "Update Draft",
-                             include_no=False, include_posted=False)],
-                [add_node("add_draft", "Add Draft", include_posted=False)]),
+                [update_node("update_draft", "Update Draft", include_no=False,
+                             include_posted=False, batch_from_node=False)],
+                [add_node("add_draft", "Add Draft", include_posted=False,
+                          batch_from_node=False)]),
     ]),
 
     code_node("code_doc_id", "Resolve Document ID", DOC_ID, "id"),
@@ -812,10 +895,9 @@ nodes = [
                 "valueType": "field", "valueTypeLabel": "",
                 "value": "{{node:code_doc_id.data.id}}", "valueLabel": ""}]),
 
+    # Bare terminator, matching MSI/MSR/GR -- return_ok carries the response.
     {"id": "end", "type": "end-node",
-     "data": {"isValidator": True, "title": "End Node", "nodeName": "End Node",
-              "name": "End Node", "back_data_type": "Default", "code": "",
-              "msg": {"type": "javascript", "code": ""}},
+     "data": {"isValidator": True, "title": "End Node"},
      "blocks": []},
 ]
 

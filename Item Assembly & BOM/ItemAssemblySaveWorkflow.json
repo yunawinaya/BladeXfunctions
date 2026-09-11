@@ -71,6 +71,35 @@
    "blocks": []
   },
   {
+   "id": "code_unique",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Unique Run Key",
+    "isValidator": true,
+    "nodeName": "Unique Run Key",
+    "name": "Unique Run Key",
+    "script": {
+     "type": "javascript",
+     "code": "const allData = {{workflowparams:allData}};\n\n// Every redis_key below carries this, so concurrent runs cannot share state.\nreturn { unique: String(allData.issued_by || 'ia') + '_' + Date.now() };"
+    },
+    "response_json": [
+     {
+      "key": "iauniq00",
+      "name": "unique",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
    "id": "code_fillback",
    "type": "code-node",
    "data": {
@@ -304,8 +333,8 @@
     "filter": {
      "list": [
       {
-       "id": 1790000000017,
-       "parentId": 1790000000018,
+       "id": 1790000000023,
+       "parentId": 1790000000024,
        "isTop": true,
        "prop": "workflowparams.saveAs",
        "operator": "notEqual",
@@ -522,6 +551,217 @@
        ]
       },
       {
+       "id": "if_edit_guard",
+       "type": "if",
+       "data": {
+        "title": "IF Edit Mode",
+        "isValidator": true,
+        "nodeName": "IF Edit Mode",
+        "name": "IF Edit Mode",
+        "condition_type": "ConditionRule",
+        "filter": {
+         "list": [
+          {
+           "id": 1790000000013,
+           "parentId": 1790000000014,
+           "isTop": true,
+           "prop": "workflowparams.pageStatus",
+           "operator": "equal",
+           "valueType": "value",
+           "value": "Edit",
+           "type": "leaf",
+           "level": 1,
+           "propLabel": "workflowparams.pageStatus",
+           "valueLabel": "",
+           "operatorLabel": "equal"
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": ""
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_edit_guard_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "get_persisted_ia",
+           "type": "get-node",
+           "data": {
+            "table_id": {
+             "source": "Item Assembly:Table:2098256587713404929",
+             "rules": {
+              "collectionId": "2098256587713404929",
+              "list": [
+               {
+                "id": 1790000000009,
+                "parentId": 1790000000010,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_fillback.data.allData.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "id",
+                "valueLabel": "",
+                "operatorLabel": "in"
+               }
+              ]
+             }
+            },
+            "condition": {},
+            "title": "Get Stored Assembly",
+            "isValidator": true,
+            "nodeName": "Get Stored Assembly",
+            "name": "Get Stored Assembly"
+           },
+           "blocks": []
+          },
+          {
+           "id": "code_idem_guard",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Idempotency Guard",
+            "isValidator": true,
+            "nodeName": "Idempotency Guard",
+            "name": "Idempotency Guard",
+            "script": {
+             "type": "javascript",
+             "code": "const raw = {{node:get_persisted_ia.data.data}};\n\n// Read the stored status from the DB, never from allData: a stale tab or a\n// double-click posts the pre-completion status and would move stock twice.\nconst rec = Array.isArray(raw) ? raw[0] : raw;\nconst status = rec ? rec.item_assembly_status : '';\nconst blocked = status === 'Completed' || status === 'Fully Posted' ? 1 : 0;\n\nreturn {\n  blocked: blocked,\n  blockedMessage: blocked === 1\n    ? 'This Item Assembly is already ' + status + ' and cannot be saved again.'\n    : ''\n};"
+            },
+            "response_json": [
+             {
+              "key": "iabloc00",
+              "name": "blocked",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iabloc01",
+              "name": "blockedMessage",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_idem_blocked",
+           "type": "if",
+           "data": {
+            "title": "IF Already Completed",
+            "isValidator": true,
+            "nodeName": "IF Already Completed",
+            "name": "IF Already Completed",
+            "condition_type": "Expression",
+            "filter": {
+             "list": [
+              {
+               "id": 1790000000011,
+               "parentId": 1790000000012,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            },
+            "expression": {
+             "type": "javascript",
+             "code": "{{node:code_idem_guard.data.blocked}} == 1"
+            }
+           },
+           "blocks": [
+            {
+             "id": "if_idem_blocked_t",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "return_idem_409",
+               "type": "return-node",
+               "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                 "list": [
+                  {
+                   "prop": "code",
+                   "propLabel": "code",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "value",
+                   "valueTypeLabel": "",
+                   "value": "409",
+                   "valueLabel": ""
+                  },
+                  {
+                   "prop": "message",
+                   "propLabel": "message",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "field",
+                   "valueTypeLabel": "",
+                   "value": "{{node:code_idem_guard.data.blockedMessage}}",
+                   "valueLabel": ""
+                  }
+                 ]
+                },
+                "return_raw_data": 0
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_idem_blocked_f",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "if_edit_guard_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
        "id": "loop_precheck_lines",
        "type": "loop",
        "data": {
@@ -536,8 +776,8 @@
            "collectionId": "",
            "list": [
             {
-             "id": 1790000000015,
-             "parentId": 1790000000016,
+             "id": 1790000000021,
+             "parentId": 1790000000022,
              "isTop": true,
              "prop": "",
              "operator": "",
@@ -658,8 +898,8 @@
              "collectionId": "",
              "list": [
               {
-               "id": 1790000000013,
-               "parentId": 1790000000014,
+               "id": 1790000000019,
+               "parentId": 1790000000020,
                "isTop": true,
                "prop": "",
                "operator": "",
@@ -764,8 +1004,8 @@
               "collectionId": "2056291728334573570",
               "list": [
                {
-                "id": 1790000000009,
-                "parentId": 1790000000010,
+                "id": 1790000000015,
+                "parentId": 1790000000016,
                 "isTop": true,
                 "prop": "",
                 "operator": "",
@@ -878,8 +1118,8 @@
             "filter": {
              "list": [
               {
-               "id": 1790000000011,
-               "parentId": 1790000000012,
+               "id": 1790000000017,
+               "parentId": 1790000000018,
                "isTop": true,
                "prop": "",
                "operator": "",
@@ -981,8 +1221,8 @@
     "filter": {
      "list": [
       {
-       "id": 1790000000055,
-       "parentId": 1790000000056,
+       "id": 1790000000063,
+       "parentId": 1790000000064,
        "isTop": true,
        "prop": "workflowparams.saveAs",
        "operator": "notEqual",
@@ -1010,6 +1250,380 @@
      },
      "blocks": [
       {
+       "id": "code_batch_decide",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Batch Decision",
+        "isValidator": true,
+        "nodeName": "Batch Decision",
+        "name": "Batch Decision",
+        "script": {
+         "type": "javascript",
+         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nconst isBatch = assembled.item_batch_management === 1;\nconst auto = assembled.batch_number_genaration === 'According To System Settings';\n\nreturn {\n  needsGen: isBatch && auto ? 1 : 0,\n  manualBatch: isBatch && !auto ? String(entry.batch_no || '') : '',\n  isBatch: isBatch ? 'Y' : 'N',\n  item_id: String(entry.item_id || ''),\n  document_date: entry.item_assembly_date || '',\n  manufacturing_date: entry.manufacturing_date || '',\n  expired_date: entry.expired_date || ''\n};"
+        },
+        "response_json": [
+         {
+          "key": "ianeed00",
+          "name": "needsGen",
+          "title": "",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iamanu01",
+          "name": "manualBatch",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaisBa02",
+          "name": "isBatch",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaitem03",
+          "name": "item_id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iadocu04",
+          "name": "document_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iamanu05",
+          "name": "manufacturing_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iaexpi06",
+          "name": "expired_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_needs_batch_gen",
+       "type": "if",
+       "data": {
+        "title": "IF Needs Batch Generation",
+        "isValidator": true,
+        "nodeName": "IF Needs Batch Generation",
+        "name": "IF Needs Batch Generation",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1790000000029,
+           "parentId": 1790000000030,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "{{node:code_batch_decide.data.needsGen}} == 1"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_needs_batch_gen_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "wf_generate_batch",
+           "type": "workflow-node",
+           "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "Generate Batch",
+            "isValidator": true,
+            "nodeName": "Generate Batch",
+            "name": "Generate Batch",
+            "workflow": {
+             "source": "GENERATE_BATCH:Workflow:2060178784435535873",
+             "rules": {
+              "collectionId": "2060178784435535873",
+              "list": [
+               {
+                "id": 1790000000025,
+                "parentId": 1790000000026,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+             "list": [
+              {
+               "prop": "item_id",
+               "propLabel": "item_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_batch_decide.data.item_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "document_date",
+               "propLabel": "document_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_batch_decide.data.document_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "manufacturing_date",
+               "propLabel": "manufacturing_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_batch_decide.data.manufacturing_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "expired_date",
+               "propLabel": "expired_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_batch_decide.data.expired_date}}",
+               "valueLabel": ""
+              }
+             ]
+            }
+           },
+           "blocks": []
+          },
+          {
+           "id": "code_normalize_batch",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Normalize Batch Result",
+            "isValidator": true,
+            "nodeName": "Normalize Batch Result",
+            "name": "Normalize Batch Result",
+            "script": {
+             "type": "javascript",
+             "code": "const raw = {{node:wf_generate_batch.data}};\nconst batchNumber = raw && raw.batch_number ? String(raw.batch_number) : '';\n\nreturn {\n  batchNumber: batchNumber,\n  isError: batchNumber === '' ? 1 : 0,\n  message: batchNumber === ''\n    ? 'Could not generate a batch number. Check the Batch Number Configuration for this item.'\n    : ''\n};"
+            },
+            "response_json": [
+             {
+              "key": "iabatc00",
+              "name": "batchNumber",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iaisEr01",
+              "name": "isError",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "iamess02",
+              "name": "message",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_batch_failed",
+           "type": "if",
+           "data": {
+            "title": "IF Batch Error",
+            "isValidator": true,
+            "nodeName": "IF Batch Error",
+            "name": "IF Batch Error",
+            "condition_type": "Expression",
+            "filter": {
+             "list": [
+              {
+               "id": 1790000000027,
+               "parentId": 1790000000028,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            },
+            "expression": {
+             "type": "javascript",
+             "code": "{{node:code_normalize_batch.data.isError}} == 1"
+            }
+           },
+           "blocks": [
+            {
+             "id": "if_batch_failed_t",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "return_batch_400",
+               "type": "return-node",
+               "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                 "list": [
+                  {
+                   "prop": "code",
+                   "propLabel": "code",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "value",
+                   "valueTypeLabel": "",
+                   "value": "400",
+                   "valueLabel": ""
+                  },
+                  {
+                   "prop": "message",
+                   "propLabel": "message",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "field",
+                   "valueTypeLabel": "",
+                   "value": "{{node:code_normalize_batch.data.message}}",
+                   "valueLabel": ""
+                  }
+                 ]
+                },
+                "return_raw_data": 0
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_batch_failed_f",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "if_needs_batch_gen_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "code_batch_number",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Resolve Batch Number",
+        "isValidator": true,
+        "nodeName": "Resolve Batch Number",
+        "name": "Resolve Batch Number",
+        "script": {
+         "type": "javascript",
+         "code": "const needsGen = {{node:code_batch_decide.data.needsGen}};\n// Lives inside if_needs_batch_gen, so it is null whenever generation was skipped.\nconst generated = {{node:code_normalize_batch.data.batchNumber}};\nconst manual = {{node:code_batch_decide.data.manualBatch}};\n\nreturn { batchNumber: needsGen === 1 ? String(generated || '') : String(manual || '') };"
+        },
+        "response_json": [
+         {
+          "key": "iabatc00",
+          "name": "batchNumber",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
        "id": "if_edit",
        "type": "if",
        "data": {
@@ -1021,8 +1635,8 @@
         "filter": {
          "list": [
           {
-           "id": 1790000000023,
-           "parentId": 1790000000024,
+           "id": 1790000000037,
+           "parentId": 1790000000038,
            "isTop": true,
            "prop": "workflowparams.pageStatus",
            "operator": "equal",
@@ -1059,8 +1673,8 @@
               "collectionId": "2098256587713404929",
               "list": [
                {
-                "id": 1790000000019,
-                "parentId": 1790000000020,
+                "id": 1790000000031,
+                "parentId": 1790000000032,
                 "isTop": true,
                 "prop": "id",
                 "operator": "in",
@@ -1189,14 +1803,6 @@
                "propLabel": "project_id"
               },
               {
-               "prop": "batch_no",
-               "valueType": "field",
-               "value": "{{node:code_fillback.data.allData.batch_no}}",
-               "operator": "",
-               "valueLabel": "",
-               "propLabel": "batch_no"
-              },
-              {
                "prop": "manufacturing_date",
                "valueType": "field",
                "value": "{{node:code_fillback.data.allData.manufacturing_date}}",
@@ -1261,6 +1867,14 @@
                "propLabel": "stock_movement"
               },
               {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_batch_number.data.batchNumber}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
+              },
+              {
                "prop": "stock_movement_no",
                "valueType": "field",
                "value": "{{node:code_fillback.data.allData.stock_movement_no}}",
@@ -1288,6 +1902,40 @@
             }
            },
            "blocks": []
+          },
+          {
+           "id": "get_ia",
+           "type": "get-node",
+           "data": {
+            "table_id": {
+             "source": "Item Assembly:Table:2098256587713404929",
+             "rules": {
+              "collectionId": "2098256587713404929",
+              "list": [
+               {
+                "id": 1790000000033,
+                "parentId": 1790000000034,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_fillback.data.allData.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "id",
+                "valueLabel": "",
+                "operatorLabel": "in"
+               }
+              ]
+             }
+            },
+            "condition": {},
+            "title": "Get Saved Assembly",
+            "isValidator": true,
+            "nodeName": "Get Saved Assembly",
+            "name": "Get Saved Assembly"
+           },
+           "blocks": []
           }
          ]
         },
@@ -1308,8 +1956,8 @@
               "collectionId": "2098256587713404929",
               "list": [
                {
-                "id": 1790000000021,
-                "parentId": 1790000000022,
+                "id": 1790000000035,
+                "parentId": 1790000000036,
                 "isTop": true,
                 "prop": "",
                 "operator": "",
@@ -1426,14 +2074,6 @@
                "propLabel": "project_id"
               },
               {
-               "prop": "batch_no",
-               "valueType": "field",
-               "value": "{{node:code_fillback.data.allData.batch_no}}",
-               "operator": "",
-               "valueLabel": "",
-               "propLabel": "batch_no"
-              },
-              {
                "prop": "manufacturing_date",
                "valueType": "field",
                "value": "{{node:code_fillback.data.allData.manufacturing_date}}",
@@ -1498,6 +2138,14 @@
                "propLabel": "stock_movement"
               },
               {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_batch_number.data.batchNumber}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
+              },
+              {
                "prop": "stock_movement_no",
                "valueType": "field",
                "value": "{{node:code_fillback.data.allData.stock_movement_no}}",
@@ -1531,6 +2179,53 @@
        ]
       },
       {
+       "id": "code_persisted",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Resolve Persisted Document",
+        "isValidator": true,
+        "nodeName": "Resolve Persisted Document",
+        "name": "Resolve Persisted Document",
+        "script": {
+         "type": "javascript",
+         "code": "const pageStatus = {{workflowparams:pageStatus}};\nconst updated = {{node:get_ia.data.data}};\nconst added = {{node:add_ia.data}};\n\n// One of these two ran; the other resolves null. Guarded on pageStatus.\nlet rec = pageStatus === 'Edit' ? updated : added;\nif (Array.isArray(rec)) rec = rec[0];\nrec = rec || {};\n\n// The serial engine replaced the 'issued' sentinel during the write, so this is\n// the first point the REAL document number exists. Everything downstream stamps\n// trx_no from here -- stamping it from the fillback copy would write the literal\n// string 'issued' onto every inventory movement.\nreturn {\n  docId: rec.id ? String(rec.id) : '',\n  stock_movement_no: rec.stock_movement_no || '',\n  stock_movement: rec.stock_movement || []\n};"
+        },
+        "response_json": [
+         {
+          "key": "iadocI00",
+          "name": "docId",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iastoc01",
+          "name": "stock_movement_no",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "iastoc02",
+          "name": "stock_movement",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
        "id": "set_cache_cost_init",
        "type": "set-cache-node",
        "data": {
@@ -1541,11 +2236,11 @@
         "isValidator": true,
         "nodeName": "Init Cost Accumulator",
         "name": "Init Cost Accumulator",
-        "custom_ost_init": {
+        "custom_wkbocgni": {
          "type": "javascript",
          "code": "'[]'"
         },
-        "redis_key": "iaCostAccum_{{workflowparams:allData.issued_by}}"
+        "redis_key": "iaCostAccum_{{node:code_unique.data.unique}}"
        },
        "blocks": []
       },
@@ -1564,8 +2259,8 @@
            "collectionId": "",
            "list": [
             {
-             "id": 1790000000031,
-             "parentId": 1790000000032,
+             "id": 1790000000045,
+             "parentId": 1790000000046,
              "isTop": true,
              "prop": "",
              "operator": "",
@@ -1610,7 +2305,7 @@
           "name": "Issue Line Prep",
           "script": {
            "type": "javascript",
-           "code": "const line = {{node:loop_issue_lines}};\nconst entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\n\nlet picks = [];\ntry {\n  picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n} catch (e) {\n  picks = [];\n}\n\nconst itemData = items.find(function (it) {\n  return String(it.id) === String(line.item_selection);\n}) || null;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  stock_movement_no: entry.stock_movement_no,\n  doc_date: entry.item_assembly_date,\n  material_id: line.item_selection,\n  material_uom: line.quantity_uom,\n  remark: line.item_remark || '',\n  remark2: line.item_remark_2 || '',\n  remark3: line.item_remark_3 || '',\n  itemData: itemData,\n  balancesToProcess: picks.filter(function (p) {\n    return (parseFloat(p.sm_quantity) || 0) > 0;\n  })\n};"
+           "code": "const line = {{node:loop_issue_lines}};\nconst entry = {{node:code_fillback.data.allData}};\nconst persisted = {{node:code_persisted.data}};\nconst items = {{node:search_items.data.data}} || [];\n\nlet picks = [];\ntry {\n  picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n} catch (e) {\n  picks = [];\n}\n\nconst itemData = items.find(function (it) {\n  return String(it.id) === String(line.item_selection);\n}) || null;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  stock_movement_no: persisted.stock_movement_no,\n  doc_date: entry.item_assembly_date,\n  material_id: line.item_selection,\n  material_uom: line.quantity_uom,\n  remark: line.item_remark || '',\n  remark2: line.item_remark_2 || '',\n  remark3: line.item_remark_3 || '',\n  itemData: itemData,\n  balancesToProcess: picks.filter(function (p) {\n    return (parseFloat(p.sm_quantity) || 0) > 0;\n  })\n};"
           },
           "response_json": [
            {
@@ -1731,8 +2426,8 @@
              "collectionId": "",
              "list": [
               {
-               "id": 1790000000029,
-               "parentId": 1790000000030,
+               "id": 1790000000043,
+               "parentId": 1790000000044,
                "isTop": true,
                "prop": "",
                "operator": "",
@@ -1864,8 +2559,8 @@
               "collectionId": "2012096660219564034",
               "list": [
                {
-                "id": 1790000000025,
-                "parentId": 1790000000026,
+                "id": 1790000000039,
+                "parentId": 1790000000040,
                 "isTop": true,
                 "prop": "",
                 "operator": "",
@@ -2048,8 +2743,8 @@
             "filter": {
              "list": [
               {
-               "id": 1790000000027,
-               "parentId": 1790000000028,
+               "id": 1790000000041,
+               "parentId": 1790000000042,
                "isTop": true,
                "prop": "",
                "operator": "",
@@ -2132,7 +2827,7 @@
             "isValidator": true,
             "nodeName": "Get Cost Accumulator",
             "name": "Get Cost Accumulator",
-            "redis_key": "iaCostAccum_{{workflowparams:allData.issued_by}}"
+            "redis_key": "iaCostAccum_{{node:code_unique.data.unique}}"
            },
            "blocks": []
           },
@@ -2176,11 +2871,11 @@
             "isValidator": true,
             "nodeName": "Set Cost Accumulator",
             "name": "Set Cost Accumulator",
-            "custom_che_cost": {
+            "custom_wkbocgni": {
              "type": "javascript",
              "code": "{{node:code_accum_cost.data.costRows}}"
             },
-            "redis_key": "iaCostAccum_{{workflowparams:allData.issued_by}}"
+            "redis_key": "iaCostAccum_{{node:code_unique.data.unique}}"
            },
            "blocks": []
           }
@@ -2197,354 +2892,9 @@
         "isValidator": true,
         "nodeName": "Get Cost Accumulator Final",
         "name": "Get Cost Accumulator Final",
-        "redis_key": "iaCostAccum_{{workflowparams:allData.issued_by}}"
+        "redis_key": "iaCostAccum_{{node:code_unique.data.unique}}"
        },
        "blocks": []
-      },
-      {
-       "id": "code_batch_decide",
-       "type": "code-node",
-       "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Batch Decision",
-        "isValidator": true,
-        "nodeName": "Batch Decision",
-        "name": "Batch Decision",
-        "script": {
-         "type": "javascript",
-         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nconst isBatch = assembled.item_batch_management === 1;\nconst auto = assembled.batch_number_genaration === 'According To System Settings';\n\nreturn {\n  needsGen: isBatch && auto ? 1 : 0,\n  manualBatch: isBatch && !auto ? String(entry.batch_no || '') : '',\n  isBatch: isBatch ? 'Y' : 'N',\n  item_id: String(entry.item_id || ''),\n  document_date: entry.item_assembly_date || '',\n  manufacturing_date: entry.manufacturing_date || '',\n  expired_date: entry.expired_date || ''\n};"
-        },
-        "response_json": [
-         {
-          "key": "ianeed00",
-          "name": "needsGen",
-          "title": "",
-          "description": "",
-          "bsonType": "int",
-          "isExpand": false,
-          "children": []
-         },
-         {
-          "key": "iamanu01",
-          "name": "manualBatch",
-          "title": "",
-          "description": "",
-          "bsonType": "string",
-          "isExpand": false,
-          "children": []
-         },
-         {
-          "key": "iaisBa02",
-          "name": "isBatch",
-          "title": "",
-          "description": "",
-          "bsonType": "string",
-          "isExpand": false,
-          "children": []
-         },
-         {
-          "key": "iaitem03",
-          "name": "item_id",
-          "title": "",
-          "description": "",
-          "bsonType": "string",
-          "isExpand": false,
-          "children": []
-         },
-         {
-          "key": "iadocu04",
-          "name": "document_date",
-          "title": "",
-          "description": "",
-          "bsonType": "string",
-          "isExpand": false,
-          "children": []
-         },
-         {
-          "key": "iamanu05",
-          "name": "manufacturing_date",
-          "title": "",
-          "description": "",
-          "bsonType": "string",
-          "isExpand": false,
-          "children": []
-         },
-         {
-          "key": "iaexpi06",
-          "name": "expired_date",
-          "title": "",
-          "description": "",
-          "bsonType": "string",
-          "isExpand": false,
-          "children": []
-         }
-        ]
-       },
-       "blocks": []
-      },
-      {
-       "id": "if_needs_batch_gen",
-       "type": "if",
-       "data": {
-        "title": "IF Needs Batch Generation",
-        "isValidator": true,
-        "nodeName": "IF Needs Batch Generation",
-        "name": "IF Needs Batch Generation",
-        "condition_type": "Expression",
-        "filter": {
-         "list": [
-          {
-           "id": 1790000000037,
-           "parentId": 1790000000038,
-           "isTop": true,
-           "prop": "",
-           "operator": "",
-           "valueType": "",
-           "value": "",
-           "type": "leaf",
-           "level": 1
-          }
-         ]
-        },
-        "expression": {
-         "type": "javascript",
-         "code": "{{node:code_batch_decide.data.needsGen}} == 1"
-        }
-       },
-       "blocks": [
-        {
-         "id": "if_needs_batch_gen_t",
-         "type": "ifBlock",
-         "data": {
-          "title": "true"
-         },
-         "blocks": [
-          {
-           "id": "wf_generate_batch",
-           "type": "workflow-node",
-           "data": {
-            "workflow_id": "",
-            "workflow_name": "",
-            "input_params": {},
-            "title": "Generate Batch",
-            "isValidator": true,
-            "nodeName": "Generate Batch",
-            "name": "Generate Batch",
-            "workflow": {
-             "source": "GENERATE_BATCH:Workflow:2060178784435535873",
-             "rules": {
-              "collectionId": "2060178784435535873",
-              "list": [
-               {
-                "id": 1790000000033,
-                "parentId": 1790000000034,
-                "isTop": true,
-                "prop": "",
-                "operator": "",
-                "valueType": "",
-                "value": "",
-                "type": "leaf",
-                "level": 1
-               }
-              ]
-             }
-            },
-            "remote": true,
-            "remoteType": "innerdatasource",
-            "body_params": {
-             "list": [
-              {
-               "prop": "item_id",
-               "propLabel": "item_id",
-               "operator": "",
-               "operatorLabel": "",
-               "valueType": "field",
-               "valueTypeLabel": "",
-               "value": "{{node:code_batch_decide.data.item_id}}",
-               "valueLabel": ""
-              },
-              {
-               "prop": "document_date",
-               "propLabel": "document_date",
-               "operator": "",
-               "operatorLabel": "",
-               "valueType": "field",
-               "valueTypeLabel": "",
-               "value": "{{node:code_batch_decide.data.document_date}}",
-               "valueLabel": ""
-              },
-              {
-               "prop": "manufacturing_date",
-               "propLabel": "manufacturing_date",
-               "operator": "",
-               "operatorLabel": "",
-               "valueType": "field",
-               "valueTypeLabel": "",
-               "value": "{{node:code_batch_decide.data.manufacturing_date}}",
-               "valueLabel": ""
-              },
-              {
-               "prop": "expired_date",
-               "propLabel": "expired_date",
-               "operator": "",
-               "operatorLabel": "",
-               "valueType": "field",
-               "valueTypeLabel": "",
-               "value": "{{node:code_batch_decide.data.expired_date}}",
-               "valueLabel": ""
-              }
-             ]
-            }
-           },
-           "blocks": []
-          },
-          {
-           "id": "code_normalize_batch",
-           "type": "code-node",
-           "data": {
-            "language": "javascript",
-            "code": "",
-            "timeout": 30000,
-            "title": "Normalize Batch Result",
-            "isValidator": true,
-            "nodeName": "Normalize Batch Result",
-            "name": "Normalize Batch Result",
-            "script": {
-             "type": "javascript",
-             "code": "const raw = {{node:wf_generate_batch.data}};\nconst batchNumber = raw && raw.batch_number ? String(raw.batch_number) : '';\n\nreturn {\n  batchNumber: batchNumber,\n  isError: batchNumber === '' ? 1 : 0,\n  message: batchNumber === ''\n    ? 'Could not generate a batch number. Check the Batch Number Configuration for this item.'\n    : ''\n};"
-            },
-            "response_json": [
-             {
-              "key": "iabatc00",
-              "name": "batchNumber",
-              "title": "",
-              "description": "",
-              "bsonType": "string",
-              "isExpand": false,
-              "children": []
-             },
-             {
-              "key": "iaisEr01",
-              "name": "isError",
-              "title": "",
-              "description": "",
-              "bsonType": "string",
-              "isExpand": false,
-              "children": []
-             },
-             {
-              "key": "iamess02",
-              "name": "message",
-              "title": "",
-              "description": "",
-              "bsonType": "string",
-              "isExpand": false,
-              "children": []
-             }
-            ]
-           },
-           "blocks": []
-          },
-          {
-           "id": "if_batch_failed",
-           "type": "if",
-           "data": {
-            "title": "IF Batch Error",
-            "isValidator": true,
-            "nodeName": "IF Batch Error",
-            "name": "IF Batch Error",
-            "condition_type": "Expression",
-            "filter": {
-             "list": [
-              {
-               "id": 1790000000035,
-               "parentId": 1790000000036,
-               "isTop": true,
-               "prop": "",
-               "operator": "",
-               "valueType": "",
-               "value": "",
-               "type": "leaf",
-               "level": 1
-              }
-             ]
-            },
-            "expression": {
-             "type": "javascript",
-             "code": "{{node:code_normalize_batch.data.isError}} == 1"
-            }
-           },
-           "blocks": [
-            {
-             "id": "if_batch_failed_t",
-             "type": "ifBlock",
-             "data": {
-              "title": "true"
-             },
-             "blocks": [
-              {
-               "id": "return_batch_400",
-               "type": "return-node",
-               "data": {
-                "return_data": {},
-                "status_code": 200,
-                "title": "Return Data",
-                "isValidator": true,
-                "nodeName": "Return Data",
-                "name": "Return Data",
-                "response_value": {
-                 "list": [
-                  {
-                   "prop": "code",
-                   "propLabel": "code",
-                   "operator": "",
-                   "operatorLabel": "",
-                   "valueType": "value",
-                   "valueTypeLabel": "",
-                   "value": "400",
-                   "valueLabel": ""
-                  },
-                  {
-                   "prop": "message",
-                   "propLabel": "message",
-                   "operator": "",
-                   "operatorLabel": "",
-                   "valueType": "field",
-                   "valueTypeLabel": "",
-                   "value": "{{node:code_normalize_batch.data.message}}",
-                   "valueLabel": ""
-                  }
-                 ]
-                },
-                "return_raw_data": 0
-               },
-               "blocks": []
-              }
-             ]
-            },
-            {
-             "id": "if_batch_failed_f",
-             "type": "ifBlock",
-             "data": {
-              "title": "false"
-             },
-             "blocks": []
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "id": "if_needs_batch_gen_f",
-         "type": "ifBlock",
-         "data": {
-          "title": "false"
-         },
-         "blocks": []
-        }
-       ]
       },
       {
        "id": "code_receipt_prep",
@@ -2559,7 +2909,7 @@
         "name": "Receipt Prep",
         "script": {
          "type": "javascript",
-         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\nconst rawCost = {{node:get_cache_cost_final}};\nconst decide = {{node:code_batch_decide.data}};\n// Lives inside if_needs_batch_gen, so it is null whenever generation was skipped.\nconst generated = {{node:code_normalize_batch.data.batchNumber}};\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nlet rows = [];\ntry {\n  rows = rawCost ? JSON.parse(rawCost) : [];\n} catch (e) {\n  rows = [];\n}\nif (!Array.isArray(rows)) rows = [];\n\n// Quantity-weighted roll-up of what the components actually cost, plus the\n// item's own assembly cost per unit.\nconst consumedValue = rows.reduce(function (sum, r) {\n  return sum + ((parseFloat(r.qty) || 0) * (parseFloat(r.unitPrice) || 0));\n}, 0);\n\nconst itemQty = parseFloat(entry.item_qty) || 0;\nconst materialUnitCost = itemQty > 0 ? consumedValue / itemQty : 0;\nconst assemblyCost = parseFloat(assembled.assembly_cost) || 0;\n\nconst batchNumber = decide.needsGen === 1\n  ? String(generated || '')\n  : String(decide.manualBatch || '');\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  material_id: entry.item_id,\n  material_uom: entry.item_uom,\n  quantity: parseFloat(itemQty.toFixed(3)),\n  unit_price: parseFloat((materialUnitCost + assemblyCost).toFixed(4)),\n  location_id: entry.location_id,\n  batch_number: batchNumber,\n  trx_no: entry.stock_movement_no,\n  doc_date: entry.item_assembly_date || '',\n  manufacturing_date: entry.manufacturing_date || '',\n  expired_date: entry.expired_date || '',\n  remark: entry.remarks || '',\n  remark2: entry.remarks_2 || '',\n  remark3: entry.remarks_3 || '',\n  itemData: assembled\n};"
+         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\nconst rawCost = {{node:get_cache_cost_final}};\nconst persisted = {{node:code_persisted.data}};\nconst batchNumber = {{node:code_batch_number.data.batchNumber}};\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nlet rows = [];\ntry {\n  rows = rawCost ? JSON.parse(rawCost) : [];\n} catch (e) {\n  rows = [];\n}\nif (!Array.isArray(rows)) rows = [];\n\n// Quantity-weighted roll-up of what the components actually cost, plus the\n// item's own assembly cost per unit.\nconst consumedValue = rows.reduce(function (sum, r) {\n  return sum + ((parseFloat(r.qty) || 0) * (parseFloat(r.unitPrice) || 0));\n}, 0);\n\nconst itemQty = parseFloat(entry.item_qty) || 0;\nconst materialUnitCost = itemQty > 0 ? consumedValue / itemQty : 0;\nconst assemblyCost = parseFloat(assembled.assembly_cost) || 0;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  material_id: entry.item_id,\n  material_uom: entry.item_uom,\n  quantity: parseFloat(itemQty.toFixed(3)),\n  unit_price: parseFloat((materialUnitCost + assemblyCost).toFixed(4)),\n  location_id: entry.location_id,\n  batch_number: batchNumber,\n  trx_no: persisted.stock_movement_no,\n  doc_date: entry.item_assembly_date || '',\n  manufacturing_date: entry.manufacturing_date || '',\n  expired_date: entry.expired_date || '',\n  remark: entry.remarks || '',\n  remark2: entry.remarks_2 || '',\n  remark3: entry.remarks_3 || '',\n  itemData: assembled\n};"
         },
         "response_json": [
          {
@@ -2727,8 +3077,8 @@
           "collectionId": "2012005532688723970",
           "list": [
            {
-            "id": 1790000000039,
-            "parentId": 1790000000040,
+            "id": 1790000000047,
+            "parentId": 1790000000048,
             "isTop": true,
             "prop": "",
             "operator": "",
@@ -2951,8 +3301,8 @@
         "filter": {
          "list": [
           {
-           "id": 1790000000041,
-           "parentId": 1790000000042,
+           "id": 1790000000049,
+           "parentId": 1790000000050,
            "isTop": true,
            "prop": "",
            "operator": "",
@@ -3079,8 +3429,8 @@
            "collectionId": "",
            "list": [
             {
-             "id": 1790000000045,
-             "parentId": 1790000000046,
+             "id": 1790000000053,
+             "parentId": 1790000000054,
              "isTop": true,
              "prop": "",
              "operator": "",
@@ -3203,8 +3553,8 @@
             "collectionId": "2037062451509002241",
             "list": [
              {
-              "id": 1790000000043,
-              "parentId": 1790000000044,
+              "id": 1790000000051,
+              "parentId": 1790000000052,
               "isTop": true,
               "prop": "",
               "operator": "",
@@ -3336,8 +3686,8 @@
           "collectionId": "1901546842240438273",
           "list": [
            {
-            "id": 1790000000047,
-            "parentId": 1790000000048,
+            "id": 1790000000055,
+            "parentId": 1790000000056,
             "isTop": true,
             "prop": "id",
             "operator": "in",
@@ -3403,8 +3753,8 @@
         "filter": {
          "list": [
           {
-           "id": 1790000000053,
-           "parentId": 1790000000054,
+           "id": 1790000000061,
+           "parentId": 1790000000062,
            "isTop": true,
            "prop": "workflowparams.pageStatus",
            "operator": "equal",
@@ -3441,8 +3791,8 @@
               "collectionId": "2098256587713404929",
               "list": [
                {
-                "id": 1790000000049,
-                "parentId": 1790000000050,
+                "id": 1790000000057,
+                "parentId": 1790000000058,
                 "isTop": true,
                 "prop": "id",
                 "operator": "in",
@@ -3571,14 +3921,6 @@
                "propLabel": "project_id"
               },
               {
-               "prop": "batch_no",
-               "valueType": "field",
-               "value": "{{node:code_fillback.data.allData.batch_no}}",
-               "operator": "",
-               "valueLabel": "",
-               "propLabel": "batch_no"
-              },
-              {
                "prop": "manufacturing_date",
                "valueType": "field",
                "value": "{{node:code_fillback.data.allData.manufacturing_date}}",
@@ -3641,6 +3983,14 @@
                "operator": "",
                "valueLabel": "",
                "propLabel": "stock_movement"
+              },
+              {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.batch_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
               }
              ]
             }
@@ -3666,8 +4016,8 @@
               "collectionId": "2098256587713404929",
               "list": [
                {
-                "id": 1790000000051,
-                "parentId": 1790000000052,
+                "id": 1790000000059,
+                "parentId": 1790000000060,
                 "isTop": true,
                 "prop": "",
                 "operator": "",
@@ -3784,14 +4134,6 @@
                "propLabel": "project_id"
               },
               {
-               "prop": "batch_no",
-               "valueType": "field",
-               "value": "{{node:code_fillback.data.allData.batch_no}}",
-               "operator": "",
-               "valueLabel": "",
-               "propLabel": "batch_no"
-              },
-              {
                "prop": "manufacturing_date",
                "valueType": "field",
                "value": "{{node:code_fillback.data.allData.manufacturing_date}}",
@@ -3856,6 +4198,14 @@
                "propLabel": "stock_movement"
               },
               {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_fillback.data.allData.batch_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
+              },
+              {
                "prop": "stock_movement_no",
                "valueType": "field",
                "value": "{{node:code_fillback.data.allData.stock_movement_no}}",
@@ -3897,7 +4247,7 @@
     "name": "Resolve Document ID",
     "script": {
      "type": "javascript",
-     "code": "const entry = {{node:code_fillback.data.allData}};\n// Each add-node lives in a mutually exclusive branch, so at most one of these\n// resolves; the others come back null.\nconst addedIssued = {{node:add_ia.data}};\nconst addedDraft = {{node:add_draft.data}};\n\nconst firstId = function (raw) {\n  if (!raw) return '';\n  const row = raw.length > 0 ? raw[0] : raw;\n  return row && row.id ? String(row.id) : '';\n};\n\nreturn { id: firstId(addedIssued) || firstId(addedDraft) || String(entry.id || '') };"
+     "code": "const entry = {{node:code_fillback.data.allData}};\nconst persisted = {{node:code_persisted.data.docId}};\n// Each add-node lives in a mutually exclusive branch, so at most one of these\n// resolves; the others come back null.\nconst addedDraft = {{node:add_draft.data}};\n\nconst firstId = function (raw) {\n  if (!raw) return '';\n  const row = raw.length > 0 ? raw[0] : raw;\n  return row && row.id ? String(row.id) : '';\n};\n\nreturn { id: String(persisted || '') || firstId(addedDraft) || String(entry.id || '') };"
     },
     "response_json": [
      {
@@ -3966,15 +4316,7 @@
    "type": "end-node",
    "data": {
     "isValidator": true,
-    "title": "End Node",
-    "nodeName": "End Node",
-    "name": "End Node",
-    "back_data_type": "Default",
-    "code": "",
-    "msg": {
-     "type": "javascript",
-     "code": ""
-    }
+    "title": "End Node"
    },
    "blocks": []
   }
