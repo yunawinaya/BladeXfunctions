@@ -71,35 +71,6 @@
    "blocks": []
   },
   {
-   "id": "code_unique",
-   "type": "code-node",
-   "data": {
-    "language": "javascript",
-    "code": "",
-    "timeout": 30000,
-    "title": "Unique Run Key",
-    "isValidator": true,
-    "nodeName": "Unique Run Key",
-    "name": "Unique Run Key",
-    "script": {
-     "type": "javascript",
-     "code": "const allData = {{workflowparams:allData}};\n\n// Every redis_key below carries this, so concurrent runs cannot share state.\nreturn { unique: String(allData.issued_by || 'ia') + '_' + Date.now() };"
-    },
-    "response_json": [
-     {
-      "key": "iauniq00",
-      "name": "unique",
-      "title": "",
-      "description": "",
-      "bsonType": "string",
-      "isExpand": false,
-      "children": []
-     }
-    ]
-   },
-   "blocks": []
-  },
-  {
    "id": "code_fillback",
    "type": "code-node",
    "data": {
@@ -944,7 +915,7 @@
             "name": "Pre-check Pick Prep",
             "script": {
              "type": "javascript",
-             "code": "const pick = {{node:loop_precheck_picks}};\n\nreturn {\n  location_id: pick.location_id || '',\n  batch_id: pick.batch_id || '',\n  quantity: parseFloat(pick.sm_quantity) || 0,\n  inventory_category: pick.category || 'Unrestricted'\n};"
+             "code": "const pick = {{node:loop_precheck_picks}};\n\nreturn {\n  location_id: pick.location_id || null,\n  batch_id: pick.batch_id || null,\n  quantity: parseFloat(pick.sm_quantity) || 0,\n  inventory_category: pick.category || 'Unrestricted'\n};"
             },
             "response_json": [
              {
@@ -1221,8 +1192,8 @@
     "filter": {
      "list": [
       {
-       "id": 1790000000063,
-       "parentId": 1790000000064,
+       "id": 1790000000069,
+       "parentId": 1790000000070,
        "isTop": true,
        "prop": "workflowparams.saveAs",
        "operator": "notEqual",
@@ -1262,7 +1233,7 @@
         "name": "Batch Decision",
         "script": {
          "type": "javascript",
-         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nconst isBatch = assembled.item_batch_management === 1;\nconst auto = assembled.batch_number_genaration === 'According To System Settings';\n\nreturn {\n  needsGen: isBatch && auto ? 1 : 0,\n  manualBatch: isBatch && !auto ? String(entry.batch_no || '') : '',\n  isBatch: isBatch ? 'Y' : 'N',\n  item_id: String(entry.item_id || ''),\n  document_date: entry.item_assembly_date || '',\n  manufacturing_date: entry.manufacturing_date || '',\n  expired_date: entry.expired_date || ''\n};"
+         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nconst isBatch = assembled.item_batch_management === 1;\nconst auto = assembled.batch_number_genaration === 'According To System Settings';\n\nreturn {\n  needsGen: isBatch && auto ? 1 : 0,\n  manualBatch: isBatch && !auto ? String(entry.batch_no || '') : '',\n  isBatch: isBatch ? 'Y' : 'N',\n  item_id: String(entry.item_id || ''),\n  document_date: entry.item_assembly_date || null,\n  manufacturing_date: entry.manufacturing_date || null,\n  expired_date: entry.expired_date || null\n};"
         },
         "response_json": [
          {
@@ -2226,25 +2197,6 @@
        "blocks": []
       },
       {
-       "id": "set_cache_cost_init",
-       "type": "set-cache-node",
-       "data": {
-        "cache_key": "",
-        "cache_value": "",
-        "expire_time": 3600,
-        "title": "Init Cost Accumulator",
-        "isValidator": true,
-        "nodeName": "Init Cost Accumulator",
-        "name": "Init Cost Accumulator",
-        "custom_wkbocgni": {
-         "type": "javascript",
-         "code": "'[]'"
-        },
-        "redis_key": "iaCostAccum_{{node:code_unique.data.unique}}"
-       },
-       "blocks": []
-      },
-      {
        "id": "loop_issue_lines",
        "type": "loop",
        "data": {
@@ -2472,7 +2424,7 @@
             "name": "Issue Pick Prep",
             "script": {
              "type": "javascript",
-             "code": "const pick = {{node:loop_issue_picks}};\n\nreturn {\n  location_id: pick.location_id || '',\n  batch_id: pick.batch_id || '',\n  quantity: parseFloat(pick.sm_quantity) || 0,\n  inventory_category: pick.category || 'Unrestricted',\n  manufacturing_date: pick.manufacturing_date || '',\n  expired_date: pick.expired_date || '',\n  handling_unit_id: pick.handling_unit_id || ''\n};"
+             "code": "const pick = {{node:loop_issue_picks}};\n\n// Every nullable param is null, never '': SUBTRACT_INVENTORY's own Batch ID node\n// does `const batchId = ...; if (batchId === \"\") batchId = null`, which throws\n// TypeError: Assignment to constant. MSI passes null for the same reason.\nreturn {\n  location_id: pick.location_id || null,\n  batch_id: pick.batch_id || null,\n  quantity: parseFloat(pick.sm_quantity) || 0,\n  inventory_category: pick.category || 'Unrestricted',\n  manufacturing_date: pick.manufacturing_date || null,\n  expired_date: pick.expired_date || null,\n  handling_unit_id: pick.handling_unit_id || null\n};"
             },
             "response_json": [
              {
@@ -2817,82 +2769,70 @@
              "blocks": []
             }
            ]
-          },
-          {
-           "id": "get_cache_cost",
-           "type": "get-cache-node",
-           "data": {
-            "cache_key": "",
-            "title": "Get Cost Accumulator",
-            "isValidator": true,
-            "nodeName": "Get Cost Accumulator",
-            "name": "Get Cost Accumulator",
-            "redis_key": "iaCostAccum_{{node:code_unique.data.unique}}"
-           },
-           "blocks": []
-          },
-          {
-           "id": "code_accum_cost",
-           "type": "code-node",
-           "data": {
-            "language": "javascript",
-            "code": "",
-            "timeout": 30000,
-            "title": "Accumulate Component Cost",
-            "isValidator": true,
-            "nodeName": "Accumulate Component Cost",
-            "name": "Accumulate Component Cost",
-            "script": {
-             "type": "javascript",
-             "code": "const raw = {{node:get_cache_cost}};\nconst qty = {{node:code_issue_pick.data.quantity}};\nconst unitPrice = {{node:wf_subtract.data.unit_price}};\n\nlet rows = [];\ntry {\n  rows = raw ? JSON.parse(raw) : [];\n} catch (e) {\n  rows = [];\n}\nif (!Array.isArray(rows)) rows = [];\n\nrows.push({ qty: parseFloat(qty) || 0, unitPrice: parseFloat(unitPrice) || 0 });\n\nreturn { costRows: JSON.stringify(rows) };"
-            },
-            "response_json": [
-             {
-              "key": "iacost00",
-              "name": "costRows",
-              "title": "",
-              "description": "",
-              "bsonType": "any",
-              "isExpand": false,
-              "children": []
-             }
-            ]
-           },
-           "blocks": []
-          },
-          {
-           "id": "set_cache_cost",
-           "type": "set-cache-node",
-           "data": {
-            "cache_key": "",
-            "cache_value": "",
-            "expire_time": 3600,
-            "title": "Set Cost Accumulator",
-            "isValidator": true,
-            "nodeName": "Set Cost Accumulator",
-            "name": "Set Cost Accumulator",
-            "custom_wkbocgni": {
-             "type": "javascript",
-             "code": "{{node:code_accum_cost.data.costRows}}"
-            },
-            "redis_key": "iaCostAccum_{{node:code_unique.data.unique}}"
-           },
-           "blocks": []
           }
          ]
         }
        ]
       },
       {
-       "id": "get_cache_cost_final",
-       "type": "get-cache-node",
+       "id": "search_movements",
+       "type": "search-node",
        "data": {
-        "cache_key": "",
-        "title": "Get Cost Accumulator Final",
+        "table_id": {
+         "source": "Inventory Movement:Table:1902259348776800257",
+         "rules": {
+          "collectionId": "1902259348776800257",
+          "list": [
+           {
+            "id": 1790000000047,
+            "parentId": 1790000000048,
+            "isTop": true,
+            "prop": "",
+            "operator": "all",
+            "valueType": "",
+            "value": "",
+            "type": "branch",
+            "level": 1,
+            "children": [
+             {
+              "id": 1790000000049,
+              "parentId": 1790000000050,
+              "isTop": false,
+              "prop": "trx_no",
+              "operator": "equal",
+              "valueType": "field",
+              "value": "{{node:code_persisted.data.stock_movement_no}}",
+              "type": "leaf",
+              "level": 2,
+              "propLabel": "trx_no",
+              "valueLabel": "",
+              "operatorLabel": "equal"
+             },
+             {
+              "id": 1790000000051,
+              "parentId": 1790000000052,
+              "isTop": false,
+              "prop": "movement",
+              "operator": "equal",
+              "valueType": "value",
+              "value": "OUT",
+              "type": "leaf",
+              "level": 2,
+              "propLabel": "movement",
+              "valueLabel": "",
+              "operatorLabel": "equal"
+             }
+            ]
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 1000,
+        "title": "Get Component Movements",
         "isValidator": true,
-        "nodeName": "Get Cost Accumulator Final",
-        "name": "Get Cost Accumulator Final",
-        "redis_key": "iaCostAccum_{{node:code_unique.data.unique}}"
+        "nodeName": "Get Component Movements",
+        "name": "Get Component Movements"
        },
        "blocks": []
       },
@@ -2909,7 +2849,7 @@
         "name": "Receipt Prep",
         "script": {
          "type": "javascript",
-         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\nconst rawCost = {{node:get_cache_cost_final}};\nconst persisted = {{node:code_persisted.data}};\nconst batchNumber = {{node:code_batch_number.data.batchNumber}};\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nlet rows = [];\ntry {\n  rows = rawCost ? JSON.parse(rawCost) : [];\n} catch (e) {\n  rows = [];\n}\nif (!Array.isArray(rows)) rows = [];\n\n// Quantity-weighted roll-up of what the components actually cost, plus the\n// item's own assembly cost per unit.\nconst consumedValue = rows.reduce(function (sum, r) {\n  return sum + ((parseFloat(r.qty) || 0) * (parseFloat(r.unitPrice) || 0));\n}, 0);\n\nconst itemQty = parseFloat(entry.item_qty) || 0;\nconst materialUnitCost = itemQty > 0 ? consumedValue / itemQty : 0;\nconst assemblyCost = parseFloat(assembled.assembly_cost) || 0;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  material_id: entry.item_id,\n  material_uom: entry.item_uom,\n  quantity: parseFloat(itemQty.toFixed(3)),\n  unit_price: parseFloat((materialUnitCost + assemblyCost).toFixed(4)),\n  location_id: entry.location_id,\n  batch_number: batchNumber,\n  trx_no: persisted.stock_movement_no,\n  doc_date: entry.item_assembly_date || '',\n  manufacturing_date: entry.manufacturing_date || '',\n  expired_date: entry.expired_date || '',\n  remark: entry.remarks || '',\n  remark2: entry.remarks_2 || '',\n  remark3: entry.remarks_3 || '',\n  itemData: assembled\n};"
+         "code": "const entry = {{node:code_fillback.data.allData}};\nconst items = {{node:search_items.data.data}} || [];\nconst movements = {{node:search_movements.data.data}} || [];\nconst persisted = {{node:code_persisted.data}};\nconst batchNumber = {{node:code_batch_number.data.batchNumber}};\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\n// Read the cost back off the movements the issue leg just wrote. SUBTRACT has a\n// success path that returns only `code` and no unit_price, so its response can\n// never be relied on; the movement rows always carry the real figure, and FIFO\n// splitting one pick across layers is summed correctly here for free.\nconst consumedValue = movements.reduce(function (sum, m) {\n  return sum + (parseFloat(m.total_price) || 0);\n}, 0);\n\nconst itemQty = parseFloat(entry.item_qty) || 0;\nconst materialUnitCost = itemQty > 0 ? consumedValue / itemQty : 0;\nconst assemblyCost = parseFloat(assembled.assembly_cost) || 0;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  material_id: entry.item_id,\n  material_uom: entry.item_uom,\n  quantity: parseFloat(itemQty.toFixed(3)),\n  unit_price: parseFloat((materialUnitCost + assemblyCost).toFixed(4)),\n  location_id: entry.location_id,\n  batch_number: batchNumber,\n  trx_no: persisted.stock_movement_no,\n  doc_date: entry.item_assembly_date || null,\n  manufacturing_date: entry.manufacturing_date || null,\n  expired_date: entry.expired_date || null,\n  remark: entry.remarks || '',\n  remark2: entry.remarks_2 || '',\n  remark3: entry.remarks_3 || '',\n  itemData: assembled\n};"
         },
         "response_json": [
          {
@@ -3077,8 +3017,8 @@
           "collectionId": "2012005532688723970",
           "list": [
            {
-            "id": 1790000000047,
-            "parentId": 1790000000048,
+            "id": 1790000000053,
+            "parentId": 1790000000054,
             "isTop": true,
             "prop": "",
             "operator": "",
@@ -3301,8 +3241,8 @@
         "filter": {
          "list": [
           {
-           "id": 1790000000049,
-           "parentId": 1790000000050,
+           "id": 1790000000055,
+           "parentId": 1790000000056,
            "isTop": true,
            "prop": "",
            "operator": "",
@@ -3389,7 +3329,7 @@
         "name": "Aggregate HU Unloads",
         "script": {
          "type": "javascript",
-         "code": "const entry = {{node:code_fillback.data.allData}};\n\n// Components picked out of a handling unit have to be unloaded from it.\nconst byHu = {};\n(entry.stock_movement || []).forEach(function (line) {\n  let picks = [];\n  try {\n    picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n  } catch (e) {\n    picks = [];\n  }\n  picks.forEach(function (p) {\n    if (!p.handling_unit_id) return;\n    if ((parseFloat(p.sm_quantity) || 0) <= 0) return;\n    const key = String(p.handling_unit_id);\n    if (!byHu[key]) {\n      byHu[key] = {\n        handling_unit_id: key,\n        plant_id: entry.issuing_operation_faci,\n        organization_id: entry.organization_id,\n        location_id: p.location_id || '',\n        storage_location_id: p.storage_location_id || '',\n        table_hu_items: []\n      };\n    }\n    byHu[key].table_hu_items.push({\n      material_id: p.material_id || line.item_selection,\n      location_id: p.location_id || '',\n      batch_id: p.batch_id || '',\n      material_uom: line.quantity_uom,\n      quantity: parseFloat(p.sm_quantity) || 0,\n      balance_id: p.balance_id || ''\n    });\n  });\n});\n\nconst huUpdates = Object.keys(byHu).map(function (k) { return byHu[k]; });\n\nreturn { huUpdates: huUpdates, huUpdatesLength: huUpdates.length };"
+         "code": "const entry = {{node:code_fillback.data.allData}};\n\n// Components picked out of a handling unit have to be unloaded from it.\nconst byHu = {};\n(entry.stock_movement || []).forEach(function (line) {\n  let picks = [];\n  try {\n    picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n  } catch (e) {\n    picks = [];\n  }\n  picks.forEach(function (p) {\n    if (!p.handling_unit_id) return;\n    if ((parseFloat(p.sm_quantity) || 0) <= 0) return;\n    const key = String(p.handling_unit_id);\n    if (!byHu[key]) {\n      byHu[key] = {\n        handling_unit_id: key,\n        plant_id: entry.issuing_operation_faci,\n        organization_id: entry.organization_id,\n        location_id: p.location_id || null,\n        storage_location_id: p.storage_location_id || null,\n        table_hu_items: []\n      };\n    }\n    byHu[key].table_hu_items.push({\n      material_id: p.material_id || line.item_selection,\n      location_id: p.location_id || null,\n      batch_id: p.batch_id || null,\n      material_uom: line.quantity_uom,\n      quantity: parseFloat(p.sm_quantity) || 0,\n      balance_id: p.balance_id || null\n    });\n  });\n});\n\nconst huUpdates = Object.keys(byHu).map(function (k) { return byHu[k]; });\n\nreturn { huUpdates: huUpdates, huUpdatesLength: huUpdates.length };"
         },
         "response_json": [
          {
@@ -3429,8 +3369,8 @@
            "collectionId": "",
            "list": [
             {
-             "id": 1790000000053,
-             "parentId": 1790000000054,
+             "id": 1790000000059,
+             "parentId": 1790000000060,
              "isTop": true,
              "prop": "",
              "operator": "",
@@ -3553,8 +3493,8 @@
             "collectionId": "2037062451509002241",
             "list": [
              {
-              "id": 1790000000051,
-              "parentId": 1790000000052,
+              "id": 1790000000057,
+              "parentId": 1790000000058,
               "isTop": true,
               "prop": "",
               "operator": "",
@@ -3686,8 +3626,8 @@
           "collectionId": "1901546842240438273",
           "list": [
            {
-            "id": 1790000000055,
-            "parentId": 1790000000056,
+            "id": 1790000000061,
+            "parentId": 1790000000062,
             "isTop": true,
             "prop": "id",
             "operator": "in",
@@ -3753,8 +3693,8 @@
         "filter": {
          "list": [
           {
-           "id": 1790000000061,
-           "parentId": 1790000000062,
+           "id": 1790000000067,
+           "parentId": 1790000000068,
            "isTop": true,
            "prop": "workflowparams.pageStatus",
            "operator": "equal",
@@ -3791,8 +3731,8 @@
               "collectionId": "2098256587713404929",
               "list": [
                {
-                "id": 1790000000057,
-                "parentId": 1790000000058,
+                "id": 1790000000063,
+                "parentId": 1790000000064,
                 "isTop": true,
                 "prop": "id",
                 "operator": "in",
@@ -4016,8 +3956,8 @@
               "collectionId": "2098256587713404929",
               "list": [
                {
-                "id": 1790000000059,
-                "parentId": 1790000000060,
+                "id": 1790000000065,
+                "parentId": 1790000000066,
                 "isTop": true,
                 "prop": "",
                 "operator": "",

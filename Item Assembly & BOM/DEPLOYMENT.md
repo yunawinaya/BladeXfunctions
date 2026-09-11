@@ -165,16 +165,22 @@ a generated number lands on `batch_no`, not just on the inventory movement.
 empty picks, zero quantity or a missing manual batch, **402** inventory shortfall
 found by the pre-flight check, **409** already Completed.
 
-**Costing.** Each `SUBTRACT_INVENTORY` returns the actual cost of what it
-consumed. Those accumulate across the two nested loops in Redis, then the
-assembled item is received at
-`(sum(qty x unit_price) / item_qty) + Item.assembly_cost`.
+**Costing reads the movements back, it does not trust SUBTRACT's response.**
+`SUBTRACT_INVENTORY` has **two** success returns: `return_node_LbWU1lZh` carries
+`unit_price`, but `return_node_OR0LXjo9` carries **only `code`**. A caller that
+reads `{{node:...data.unit_price}}` therefore gets `null` on an ordinary success —
+which is exactly how the first working run received the assembled item at a unit
+cost of 0.
 
-The Redis key is `iaCostAccum_{{node:code_unique.data.unique}}` — namespaced per
-**run**, not per user. `code_unique` mints `<issued_by>_<timestamp>` as node #2.
-MSR keys its equivalent on `issued_by` alone, so two concurrent saves by one user
-corrupt each other's accumulator; SRR and Putaway already mint a unique value.
-`{{node:...}}` interpolation inside `redis_key` is used 188 times across this repo.
+So after the issue leg, `search_movements` reads `inventory_movement` where
+`trx_no = <the resolved document number>` and `movement = 'OUT'`, and
+`code_receipt_prep` sums `total_price`. The assembled item is then received at
+`(that sum / item_qty) + Item.assembly_cost`.
+
+This also removed the Redis accumulator entirely (five nodes), and with it both
+its concurrency caveat and a second bug where only one of two component lines was
+landing in the array. A FIFO deduction that splits one pick across cost layers is
+summed correctly for free, which the per-pick accumulator would have got wrong.
 
 **`custom_wkbocgni` is a FIXED key name on a set-cache-node** — 127 uses repo-wide,
 never varying. The runtime looks it up by that exact name; deriving a suffix from
@@ -202,6 +208,26 @@ create the Batch); `According To System Settings` → `GENERATE_BATCH` first.
 **Numbering** uses the sentinel: `'draft'` on Draft, `'issued'` otherwise, guarded
 on `stock_movement_no_type !== -9999`. A Draft *edit* does not renumber
 (`update_draft` omits both number columns); promoting Draft → Completed does.
+
+**Nullable sub-workflow params must be `null`, never `''`.**
+`SUBTRACT_INVENTORY`'s own "Batch ID" node (`code_node_MQ0uNcoG`) reads:
+
+```js
+const batchId = {{workflowparams:batch_id}}
+if (batchId === "") { batchId = null }   // assignment to a const
+```
+
+An empty string takes that branch and throws
+`TypeError: Assignment to constant "batchId"`; `null` skips it. That is a bug in
+the shared workflow, not in the caller — but every module works around it by
+passing `null`, so this one does too, for `batch_id`, `location_id`,
+`manufacturing_date`, `expired_date` and `handling_unit_id` on both the pre-check
+and issue legs, and in the HU unload payload. `batch_number` on the receipt leg is
+the exception: `ADD_INVENTORY` wants a string there and has no such defect, so
+`''` correctly means "no batch".
+
+A repo-wide scan found four nodes that reassign a `const`; this is the only one on
+a path Item Assembly touches.
 
 **Known limitation, stated plainly:** the pre-flight check makes a failure
 unlikely, but the commits are still line-by-line with no rollback. A failure

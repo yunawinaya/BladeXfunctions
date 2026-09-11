@@ -13,6 +13,8 @@ OUT = os.path.join(ROOT, "Item Assembly & BOM", "ItemAssemblySaveWorkflow.json")
 IA_TABLE = "Item Assembly:Table:2098256587713404929"
 IA_ID = "2098256587713404929"
 ITEM_TABLE = "Item:Table:1901546842240438273"
+MOVE_TABLE = "Inventory Movement:Table:1902259348776800257"
+MOVE_ID = "1902259348776800257"
 ITEM_ID = "1901546842240438273"
 
 WF_REQUIRED = ("CHECK_REQUIRED_FIELD:Workflow:1988831880511062018", "1988831880511062018")
@@ -22,10 +24,6 @@ WF_ADD      = ("ADD_INVENTORY:Workflow:2012005532688723970", "201200553268872397
 WF_BATCH    = ("GENERATE_BATCH:Workflow:2060178784435535873", "2060178784435535873")
 WF_HU       = ("HANDLING_UNIT:Workflow:2037062451509002241", "2037062451509002241")
 
-# Namespaced per RUN, not per user. MSR keys its loop caches on issued_by alone,
-# so two concurrent saves by one user corrupt each other's accumulator; SRR and
-# Putaway already mint a unique value for this.
-COST_KEY = "iaCostAccum_{{node:code_unique.data.unique}}"
 
 _fid = itertools.count(1790000000001)
 def fid(): return next(_fid)
@@ -157,11 +155,6 @@ def single_leaf(prop, operator, value, label=None):
 print("helpers ready")
 
 # ---------------------------------------------------------------- scripts
-
-UNIQUE = """const allData = {{workflowparams:allData}};
-
-// Every redis_key below carries this, so concurrent runs cannot share state.
-return { unique: String(allData.issued_by || 'ia') + '_' + Date.now() };"""
 
 IDEM_GUARD = """const raw = {{node:get_persisted_ia.data.data}};
 
@@ -368,8 +361,8 @@ return {
 PRECHECK_PICK = """const pick = {{node:loop_precheck_picks}};
 
 return {
-  location_id: pick.location_id || '',
-  batch_id: pick.batch_id || '',
+  location_id: pick.location_id || null,
+  batch_id: pick.batch_id || null,
   quantity: parseFloat(pick.sm_quantity) || 0,
   inventory_category: pick.category || 'Unrestricted'
 };"""
@@ -408,31 +401,18 @@ return {
 
 ISSUE_PICK = """const pick = {{node:loop_issue_picks}};
 
+// Every nullable param is null, never '': SUBTRACT_INVENTORY's own Batch ID node
+// does `const batchId = ...; if (batchId === "") batchId = null`, which throws
+// TypeError: Assignment to constant. MSI passes null for the same reason.
 return {
-  location_id: pick.location_id || '',
-  batch_id: pick.batch_id || '',
+  location_id: pick.location_id || null,
+  batch_id: pick.batch_id || null,
   quantity: parseFloat(pick.sm_quantity) || 0,
   inventory_category: pick.category || 'Unrestricted',
-  manufacturing_date: pick.manufacturing_date || '',
-  expired_date: pick.expired_date || '',
-  handling_unit_id: pick.handling_unit_id || ''
+  manufacturing_date: pick.manufacturing_date || null,
+  expired_date: pick.expired_date || null,
+  handling_unit_id: pick.handling_unit_id || null
 };"""
-
-ACCUM_COST = """const raw = {{node:get_cache_cost}};
-const qty = {{node:code_issue_pick.data.quantity}};
-const unitPrice = {{node:wf_subtract.data.unit_price}};
-
-let rows = [];
-try {
-  rows = raw ? JSON.parse(raw) : [];
-} catch (e) {
-  rows = [];
-}
-if (!Array.isArray(rows)) rows = [];
-
-rows.push({ qty: parseFloat(qty) || 0, unitPrice: parseFloat(unitPrice) || 0 });
-
-return { costRows: JSON.stringify(rows) };"""
 
 BATCH_DECIDE = """const entry = {{node:code_fillback.data.allData}};
 const items = {{node:search_items.data.data}} || [];
@@ -449,9 +429,9 @@ return {
   manualBatch: isBatch && !auto ? String(entry.batch_no || '') : '',
   isBatch: isBatch ? 'Y' : 'N',
   item_id: String(entry.item_id || ''),
-  document_date: entry.item_assembly_date || '',
-  manufacturing_date: entry.manufacturing_date || '',
-  expired_date: entry.expired_date || ''
+  document_date: entry.item_assembly_date || null,
+  manufacturing_date: entry.manufacturing_date || null,
+  expired_date: entry.expired_date || null
 };"""
 
 BATCH_NUMBER = """const needsGen = {{node:code_batch_decide.data.needsGen}};
@@ -474,7 +454,7 @@ return {
 
 RECEIPT_PREP = """const entry = {{node:code_fillback.data.allData}};
 const items = {{node:search_items.data.data}} || [];
-const rawCost = {{node:get_cache_cost_final}};
+const movements = {{node:search_movements.data.data}} || [];
 const persisted = {{node:code_persisted.data}};
 const batchNumber = {{node:code_batch_number.data.batchNumber}};
 
@@ -482,18 +462,12 @@ const assembled = items.find(function (it) {
   return String(it.id) === String(entry.item_id);
 }) || {};
 
-let rows = [];
-try {
-  rows = rawCost ? JSON.parse(rawCost) : [];
-} catch (e) {
-  rows = [];
-}
-if (!Array.isArray(rows)) rows = [];
-
-// Quantity-weighted roll-up of what the components actually cost, plus the
-// item's own assembly cost per unit.
-const consumedValue = rows.reduce(function (sum, r) {
-  return sum + ((parseFloat(r.qty) || 0) * (parseFloat(r.unitPrice) || 0));
+// Read the cost back off the movements the issue leg just wrote. SUBTRACT has a
+// success path that returns only `code` and no unit_price, so its response can
+// never be relied on; the movement rows always carry the real figure, and FIFO
+// splitting one pick across layers is summed correctly here for free.
+const consumedValue = movements.reduce(function (sum, m) {
+  return sum + (parseFloat(m.total_price) || 0);
 }, 0);
 
 const itemQty = parseFloat(entry.item_qty) || 0;
@@ -510,9 +484,9 @@ return {
   location_id: entry.location_id,
   batch_number: batchNumber,
   trx_no: persisted.stock_movement_no,
-  doc_date: entry.item_assembly_date || '',
-  manufacturing_date: entry.manufacturing_date || '',
-  expired_date: entry.expired_date || '',
+  doc_date: entry.item_assembly_date || null,
+  manufacturing_date: entry.manufacturing_date || null,
+  expired_date: entry.expired_date || null,
   remark: entry.remarks || '',
   remark2: entry.remarks_2 || '',
   remark3: entry.remarks_3 || '',
@@ -539,18 +513,18 @@ const byHu = {};
         handling_unit_id: key,
         plant_id: entry.issuing_operation_faci,
         organization_id: entry.organization_id,
-        location_id: p.location_id || '',
-        storage_location_id: p.storage_location_id || '',
+        location_id: p.location_id || null,
+        storage_location_id: p.storage_location_id || null,
         table_hu_items: []
       };
     }
     byHu[key].table_hu_items.push({
       material_id: p.material_id || line.item_selection,
-      location_id: p.location_id || '',
-      batch_id: p.batch_id || '',
+      location_id: p.location_id || null,
+      batch_id: p.batch_id || null,
       material_uom: line.quantity_uom,
       quantity: parseFloat(p.sm_quantity) || 0,
-      balance_id: p.balance_id || ''
+      balance_id: p.balance_id || null
     });
   });
 });
@@ -660,7 +634,6 @@ nodes = [
      "data": {"isValidator": True, "title": "Start Node", "nodeName": "Start Node",
               "name": "Start Node"}, "blocks": []},
 
-    code_node("code_unique", "Unique Run Key", UNIQUE, "unique"),
     code_node("code_fillback", "fillbackHeaderFields", FILLBACK, "allData", "storedStatus"),
     code_node("code_required", "Required Fields", REQUIRED, "required_fields", "data"),
 
@@ -772,8 +745,6 @@ nodes = [
         code_node("code_persisted", "Resolve Persisted Document", PERSISTED,
                   "docId", "stock_movement_no", "stock_movement"),
 
-        set_cache("set_cache_cost_init", "Init Cost Accumulator", COST_KEY, "'[]'"),
-
         loop("loop_issue_lines", "Loop Components (issue)",
              "{{node:code_fillback.data.allData.stock_movement}}", [
             code_node("code_issue_line", "Issue Line Prep", ISSUE_LINE,
@@ -806,14 +777,35 @@ nodes = [
                         "'{{node:wf_subtract.data.code}}' == '400'",
                         [ret("return_subtract_400", 400,
                              "{{node:wf_subtract.data.errorMessage}}")]),
-                get_cache("get_cache_cost", "Get Cost Accumulator", COST_KEY),
-                code_node("code_accum_cost", "Accumulate Component Cost", ACCUM_COST, "costRows"),
-                set_cache("set_cache_cost", "Set Cost Accumulator", COST_KEY,
-                          "{{node:code_accum_cost.data.costRows}}"),
             ]),
         ]),
 
-        get_cache("get_cache_cost_final", "Get Cost Accumulator Final", COST_KEY),
+        # One read of what the issue leg actually wrote, in place of an
+        # accumulator threaded through two loops.
+        {"id": "search_movements", "type": "search-node",
+         "data": {"table_id": {"source": MOVE_TABLE,
+                               "rules": {"collectionId": MOVE_ID,
+                                         "list": [{"id": fid(), "parentId": fid(), "isTop": True,
+                                                   "prop": "", "operator": "all", "valueType": "",
+                                                   "value": "", "type": "branch", "level": 1,
+                                                   "children": [
+                                                       {"id": fid(), "parentId": fid(), "isTop": False,
+                                                        "prop": "trx_no", "operator": "equal",
+                                                        "valueType": "field",
+                                                        "value": "{{node:code_persisted.data.stock_movement_no}}",
+                                                        "type": "leaf", "level": 2,
+                                                        "propLabel": "trx_no", "valueLabel": "",
+                                                        "operatorLabel": "equal"},
+                                                       {"id": fid(), "parentId": fid(), "isTop": False,
+                                                        "prop": "movement", "operator": "equal",
+                                                        "valueType": "value", "value": "OUT",
+                                                        "type": "leaf", "level": 2,
+                                                        "propLabel": "movement", "valueLabel": "",
+                                                        "operatorLabel": "equal"}]}]}},
+                  "condition": {}, "limit": 1000, "title": "Get Component Movements",
+                  "isValidator": True, "nodeName": "Get Component Movements",
+                  "name": "Get Component Movements"},
+         "blocks": []},
 
         code_node("code_receipt_prep", "Receipt Prep", RECEIPT_PREP,
                   "plant_id", "organization_id", "material_id", "material_uom",
