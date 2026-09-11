@@ -1,5 +1,6 @@
 const showStatusHTML = (status) => {
   const statusMap = {
+    Draft: "draft_status",
     Issued: "issued_status",
     Completed: "completed_status",
     "Fully Posted": "fullyposted_status",
@@ -82,20 +83,34 @@ const setPlant = (organizationId, pageStatus) => {
           issued_by: this.getVarGlobal("nickname"),
           item_assembly_date: new Date().toISOString().split("T")[0],
         });
-        // The status badge stays defined for later use, but a new assembly has
-        // no status yet, so nothing is shown on Add.
-        this.display(["button_completed", "comp_post_button"]);
+        this.display([
+          "draft_status",
+          "button_draft",
+          "button_completed",
+          "comp_post_button",
+        ]);
 
         setPlant(organizationId, pageStatus);
         break;
 
       case "Edit":
         showStatusHTML(status);
-        this.disabled(EDIT_DISABLED_FIELDS, true);
+
+        // A draft is still being written, so the header stays editable; every
+        // later status locks it. Same rule as Handling Unit and Misc Issue.
+        if (status !== "Draft") {
+          this.disabled(EDIT_DISABLED_FIELDS, true);
+        }
 
         if (status === "Completed") {
           this.display(["button_post"]);
           this.disabled(["stock_movement"], true);
+        } else if (status === "Draft") {
+          this.display([
+            "button_draft",
+            "button_completed",
+            "comp_post_button",
+          ]);
         } else {
           this.display(["button_completed", "comp_post_button"]);
         }

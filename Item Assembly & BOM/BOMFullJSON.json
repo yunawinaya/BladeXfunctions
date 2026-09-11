@@ -4588,7 +4588,7 @@
                 "customClass": "",
                 "labelWidth": 100,
                 "isLabelWidth": false,
-                "hidden": false,
+                "hidden": true,
                 "dataBind": true,
                 "precision": 0,
                 "customProps": {
@@ -4597,7 +4597,8 @@
                   "showNumber": "",
                   "viewMode": "",
                   "format": "rmb",
-                  "cacheProp": true
+                  "cacheProp": true,
+                  "precision_rule": 1
                 },
                 "tip": "",
                 "remoteFunc": "func_wlvrlfcb",

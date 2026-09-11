@@ -166,6 +166,25 @@ When the save pipeline is built it needs both legs: an MSI-style issue for every
 component line and an MSR-style receipt for the header item, including batch
 creation when the assembled item is batch-managed.
 
+## Draft status
+
+`draft_status` (badge) and `button_draft` were added to the form. Wiring, matching
+Misc Issue and Handling Unit:
+
+- `showStatusHTML` maps `Draft -> draft_status`.
+- Add / Clone display the Draft badge and the Draft button.
+- On Edit a `Draft` record shows the Draft button alongside Completed and
+  Complete & Post, and **the header stays editable** — every later status locks
+  it. A draft you cannot edit would be pointless.
+
+`item_assembly_status`'s datasource was filtered to `Issued` / `Completed` /
+`Fully Posted`, so `Draft` could never have been stored through the select even
+though the value exists in the dictionary. `Draft` is now in that allow-list, in
+lifecycle order.
+
+`button_draft` still has an empty `onClick`, like the other three — the save
+pipeline remains deferred.
+
 ## Project cascade
 
 The header Project pushes down onto the component lines, following

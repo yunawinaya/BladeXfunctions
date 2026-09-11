@@ -103,6 +103,27 @@ print("  dangling handler refs :", sorted(b for b in bound if b not in names) or
 print("  orphan handlers       :", orphans or "none")
 print("  buttons w/ empty click:", empty_btn or "none")
 print("  unresolved model paths:", bad or "none")
+# A repeated key in a setData object literal silently drops the earlier value —
+# the shape a careless find/replace leaves behind.
+dupes = {}
+for s in d["config"]["eventScript"]:
+    code = s.get("func") or ""
+    for r in (s.get("rules") or []):
+        if isinstance(r, dict):
+            code += "\n" + ((r.get("options", {}) or {}).get("func") or "")
+    for m in re.finditer(r"setData\(\s*\{", code):
+        i, depth = m.end() - 1, 0
+        for j in range(i, len(code)):
+            if code[j] == "{": depth += 1
+            elif code[j] == "}":
+                depth -= 1
+                if depth == 0: break
+        keys = re.findall(r"(?:^|[{,])\s*([A-Za-z_][A-Za-z0-9_]*)\s*:", code[i:j+1])
+        rep = sorted({k for k in keys if keys.count(k) > 1})
+        if rep:
+            dupes.setdefault(s.get("name"), set()).update(rep)
+print("  duplicate setData keys :", {k: sorted(v) for k, v in dupes.items()} or "none")
+
 sus = re.findall(r"\b[a-z_][a-z0-9_]*_[12]\b", json.dumps(d["config"]["eventScript"]))
 sus = sorted({s for s in sus if s not in models and s not in ("item_remark_2","item_remark_3")})
 print("  suspicious _1/_2 idents:", sus or "none")
