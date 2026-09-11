@@ -111,6 +111,49 @@ const validateUOMConversion = async (entry) => {
     throw new Error("Invalid UOM Conversion");
   }
 
+  // Every document that adds this item takes the line's UOM from the row that
+  // carries the tick -- `find((uom) => uom.purchase_default_uom === 1)` in PO,
+  // PR and reorder, `sales_default_uom === 1` in Quotation and SO. That find
+  // stops at the first match and ignores the rest, so a table with no tick puts
+  // the line in with no UOM at all, and a table with two lets row order decide
+  // which one wins. Exactly one row of each has to hold it before the item is
+  // allowed to save. Rows without an alt UOM are already gone by here, so a
+  // tick sitting on a blank row does not count.
+  const defaultUOMErrors = [];
+
+  [
+    { fieldName: "purchase_default_uom", label: "purchase" },
+    { fieldName: "sales_default_uom", label: "sales" },
+  ].forEach((defaultUOM) => {
+    const tickedLine = latestConversion.filter(
+      (item) => item[defaultUOM.fieldName] === 1,
+    );
+
+    if (tickedLine.length === 0) {
+      defaultUOMErrors.push(
+        `No default ${defaultUOM.label} UOM. Please tick one UOM as the default ${defaultUOM.label} UOM.`,
+      );
+    } else if (tickedLine.length > 1) {
+      defaultUOMErrors.push(
+        `${tickedLine.length} default ${defaultUOM.label} UOMs (${tickedLine
+          .map((item) => item.alt_uom_id)
+          .join(
+            ", ",
+          )}). Only one UOM can be the default ${defaultUOM.label} UOM.`,
+      );
+    }
+  });
+
+  if (defaultUOMErrors.length > 0) {
+    console.error("Invalid default UOM", defaultUOMErrors, latestConversion);
+    await this.$alert(defaultUOMErrors.join("<br>"), "Invalid Default UOM", {
+      confirmButtonText: "OK",
+      type: "error",
+      dangerouslyUseHTMLString: true,
+    });
+    throw new Error("Invalid Default UOM");
+  }
+
   entry.table_uom_conversion = latestConversion;
 
   return entry;
