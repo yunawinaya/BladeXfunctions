@@ -142,6 +142,33 @@ The components table is locked to the BOM (`isAdd: false`, `isDelete: false`,
 `item_selection` disabled): the only way to change it is to change the BOM or
 `item_qty`.
 
+## Component line behaviour
+
+**Two quantities.** `requested_qty` is what the BOM calls for (read-only,
+re-derived from `item_qty`); `total_quantity` is what was actually allocated.
+
+**The Transfer Stock dialog now gates on the difference.** Confirm is refused
+unless the allocated total equals `requested_qty`, naming the shortfall or excess.
+The guard returns *before* any `setData` and before `closeDialog`, so the dialog
+stays open with the entered quantities intact and they can be adjusted rather
+than re-entered. A row with `requested_qty` of 0 is not gated.
+
+Auto-allocation can still leave a line short — it reports the shortfall rather
+than blocking — and the dialog is where that gets resolved. Final enforcement at
+Complete belongs to the deferred save pipeline.
+
+**`stock_summary` shows names, not ids.** Bin (`bin_location_combine`), batch
+(`batch_number`) and UOM (`uom_name`) are all resolved, batched across every line
+in two queries, and formatted the same way `onConfirm_Stock` writes it so a manual
+re-pick reads identically.
+
+**Plant follows the login, as in MSI.** `setPlant` in `mounted` compares
+`getVarSystem("deptIds")[0]` against the organization: a plant-level login gets
+`issuing_operation_faci` auto-filled and **disabled**, an org-level login picks
+one. It delegates to the `onChange_Plant` handler via `triggerEvent` so the
+storage-location and bin defaults are resolved in exactly one place. The
+components table is disabled until a plant is set.
+
 ## Auto-allocation — what it does and does not cover
 
 Runs automatically after the BOM explodes and again on every `item_qty` change.

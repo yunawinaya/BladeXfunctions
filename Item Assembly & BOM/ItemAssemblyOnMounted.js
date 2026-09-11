@@ -32,6 +32,28 @@ const EDIT_DISABLED_FIELDS = [
   "remarks",
 ];
 
+// Mirrors MSI: a plant-level login can only issue from its own plant, so the
+// field is fixed to it and locked; an org-level login picks one.
+const setPlant = (organizationId, pageStatus) => {
+  const currentDept = this.getVarSystem("deptIds").split(",")[0];
+  const isSameDept = currentDept === organizationId;
+  const isNew = pageStatus === "Add" || pageStatus === "Clone";
+
+  this.disabled(["issuing_operation_faci"], !isSameDept);
+
+  if (isNew && !isSameDept) {
+    this.setData({ issuing_operation_faci: currentDept });
+    this.disabled(["stock_movement"], false);
+    // Reuse the plant handler so the storage location and bin defaults are
+    // resolved in exactly one place.
+    this.triggerEvent("onChange_Plant", { value: currentDept });
+  } else if (isNew && isSameDept) {
+    this.disabled(["stock_movement"], true);
+  }
+
+  return currentDept;
+};
+
 (async () => {
   try {
     let pageStatus = "";
@@ -61,6 +83,8 @@ const EDIT_DISABLED_FIELDS = [
         // The status badge stays defined for later use, but a new assembly has
         // no status yet, so nothing is shown on Add.
         this.display(["button_completed", "comp_post_button"]);
+
+        setPlant(organizationId, pageStatus);
         break;
 
       case "Edit":

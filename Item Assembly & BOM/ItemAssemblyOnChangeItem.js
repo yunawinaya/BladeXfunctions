@@ -67,7 +67,7 @@ const fetchBalances = (collection, materialIds, plantId, organizationId) =>
 // item_balance.unrestricted_qty is already net of Allocated loose reservations
 // (they bucket-shift to reserved_qty on save), so only HU-held stock has to be
 // deducted here to isolate what is genuinely loose.
-const autoAllocate = async (rows, itemMap, plantId, organizationId) => {
+const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
   const allocatable = rows.filter(
     (row) => itemMap.get(row.item_selection)?.serial_number_management !== 1
   );
@@ -193,6 +193,7 @@ const autoAllocate = async (rows, itemMap, plantId, organizationId) => {
 
   const updates = {};
   const shortfalls = [];
+  const picksByRow = new Map();
 
   rows.forEach((row, rowIndex) => {
     const item = itemMap.get(row.item_selection);
@@ -240,20 +241,62 @@ const autoAllocate = async (rows, itemMap, plantId, organizationId) => {
     updates[`stock_movement.${rowIndex}.temp_qty_data`] = picks.length
       ? JSON.stringify(picks)
       : "";
-    updates[`stock_movement.${rowIndex}.stock_summary`] = picks.length
-      ? `Total: ${total}\n\nDETAILS:\n` +
-        picks
-          .map(
-            (pick, i) =>
-              `${i + 1}. Bin: ${pick.location_id}: ${pick.sm_quantity}` +
-              (pick.batch_id ? `\n   [Batch: ${pick.batch_id}]` : "")
-          )
-          .join("\n")
-      : "";
+    picksByRow.set(rowIndex, { picks, total, row });
 
     if (remaining > 0) {
       shortfalls.push(`${row.item_name || row.item_selection} (${remaining})`);
     }
+  });
+
+  // stock_summary is read by a human, so bin / batch / UOM are resolved to names
+  // here rather than left as ids. Both lookups are batched across every line.
+  const allPicks = [...picksByRow.values()].flatMap((entry) => entry.picks);
+  const pickBinIds = [
+    ...new Set(allPicks.map((pick) => pick.location_id).filter(Boolean)),
+  ];
+  const pickBatchIds = [
+    ...new Set(allPicks.map((pick) => pick.batch_id).filter(Boolean)),
+  ];
+
+  const [binRes, batchNameRes] = await Promise.all([
+    pickBinIds.length
+      ? fetchByIds("bin_location", pickBinIds, "bin_location_combine")
+      : Promise.resolve({ data: [] }),
+    pickBatchIds.length
+      ? fetchByIds("batch", pickBatchIds, "batch_number")
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const binMap = new Map(
+    (binRes.data || []).map((bin) => [bin.id, bin.bin_location_combine])
+  );
+  const batchMap = new Map(
+    (batchNameRes.data || []).map((batch) => [batch.id, batch.batch_number])
+  );
+
+  picksByRow.forEach(({ picks, total, row }, rowIndex) => {
+    if (picks.length === 0) {
+      updates[`stock_movement.${rowIndex}.stock_summary`] = "";
+      return;
+    }
+
+    const uomName = uomMap.get(row.quantity_uom)?.uom_name || "";
+
+    // Same shape onConfirm_Stock writes, so a manual re-pick reads identically.
+    const details = picks
+      .map((pick, i) => {
+        const binName = binMap.get(pick.location_id) || pick.location_id;
+        let line = `${i + 1}. ${binName}: ${pick.sm_quantity} ${uomName} (UNR)`;
+        if (pick.batch_id) {
+          line += `\n[${batchMap.get(pick.batch_id) || pick.batch_id}]`;
+        }
+        return line;
+      })
+      .join("\n");
+
+    updates[
+      `stock_movement.${rowIndex}.stock_summary`
+    ] = `Total: ${total} ${uomName}\n\nDETAILS:\n${details}`;
   });
 
   await this.setData(updates);
@@ -459,7 +502,7 @@ const autoAllocate = async (rows, itemMap, plantId, organizationId) => {
       return;
     }
 
-    await autoAllocate(rows, itemMap, plantId, organizationId);
+    await autoAllocate(rows, itemMap, uomMap, plantId, organizationId);
   } catch (error) {
     console.error("Error exploding the BOM:", error);
     this.$message.error(error.message || "Failed to load the Bill of Materials");

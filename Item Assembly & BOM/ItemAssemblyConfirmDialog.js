@@ -202,6 +202,25 @@
   );
   const totalCombined = totalSmQuantity + totalHuQuantity;
 
+  // An assembly consumes exactly what the BOM calls for, so the allocation has
+  // to match requested_qty. Returning here leaves the dialog open with the
+  // entered quantities intact so they can be adjusted rather than re-entered.
+  const requestedQty =
+    parseFloat(allData.stock_movement[rowIndex]?.requested_qty) || 0;
+
+  if (requestedQty > 0) {
+    // Quantities are 3dp; the epsilon only absorbs float noise.
+    const difference = parseFloat((totalCombined - requestedQty).toFixed(3));
+    if (Math.abs(difference) > 0.0005) {
+      this.$message.error(
+        `Allocated ${totalCombined} ${gdUOM} but ${requestedQty} ${gdUOM} is required ` +
+          `(${difference > 0 ? "over" : "short"} by ${Math.abs(difference)}). ` +
+          `Adjust the quantities before confirming.`
+      );
+      return;
+    }
+  }
+
   this.setData({
     [`stock_movement.${rowIndex}.total_quantity`]: totalCombined,
   });

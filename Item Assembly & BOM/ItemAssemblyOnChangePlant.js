@@ -8,7 +8,13 @@
       stock_movement: [],
     });
 
-    if (!plantID) return;
+    if (!plantID) {
+      // No plant means no stock to allocate against.
+      this.disabled(["stock_movement"], true);
+      return;
+    }
+
+    this.disabled(["stock_movement"], false);
 
     const resStorageLocation = await db
       .collection("storage_location")
