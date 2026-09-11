@@ -1,0 +1,5211 @@
+{
+  "list": [
+    {
+      "name": "自动布局",
+      "type": "flex",
+      "el": "su-fm-flex",
+      "mainIcon": "自动布局",
+      "typeIcon": "自动布局",
+      "icon": "icon-zhediemianban",
+      "group": "Design",
+      "groupSort": 6,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "title": "布局",
+        "customClass": "",
+        "hidden": false,
+        "recursive": false,
+        "recursiveStyleFx": "",
+        "slotTarget": "",
+        "defaultValue": "",
+        "flexDirection": "row",
+        "flexWrap": "nowrap",
+        "alignItems": "",
+        "justifyContent": "",
+        "hGap": "",
+        "vGap": "",
+        "grid": {
+          "row": {
+            "value": "",
+            "visible": true
+          },
+          "col": {
+            "value": "",
+            "visible": true
+          },
+          "use": false
+        },
+        "padding": ["", "", "", ""],
+        "margin": ["", "", "", ""],
+        "boxSizing": "border-box",
+        "width": "",
+        "height": "",
+        "radius": ["", "", "", ""],
+        "position": "",
+        "positions": ["", "", "", ""],
+        "zIndex": "",
+        "flex": "",
+        "flexGrow": "",
+        "flexShrink": "",
+        "fills": [],
+        "borders": [],
+        "effects": [],
+        "states": [],
+        "hoverClass": "",
+        "overflow": "",
+        "styleFx": "",
+        "behave": "",
+        "remoteFunc": "func_fax4am1b",
+        "remoteOption": "option_fax4am1b",
+        "tableColumn": false,
+        "subform": false,
+        "props": {},
+        "datasource": {
+          "rules": {
+            "collectionId": "",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "remote": false,
+        "remoteType": "datasource",
+        "url_params": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "body_params": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        }
+      },
+      "list": [
+        {
+          "name": "",
+          "type": "utext",
+          "el": "su-fm-text",
+          "mainIcon": "文字",
+          "typeIcon": "文字",
+          "icon": "icon-wenzishezhi-",
+          "group": "Design",
+          "groupSort": 6,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": "Bill Of Materials",
+            "customClass": "marginright",
+            "hidden": false,
+            "isRich": false,
+            "padding": ["", "", "", ""],
+            "margin": ["", "", "", ""],
+            "boxSizing": "border-box",
+            "width": "",
+            "maxWidth": "",
+            "lineHeight": "",
+            "color": "#333333",
+            "fontSize": "24px",
+            "fontWeight": "700",
+            "textAlign": "left",
+            "fontStyle": "",
+            "textOverflow": "",
+            "whiteSpace": "",
+            "lines": 0,
+            "radius": ["", "", "", ""],
+            "position": "",
+            "positions": ["", "", "", ""],
+            "zIndex": "",
+            "flex": "",
+            "flexGrow": "",
+            "flexShrink": "",
+            "fills": [],
+            "borders": [],
+            "effects": [],
+            "states": [],
+            "styleFx": "",
+            "remoteFunc": "func_udexn5sd",
+            "remoteOption": "option_udexn5sd",
+            "tableColumn": false,
+            "subform": false,
+            "dynamicValueFx": "",
+            "dynamicValueType": "fx",
+            "isDynamicValue": false
+          },
+          "events": {
+            "onClick": ""
+          },
+          "key": "udexn5sd",
+          "model": "bom_tittle",
+          "rules": []
+        },
+        {
+          "name": "Active Status",
+          "type": "html",
+          "icon": "icon-html",
+          "mainIcon": "HTML",
+          "typeIcon": "HTML",
+          "group": "View",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Active Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .active-button {\n            padding: 0 20px;\n            border: 2px solid #00AE00;\n            background-color: #C5F5C5;\n            color: #016701;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"active-button\">Active</div>\n</body>\n</html>",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": true,
+            "dataBind": true,
+            "required": false,
+            "width": "",
+            "tip": "",
+            "remoteFunc": "func_n2e0yg3a",
+            "remoteOption": "option_n2e0yg3a",
+            "tableColumn": false,
+            "subform": false,
+            "customClass": "",
+            "hideLabel": true
+          },
+          "events": {
+            "onChange": ""
+          },
+          "key": "n2e0yg3a",
+          "model": "active_status",
+          "rules": []
+        },
+        {
+          "name": "Inactive Status",
+          "type": "html",
+          "icon": "icon-html",
+          "mainIcon": "HTML",
+          "typeIcon": "HTML",
+          "group": "View",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Inactive Button</title>\n    <style>\n        body {\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            margin: 0;\n            background-color: #f4f4f9;\n        }\n\n        .inactive-button {\n            padding: 0 20px;\n            border: 2px solid #F90A0A;\n            background-color: #FDC4C4;\n            color: #A30505;\n            font-size: 14px;\n            font-family: Arial, sans-serif;\n            border-radius: 20px;\n            cursor: default;\n            transition: background-color 0.3s;\n            width: max-content;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"inactive-button\">Inactive</div>\n</body>\n</html>",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": true,
+            "dataBind": true,
+            "required": false,
+            "width": "",
+            "tip": "",
+            "remoteFunc": "func_n2e0yg3a",
+            "remoteOption": "option_n2e0yg3a",
+            "tableColumn": false,
+            "subform": false,
+            "customClass": "",
+            "hideLabel": true
+          },
+          "events": {
+            "onChange": ""
+          },
+          "key": "y5kg7zzo",
+          "model": "inactive_status",
+          "rules": []
+        }
+      ],
+      "events": {
+        "onClick": ""
+      },
+      "key": "fax4am1b",
+      "model": "flex_fax4am1b",
+      "rules": []
+    },
+    {
+      "name": "Page Status",
+      "type": "input",
+      "mainIcon": "单行文本",
+      "typeIcon": "多行文本",
+      "icon": "icon-input",
+      "group": "Text",
+      "groupSort": 1,
+      "enableScopes": ["Component", "Table", "Page"],
+      "el": "fm-input",
+      "options": {
+        "width": "",
+        "defaultValue": "",
+        "required": false,
+        "requiredMessage": "",
+        "dataType": "",
+        "dataTypeCheck": false,
+        "dataTypeMessage": "",
+        "pattern": "",
+        "patternCheck": false,
+        "patternMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "placeholder": "",
+        "customClass": "",
+        "disabled": false,
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": true,
+        "dataBind": true,
+        "showPassword": false,
+        "clearable": false,
+        "maxlength": "",
+        "showWordLimit": false,
+        "customProps": {},
+        "tip": "",
+        "remoteFunc": "func_v92xht6h",
+        "remoteOption": "option_v92xht6h",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "select-card_4c8m22dh": []
+      },
+      "events": {
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+      },
+      "key": "xvw608g8",
+      "model": "page_status",
+      "rules": []
+    },
+    {
+      "name": "Organization",
+      "type": "input",
+      "mainIcon": "单行文本",
+      "typeIcon": "多行文本",
+      "icon": "icon-input",
+      "group": "Text",
+      "groupSort": 1,
+      "enableScopes": ["Component", "Table", "Page"],
+      "el": "fm-input",
+      "options": {
+        "width": "",
+        "defaultValue": "",
+        "required": false,
+        "requiredMessage": "",
+        "dataType": "",
+        "dataTypeCheck": false,
+        "dataTypeMessage": "",
+        "pattern": "",
+        "patternCheck": false,
+        "patternMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "placeholder": "",
+        "customClass": "",
+        "disabled": false,
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": true,
+        "dataBind": true,
+        "showPassword": false,
+        "clearable": false,
+        "maxlength": "",
+        "showWordLimit": false,
+        "customProps": {},
+        "tip": "",
+        "remoteFunc": "func_v92xht6h",
+        "remoteOption": "option_v92xht6h",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "select-card_4c8m22dh": []
+      },
+      "events": {
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+      },
+      "key": "v92xht6h",
+      "model": "organization_id",
+      "rules": []
+    },
+    {
+      "type": "select",
+      "mainIcon": "下拉单选",
+      "typeIcon": "下拉单选",
+      "icon": "icon-select",
+      "group": "Select",
+      "groupSort": 2,
+      "enableScopes": ["Component", "Table", "Page"],
+      "el": "fm-select",
+      "options": {
+        "defaultValue": "",
+        "multiple": false,
+        "disabled": false,
+        "clearable": false,
+        "placeholder": "",
+        "required": false,
+        "requiredMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "width": "",
+        "options": [
+          {
+            "value": "Option 1",
+            "label": "Option 1"
+          },
+          {
+            "value": "Option 2",
+            "label": "Option 2"
+          },
+          {
+            "value": "Option 3",
+            "label": "Option 3"
+          }
+        ],
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "remoteOption": "option_a9set18w",
+        "filterable": false,
+        "pagingEnabled": true,
+        "remoteOptions": [],
+        "props": {
+          "value": "dict_key",
+          "label": "dict_key",
+          "image": "",
+          "icon": "",
+          "explain": "",
+          "cascade": "",
+          "children": "children"
+        },
+        "remoteFunc": "func_a9set18w",
+        "customClass": "",
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": true,
+        "dataBind": true,
+        "customProps": {},
+        "tip": "",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "datasource": {
+          "rules": {
+            "collectionId": "1897577528487428098",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "parent_id",
+                "operator": "numberEqual",
+                "valueType": "value",
+                "value": "1914242988707749889",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "父主键",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          },
+          "source": "系统字典(勿删):Table:1897577528487428098"
+        },
+        "limit_count": null,
+        "sorts": [],
+        "paging_enabled": 0
+      },
+      "events": {
+        "onReady": "",
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+      },
+      "name": "BOM Status",
+      "key": "a9set18w",
+      "model": "bom_status",
+      "rules": []
+    },
+    {
+      "name": "Dialog",
+      "type": "dialog",
+      "mainIcon": "对话框",
+      "typeIcon": "对话框",
+      "icon": "icon-Dialog",
+      "group": "Container",
+      "groupSort": 2,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "defaultValue": {},
+        "visible": false,
+        "drawerMode": false,
+        "customClass": "",
+        "title": "This Item Has A Default BOM",
+        "width": "",
+        "top": "15vh",
+        "center": false,
+        "cancelText": "Cancel",
+        "showClose": false,
+        "okText": "Confirm",
+        "showCancel": true,
+        "showOk": true,
+        "confirmLoading": false,
+        "dataBind": true,
+        "remoteFunc": "func_f6xsf1r7",
+        "remoteOption": "option_f6xsf1r7",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": ""
+      },
+      "list": [
+        {
+          "name": "Default Bom Version ",
+          "type": "input",
+          "mainIcon": "单行文本",
+          "typeIcon": "多行文本",
+          "icon": "icon-input",
+          "group": "Text",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "el": "fm-input",
+          "options": {
+            "width": "",
+            "defaultValue": "",
+            "required": false,
+            "requiredMessage": "",
+            "dataType": "",
+            "dataTypeCheck": false,
+            "dataTypeMessage": "",
+            "pattern": "",
+            "patternCheck": false,
+            "patternMessage": "",
+            "validatorCheck": false,
+            "validator": "",
+            "placeholder": "",
+            "customClass": "",
+            "disabled": true,
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": true,
+            "showPassword": false,
+            "clearable": false,
+            "maxlength": "",
+            "showWordLimit": false,
+            "customProps": {},
+            "tip": "",
+            "remoteFunc": "func_qdsoslpo",
+            "remoteOption": "option_qdsoslpo",
+            "tableColumn": false,
+            "subform": false,
+            "dynamicValueType": "fx",
+            "isDynamicValue": false
+          },
+          "events": {
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "key": "qdsoslpo",
+          "model": "bom_version",
+          "rules": []
+        },
+        {
+          "name": "",
+          "type": "text",
+          "mainIcon": "文字",
+          "typeIcon": "文字",
+          "icon": "icon-wenzishezhi-",
+          "group": "View",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": "Confirm To Change New Default Bill Of Material",
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": true,
+            "required": false,
+            "width": "",
+            "tip": "",
+            "color": "",
+            "fontSize": "",
+            "lineHeight": "",
+            "fontWeight": "",
+            "textAlign": "",
+            "textDecoration": "",
+            "fontStyle": "",
+            "margin": "",
+            "border": "",
+            "padding": "",
+            "lines": 0,
+            "remoteFunc": "func_arrwko0e",
+            "remoteOption": "option_arrwko0e",
+            "tableColumn": false,
+            "subform": false,
+            "dynamicValueFx": "",
+            "dynamicValueType": "fx",
+            "isDynamicValue": false
+          },
+          "events": {
+            "onChange": ""
+          },
+          "key": "arrwko0e",
+          "model": "text_arrwko0e",
+          "rules": []
+        },
+        {
+          "name": "Bom Id",
+          "type": "input",
+          "mainIcon": "单行文本",
+          "typeIcon": "多行文本",
+          "icon": "icon-input",
+          "group": "Text",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "el": "fm-input",
+          "options": {
+            "width": "",
+            "defaultValue": "null",
+            "required": false,
+            "requiredMessage": "",
+            "dataType": "",
+            "dataTypeCheck": false,
+            "dataTypeMessage": "",
+            "pattern": "",
+            "patternCheck": false,
+            "patternMessage": "",
+            "validatorCheck": false,
+            "validator": "",
+            "placeholder": "",
+            "customClass": "",
+            "disabled": true,
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": true,
+            "dataBind": true,
+            "showPassword": false,
+            "clearable": false,
+            "maxlength": "",
+            "showWordLimit": false,
+            "customProps": {},
+            "tip": "",
+            "remoteFunc": "func_w22axdy4",
+            "remoteOption": "option_w22axdy4",
+            "tableColumn": false,
+            "subform": false
+          },
+          "events": {
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "key": "w22axdy4",
+          "model": "bom_id",
+          "rules": []
+        }
+      ],
+      "events": {
+        "onCancel": "hcxsdru3",
+        "onConfirm": "o9ec1nsx"
+      },
+      "key": "f6xsf1r7",
+      "model": "default_dialog",
+      "rules": []
+    },
+    {
+      "name": "卡片",
+      "type": "card",
+      "mainIcon": "卡片",
+      "typeIcon": "卡片",
+      "icon": "icon-kapian",
+      "group": "Layout",
+      "groupSort": 5,
+      "enableScopes": ["Component", "Table", "Page"],
+      "list": [
+        {
+          "type": "grid",
+          "mainIcon": "栅格布局",
+          "typeIcon": "栅格布局",
+          "icon": "icon-RectangleCopy",
+          "group": "Layout",
+          "groupSort": 0,
+          "enableScopes": ["Component", "Table", "Page"],
+          "columns": [
+            {
+              "type": "col",
+              "options": {
+                "span": 12,
+                "offset": 0,
+                "push": 0,
+                "pull": 0,
+                "xs": 24,
+                "sm": 12,
+                "md": 12,
+                "lg": 12,
+                "xl": 12,
+                "customClass": ""
+              },
+              "list": [
+                {
+                  "name": "Active",
+                  "type": "switch",
+                  "mainIcon": "开关",
+                  "typeIcon": "开关",
+                  "icon": "icon-switch",
+                  "group": "Select",
+                  "groupSort": 8,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "defaultValue": 1,
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "disabled": false,
+                    "customClass": "marginright",
+                    "labelWidth": 200,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "width": "",
+                    "customProps": {},
+                    "tip": "",
+                    "booleanValueMode": false,
+                    "alignright": false,
+                    "checkboxMode": false,
+                    "remoteFunc": "func_svyua4rh",
+                    "remoteOption": "option_svyua4rh",
+                    "tableColumn": false,
+                    "subform": false,
+                    "labelWrap": false,
+                    "labelBold": false,
+                    "hideLabel": false,
+                    "dynamicValueFx": "{{value:is_active}}",
+                    "dynamicValueType": "fx",
+                    "isDynamicValue": true,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": ""
+                  },
+                  "novalid": {},
+                  "key": "svyua4rh",
+                  "model": "is_active",
+                  "rules": []
+                },
+                {
+                  "name": "Material Code",
+                  "el": "su-fm-table-select",
+                  "mainIcon": "数据源",
+                  "typeIcon": "数据源",
+                  "group": "Select",
+                  "groupSort": 4,
+                  "generate": "part",
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "disabled": false,
+                    "dataBind": true,
+                    "required": false,
+                    "validator": "",
+                    "hideLabel": false,
+                    "pageSourceId": "1921600217086271489",
+                    "customProps": {},
+                    "pagingEnabled": true,
+                    "multiple": false,
+                    "placeholder": "",
+                    "lazyLoad": true,
+                    "props": {
+                      "value": "id",
+                      "label": "material_code",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "datasource": {
+                      "source": "Item:Table:1901546842240438273",
+                      "rules": {
+                        "collectionId": "1901546842240438273",
+                        "list": [
+                          {
+                            "id": 1747811685350,
+                            "parentId": 1747811685351,
+                            "isTop": true,
+                            "type": "branch",
+                            "operator": "all",
+                            "prop": "",
+                            "valueType": "",
+                            "value": "",
+                            "level": 1,
+                            "children": [
+                              {
+                                "id": 1747811648096,
+                                "parentId": 1747811685350,
+                                "isTop": false,
+                                "prop": "is_active",
+                                "operator": "numberEqual",
+                                "valueType": "value",
+                                "value": 1,
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "Active",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              },
+                              {
+                                "id": 1747811685353,
+                                "isTop": false,
+                                "parentId": 1747811685350,
+                                "type": "branch",
+                                "operator": "any",
+                                "level": 2,
+                                "children": [
+                                  {
+                                    "id": 1747811685352,
+                                    "parentId": 1747811685353,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{system:deptIds}}",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1747811685354,
+                                    "parentId": 1747811685353,
+                                    "isTop": false,
+                                    "prop": "organization_id",
+                                    "operator": "equal",
+                                    "valueType": "field",
+                                    "value": "{{global:deptParentId}}",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "Organization",
+                                    "valueLabel": "",
+                                    "operatorLabel": "Equal",
+                                    "valueTypeLabel": "值"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "remoteFunc": "func_u141gv0f",
+                    "remoteOption": "option_u141gv0f",
+                    "tableColumn": false,
+                    "subform": false,
+                    "paging_enabled": 1,
+                    "paging_way": "Pagination",
+                    "page_size": 10,
+                    "more_fields": [],
+                    "columns": [
+                      {
+                        "value": "material_code",
+                        "label": "Item Code",
+                        "item": {
+                          "bsonType": "string",
+                          "defaultValue": "",
+                          "description": "Item Code",
+                          "encryptedKey": false,
+                          "errorMessage": {
+                            "format": "",
+                            "pattern": "",
+                            "required": ""
+                          },
+                          "format": "",
+                          "historyKey": false,
+                          "immutableKey": false,
+                          "isRequired": true,
+                          "key": "2lx6vnxk",
+                          "name": "material_code",
+                          "pattern": "",
+                          "persistField": true,
+                          "primaryKey": false,
+                          "title": "Item Code",
+                          "validator": "const page_status = this.getValue(\"page_status\");\n\nif (page_status === \"View\" || !value) {\n  callback();\n  return;\n}\n\ndb.collection(\"Item\")\n  .where({ material_code: value })\n  .get()\n  .then((response) => {\n    const matchingItems = response.data || [];\n\n    if (matchingItems.length === 0) {\n      callback();\n      return;\n    }\n\n    if (page_status === \"Edit\") {\n      const currentItemId = this.getValue(\"id\");\n      const isSameItem = matchingItems.some(\n        (item) => item.id === currentItemId\n      );\n      callback(isSameItem ? undefined : \"Item code already exists.\");\n    } else {\n      callback(\"Item code already exists.\");\n    }\n  })\n  .catch((error) => {\n    console.error(\"Error checking item:\", error);\n    callback(\"Error validating item code.\");\n  });\n"
+                        }
+                      },
+                      {
+                        "value": "material_name",
+                        "label": "Item Name",
+                        "item": {
+                          "bsonType": "string",
+                          "defaultValue": "",
+                          "description": "Item Name",
+                          "encryptedKey": false,
+                          "errorMessage": {
+                            "format": "",
+                            "pattern": "",
+                            "required": ""
+                          },
+                          "format": "",
+                          "historyKey": false,
+                          "immutableKey": false,
+                          "isRequired": true,
+                          "key": "fol922c5",
+                          "name": "material_name",
+                          "pattern": "",
+                          "persistField": true,
+                          "primaryKey": false,
+                          "title": "Item Name"
+                        }
+                      }
+                    ],
+                    "url_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "request_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "pageId": "1921600217140797441",
+                    "dynamicValueType": "fx",
+                    "isDynamicValue": false,
+                    "options": [],
+                    "data_field": "",
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "auto_refresh": 1,
+                    "auto_refresh_debounce": 100,
+                    "sorts": []
+                  },
+                  "events": {
+                    "onChange": "iky7wors"
+                  },
+                  "type": "custom",
+                  "key": "u141gv0f",
+                  "model": "parent_material_code",
+                  "rules": [],
+                  "novalid": {}
+                },
+                {
+                  "type": "textarea",
+                  "mainIcon": "多行文本",
+                  "typeIcon": "多行文本",
+                  "icon": "icon-diy-com-textarea",
+                  "group": "Text",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "disabled": true,
+                    "pattern": "",
+                    "patternMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "placeholder": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "clearable": false,
+                    "maxlength": "",
+                    "showWordLimit": false,
+                    "rows": 1,
+                    "autosize": false,
+                    "customProps": {},
+                    "tip": "",
+                    "remoteFunc": "func_v2lmao8n",
+                    "remoteOption": "option_v2lmao8n",
+                    "tableColumn": false,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "4rfxs5xg",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Material Name",
+                  "novalid": {},
+                  "key": "tbcuurn1",
+                  "model": "parent_material_name",
+                  "rules": []
+                },
+                {
+                  "type": "textarea",
+                  "mainIcon": "多行文本",
+                  "typeIcon": "多行文本",
+                  "icon": "icon-diy-com-textarea",
+                  "group": "Text",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "width": "",
+                    "defaultValue": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "disabled": true,
+                    "pattern": "",
+                    "patternMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "placeholder": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "clearable": false,
+                    "maxlength": "",
+                    "showWordLimit": false,
+                    "rows": 1,
+                    "autosize": false,
+                    "customProps": {},
+                    "tip": "",
+                    "remoteFunc": "func_v2lmao8n",
+                    "remoteOption": "option_v2lmao8n",
+                    "tableColumn": false,
+                    "subform": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": "",
+                    "select-card_4c8m22dh": []
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "name": "Material Description",
+                  "novalid": {},
+                  "key": "ua7595ua",
+                  "model": "parent_material_desc",
+                  "rules": []
+                },
+                {
+                  "name": "Material Category",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": true,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_8i4gzk5e",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "mat_cat_name",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remoteFunc": "func_8i4gzk5e",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": false,
+                    "subform": false,
+                    "paging_enabled": 1,
+                    "paging_way": "Pagination",
+                    "page_size": 10,
+                    "more_fields": [],
+                    "datasource": {
+                      "source": "Material Category:Table:1901981572257665025",
+                      "rules": {
+                        "collectionId": "1901981572257665025",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "url_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "request_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "columns": [],
+                    "data_field": "",
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "key": "8i4gzk5e",
+                  "model": "parent_material_category",
+                  "rules": [],
+                  "novalid": {}
+                }
+              ],
+              "key": "d2kbtpnv"
+            },
+            {
+              "type": "col",
+              "options": {
+                "span": 12,
+                "offset": 0,
+                "push": 0,
+                "pull": 0,
+                "xs": 24,
+                "sm": 12,
+                "md": 12,
+                "lg": 12,
+                "xl": 12,
+                "customClass": ""
+              },
+              "list": [
+                {
+                  "name": "Default",
+                  "type": "switch",
+                  "mainIcon": "开关",
+                  "typeIcon": "开关",
+                  "icon": "icon-switch",
+                  "group": "Select",
+                  "groupSort": 8,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "defaultValue": 0,
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "disabled": false,
+                    "customClass": "marginright",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "width": "",
+                    "customProps": {},
+                    "tip": "",
+                    "booleanValueMode": false,
+                    "alignright": false,
+                    "checkboxMode": true,
+                    "remoteFunc": "func_63zexxpm",
+                    "remoteOption": "option_63zexxpm",
+                    "tableColumn": false,
+                    "subform": false,
+                    "labelBold": false,
+                    "dynamicValueType": "fx",
+                    "isDynamicValue": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "wco16rzc"
+                  },
+                  "key": "63zexxpm",
+                  "model": "parent_mat_is_default",
+                  "rules": [],
+                  "novalid": {}
+                },
+                {
+                  "type": "flex",
+                  "el": "su-fm-flex",
+                  "mainIcon": "自动布局",
+                  "typeIcon": "自动布局",
+                  "icon": "icon-zhediemianban",
+                  "group": "Design",
+                  "groupSort": 1,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "options": {
+                    "dataBind": false,
+                    "pagingEnabled": true,
+                    "customClass": "",
+                    "hidden": false,
+                    "recursive": false,
+                    "recursiveStyleFx": "",
+                    "slotTarget": "",
+                    "defaultValue": "",
+                    "flexDirection": "row",
+                    "flexWrap": "nowrap",
+                    "alignItems": "",
+                    "justifyContent": "",
+                    "hGap": "",
+                    "vGap": "",
+                    "grid": {
+                      "row": {
+                        "value": "",
+                        "visible": true
+                      },
+                      "col": {
+                        "value": "",
+                        "visible": true
+                      },
+                      "use": false
+                    },
+                    "padding": ["", "", "", ""],
+                    "margin": ["", "", "", ""],
+                    "boxSizing": "border-box",
+                    "width": "",
+                    "height": "",
+                    "radius": ["", "", "", ""],
+                    "position": "relative",
+                    "positions": ["", "", "", ""],
+                    "zIndex": "",
+                    "flex": "",
+                    "flexGrow": "",
+                    "flexShrink": "",
+                    "fills": [],
+                    "borders": [],
+                    "effects": [],
+                    "states": [],
+                    "hoverClass": "",
+                    "overflow": "",
+                    "styleFx": "",
+                    "behave": "",
+                    "remoteFunc": "func_vdr7wety",
+                    "remoteOption": "option_vdr7wety",
+                    "tableColumn": false,
+                    "subform": false,
+                    "datasource": {
+                      "rules": {
+                        "collectionId": "",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "options": [],
+                    "props": {
+                      "value": "",
+                      "label": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remote": false,
+                    "remoteType": "datasource"
+                  },
+                  "list": [
+                    {
+                      "type": "flex",
+                      "el": "su-fm-flex",
+                      "mainIcon": "自动布局",
+                      "typeIcon": "自动布局",
+                      "icon": "icon-zhediemianban",
+                      "group": "Design",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "dataBind": false,
+                        "pagingEnabled": true,
+                        "customClass": "",
+                        "hidden": false,
+                        "recursive": false,
+                        "recursiveStyleFx": "",
+                        "slotTarget": "",
+                        "defaultValue": "",
+                        "flexDirection": "column",
+                        "flexWrap": "",
+                        "alignItems": "",
+                        "justifyContent": "",
+                        "hGap": "",
+                        "vGap": "",
+                        "grid": {
+                          "row": {
+                            "value": "",
+                            "visible": true
+                          },
+                          "col": {
+                            "value": "",
+                            "visible": true
+                          },
+                          "use": false
+                        },
+                        "padding": ["", "", "", ""],
+                        "margin": ["", "", "", ""],
+                        "boxSizing": "border-box",
+                        "width": "80%",
+                        "height": "",
+                        "radius": ["", "", "", ""],
+                        "position": "relative",
+                        "positions": ["", "", "", ""],
+                        "zIndex": "",
+                        "flex": "",
+                        "flexGrow": "",
+                        "flexShrink": "",
+                        "fills": [],
+                        "borders": [],
+                        "effects": [],
+                        "states": [],
+                        "hoverClass": "",
+                        "overflow": "",
+                        "styleFx": "",
+                        "behave": "",
+                        "remoteFunc": "func_glpaghs4",
+                        "remoteOption": "option_glpaghs4",
+                        "tableColumn": false,
+                        "subform": false,
+                        "datasource": {
+                          "rules": {
+                            "collectionId": "",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "options": [],
+                        "props": {
+                          "value": "",
+                          "label": "",
+                          "image": "",
+                          "icon": "",
+                          "explain": ""
+                        },
+                        "remote": false,
+                        "remoteType": "datasource"
+                      },
+                      "list": [
+                        {
+                          "name": "BOM Version",
+                          "el": "su-fm-serial-number",
+                          "mainIcon": "流水号",
+                          "typeIcon": "流水号",
+                          "group": "Text",
+                          "groupSort": 5,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "options": {
+                            "defaultValue": "",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "disabled": true,
+                            "dataBind": true,
+                            "required": false,
+                            "validator": "",
+                            "hideLabel": false,
+                            "placeholder": "Auto-generated",
+                            "readonly": false,
+                            "rules": [
+                              {
+                                "id": 1,
+                                "type": "fixedText",
+                                "config": {
+                                  "text": "SN"
+                                }
+                              },
+                              {
+                                "id": 2,
+                                "type": "submitDate",
+                                "config": {
+                                  "format": "YYYYMMDD",
+                                  "timezone": "Asia/Shanghai"
+                                }
+                              },
+                              {
+                                "id": 3,
+                                "type": "autoCounter",
+                                "config": {
+                                  "digits": 4,
+                                  "fixedDigits": true,
+                                  "resetPeriod": "day",
+                                  "initialValue": 1
+                                }
+                              }
+                            ],
+                            "remoteFunc": "func_bba70crd",
+                            "remoteOption": "option_bba70crd",
+                            "tableColumn": false,
+                            "subform": false,
+                            "ruleMode": "dynamic",
+                            "dynamicRuleField": "Bill Of Materials",
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "canManualInput": true
+                          },
+                          "events": {
+                            "onChange": "",
+                            "onGenerate": "",
+                            "keyChange": "hazurcwj"
+                          },
+                          "type": "custom",
+                          "key": "phv0n6qb",
+                          "model": "parent_mat_bom_version",
+                          "rules": []
+                        }
+                      ],
+                      "events": {
+                        "onClick": ""
+                      },
+                      "name": "自动布局",
+                      "key": "7nuvr96b",
+                      "model": "ser_flex_wrp_lef_yqwfn5jy",
+                      "rules": []
+                    },
+                    {
+                      "type": "flex",
+                      "el": "su-fm-flex",
+                      "mainIcon": "自动布局",
+                      "typeIcon": "自动布局",
+                      "icon": "icon-zhediemianban",
+                      "group": "Design",
+                      "groupSort": 1,
+                      "enableScopes": ["Component", "Table", "Page"],
+                      "options": {
+                        "dataBind": false,
+                        "pagingEnabled": true,
+                        "customClass": "",
+                        "hidden": false,
+                        "recursive": false,
+                        "recursiveStyleFx": "",
+                        "slotTarget": "",
+                        "defaultValue": "",
+                        "flexDirection": "column",
+                        "flexWrap": "",
+                        "alignItems": "",
+                        "justifyContent": "",
+                        "hGap": "",
+                        "vGap": "",
+                        "grid": {
+                          "row": {
+                            "value": "",
+                            "visible": true
+                          },
+                          "col": {
+                            "value": "",
+                            "visible": true
+                          },
+                          "use": false
+                        },
+                        "padding": ["", "", "", "8px"],
+                        "margin": ["", "", "", ""],
+                        "boxSizing": "border-box",
+                        "width": "20%",
+                        "height": "",
+                        "radius": ["", "", "", ""],
+                        "position": "relative",
+                        "positions": ["", "", "", ""],
+                        "zIndex": "",
+                        "flex": "",
+                        "flexGrow": "",
+                        "flexShrink": "",
+                        "fills": [],
+                        "borders": [],
+                        "effects": [],
+                        "states": [],
+                        "hoverClass": "",
+                        "overflow": "",
+                        "styleFx": "",
+                        "behave": "",
+                        "remoteFunc": "func_7fvth9ha",
+                        "remoteOption": "option_7fvth9ha",
+                        "tableColumn": false,
+                        "subform": false,
+                        "datasource": {
+                          "rules": {
+                            "collectionId": "",
+                            "list": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "options": [],
+                        "props": {
+                          "value": "",
+                          "label": "",
+                          "image": "",
+                          "icon": "",
+                          "explain": ""
+                        },
+                        "remote": false,
+                        "remoteType": "datasource"
+                      },
+                      "list": [
+                        {
+                          "type": "select",
+                          "mainIcon": "下拉单选",
+                          "typeIcon": "下拉单选",
+                          "icon": "icon-select",
+                          "group": "Select",
+                          "groupSort": 2,
+                          "enableScopes": ["Component", "Table", "Page"],
+                          "el": "fm-select",
+                          "options": {
+                            "defaultValue": "",
+                            "multiple": false,
+                            "disabled": "{{this.isEdit}}",
+                            "clearable": false,
+                            "placeholder": "",
+                            "required": false,
+                            "requiredMessage": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "width": "",
+                            "options": [
+                              {
+                                "value": "Option 1",
+                                "label": "Option 1"
+                              },
+                              {
+                                "value": "Option 2",
+                                "label": "Option 2"
+                              },
+                              {
+                                "value": "Option 3",
+                                "label": "Option 3"
+                              }
+                            ],
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "remoteOption": "option_7nbymuo3",
+                            "filterable": true,
+                            "pagingEnabled": true,
+                            "remoteOptions": [],
+                            "props": {
+                              "value": "id",
+                              "label": "rule_name",
+                              "image": "",
+                              "icon": "",
+                              "explain": "",
+                              "cascade": "",
+                              "children": ""
+                            },
+                            "remoteFunc": "func_7nbymuo3",
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "customProps": {},
+                            "tip": "",
+                            "tableColumn": false,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": "",
+                            "datasource": {
+                              "rules": {
+                                "collectionId": "1994006139209117697",
+                                "list": [
+                                  {
+                                    "id": 1764233028783,
+                                    "parentId": 1764233028784,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "all",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "branch",
+                                    "level": 1,
+                                    "children": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1764233028783,
+                                        "isTop": false,
+                                        "prop": "business_type",
+                                        "operator": "equal",
+                                        "valueType": "formula",
+                                        "value": "() => {\n  var params = this.getComponent('parent_mat_bom_version');\n  const { options } = params;\n  return options?.dynamicRuleField;\n}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Document Type",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      },
+                                      {
+                                        "id": 1764233028785,
+                                        "parentId": 1764233028783,
+                                        "isTop": false,
+                                        "prop": "department_id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{global:firstLvDeptId}}",
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "部门ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      },
+                                      {
+                                        "id": 1765248374883,
+                                        "parentId": 1764233028783,
+                                        "isTop": false,
+                                        "prop": "is_draft",
+                                        "operator": "numberEqual",
+                                        "valueType": "value",
+                                        "value": 0,
+                                        "type": "leaf",
+                                        "level": 2,
+                                        "propLabel": "Draft",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              "source": "流水号规则表:Table:1994006139209117697"
+                            },
+                            "limit_count": null,
+                            "hideLabel": true,
+                            "sorts": [],
+                            "paging_enabled": 0
+                          },
+                          "events": {
+                            "onReady": "fz5dx56d",
+                            "onChange": "piwzxkia",
+                            "onFocus": "",
+                            "onBlur": ""
+                          },
+                          "name": "规则",
+                          "key": "ec86brho",
+                          "model": "parent_mat_bom_version_type",
+                          "rules": []
+                        }
+                      ],
+                      "events": {
+                        "onClick": ""
+                      },
+                      "name": "自动布局",
+                      "key": "vjv3mjao",
+                      "model": "ser_flex_wrp_rig_v2d3nv7q",
+                      "rules": []
+                    }
+                  ],
+                  "events": {
+                    "onClick": ""
+                  },
+                  "name": "自动布局",
+                  "key": "k65plob6",
+                  "model": "serial_flex_wrapper_mfsfr70f",
+                  "rules": []
+                },
+                {
+                  "name": "Base Quantity",
+                  "type": "number",
+                  "icon": "icon-number",
+                  "mainIcon": "数字",
+                  "typeIcon": "数字",
+                  "group": "Number",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-number",
+                  "options": {
+                    "width": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "defaultValue": 0,
+                    "min": 0,
+                    "step": 1,
+                    "disabled": false,
+                    "controls": false,
+                    "controlsPosition": "",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "precision": 3,
+                    "customProps": {
+                      "progressColor": "",
+                      "dividingNumber": "",
+                      "showNumber": "",
+                      "viewMode": "",
+                      "format": "rmb",
+                      "cacheProp": true
+                    },
+                    "tip": "",
+                    "remoteFunc": "func_wqzj4vko",
+                    "remoteOption": "option_wqzj4vko",
+                    "tableColumn": false,
+                    "subform": false,
+                    "dynamicValueType": "fx",
+                    "isDynamicValue": false,
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "key": "wqzj4vko",
+                  "model": "parent_mat_base_quantity",
+                  "rules": [],
+                  "novalid": {}
+                },
+                {
+                  "name": "Based UOM",
+                  "type": "select",
+                  "mainIcon": "下拉单选",
+                  "typeIcon": "下拉单选",
+                  "icon": "icon-select",
+                  "group": "Select",
+                  "groupSort": 2,
+                  "enableScopes": ["Component", "Table", "Page"],
+                  "el": "fm-select",
+                  "options": {
+                    "defaultValue": "",
+                    "multiple": false,
+                    "disabled": true,
+                    "clearable": false,
+                    "placeholder": "",
+                    "required": false,
+                    "requiredMessage": "",
+                    "validatorCheck": false,
+                    "validator": "",
+                    "width": "",
+                    "options": [
+                      {
+                        "value": "Option 1",
+                        "label": "Option 1"
+                      },
+                      {
+                        "value": "Option 2",
+                        "label": "Option 2"
+                      },
+                      {
+                        "value": "Option 3",
+                        "label": "Option 3"
+                      }
+                    ],
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "remoteOption": "option_27met9v5",
+                    "filterable": false,
+                    "pagingEnabled": true,
+                    "remoteOptions": [],
+                    "props": {
+                      "value": "id",
+                      "label": "uom_name",
+                      "cascade": "",
+                      "children": "",
+                      "image": "",
+                      "icon": "",
+                      "explain": ""
+                    },
+                    "remoteFunc": "func_27met9v5",
+                    "customClass": "",
+                    "labelWidth": 100,
+                    "isLabelWidth": false,
+                    "hidden": false,
+                    "dataBind": true,
+                    "customProps": {},
+                    "tip": "",
+                    "tableColumn": false,
+                    "subform": false,
+                    "paging_enabled": 0,
+                    "paging_way": "Pagination",
+                    "page_size": 10,
+                    "more_fields": [],
+                    "columns": [],
+                    "datasource": {
+                      "source": "UOM:Table:1901805375573839874",
+                      "rules": {
+                        "collectionId": "1901805375573839874",
+                        "list": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1723795236685,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "url_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "request_params": {
+                      "list": [
+                        {
+                          "prop": "",
+                          "propLabel": "",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "valueLabel": ""
+                        }
+                      ]
+                    },
+                    "data_field": "",
+                    "select-card_n7ge7fmb": [],
+                    "left": 3,
+                    "right": 4,
+                    "pad": "*",
+                    "desensitization_pattern": "",
+                    "desensitization_replace": ""
+                  },
+                  "events": {
+                    "onChange": "",
+                    "onFocus": "",
+                    "onBlur": ""
+                  },
+                  "key": "27met9v5",
+                  "model": "parent_mat_base_uom",
+                  "rules": [],
+                  "novalid": {}
+                }
+              ],
+              "key": "jqfkmlyj"
+            }
+          ],
+          "options": {
+            "gutter": 32,
+            "justify": "start",
+            "align": "top",
+            "customClass": "",
+            "hidden": false,
+            "flex": true,
+            "responsive": true,
+            "remoteFunc": "func_yb161eg8",
+            "remoteOption": "option_yb161eg8",
+            "tableColumn": false,
+            "subform": false
+          },
+          "name": "栅格布局",
+          "key": "yb161eg8",
+          "model": "grid_yb161eg8",
+          "rules": []
+        },
+        {
+          "name": "自动布局",
+          "type": "flex",
+          "el": "su-fm-flex",
+          "mainIcon": "自动布局",
+          "typeIcon": "自动布局",
+          "icon": "icon-zhediemianban",
+          "group": "Design",
+          "groupSort": 6,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "title": "布局",
+            "customClass": "",
+            "hidden": false,
+            "recursive": false,
+            "recursiveStyleFx": "",
+            "slotTarget": "",
+            "defaultValue": "",
+            "flexDirection": "row",
+            "flexWrap": "nowrap",
+            "alignItems": "",
+            "justifyContent": "",
+            "hGap": "",
+            "vGap": "",
+            "grid": {
+              "row": {
+                "value": "",
+                "visible": true
+              },
+              "col": {
+                "value": "",
+                "visible": true
+              },
+              "use": false
+            },
+            "padding": ["", "", "", ""],
+            "margin": ["", "", "", ""],
+            "boxSizing": "border-box",
+            "width": "",
+            "height": "",
+            "radius": ["", "", "", ""],
+            "position": "",
+            "positions": ["", "", "", ""],
+            "zIndex": "",
+            "flex": "",
+            "flexGrow": "",
+            "flexShrink": "",
+            "fills": [],
+            "borders": [],
+            "effects": [],
+            "states": [],
+            "hoverClass": "",
+            "overflow": "scroll",
+            "styleFx": "",
+            "behave": "",
+            "remoteFunc": "func_axmstacs",
+            "remoteOption": "option_axmstacs",
+            "tableColumn": false,
+            "subform": false,
+            "props": {},
+            "datasource": {
+              "rules": {
+                "collectionId": "",
+                "list": [
+                  {
+                    "id": 1723795236686,
+                    "parentId": 1723795236685,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                  }
+                ]
+              }
+            },
+            "remote": false,
+            "remoteType": "datasource",
+            "url_params": {
+              "list": [
+                {
+                  "prop": "",
+                  "propLabel": "",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "value",
+                  "valueTypeLabel": "",
+                  "valueLabel": ""
+                }
+              ]
+            },
+            "body_params": {
+              "list": [
+                {
+                  "prop": "",
+                  "propLabel": "",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "value",
+                  "valueTypeLabel": "",
+                  "valueLabel": ""
+                }
+              ]
+            },
+            "paging_enabled": 0,
+            "paging_way": "Pagination",
+            "page_size": 10,
+            "more_fields": [],
+            "request_params": {
+              "list": [
+                {
+                  "prop": "",
+                  "propLabel": "",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "value",
+                  "valueTypeLabel": "",
+                  "valueLabel": ""
+                }
+              ]
+            },
+            "columns": []
+          },
+          "list": [
+            {
+              "name": "Flex",
+              "type": "flex",
+              "el": "su-fm-flex",
+              "mainIcon": "自动布局",
+              "typeIcon": "自动布局",
+              "icon": "icon-zhediemianban",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "title": "布局",
+                "customClass": "",
+                "hidden": false,
+                "recursive": false,
+                "recursiveStyleFx": "",
+                "slotTarget": "",
+                "defaultValue": "",
+                "flexDirection": "column",
+                "flexWrap": "",
+                "alignItems": "",
+                "justifyContent": "",
+                "hGap": "",
+                "vGap": "",
+                "grid": {
+                  "row": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "col": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "use": false
+                },
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "height": "",
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "1",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "hoverClass": "",
+                "overflow": "",
+                "styleFx": "",
+                "behave": "",
+                "remoteFunc": "func_sneaahd4",
+                "remoteOption": "option_sneaahd4",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [],
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "dynamicValueType": "fx",
+                "isDynamicValue": false,
+                "remote": false,
+                "remoteType": "datasource"
+              },
+              "list": [],
+              "events": {
+                "onClick": ""
+              },
+              "key": "sneaahd4",
+              "model": "flex_sneaahd4",
+              "rules": []
+            },
+            {
+              "name": "Flex",
+              "type": "flex",
+              "el": "su-fm-flex",
+              "mainIcon": "自动布局",
+              "typeIcon": "自动布局",
+              "icon": "icon-zhediemianban",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "title": "布局",
+                "customClass": "",
+                "hidden": false,
+                "recursive": false,
+                "recursiveStyleFx": "",
+                "slotTarget": "",
+                "defaultValue": "",
+                "flexDirection": "column",
+                "flexWrap": "",
+                "alignItems": "",
+                "justifyContent": "",
+                "hGap": "",
+                "vGap": "",
+                "grid": {
+                  "row": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "col": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "use": false
+                },
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "height": "",
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "2",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "hoverClass": "",
+                "overflow": "",
+                "styleFx": "",
+                "behave": "",
+                "remoteFunc": "func_3wpgdh9t",
+                "remoteOption": "option_3wpgdh9t",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [],
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "remote": false,
+                "remoteType": "datasource"
+              },
+              "list": [],
+              "events": {
+                "onClick": ""
+              },
+              "key": "3wpgdh9t",
+              "model": "flex_3wpgdh9t",
+              "rules": []
+            },
+            {
+              "name": "Flex",
+              "type": "flex",
+              "el": "su-fm-flex",
+              "mainIcon": "自动布局",
+              "typeIcon": "自动布局",
+              "icon": "icon-zhediemianban",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "title": "布局",
+                "customClass": "",
+                "hidden": false,
+                "recursive": false,
+                "recursiveStyleFx": "",
+                "slotTarget": "",
+                "defaultValue": "",
+                "flexDirection": "column",
+                "flexWrap": "",
+                "alignItems": "",
+                "justifyContent": "",
+                "hGap": "",
+                "vGap": "",
+                "grid": {
+                  "row": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "col": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "use": false
+                },
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "height": "",
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "2",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "hoverClass": "",
+                "overflow": "",
+                "styleFx": "",
+                "behave": "",
+                "remoteFunc": "func_hijp46fj",
+                "remoteOption": "option_hijp46fj",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [],
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "remote": false,
+                "remoteType": "datasource"
+              },
+              "list": [],
+              "events": {
+                "onClick": ""
+              },
+              "key": "hijp46fj",
+              "model": "flex_hijp46fj",
+              "rules": []
+            },
+            {
+              "name": "Flex",
+              "type": "flex",
+              "el": "su-fm-flex",
+              "mainIcon": "自动布局",
+              "typeIcon": "自动布局",
+              "icon": "icon-zhediemianban",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "title": "布局",
+                "customClass": "",
+                "hidden": false,
+                "recursive": false,
+                "recursiveStyleFx": "",
+                "slotTarget": "",
+                "defaultValue": "",
+                "flexDirection": "column",
+                "flexWrap": "",
+                "alignItems": "",
+                "justifyContent": "",
+                "hGap": "",
+                "vGap": "",
+                "grid": {
+                  "row": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "col": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "use": false
+                },
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "height": "",
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "2",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "hoverClass": "",
+                "overflow": "",
+                "styleFx": "",
+                "behave": "",
+                "remoteFunc": "func_8nfbg9s6",
+                "remoteOption": "option_8nfbg9s6",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [],
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "remote": false,
+                "remoteType": "datasource"
+              },
+              "list": [],
+              "events": {
+                "onClick": ""
+              },
+              "key": "8nfbg9s6",
+              "model": "flex_8nfbg9s6",
+              "rules": []
+            },
+            {
+              "name": "Flex",
+              "type": "flex",
+              "el": "su-fm-flex",
+              "mainIcon": "自动布局",
+              "typeIcon": "自动布局",
+              "icon": "icon-zhediemianban",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "title": "布局",
+                "customClass": "",
+                "hidden": false,
+                "recursive": false,
+                "recursiveStyleFx": "",
+                "slotTarget": "",
+                "defaultValue": "",
+                "flexDirection": "column",
+                "flexWrap": "",
+                "alignItems": "",
+                "justifyContent": "",
+                "hGap": "",
+                "vGap": "",
+                "grid": {
+                  "row": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "col": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "use": false
+                },
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "height": "",
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "1",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "hoverClass": "",
+                "overflow": "",
+                "styleFx": "",
+                "behave": "",
+                "remoteFunc": "func_w2oahhsy",
+                "remoteOption": "option_w2oahhsy",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [],
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "remote": false,
+                "remoteType": "datasource"
+              },
+              "list": [],
+              "events": {
+                "onClick": ""
+              },
+              "key": "w2oahhsy",
+              "model": "flex_w2oahhsy",
+              "rules": []
+            },
+            {
+              "name": "Flex",
+              "type": "flex",
+              "el": "su-fm-flex",
+              "mainIcon": "自动布局",
+              "typeIcon": "自动布局",
+              "icon": "icon-zhediemianban",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "title": "布局",
+                "customClass": "",
+                "hidden": false,
+                "recursive": false,
+                "recursiveStyleFx": "",
+                "slotTarget": "",
+                "defaultValue": "",
+                "flexDirection": "column",
+                "flexWrap": "",
+                "alignItems": "",
+                "justifyContent": "",
+                "hGap": "",
+                "vGap": "",
+                "grid": {
+                  "row": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "col": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "use": false
+                },
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "height": "",
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "1",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "hoverClass": "",
+                "overflow": "",
+                "styleFx": "",
+                "behave": "",
+                "remoteFunc": "func_3ml68ryu",
+                "remoteOption": "option_3ml68ryu",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [],
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "remote": false,
+                "remoteType": "datasource"
+              },
+              "list": [],
+              "events": {
+                "onClick": ""
+              },
+              "key": "3ml68ryu",
+              "model": "flex_3ml68ryu",
+              "rules": []
+            },
+            {
+              "name": "Flex",
+              "type": "flex",
+              "el": "su-fm-flex",
+              "mainIcon": "自动布局",
+              "typeIcon": "自动布局",
+              "icon": "icon-zhediemianban",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "title": "布局",
+                "customClass": "",
+                "hidden": false,
+                "recursive": false,
+                "recursiveStyleFx": "",
+                "slotTarget": "",
+                "defaultValue": "",
+                "flexDirection": "column",
+                "flexWrap": "",
+                "alignItems": "",
+                "justifyContent": "",
+                "hGap": "",
+                "vGap": "",
+                "grid": {
+                  "row": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "col": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "use": false
+                },
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "height": "",
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "2",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "hoverClass": "",
+                "overflow": "",
+                "styleFx": "",
+                "behave": "",
+                "remoteFunc": "func_hnq0lcbq",
+                "remoteOption": "option_hnq0lcbq",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [],
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "remote": false,
+                "remoteType": "datasource"
+              },
+              "list": [],
+              "events": {
+                "onClick": ""
+              },
+              "key": "hnq0lcbq",
+              "model": "flex_hnq0lcbq",
+              "rules": []
+            },
+            {
+              "name": "Flex",
+              "type": "flex",
+              "el": "su-fm-flex",
+              "mainIcon": "自动布局",
+              "typeIcon": "自动布局",
+              "icon": "icon-zhediemianban",
+              "group": "Design",
+              "groupSort": 6,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "title": "布局",
+                "customClass": "",
+                "hidden": false,
+                "recursive": false,
+                "recursiveStyleFx": "",
+                "slotTarget": "",
+                "defaultValue": "",
+                "flexDirection": "column",
+                "flexWrap": "",
+                "alignItems": "",
+                "justifyContent": "",
+                "hGap": "",
+                "vGap": "",
+                "grid": {
+                  "row": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "col": {
+                    "value": "",
+                    "visible": true
+                  },
+                  "use": false
+                },
+                "padding": ["", "", "", ""],
+                "margin": ["", "", "", ""],
+                "boxSizing": "border-box",
+                "width": "",
+                "height": "",
+                "radius": ["", "", "", ""],
+                "position": "",
+                "positions": ["", "", "", ""],
+                "zIndex": "",
+                "flex": "1",
+                "flexGrow": "",
+                "flexShrink": "",
+                "fills": [],
+                "borders": [],
+                "effects": [],
+                "states": [],
+                "hoverClass": "",
+                "overflow": "",
+                "styleFx": "",
+                "behave": "",
+                "remoteFunc": "func_mvduawnn",
+                "remoteOption": "option_mvduawnn",
+                "tableColumn": false,
+                "subform": false,
+                "paging_enabled": 0,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [],
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "remote": false,
+                "remoteType": "datasource"
+              },
+              "list": [],
+              "events": {
+                "onClick": ""
+              },
+              "key": "mvduawnn",
+              "model": "flex_mvduawnn",
+              "rules": []
+            }
+          ],
+          "events": {
+            "onClick": ""
+          },
+          "key": "axmstacs",
+          "model": "flex_axmstacs",
+          "rules": []
+        }
+      ],
+      "options": {
+        "title": "Parent Material",
+        "showHeader": true,
+        "bordered": false,
+        "customClass": "",
+        "shadow": "always",
+        "width": "",
+        "padding": "10px",
+        "hidden": false,
+        "remoteFunc": "func_5ov4ojfb",
+        "remoteOption": "option_5ov4ojfb",
+        "tableColumn": false,
+        "subform": false
+      },
+      "key": "5ov4ojfb",
+      "model": "card_5ov4ojfb",
+      "rules": []
+    },
+    {
+      "name": "卡片",
+      "type": "card",
+      "mainIcon": "卡片",
+      "typeIcon": "卡片",
+      "icon": "icon-kapian",
+      "group": "Layout",
+      "groupSort": 5,
+      "enableScopes": ["Component", "Table", "Page"],
+      "list": [
+        {
+          "name": "Sub Material",
+          "type": "table",
+          "mainIcon": "子表单",
+          "typeIcon": "子表单",
+          "icon": "icon-table",
+          "group": "Container",
+          "groupSort": 0,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": [],
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "generateSubTable": true,
+            "hidden": false,
+            "dataBind": true,
+            "disabled": false,
+            "required": false,
+            "validatorCheck": false,
+            "validator": "",
+            "paging": false,
+            "pageSize": 5,
+            "isAdd": true,
+            "isDelete": true,
+            "showControl": true,
+            "virtualTable": true,
+            "sortable": true,
+            "tip": "",
+            "remoteFunc": "func_ttux02kq",
+            "remoteOption": "option_ttux02kq",
+            "tableColumn": false,
+            "subform": false,
+            "labelWrap": false,
+            "hideLabel": true,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
+          },
+          "events": {
+            "onChange": "",
+            "onRowAdd": "",
+            "onRowRemove": "",
+            "onPageChange": ""
+          },
+          "tableColumns": [
+            {
+              "name": "Material Code",
+              "el": "su-fm-table-select",
+              "mainIcon": "数据源",
+              "typeIcon": "数据源",
+              "group": "Select",
+              "groupSort": 4,
+              "generate": "part",
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "disabled": false,
+                "dataBind": true,
+                "required": false,
+                "validator": "",
+                "hideLabel": false,
+                "pageSourceId": "1921600217086271489",
+                "customProps": {},
+                "pagingEnabled": true,
+                "multiple": false,
+                "placeholder": "",
+                "lazyLoad": true,
+                "props": {
+                  "value": "id",
+                  "label": "material_code",
+                  "cascade": "",
+                  "children": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "datasource": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 1747811760332,
+                        "parentId": 1747811760333,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1747811729367,
+                            "parentId": 1747811760332,
+                            "isTop": false,
+                            "prop": "is_active",
+                            "operator": "numberEqual",
+                            "valueType": "value",
+                            "value": 1,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Active",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal",
+                            "valueTypeLabel": "值"
+                          },
+                          {
+                            "id": 1747811760336,
+                            "isTop": false,
+                            "parentId": 1747811760332,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                              {
+                                "id": 1747811760335,
+                                "parentId": 1747811760336,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{system:deptIds}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              },
+                              {
+                                "id": 1747811760337,
+                                "parentId": 1747811760336,
+                                "isTop": false,
+                                "prop": "organization_id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{global:deptParentId}}",
+                                "type": "leaf",
+                                "level": 3,
+                                "propLabel": "Organization",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal",
+                                "valueTypeLabel": "值"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "remoteFunc": "func_zubui7ym",
+                "remoteOption": "option_zubui7ym",
+                "tableColumn": true,
+                "subform": false,
+                "paging_enabled": 1,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "columns": [
+                  {
+                    "value": "material_code",
+                    "label": "Item Code",
+                    "item": {
+                      "bsonType": "string",
+                      "defaultValue": "",
+                      "description": "Item Code",
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "format": "",
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "format": "",
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": true,
+                      "key": "2lx6vnxk",
+                      "name": "material_code",
+                      "pattern": "",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "title": "Item Code",
+                      "validator": "const page_status = this.getValue(\"page_status\");\n\nif (page_status === \"View\" || !value) {\n  callback();\n  return;\n}\n\ndb.collection(\"Item\")\n  .where({ material_code: value })\n  .get()\n  .then((response) => {\n    const matchingItems = response.data || [];\n\n    if (matchingItems.length === 0) {\n      callback();\n      return;\n    }\n\n    if (page_status === \"Edit\") {\n      const currentItemId = this.getValue(\"id\");\n      const isSameItem = matchingItems.some(\n        (item) => item.id === currentItemId\n      );\n      callback(isSameItem ? undefined : \"Item code already exists.\");\n    } else {\n      callback(\"Item code already exists.\");\n    }\n  })\n  .catch((error) => {\n    console.error(\"Error checking item:\", error);\n    callback(\"Error validating item code.\");\n  });\n"
+                    }
+                  },
+                  {
+                    "value": "material_name",
+                    "label": "Item Name",
+                    "item": {
+                      "bsonType": "string",
+                      "defaultValue": "",
+                      "description": "Item Name",
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "format": "",
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "format": "",
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": true,
+                      "key": "fol922c5",
+                      "name": "material_name",
+                      "pattern": "",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "title": "Item Name"
+                    }
+                  }
+                ],
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "pageId": "1921600217140797441",
+                "options": [],
+                "data_field": "",
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "auto_refresh": 1,
+                "auto_refresh_debounce": 100,
+                "sorts": []
+              },
+              "events": {
+                "onChange": "rxwwwgd8"
+              },
+              "type": "custom",
+              "novalid": {},
+              "key": "zubui7ym",
+              "model": "bom_material_code",
+              "rules": []
+            },
+            {
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "standard",
+                    "label": "Standard",
+                    "explain": ""
+                  },
+                  {
+                    "value": "reference",
+                    "label": "Reference",
+                    "explain": ""
+                  }
+                ],
+                "remote": false,
+                "remoteType": "datasource",
+                "remoteOption": "option_72i88a2o",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "",
+                  "label": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_72i88a2o",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": true,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "static"
+                },
+                "limit_count": null,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "BOM Type",
+              "novalid": {},
+              "key": "72i88a2o",
+              "model": "bom_type",
+              "rules": []
+            },
+            {
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "USE",
+                    "label": "Use",
+                    "explain": ""
+                  },
+                  {
+                    "value": "REF",
+                    "label": "Reference",
+                    "explain": ""
+                  }
+                ],
+                "remote": false,
+                "remoteType": "datasource",
+                "remoteOption": "option_72i88a2o",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "",
+                  "label": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_72i88a2o",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": true,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "static"
+                },
+                "limit_count": null,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Consume Type",
+              "novalid": {},
+              "key": "gcdi4aef",
+              "model": "consume_type",
+              "rules": []
+            },
+            {
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Add New",
+                    "label": "Add New",
+                    "explain": ""
+                  },
+                  {
+                    "value": "Reference BOM",
+                    "label": "Reference BOM",
+                    "explain": ""
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_72i88a2o",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "parent_mat_bom_version",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": ""
+                },
+                "remoteFunc": "func_72i88a2o",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": true,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "1902195284188975106",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "Bill of Materials:Table:1902195284188975106"
+                },
+                "limit_count": null,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "sorts": [],
+                "paging_enabled": 0
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Ref BOM ID",
+              "novalid": {},
+              "key": "barvvgem",
+              "model": "ref_bom_id",
+              "rules": []
+            },
+            {
+              "type": "textarea",
+              "mainIcon": "多行文本",
+              "typeIcon": "多行文本",
+              "icon": "icon-diy-com-textarea",
+              "group": "Text",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "disabled": true,
+                "pattern": "",
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "rows": 1,
+                "autosize": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_v2lmao8n",
+                "remoteOption": "option_v2lmao8n",
+                "tableColumn": true,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Material Name",
+              "novalid": {},
+              "key": "v2lmao8n",
+              "model": "sub_material_name",
+              "rules": []
+            },
+            {
+              "type": "textarea",
+              "mainIcon": "多行文本",
+              "typeIcon": "多行文本",
+              "icon": "icon-diy-com-textarea",
+              "group": "Text",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "disabled": true,
+                "pattern": "",
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "rows": 1,
+                "autosize": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_v2lmao8n",
+                "remoteOption": "option_v2lmao8n",
+                "tableColumn": true,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Material Description",
+              "novalid": {},
+              "key": "64b459hq",
+              "model": "sub_material_desc",
+              "rules": []
+            },
+            {
+              "name": "Material Category",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": true,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_cmq3paqw",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "mat_cat_name",
+                  "cascade": "",
+                  "children": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_cmq3paqw",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": true,
+                "subform": false,
+                "paging_enabled": 1,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "datasource": {
+                  "source": "Material Category:Table:1901981572257665025",
+                  "rules": {
+                    "collectionId": "1901981572257665025",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "cmq3paqw",
+              "model": "sub_material_category",
+              "rules": []
+            },
+            {
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_wmvwbnni",
+                "filterable": true,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "dict_key",
+                  "label": "dict_value",
+                  "image": "",
+                  "icon": "",
+                  "explain": "",
+                  "cascade": "",
+                  "children": "children"
+                },
+                "remoteFunc": "func_wmvwbnni",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": true,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "datasource": {
+                  "rules": {
+                    "collectionId": "1829805516105351170",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1766472435825,
+                        "isTop": true,
+                        "prop": "parent_id",
+                        "operator": "numberEqual",
+                        "valueType": "value",
+                        "value": "1996558391685222402",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "父主键",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  },
+                  "source": "业务字典表(勿删):Table:1829805516105351170"
+                },
+                "limit_count": null,
+                "sorts": [],
+                "paging_enabled": 0
+              },
+              "events": {
+                "onReady": "",
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Process Category",
+              "novalid": {},
+              "key": "wmvwbnni",
+              "model": "process_category",
+              "rules": []
+            },
+            {
+              "name": "Quantity",
+              "type": "number",
+              "icon": "icon-number",
+              "mainIcon": "数字",
+              "typeIcon": "数字",
+              "group": "Number",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-number",
+              "options": {
+                "width": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "defaultValue": 0,
+                "min": 0,
+                "step": 1,
+                "disabled": false,
+                "controls": false,
+                "controlsPosition": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "precision": 3,
+                "customProps": {
+                  "progressColor": "",
+                  "dividingNumber": "",
+                  "showNumber": "",
+                  "viewMode": "",
+                  "format": "rmb",
+                  "cacheProp": true
+                },
+                "tip": "",
+                "remoteFunc": "func_8jgzeidr",
+                "remoteOption": "option_8jgzeidr",
+                "tableColumn": true,
+                "subform": false
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "8jgzeidr",
+              "model": "sub_material_qty",
+              "rules": []
+            },
+            {
+              "name": "Quantity UOM",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": true,
+                "clearable": false,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_cmq3paqw",
+                "filterable": false,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "uom_name",
+                  "cascade": "",
+                  "children": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_cmq3paqw",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": true,
+                "subform": false,
+                "paging_enabled": 1,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "datasource": {
+                  "source": "UOM:Table:1901805375573839874",
+                  "rules": {
+                    "collectionId": "1901805375573839874",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "data_field": "",
+                "columns": [],
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "ktyoi18v",
+              "model": "sub_material_qty_uom",
+              "rules": []
+            },
+            {
+              "type": "number",
+              "name": "Wastage %",
+              "icon": "icon-number",
+              "mainIcon": "数字",
+              "typeIcon": "数字",
+              "group": "Number",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-number",
+              "options": {
+                "width": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "defaultValue": 0,
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "disabled": false,
+                "controls": false,
+                "controlsPosition": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "precision": 0,
+                "customProps": {
+                  "progressColor": "",
+                  "dividingNumber": "",
+                  "showNumber": "",
+                  "viewMode": "",
+                  "format": "rmb",
+                  "cacheProp": true
+                },
+                "tip": "",
+                "remoteFunc": "func_wlvrlfcb",
+                "remoteOption": "option_wlvrlfcb",
+                "tableColumn": true,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "wlvrlfcb",
+              "model": "sub_material_wastage",
+              "rules": []
+            },
+            {
+              "name": "BOM Version",
+              "type": "select",
+              "mainIcon": "下拉单选",
+              "typeIcon": "下拉单选",
+              "icon": "icon-select",
+              "group": "Select",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-select",
+              "options": {
+                "defaultValue": "",
+                "multiple": false,
+                "disabled": false,
+                "clearable": true,
+                "placeholder": "",
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "options": [
+                  {
+                    "value": "Option 1",
+                    "label": "Option 1"
+                  },
+                  {
+                    "value": "Option 2",
+                    "label": "Option 2"
+                  },
+                  {
+                    "value": "Option 3",
+                    "label": "Option 3"
+                  }
+                ],
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "remoteOption": "option_gvmbykzu",
+                "filterable": true,
+                "pagingEnabled": true,
+                "remoteOptions": [],
+                "props": {
+                  "value": "id",
+                  "label": "parent_mat_bom_version",
+                  "cascade": "",
+                  "children": "",
+                  "image": "",
+                  "icon": ""
+                },
+                "remoteFunc": "func_gvmbykzu",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "customProps": {},
+                "tip": "",
+                "tableColumn": true,
+                "subform": false,
+                "paging_enabled": 1,
+                "paging_way": "Pagination",
+                "page_size": 10,
+                "more_fields": [],
+                "datasource": {
+                  "source": "Bill of Materials:Table:1902195284188975106",
+                  "rules": {
+                    "collectionId": "1902195284188975106",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "request_params": {
+                  "list": [
+                    {
+                      "prop": "",
+                      "propLabel": "",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "data_field": "",
+                "columns": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "gvmbykzu",
+              "model": "sub_material_bom_version",
+              "rules": []
+            },
+            {
+              "name": "Remark",
+              "type": "textarea",
+              "mainIcon": "多行文本",
+              "typeIcon": "多行文本(1)",
+              "icon": "icon-diy-com-textarea",
+              "group": "Text",
+              "groupSort": 2,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "disabled": false,
+                "pattern": "",
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "rows": 1,
+                "autosize": true,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_l0w4aqdq",
+                "remoteOption": "option_l0w4aqdq",
+                "tableColumn": true,
+                "subform": false
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "novalid": {},
+              "key": "l0w4aqdq",
+              "model": "sub_material_remark",
+              "rules": []
+            }
+          ],
+          "key": "ttux02kq",
+          "model": "subform_sub_material",
+          "rules": []
+        }
+      ],
+      "options": {
+        "title": "Sub Material",
+        "showHeader": true,
+        "bordered": true,
+        "customClass": "",
+        "shadow": "always",
+        "width": "",
+        "padding": "10px",
+        "hidden": false,
+        "remoteFunc": "func_qs6qnf47",
+        "remoteOption": "option_qs6qnf47",
+        "tableColumn": false,
+        "subform": false
+      },
+      "key": "qs6qnf47",
+      "model": "card_qs6qnf47",
+      "rules": []
+    },
+    {
+      "name": "Remark",
+      "type": "textarea",
+      "mainIcon": "多行文本",
+      "typeIcon": "多行文本(1)",
+      "icon": "icon-diy-com-textarea",
+      "group": "Text",
+      "groupSort": 2,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "width": "",
+        "defaultValue": "",
+        "required": false,
+        "requiredMessage": "",
+        "disabled": false,
+        "pattern": "",
+        "patternMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "placeholder": "",
+        "customClass": "padding",
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "clearable": false,
+        "maxlength": "",
+        "showWordLimit": false,
+        "rows": 2,
+        "autosize": false,
+        "customProps": {},
+        "tip": "",
+        "remoteFunc": "func_l61f5edw",
+        "remoteOption": "option_l61f5edw",
+        "tableColumn": false,
+        "subform": false
+      },
+      "events": {
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+      },
+      "key": "l61f5edw",
+      "model": "bom_remark",
+      "rules": []
+    },
+    {
+      "name": "自动布局",
+      "type": "flex",
+      "el": "su-fm-flex",
+      "mainIcon": "自动布局",
+      "typeIcon": "自动布局",
+      "icon": "icon-zhediemianban",
+      "group": "Design",
+      "groupSort": 6,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "title": "布局",
+        "customClass": "",
+        "hidden": false,
+        "recursive": false,
+        "recursiveStyleFx": "",
+        "slotTarget": "",
+        "defaultValue": "",
+        "flexDirection": "column",
+        "flexWrap": "",
+        "alignItems": "",
+        "justifyContent": "",
+        "hGap": "",
+        "vGap": "",
+        "grid": {
+          "row": {
+            "value": "",
+            "visible": true
+          },
+          "col": {
+            "value": "",
+            "visible": true
+          },
+          "use": false
+        },
+        "padding": ["", "", "", ""],
+        "margin": ["", "", "", ""],
+        "boxSizing": "border-box",
+        "width": "",
+        "height": "70px",
+        "radius": ["", "", "", ""],
+        "position": "",
+        "positions": ["", "", "", ""],
+        "zIndex": "",
+        "flex": "",
+        "flexGrow": "",
+        "flexShrink": "",
+        "fills": [
+          {
+            "type": "color",
+            "value": "#ffffffff",
+            "mode": "aspectFill",
+            "rotate": "",
+            "visible": true
+          }
+        ],
+        "borders": [],
+        "effects": [],
+        "states": [],
+        "hoverClass": "",
+        "overflow": "",
+        "styleFx": "",
+        "behave": "",
+        "remoteFunc": "func_43gn039n",
+        "remoteOption": "option_43gn039n",
+        "tableColumn": false,
+        "subform": false,
+        "props": {},
+        "datasource": {
+          "rules": {
+            "collectionId": "",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "remote": false,
+        "remoteType": "datasource",
+        "url_params": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "body_params": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "request_params": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        }
+      },
+      "list": [],
+      "events": {
+        "onClick": ""
+      },
+      "key": "43gn039n",
+      "model": "flex_43gn039n",
+      "rules": []
+    },
+    {
+      "name": "自动布局",
+      "type": "flex",
+      "el": "su-fm-flex",
+      "mainIcon": "自动布局",
+      "typeIcon": "自动布局",
+      "icon": "icon-zhediemianban",
+      "group": "Design",
+      "groupSort": 6,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "title": "布局",
+        "customClass": "fixbutton",
+        "hidden": false,
+        "recursive": false,
+        "recursiveStyleFx": "",
+        "slotTarget": "",
+        "defaultValue": "",
+        "flexDirection": "row",
+        "flexWrap": "nowrap",
+        "alignItems": "flex-end",
+        "justifyContent": "flex-end",
+        "hGap": "",
+        "vGap": "",
+        "grid": {
+          "row": {
+            "value": "",
+            "visible": true
+          },
+          "col": {
+            "value": "",
+            "visible": true
+          },
+          "use": false
+        },
+        "padding": ["10px", "", "", ""],
+        "margin": ["", "", "", ""],
+        "boxSizing": "border-box",
+        "width": "60%",
+        "height": "",
+        "radius": ["", "", "", ""],
+        "position": "",
+        "positions": ["", "", "", ""],
+        "zIndex": "",
+        "flex": "",
+        "flexGrow": "",
+        "flexShrink": "",
+        "fills": [
+          {
+            "type": "color",
+            "value": "#ffffffff",
+            "mode": "aspectFill",
+            "rotate": "",
+            "visible": true
+          }
+        ],
+        "borders": [],
+        "effects": [],
+        "states": [],
+        "hoverClass": "",
+        "overflow": "",
+        "styleFx": "",
+        "behave": "",
+        "remoteFunc": "func_2afade6d",
+        "remoteOption": "option_2afade6d",
+        "tableColumn": false,
+        "subform": false,
+        "props": {},
+        "datasource": {
+          "rules": {
+            "collectionId": "",
+            "list": [
+              {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "remote": false,
+        "remoteType": "datasource",
+        "url_params": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "body_params": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "request_params": {
+          "list": [
+            {
+              "prop": "",
+              "propLabel": "",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "valueLabel": ""
+            }
+          ]
+        }
+      },
+      "list": [
+        {
+          "name": "Cancel",
+          "type": "button",
+          "mainIcon": "按钮",
+          "typeIcon": "按钮",
+          "icon": "icon-button",
+          "group": "Buttons",
+          "groupSort": 0,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "customClass": "marginright",
+            "disabled": false,
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hideLabel": true,
+            "hidden": false,
+            "buttonSize": "default",
+            "buttonType": "info",
+            "buttonPlain": true,
+            "buttonRound": true,
+            "buttonCircle": false,
+            "buttonName": "Cancel",
+            "width": "",
+            "customProps": {},
+            "tip": "",
+            "remoteFunc": "func_3xqjr9uc",
+            "remoteOption": "option_3xqjr9uc",
+            "tableColumn": false,
+            "subform": false
+          },
+          "events": {
+            "onClick": ""
+          },
+          "key": "3xqjr9uc",
+          "model": "button_cancel",
+          "rules": []
+        },
+        {
+          "name": "Save",
+          "type": "button",
+          "mainIcon": "按钮",
+          "typeIcon": "按钮",
+          "icon": "icon-button",
+          "group": "Buttons",
+          "groupSort": 0,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "customClass": "marginright",
+            "disabled": false,
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hideLabel": true,
+            "hidden": false,
+            "buttonSize": "default",
+            "buttonType": "success",
+            "buttonPlain": true,
+            "buttonRound": true,
+            "buttonCircle": false,
+            "buttonName": "Save",
+            "width": "",
+            "customProps": {},
+            "tip": "",
+            "remoteFunc": "func_3xqjr9uc",
+            "remoteOption": "option_3xqjr9uc",
+            "tableColumn": false,
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
+          },
+          "events": {
+            "onClick": "2raaz2db"
+          },
+          "key": "9tfh1bnv",
+          "model": "button_save",
+          "rules": []
+        }
+      ],
+      "events": {
+        "onClick": ""
+      },
+      "key": "2afade6d",
+      "model": "flex_2afade6d",
+      "rules": []
+    }
+  ],
+  "config": {
+    "labelWidth": 180,
+    "labelPosition": "left",
+    "size": "default",
+    "customClass": "padding",
+    "ui": "element",
+    "layout": "horizontal",
+    "width": "100%",
+    "hideLabel": false,
+    "hideErrorMessage": false,
+    "eventScript": [
+      {
+        "key": "mounted",
+        "name": "mounted",
+        "func": "// Helper functions\nconst showStatusHTML = (status) => {\n  switch (status) {\n    case 1:\n      this.display([\"active_status\"]);\n      break;\n    case 0:\n      this.display([\"inactive_status\"]);\n      break;\n    default:\n      this.display([\"inactive_status\"]);\n      break;\n  }\n};\n\n// Main execution function\n(async () => {\n  try {\n    let pageStatus = \"\";\n\n    // Determine page status using multiple methods for compatibility\n    if (this.isAdd) pageStatus = \"Add\";\n    else if (this.isEdit) pageStatus = \"Edit\";\n    else if (this.isView) pageStatus = \"View\";\n    else if (this.isCopy) pageStatus = \"Clone\";\n    else throw new Error(\"Invalid page status\");\n\n    // Set page status in data for reference\n    this.setData({ page_status: pageStatus });\n\n    if (pageStatus !== \"Add\") {\n      try {\n        const bomId = this.getValue(\"id\");\n\n        if (!bomId) {\n          throw new Error(\"Bill of Materials ID not found\");\n        }\n\n        // Fetch BOM data\n        const bomResponse = await db\n          .collection(\"bill_of_materials\")\n          .where({ id: bomId })\n          .get();\n\n        if (!bomResponse.data || bomResponse.data.length === 0) {\n          throw new Error(`Bill of Materials with ID ${bomId} not found`);\n        }\n\n        const bomData = bomResponse.data[0];\n        console.log(\"BOM data retrieved:\", bomData);\n\n        // Extract all necessary fields\n        const {\n          id,\n          subform_sub_material,\n          bom_remark,\n          is_active,\n          parent_mat_base_quantity,\n          parent_mat_bom_version,\n          parent_material_category,\n          parent_mat_is_default,\n          parent_material_code,\n          parent_material_name,\n          parent_material_desc,\n        } = bomData;\n\n        // Set data for all modes\n        await this.setData({\n          id,\n          subform_sub_material,\n          bom_remark,\n          is_active,\n          parent_mat_base_quantity,\n          parent_mat_bom_version,\n          parent_material_category,\n          parent_mat_is_default,\n          parent_material_code,\n          parent_material_name,\n          parent_material_desc,\n        });\n\n        // Show appropriate status UI\n        showStatusHTML(is_active);\n\n        // Always disable parent material code in Edit/View modes\n        this.disabled([\"parent_material_code\"], true);\n\n        // Handle View mode\n        if (pageStatus === \"View\") {\n          this.disabled(\n            [\n              \"subform_sub_material\",\n              \"subform_sub_material.sub_material_wastage\",\n              \"bom_remark\",\n              \"parent_mat_base_quantity\",\n              \"parent_mat_bom_version\",\n              \"parent_material_category\",\n              \"parent_mat_is_default\",\n              \"parent_material_code\",\n              \"parent_material_name\",\n              \"parent_material_desc\",\n              \"is_active\",\n            ],\n            true\n          );\n\n          this.hide([\"button_save\", \"button_cancel\"], true);\n\n          // Disable subform edit buttons if necessary\n          this.$nextTick(() => {\n            try {\n              const addButtons = document.querySelectorAll(\n                \".form-subform-action .el-button--primary\"\n              );\n              if (addButtons && addButtons.length > 0) {\n                addButtons.forEach((button) => {\n                  button.style.display = \"none\";\n                });\n              }\n            } catch (e) {\n              console.error(\"Error hiding subform buttons:\", e);\n            }\n          });\n        }\n      } catch (error) {\n        console.error(\"Error loading BOM data:\", error);\n        this.$message.error(\n          `Failed to load Bill of Materials data: ${error.message}`\n        );\n      }\n    } else {\n      this.setData({ is_active: 0 });\n      showStatusHTML(0);\n    }\n  } catch (error) {\n    console.error(\"Error in BOM mounted function:\", error);\n    this.$message.error(\"An error occurred while initializing the form\");\n  }\n})();\n\n\nsetTimeout(async()=> {\n  if(this.isAdd) {\n    const op = await this.onDropdownVisible('parent_mat_bom_version_type', true);\n    function getDefaultItem(arr) {\n      return arr?.find(item => item?.item?.item?.is_default === 1);\n    }\n    setTimeout(()=> {\n      const optionsData = this.getOptionData('parent_mat_bom_version_type') || [];\n      const data = getDefaultItem(optionsData);\n      if(data) {\n        this.setData({\n          'parent_mat_bom_version_type': data.value\n        });\n      }\n    }, 500)\n    \n  }\n}, 500)",
+        "type": "js"
+      },
+      {
+        "key": "refresh",
+        "name": "refresh",
+        "func": ""
+      },
+      {
+        "key": "onParamUpdate",
+        "name": "onParamUpdate",
+        "func": ""
+      },
+      {
+        "key": "onBeforeAdd",
+        "name": "onBeforeAdd",
+        "func": ""
+      },
+      {
+        "key": "onAfterAdd",
+        "name": "onAfterAdd",
+        "func": ""
+      },
+      {
+        "key": "onBeforeUpdate",
+        "name": "onBeforeUpdate",
+        "func": ""
+      },
+      {
+        "key": "onAfterUpdate",
+        "name": "onAfterUpdate",
+        "func": ""
+      },
+      {
+        "key": "onFormChange",
+        "name": "onFormChange",
+        "type": "rule"
+      },
+      {
+        "key": "iky7wors",
+        "name": "onChange_parent_update_name_category",
+        "func": "const self = this; // Store the context\nconst allData = this.getValues();\n\nif(arguments[0].value) {\n  this.setData({\n    'parent_material_name': arguments[0].fieldModel.item.material_name,\n    'parent_material_category': arguments[0].fieldModel.item.item_category,\n    'parent_material_desc': arguments[0].fieldModel.item.material_desc,\n    [`subform_sub_material`] : [],\n    'parent_mat_base_quantity': 1,\n    'parent_mat_is_default': 0,\n    'parent_mat_base_uom': arguments[0].fieldModel.item.based_uom\n  });\n  \n  const materialId = allData.parent_material_code;\n\n  db.collection(\"prefix_configuration\")\n    .where({\n      document_types: \"Bill Of Materials\",\n      is_active: 1\n    })\n    .get()\n    .then((result) => {\n      if (!result.data.length > 0) {\n        console.log(\"result\", result);\n        this.setData({'parent_mat_bom_version': ''});\n        return Promise.resolve(null);\n      }\n      return db.collection(\"bill_of_materials\")\n        .where({\n          parent_material_code: materialId\n        })\n        //.orderBy(\"create_time\", \"desc\") // Fetch latest records first\n        .get();\n    })\n    .then(function(bomResult) {\n      console.log(\"bomResult\", bomResult);\n      var highestVersion = 0;\n  \n      // Find the highest version number among the fetched records\n      if (bomResult && bomResult.data.length > 0) {\n        bomResult.data.forEach(record => {\n          const version = record.parent_mat_bom_version;\n          const versionMatch = version.match(/V(\\d+)$/);\n          if (versionMatch) {\n            const versionNum = parseInt(versionMatch[1]);\n            if (versionNum > highestVersion) {\n              highestVersion = versionNum;\n            }\n          }\n        });\n      }\n  \n      // Increment to the next version\n      const nextVersion = highestVersion + 1;\n      var newMaterialCode = \"V\" + nextVersion;\n      console.log(\"newMaterialCode\", newMaterialCode);\n      self.setData({'parent_mat_bom_version': newMaterialCode});\n      return newMaterialCode;\n    })\n    .catch(function(error) {\n      console.error(\"Error in material code generation:\", error);\n      throw error;\n    });\n} else {\n  this.setData({\n    parent_material_name: '',\n    parent_material_category: '',\n    parent_material_desc: '',\n    parent_mat_bom_version: '',\n    parent_mat_is_default: 0,\n    parent_mat_base_quantity: 0,\n    parent_mat_base_uom: '',\n    subform_sub_material: []\n  })\n}",
+        "type": "js",
+        "rules": []
+      },
+      {
+        "key": "rxwwwgd8",
+        "name": "onChange_sub_update_name_category",
+        "func": "this.setData({'subform_sub_material.sub_material_name' : arguments[0].fieldModel.item.material_name})\n\n\nthis.setData({'subform_sub_material.sub_material_category' : arguments[0].fieldModel.item.material_category})",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "tuzs7pu3",
+            "action": "js",
+            "options": {
+              "func": "if(arguments[0].value){\n    db.collection(\"bill_of_materials\")\n      .where({\"parent_material_code\": arguments[0].value})\n      .get()\n      .then((re) => {\n        console.log(\"re\", re);\n        \n        // Set the BOM version options\n        this.setOptionData(\n          `subform_sub_material.${arguments[0].rowIndex}.sub_material_bom_version`,\n          re.data\n        );\n    \n        // Enable/disable the BOM version field based on data availability\n        const fieldPath = `subform_sub_material.${arguments[0].rowIndex}.sub_material_bom_version`;\n        const hasData = re.data && re.data.length > 0;\n        this.disabled([fieldPath], !hasData);\n      })\n      .catch((error) => {\n        console.error(\"Error fetching BOM data:\", error);\n      });\n    \n    // Set additional sub-material fields\n    const rowPrefix = `subform_sub_material.${arguments[0].rowIndex}`;\n    this.setData({\n      [`${rowPrefix}.sub_material_name`]: arguments[0].fieldModel.item.material_name,\n      [`${rowPrefix}.sub_material_desc`]: arguments[0].fieldModel.item.material_desc,\n      [`${rowPrefix}.sub_material_qty_uom`]: arguments[0].fieldModel.item.based_uom,\n      [`${rowPrefix}.sub_material_category`]: arguments[0].fieldModel.item.item_category\n    });\n} else {\n    const rowPrefix = `subform_sub_material.${arguments[0].rowIndex}`;\n\n    this.setData({\n      [`${rowPrefix}.sub_material_name`]: '',\n      [`${rowPrefix}.sub_material_desc`]: '',\n      [`${rowPrefix}.sub_material_qty_uom`]: '',\n      [`${rowPrefix}.sub_material_category`]: '',\n      [`${rowPrefix}.sub_material_qty`]: 0,\n      [`${rowPrefix}.sub_material_wastage`]: '',\n      [`${rowPrefix}.sub_material_bom_version`]: '',\n      [`${rowPrefix}.sub_material_remark`]: '',\n    });\n\n    this.disabled(`${rowPrefix}.sub_material_bom_version`, true)\n}"
+            }
+          }
+        ]
+      },
+      {
+        "key": "4rfxs5xg",
+        "name": "onChange_4rfxs5xg",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "a4xwo8n9",
+            "action": "js",
+            "options": {
+              "func": "this.setData({\n[`subform_sub_material`] : [],\n'parent_mat_base_quantity': '',\n'parent_mat_is_default': 0\n});"
+            }
+          }
+        ]
+      },
+      {
+        "key": "2raaz2db",
+        "name": "onClick_save",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "avmr8seq",
+            "action": "js",
+            "options": {
+              "func": "const allData = this.getValues();\nconst self = this;\nconst page_status = this.getValue('page_status');\nconsole.log(\"allData\", allData);\nconst bomId = allData.default_dialog?.bom_id;\n\nconst closeDialog = () => {\n    if (self.parentGenerateForm) {\n        self.parentGenerateForm.$refs.SuPageDialogRef.hide();\n        self.parentGenerateForm.refresh();\n    }\n};\n\ntry {\n    if (page_status === 'Add') {\n        if (bomId && bomId !== 'null') {\n            db.collection(\"bill_of_materials\")\n                .where({ id: bomId })\n                .update({ parent_mat_is_default: 0 })\n                .then(function(bomResult) {\n                    console.log(\"bomResult\", bomResult);\n                })\n                .catch(error => {\n                    console.error(\"Error updating BOM:\", error);\n                });\n        }\n        let organizationId = this.getVarGlobal('deptParentId');\n        if (organizationId === '0') {\n          organizationId = this.getVarSystem('deptIds').split(',')[0];\n        }\n\n        db.collection(\"bill_of_materials\")\n            .add({\n                bom_remark: allData.bom_remark,\n                parent_mat_base_quantity: allData.parent_mat_base_quantity,\n                is_active: allData.is_active,\n                parent_mat_base_uom: allData.parent_mat_base_uom,\n                parent_mat_bom_version: allData.parent_mat_bom_version,\n                parent_material_category: allData.parent_material_category,\n                parent_mat_is_default: allData.parent_mat_is_default,\n                parent_material_code: allData.parent_material_code,\n                parent_material_name: allData.parent_material_name,\n                parent_material_desc: allData.parent_material_desc,\n                subform_sub_material: allData.subform_sub_material,\n                organization_id: organizationId\n            })\n            .then(() => {\n                closeDialog();\n            })\n            .catch(error => {\n                console.error(\"Error adding BOM:\", error);\n            });\n\n    } else if (page_status === 'Edit') {\n        const existingBomId = this.getValue('id');\n        \n        db.collection(\"bill_of_materials\")\n            .where({ id: existingBomId })\n            .update({\n                bom_remark: allData.bom_remark,\n                parent_mat_base_quantity: allData.parent_mat_base_quantity,\n                parent_mat_bom_version: allData.parent_mat_bom_version,\n                parent_mat_base_uom: allData.parent_mat_base_uom,\n                parent_material_category: allData.parent_material_category,\n                is_active: allData.is_active,\n                parent_mat_is_default: allData.parent_mat_is_default,\n                parent_material_code: allData.parent_material_code,\n                parent_material_name: allData.parent_material_name,\n                parent_material_desc: allData.parent_material_desc,\n                subform_sub_material: allData.subform_sub_material\n            })\n            .then(() => {\n                closeDialog();\n            })\n            .catch(error => {\n                console.error(\"Error updating BOM:\", error);\n            });\n    }\n} catch (error) {\n    console.error(\"Unexpected error:\", error);\n}"
+            }
+          }
+        ]
+      },
+      {
+        "key": "wco16rzc",
+        "name": "onChange_is_default",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "bjmh0kq8",
+            "action": "js",
+            "options": {
+              "func": "const self = this;\nconst allData = this.getValues();\nconsole.log(\"allData\", allData);\nconst page_status = self.getValue('page_status');\nconst materialId = allData.parent_material_code;\nconst isDefault = allData.parent_mat_is_default;\nconsole.log(\"materialId\", materialId);\nself.setData({ \"default_dialog\": {} });\n\nif (isDefault === 1) {\n    db.collection(\"bill_of_materials\")\n        .where({\n            parent_material_code: materialId,\n            parent_mat_is_default: isDefault\n        })\n        .get()\n        .then(function(bomResult) {\n            if (bomResult.data[0] && bomResult.data.length > 0 && allData.id !== bomResult.data[0].id) {\n                console.log(\"bomResult\", bomResult.data[0].parent_mat_bom_version);\n                self.openDialog(\"default_dialog\");\n                self.setData({ \n                    \"default_dialog.bom_version\": bomResult.data[0].parent_mat_bom_version,\n                    \"default_dialog.bom_id\": bomResult.data[0].id\n                });\n                    \n            } else {\n                console.log(\"No default BOM found for this material\");\n            }\n        })\n        .catch(function(error) {\n            console.error(\"Error in material code generation:\", error);\n            throw error;\n        });\n}"
+            }
+          }
+        ]
+      },
+      {
+        "key": "o9ec1nsx",
+        "name": "onConfirm_default_dialog",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "ix8ufm2f",
+            "action": "js",
+            "options": {
+              "func": "const allData = this.getValues();\nconst isDefault = allData.parent_mat_is_default;\nthis.closeDialog(\"default_dialog\");\nconsole.log(\"bom_version\",isDefault)"
+            }
+          }
+        ]
+      },
+      {
+        "key": "hcxsdru3",
+        "name": "onCancel_default_dialog",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "wh6l9621",
+            "action": "js",
+            "options": {
+              "func": "const allData = this.getValues();\nconst isDefault = allData.parent_mat_is_default;\n\nthis.setData({ \n    \"default_dialog\": {},\n    \"parent_mat_is_default\": 0\n});"
+            }
+          }
+        ]
+      },
+      {
+        "key": "hazurcwj",
+        "name": "keyChange_hazurcwj",
+        "func": "const { setModelKey, newModel, oldModel } = arguments[0];\nconst oldData = oldModel+'_type';\nconst newData = newModel+'_type';\nsetModelKey(oldData, newData);",
+        "type": "js"
+      },
+      {
+        "key": "fz5dx56d",
+        "name": "onReady_fz5dx56d",
+        "func": "var params = this.getComponent('parent_mat_bom_version');\nconst { options } = params;\nif(options?.canManualInput) {\n  setTimeout(async()=> {\n    const getOpData = await this.onDropdownVisible('parent_mat_bom_version_type', true)||[];\n    const optionsData = this.getOptionData('parent_mat_bom_version_type') || [];\n    let newData = getOpData?.length> 0? getOpData:optionsData;\n      const newOptionsData = [{label: 'Manual Input', value: -9999}, ...newData];\n      this.setOptionData(\"parent_mat_bom_version_type\", newOptionsData);\n  }, 200)\n}",
+        "type": "js"
+      },
+      {
+        "key": "piwzxkia",
+        "name": "onChange_piwzxkia",
+        "func": "const { value } = arguments[0];\nthis.setData({\n  parent_mat_bom_version: ''\n});\nif(value === -9999) {\n   this.disabled('parent_mat_bom_version', false)\n} else {\n   this.disabled('parent_mat_bom_version', true)\n}",
+        "type": "js"
+      }
+    ],
+    "uniqueGroup": [],
+    "params": [
+      {
+        "key": "c0gy8n3a",
+        "name": "page_status",
+        "title": "",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+      },
+      {
+        "key": "pdl8fogs",
+        "name": "id",
+        "title": "",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+      }
+    ],
+    "deps": {},
+    "paramsDeps": {},
+    "styleSheets": ".padding{\n  padding:20px\n}\n\n.margin{\n  margin-left: 15px\n}\n\n.marginright{\n  margin-right: 20px;\n  margin-top : 3px;\n}\n\n.fixbutton{\n  position: fixed;\n  bottom: 0;\n  right: 0;\n}\n\n",
+    "dataSource": [],
+    "labelSuffix": true,
+    "indexs": []
+  }
+}
