@@ -58,7 +58,9 @@ const EDIT_DISABLED_FIELDS = [
           issued_by: this.getVarGlobal("nickname"),
           item_assembly_date: new Date().toISOString().split("T")[0],
         });
-        this.display(["issued_status", "button_completed", "comp_post_button"]);
+        // The status badge stays defined for later use, but a new assembly has
+        // no status yet, so nothing is shown on Add.
+        this.display(["button_completed", "comp_post_button"]);
         break;
 
       case "Edit":

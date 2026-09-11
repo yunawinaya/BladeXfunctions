@@ -2,52 +2,43 @@
 
 ## Status
 
-| Artefact | State |
+| Artefact | Dev state (checked 2026-09-11) |
 |---|---|
-| `ItemAssemblyFullJSON.json` | **DEPLOYED dev v8** — all 26 handlers byte-identical, every structural change survived |
-| `BOMsaveWorkflow.json` | **DEPLOYED dev** as `BOM_SAVE` id `2098308362750185474`, enabled v3, identical to repo |
-| `BOMFullJSON.json` | deployed v69, then **two bugs found by testing — needs re-paste** |
-| `BOMlistPageJSON.json` | repaired (filters, columns, Delete), **not deployed** |
-| `ItemAssemblyListPageJSON.json` | filled in (datasource, columns, filters, Delete), **not deployed** |
+| `BOMFullJSON.json` | **enabled v70 — IDENTICAL to repo** |
+| `BOMsaveWorkflow.json` | **enabled v4 as `BOM_SAVE` `2098308362750185474` — IDENTICAL** |
+| `BOMlistPageJSON.json` | **enabled v4 as page `Basic BOM` `2098296691163975682` — IDENTICAL** |
+| `ItemAssemblyListPageJSON.json` | **enabled v4 as page `Item Assembly` `2098312073316716546` — IDENTICAL** |
+| `ItemAssemblyFullJSON.json` | enabled v8 — handlers identical, but the "no status badge on Add" change is **not deployed yet** |
 
-The three new columns exist on dev: `sm_item_assembly_tlm8ve69_sub.requested_qty`
-`decimal(65,3)`, and `serial_number` / `material_id` on
-`sm_item_assembly_mw10kf66_sub`.
+List pages live in `su_code_pages` / `su_code_pages_history`, same
+`status='enabled'` mechanism as forms and workflows — not in `su_code_tables`.
 
-**Outstanding:** re-paste the BOM form **and** the save workflow (both changed after
-the 2026-09-11 test), and paste the list page.
+**Outstanding:** re-paste `ItemAssemblyFullJSON.json` only.
 
-## What the first live save exposed
+## Permission codes must be registered FIRST
 
-Run `2098311821994020865` completed in 165ms with no error, wrote the header and
-both child rows, and got version / version type / decimals / `bom_type` /
-`consume_type` right. Two things were wrong anyway — both silent:
+`blade_menu` (category 2) is the button-permission registry. Of the 35 codes used
+across every list page in this repo, **31 are registered** — and the only 4 that
+are not are the ones on these two new pages. Every established page registers its
+codes, so treat registration as required, not optional.
 
-1. **`code_format` read `{{node:get_parent_item.data}}`.** That is the
-   `{count, data}` envelope, not the record. It is *truthy*, so the `if (item)`
-   guard passed and every field read `undefined`; the add-node then omitted those
-   columns entirely rather than failing. Result: `parent_material_name`,
-   `parent_material_desc`, `parent_material_category` and `parent_mat_base_uom`
-   saved empty. Fixed to `.data.data` — the form the deployed GD workflow uses.
-   The authoring skill has been corrected.
-2. **The client never sent those four fields either.** `arguments[0].fieldModel.item`
-   was empty on the header picker (it works on the subform one). Both pickers now
-   read the item back by id with a projected `.field()` query instead of trusting
-   the event payload, so the form displays them too.
+Create these five before pasting the pages:
 
-Re-saving the existing test BOM through the fixed form will backfill it — the Edit
-path re-derives all four from the Item.
+| Code | Page | Button |
+|---|---|---|
+| `bom_delete` | Basic BOM | Delete |
+| `ia_view` | Item Assembly | View |
+| `ia_edit` | Item Assembly | Edit |
+| `ia_delete` | Item Assembly | Delete |
+| `ia_add` | Item Assembly | Add New |
 
-**`sub_tenant_id` is a non-issue here, contrary to the earlier note.** It is a
-physical column but is *not declared* in `bill_of_materials`'s `schema_json`, so
-the platform never stamps it and a workflow cannot write it. NULLs are normal on
-this table (and on `process_route_yes81y2n_sub`, 44 of 50). The carry-forward in
-`code_guard` still earns its place on edits of the 40 legacy rows that do have a
-value.
+`bom_add`, `bom_view` and `bom_edit` already exist.
 
-The fork-join is genuinely parallel — verified from `nodes_data`:
-`search_sibling_boms` and `get_parent_item` both start at the same millisecond and
-`code_guard` waits for the slower one.
+**Ordering matters.** Item Assembly's Add New previously had an *empty*
+permission, i.e. no gate at all; it is now `ia_add` to match its siblings. If the
+platform hides buttons whose permission code is unknown, Add will disappear until
+`ia_add` is registered — which would block testing the form. Register the codes,
+then paste. If Add does vanish, that one field is the cause.
 
 ## Deploy order
 

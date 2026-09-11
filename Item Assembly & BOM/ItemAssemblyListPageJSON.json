@@ -1702,7 +1702,7 @@
           "rowActions": [
             {
               "title": "View",
-              "permission": "bom_view",
+              "permission": "ia_view",
               "type": "viewBtn",
               "styleType": "Link",
               "icon": "eye",
@@ -1725,7 +1725,7 @@
             },
             {
               "title": "Edit",
-              "permission": "bom_edit",
+              "permission": "ia_edit",
               "type": "editBtn",
               "styleType": "Link",
               "icon": "pencil-square",
@@ -1748,7 +1748,7 @@
             },
             {
               "title": "Delete",
-              "permission": "bom_delete",
+              "permission": "ia_delete",
               "type": "custom",
               "styleType": "Link",
               "icon": "trash3",
@@ -1791,7 +1791,7 @@
             },
             {
               "title": "Add New",
-              "permission": "bom_add",
+              "permission": "ia_add",
               "type": "addBtn",
               "icon": "plus",
               "events": [
@@ -1982,6 +1982,11 @@
     "comment": false,
     "nav_layout": false,
     "eventScript": [
+      {
+        "key": "onFormChange",
+        "name": "onFormChange",
+        "type": "rule"
+      },
       {
         "key": "mounted",
         "name": "mounted",
