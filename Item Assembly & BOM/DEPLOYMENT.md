@@ -30,7 +30,7 @@ the **page's own menu id**. Both new pages have a menu but no buttons under it:
 | Page | Page id | Menu id | Buttons defined |
 |---|---|---|---|
 | Basic BOM | 2098296691163975682 | `2098296690920706050` | **0** |
-| Item Assembly | 2098312073316716546 | `2098312072972783618` | **0** |
+| Item Assembly | 2098312073316716546 | `2098312072972783618` | 5 (`ia_add`/`ia_edit`/`ia_view`/`ia_revert`/`ia_delete`) — **created, granted to NO role** (checked 2026-09-14) |
 | *(legacy)* Bill of Material | 1909092705255301122 | 1909203642444423170 | 3 (`bom_add`/`bom_view`/`bom_edit`) |
 
 So the fix is not simply "register the codes" — each button permission has to be
@@ -38,7 +38,9 @@ created **under its own page's menu**, then granted to the roles that need it:
 
 - under menu `2098296690920706050`: a Delete button for `bom_delete` (View / Edit /
   Add already point at the legacy menu's codes and have the same problem)
-- under menu `2098312072972783618`: `ia_view`, `ia_edit`, `ia_delete`, `ia_add`
+- under menu `2098312072972783618`: ~~create~~ done — still needs **granting** to each
+  role. Mobile derives module flags only from *granted* children titled
+  View/Add/Edit/Delete, so ungranted buttons = list-only access on mobile
 
 Of the 35 permission codes used across every list page in this repo, 31 are
 registered; the only 4 that are not are `bom_delete` and the three `ia_*` codes on
