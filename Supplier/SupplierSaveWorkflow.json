@@ -1,0 +1,1542 @@
+{
+ "request_json": [
+  {
+   "key": "1mtmzhw9",
+   "name": "allData",
+   "title": "All Data",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "v4mlc6nd",
+   "name": "id",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "tcpa3m6e",
+   "name": "supplier_code",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "bebylpn7",
+   "name": "supplier_name",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "5s30sgsc",
+   "name": "supplier_status",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node",
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_determine",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Determine Params",
+    "isValidator": true,
+    "nodeName": "Determine Params",
+    "name": "Determine Params",
+    "script": {
+     "type": "javascript",
+     "code": "const entry = {{workflowparams:allData}};\n\nconst pageStatus = entry.page_status;\nconst isEdit = pageStatus === 'Edit';\nconst pageValid = isEdit || pageStatus === 'Add' || pageStatus === 'Clone';\n\nconst isBlank = (value) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === 'string') return value.trim() === '';\n  if (typeof value === 'number') return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === 'object') return Object.keys(value).length === 0;\n  return !value;\n};\n\n// -9999 is \"Manual Input\"; any other rule means the platform numbers it on insert.\nconst isManualCode = String(entry.supplier_code_type) === '-9999';\n\nconst requiredFields = [{ name: 'supplier_type', label: 'Supplier Type' }];\nif (isManualCode) {\n  requiredFields.push({ name: 'supplier_code', label: 'Supplier Code' });\n}\nrequiredFields.push({ name: 'supplier_com_name', label: 'Company Name' });\n\nconst missing = requiredFields\n  .filter((field) => isBlank(entry[field.name]))\n  .map((field) => field.label);\n\nentry.supplier_code = isManualCode || isEdit ? entry.supplier_code : 'issued';\n\nreturn {\n  entry,\n  isEdit: isEdit ? 'Y' : 'N',\n  pageValid: pageValid ? 'Y' : 'N',\n  requiredStatus: missing.length > 0 ? 'Failed' : 'Passed',\n  requiredMessage: 'Validation errors: ' + missing.join(', ')\n};"
+    },
+    "response_json": [
+     {
+      "key": "07y8wjmj",
+      "name": "entry",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "wficyq7u",
+      "name": "isEdit",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "4s49ounu",
+      "name": "pageValid",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "3d1yqibl",
+      "name": "requiredStatus",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2rx7pw20",
+      "name": "requiredMessage",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_page_invalid",
+   "type": "if",
+   "data": {
+    "title": "Invalid Page Status?",
+    "isValidator": true,
+    "nodeName": "Invalid Page Status?",
+    "name": "Invalid Page Status?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1710000000021,
+       "parentId": 1710000000022,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_determine.data.pageValid}}' == 'N'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_page_invalid_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_page_402",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 402,
+        "msg": {
+         "type": "javascript",
+         "code": "'Invalid page status'"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_page_invalid_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "if_required_failed",
+   "type": "if",
+   "data": {
+    "title": "Required Fields Missing?",
+    "isValidator": true,
+    "nodeName": "Required Fields Missing?",
+    "name": "Required Fields Missing?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1710000000023,
+       "parentId": 1710000000024,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_determine.data.requiredStatus}}' == 'Failed'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_required_failed_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_required_400",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 400,
+        "msg": {
+         "type": "javascript",
+         "code": "{{node:code_determine.data.requiredMessage}}"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_required_failed_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_fillback",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Fillback Header Fields",
+    "isValidator": true,
+    "nodeName": "Fillback Header Fields",
+    "name": "Fillback Header Fields",
+    "script": {
+     "type": "javascript",
+     "code": "const entry = {{node:code_determine.data.entry}};\n\n// decimal(65,2) columns. A raw float is serialized at full precision and the\n// BigDecimal multipleOf check rejects the whole save, so each one is coerced to a\n// fixed-scale STRING. This map is an ALLOW-LIST -- a missing decimal column will crash a save.\nconst DEC = { supplier_credit_limit: 2 };\n\nconst formatted = Object.assign({}, entry);\nObject.keys(DEC).forEach((column) => {\n  const raw = formatted[column];\n  if (raw === null || raw === undefined || raw === '') {\n    return;\n  }\n  const parsed = parseFloat(raw);\n  formatted[column] = isNaN(parsed) ? raw : parsed.toFixed(DEC[column]);\n});\n\nreturn { entry: formatted };"
+    },
+    "response_json": [
+     {
+      "key": "xtmk5qfm",
+      "name": "entry",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_edit",
+   "type": "if",
+   "data": {
+    "title": "IF edit?",
+    "isValidator": true,
+    "nodeName": "IF edit?",
+    "name": "IF edit?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1710000000029,
+       "parentId": 1710000000030,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_determine.data.isEdit}}' == 'Y'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_edit_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "update_supplier",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Supplier:Table:1901541078662762497",
+         "rules": {
+          "collectionId": "1901541078662762497",
+          "list": [
+           {
+            "id": 1710000000025,
+            "parentId": 1710000000026,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_fillback.data.entry.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "id",
+            "valueLabel": "",
+            "operatorLabel": "in"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update Supplier",
+        "isValidator": true,
+        "nodeName": "Update Supplier",
+        "name": "Update Supplier",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "id"
+          },
+          {
+           "prop": "acc_integration_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.acc_integration_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "acc_integration_type"
+          },
+          {
+           "prop": "address_attention",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_attention}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_attention"
+          },
+          {
+           "prop": "address_city",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_city}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_city"
+          },
+          {
+           "prop": "address_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_code"
+          },
+          {
+           "prop": "address_country_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_country_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_country_id"
+          },
+          {
+           "prop": "address_email",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_email}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_email"
+          },
+          {
+           "prop": "address_fax_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_fax_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_fax_no"
+          },
+          {
+           "prop": "address_fax_no2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_fax_no2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_fax_no2"
+          },
+          {
+           "prop": "address_line_1",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_1}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_1"
+          },
+          {
+           "prop": "address_line_2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_2"
+          },
+          {
+           "prop": "address_line_3",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_3"
+          },
+          {
+           "prop": "address_line_4",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_4"
+          },
+          {
+           "prop": "address_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_list"
+          },
+          {
+           "prop": "address_mobile",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_mobile}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_mobile"
+          },
+          {
+           "prop": "address_name",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_name"
+          },
+          {
+           "prop": "address_phone",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_phone}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_phone"
+          },
+          {
+           "prop": "address_phone2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_phone2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_phone2"
+          },
+          {
+           "prop": "address_postal_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_postal_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_postal_code"
+          },
+          {
+           "prop": "address_purpose_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_purpose_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_purpose_id"
+          },
+          {
+           "prop": "address_state",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_state}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_state"
+          },
+          {
+           "prop": "attachment",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.attachment}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "attachment"
+          },
+          {
+           "prop": "business_activity_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.business_activity_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "business_activity_id"
+          },
+          {
+           "prop": "contact_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.contact_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "contact_list"
+          },
+          {
+           "prop": "currency_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.currency_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "currency_id"
+          },
+          {
+           "prop": "current_prefix",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.current_prefix}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "current_prefix"
+          },
+          {
+           "prop": "default_billing_index",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.default_billing_index}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "default_billing_index"
+          },
+          {
+           "prop": "last_sync_date",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.last_sync_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "last_sync_date"
+          },
+          {
+           "prop": "organization_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.organization_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "organization_id"
+          },
+          {
+           "prop": "price_tag_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.price_tag_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "price_tag_id"
+          },
+          {
+           "prop": "remarks",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.remarks}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "remarks"
+          },
+          {
+           "prop": "supplier_agent_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_agent_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_agent_id"
+          },
+          {
+           "prop": "supplier_area_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_area_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_area_id"
+          },
+          {
+           "prop": "supplier_business_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_business_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_business_type"
+          },
+          {
+           "prop": "supplier_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_code"
+          },
+          {
+           "prop": "supplier_code_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_code_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_code_type"
+          },
+          {
+           "prop": "supplier_com_name",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_com_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_com_name"
+          },
+          {
+           "prop": "supplier_com_old_reg_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_com_old_reg_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_com_old_reg_no"
+          },
+          {
+           "prop": "supplier_com_reg_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_com_reg_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_com_reg_no"
+          },
+          {
+           "prop": "supplier_credit_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_credit_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_credit_limit"
+          },
+          {
+           "prop": "supplier_exceed_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_exceed_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_exceed_limit"
+          },
+          {
+           "prop": "supplier_facebook",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_facebook}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_facebook"
+          },
+          {
+           "prop": "supplier_instagram",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_instagram}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_instagram"
+          },
+          {
+           "prop": "supplier_irbm_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_irbm_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_irbm_id"
+          },
+          {
+           "prop": "supplier_linkedin",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_linkedin}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_linkedin"
+          },
+          {
+           "prop": "supplier_payment_term_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_payment_term_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_payment_term_id"
+          },
+          {
+           "prop": "supplier_sst_sales_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_sst_sales_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_sst_sales_no"
+          },
+          {
+           "prop": "supplier_sst_service_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_sst_service_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_sst_service_no"
+          },
+          {
+           "prop": "supplier_status",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_status"
+          },
+          {
+           "prop": "supplier_tax_percent",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_tax_percent}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_tax_percent"
+          },
+          {
+           "prop": "supplier_tax_rate",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_tax_rate}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_tax_rate"
+          },
+          {
+           "prop": "supplier_tin_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_tin_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_tin_no"
+          },
+          {
+           "prop": "supplier_twitter",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_twitter}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_twitter"
+          },
+          {
+           "prop": "supplier_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_type"
+          },
+          {
+           "prop": "supplier_website",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_website}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_website"
+          },
+          {
+           "prop": "switch_save_as_default",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.switch_save_as_default}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "switch_save_as_default"
+          },
+          {
+           "prop": "unique_branch_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.unique_branch_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "unique_branch_code"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_edit_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [
+      {
+       "id": "add_supplier",
+       "type": "add-node",
+       "data": {
+        "table_id": {
+         "source": "Supplier:Table:1901541078662762497",
+         "rules": {
+          "collectionId": "1901541078662762497",
+          "list": [
+           {
+            "id": 1710000000027,
+            "parentId": 1710000000028,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "title": "Add Supplier",
+        "isValidator": true,
+        "nodeName": "Add Supplier",
+        "name": "Add Supplier",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "acc_integration_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.acc_integration_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "acc_integration_type"
+          },
+          {
+           "prop": "address_attention",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_attention}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_attention"
+          },
+          {
+           "prop": "address_city",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_city}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_city"
+          },
+          {
+           "prop": "address_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_code"
+          },
+          {
+           "prop": "address_country_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_country_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_country_id"
+          },
+          {
+           "prop": "address_email",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_email}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_email"
+          },
+          {
+           "prop": "address_fax_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_fax_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_fax_no"
+          },
+          {
+           "prop": "address_fax_no2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_fax_no2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_fax_no2"
+          },
+          {
+           "prop": "address_line_1",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_1}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_1"
+          },
+          {
+           "prop": "address_line_2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_2"
+          },
+          {
+           "prop": "address_line_3",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_3"
+          },
+          {
+           "prop": "address_line_4",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_4"
+          },
+          {
+           "prop": "address_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_list"
+          },
+          {
+           "prop": "address_mobile",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_mobile}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_mobile"
+          },
+          {
+           "prop": "address_name",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_name"
+          },
+          {
+           "prop": "address_phone",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_phone}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_phone"
+          },
+          {
+           "prop": "address_phone2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_phone2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_phone2"
+          },
+          {
+           "prop": "address_postal_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_postal_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_postal_code"
+          },
+          {
+           "prop": "address_purpose_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_purpose_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_purpose_id"
+          },
+          {
+           "prop": "address_state",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_state}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_state"
+          },
+          {
+           "prop": "attachment",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.attachment}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "attachment"
+          },
+          {
+           "prop": "business_activity_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.business_activity_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "business_activity_id"
+          },
+          {
+           "prop": "contact_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.contact_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "contact_list"
+          },
+          {
+           "prop": "currency_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.currency_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "currency_id"
+          },
+          {
+           "prop": "current_prefix",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.current_prefix}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "current_prefix"
+          },
+          {
+           "prop": "default_billing_index",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.default_billing_index}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "default_billing_index"
+          },
+          {
+           "prop": "last_sync_date",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.last_sync_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "last_sync_date"
+          },
+          {
+           "prop": "organization_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.organization_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "organization_id"
+          },
+          {
+           "prop": "price_tag_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.price_tag_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "price_tag_id"
+          },
+          {
+           "prop": "remarks",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.remarks}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "remarks"
+          },
+          {
+           "prop": "supplier_agent_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_agent_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_agent_id"
+          },
+          {
+           "prop": "supplier_area_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_area_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_area_id"
+          },
+          {
+           "prop": "supplier_business_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_business_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_business_type"
+          },
+          {
+           "prop": "supplier_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_code"
+          },
+          {
+           "prop": "supplier_code_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_code_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_code_type"
+          },
+          {
+           "prop": "supplier_com_name",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_com_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_com_name"
+          },
+          {
+           "prop": "supplier_com_old_reg_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_com_old_reg_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_com_old_reg_no"
+          },
+          {
+           "prop": "supplier_com_reg_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_com_reg_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_com_reg_no"
+          },
+          {
+           "prop": "supplier_credit_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_credit_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_credit_limit"
+          },
+          {
+           "prop": "supplier_exceed_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_exceed_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_exceed_limit"
+          },
+          {
+           "prop": "supplier_facebook",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_facebook}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_facebook"
+          },
+          {
+           "prop": "supplier_instagram",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_instagram}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_instagram"
+          },
+          {
+           "prop": "supplier_irbm_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_irbm_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_irbm_id"
+          },
+          {
+           "prop": "supplier_linkedin",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_linkedin}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_linkedin"
+          },
+          {
+           "prop": "supplier_payment_term_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_payment_term_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_payment_term_id"
+          },
+          {
+           "prop": "supplier_sst_sales_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_sst_sales_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_sst_sales_no"
+          },
+          {
+           "prop": "supplier_sst_service_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_sst_service_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_sst_service_no"
+          },
+          {
+           "prop": "supplier_status",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_status"
+          },
+          {
+           "prop": "supplier_tax_percent",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_tax_percent}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_tax_percent"
+          },
+          {
+           "prop": "supplier_tax_rate",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_tax_rate}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_tax_rate"
+          },
+          {
+           "prop": "supplier_tin_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_tin_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_tin_no"
+          },
+          {
+           "prop": "supplier_twitter",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_twitter}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_twitter"
+          },
+          {
+           "prop": "supplier_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_type"
+          },
+          {
+           "prop": "supplier_uuid",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_uuid}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_uuid"
+          },
+          {
+           "prop": "supplier_website",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.supplier_website}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "supplier_website"
+          },
+          {
+           "prop": "switch_save_as_default",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.switch_save_as_default}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "switch_save_as_default"
+          },
+          {
+           "prop": "unique_branch_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.unique_branch_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "unique_branch_code"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_latest",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Map Saved Supplier",
+    "isValidator": true,
+    "nodeName": "Map Saved Supplier",
+    "name": "Map Saved Supplier",
+    "script": {
+     "type": "javascript",
+     "code": "const isEdit = {{node:code_determine.data.isEdit}} === 'Y';\nconst entry = {{node:code_fillback.data.entry}};\nconst added = {{node:add_supplier.data}};\n\n// On Add the insert returns the row the numbering engine wrote, so the real code\n// replaces the \"issued\" sentinel. On Edit the payload we just wrote is the record.\nconst addedRow = added && added.length > 0 ? added[0] : added;\nconst record = (isEdit ? entry : addedRow) || {};\n\nreturn {\n  id: record.id ? String(record.id) : '',\n  supplier_code: record.supplier_code || '',\n  supplier_name: record.supplier_com_name || '',\n  supplier_status: record.supplier_status || ''\n};"
+    },
+    "response_json": [
+     {
+      "key": "do8ybzwx",
+      "name": "id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "3i5122p1",
+      "name": "supplier_code",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0o6v0ln0",
+      "name": "supplier_name",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "vrep9tao",
+      "name": "supplier_status",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "wf_ai_upsert",
+   "type": "workflow-node",
+   "data": {
+    "workflow_id": "",
+    "workflow_name": "",
+    "input_params": {},
+    "title": "Upsert Supplier To AI Agent",
+    "isValidator": true,
+    "nodeName": "Upsert Supplier To AI Agent",
+    "name": "Upsert Supplier To AI Agent",
+    "workflow": {
+     "source": "Upsert-Supplier:Workflow:2094621825355546625",
+     "rules": {
+      "collectionId": "2094621825355546625",
+      "list": [
+       {
+        "id": 1710000000031,
+        "parentId": 1710000000032,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "remote": true,
+    "remoteType": "innerdatasource",
+    "body_params": {
+     "list": [
+      {
+       "prop": "id",
+       "propLabel": "id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "supplier_code",
+       "propLabel": "supplier_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.supplier_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "supplier_name",
+       "propLabel": "supplier_name",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.supplier_name}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "supplier_status",
+       "propLabel": "supplier_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.supplier_status}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node",
+    "nodeName": "End Node",
+    "name": "End Node",
+    "back_data_type": "OutputParams",
+    "code": "",
+    "msg": {
+     "type": "javascript",
+     "code": ""
+    },
+    "response_value": {
+     "list": [
+      {
+       "prop": "id",
+       "propLabel": "id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "supplier_code",
+       "propLabel": "supplier_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.supplier_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "supplier_name",
+       "propLabel": "supplier_name",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.supplier_name}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "supplier_status",
+       "propLabel": "supplier_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.supplier_status}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

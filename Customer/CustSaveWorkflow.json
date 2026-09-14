@@ -1,0 +1,1984 @@
+{
+ "request_json": [
+  {
+   "key": "0bcr5u4f",
+   "name": "allData",
+   "title": "All Data",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "9n095lf4",
+   "name": "id",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "zc8ierkl",
+   "name": "customer_code",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "3h51fun1",
+   "name": "customer_name",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "0108m4zd",
+   "name": "customer_status",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node",
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_determine",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Determine Params",
+    "isValidator": true,
+    "nodeName": "Determine Params",
+    "name": "Determine Params",
+    "script": {
+     "type": "javascript",
+     "code": "const entry = {{workflowparams:allData}};\n\nconst pageStatus = entry.page_status;\nconst isEdit = pageStatus === 'Edit';\nconst pageValid = isEdit || pageStatus === 'Add' || pageStatus === 'Clone';\n\nconst isBlank = (value) => {\n  if (value === undefined || value === null) return true;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === 'string') return value.trim() === '';\n  return !value;\n};\n\n// -9999 is \"Manual Input\"; any other rule means the platform numbers it on insert.\nconst isManualCode = String(entry.customer_id_type) === '-9999';\n\nconst requiredFields = [{ name: 'customer_status', label: 'Customer Status' }];\nif (isManualCode) {\n  requiredFields.push({ name: 'customer_id', label: 'Customer Code' });\n}\nrequiredFields.push(\n  { name: 'customer_com_name', label: 'Company Name' },\n  { name: 'customer_currency_id', label: 'Currency' },\n  { name: 'customer_payment_term_id', label: 'Payment Terms' }\n);\n\nconst missing = requiredFields\n  .filter((field) => isBlank(entry[field.name]))\n  .map((field) => field.label);\n\nentry.customer_id = isManualCode || isEdit ? entry.customer_id : 'issued';\n\nconst stripLeadingZero = (m) => {\n  const s = (m || '').toString();\n  return s.startsWith('0') ? s.slice(1) : s;\n};\n\nconst contacts = Array.isArray(entry.contact_list) ? entry.contact_list : [];\nlet contactMessage = '';\nconst seen = {};\nfor (let i = 0; i < contacts.length; i++) {\n  const c = contacts[i];\n  if (!c.mobile_number) continue;\n  const mobileKey = stripLeadingZero(c.mobile_number);\n  if (seen[mobileKey] !== undefined) {\n    contactMessage =\n      'Duplicate mobile number ' + c.mobile_number + ' in contacts (rows ' +\n      (seen[mobileKey] + 1) + ' and ' + (i + 1) + ')';\n    break;\n  }\n  seen[mobileKey] = i;\n}\n\nconst mobileVariants = [];\ncontacts\n  .filter((c) => c.mobile_number)\n  .forEach((c) => {\n    const noLead = stripLeadingZero(c.mobile_number);\n    [noLead, '0' + noLead].forEach((v) => {\n      if (mobileVariants.indexOf(v) === -1) mobileVariants.push(v);\n    });\n  });\n\nreturn {\n  entry,\n  isEdit: isEdit ? 'Y' : 'N',\n  pageValid: pageValid ? 'Y' : 'N',\n  requiredStatus: missing.length > 0 ? 'Failed' : 'Passed',\n  requiredMessage: 'Missing required fields: ' + missing.join(', '),\n  contactStatus: contactMessage ? 'Failed' : 'Passed',\n  contactMessage,\n  hasMobiles: mobileVariants.length > 0 ? 'Y' : 'N',\n  mobileVariants\n};"
+    },
+    "response_json": [
+     {
+      "key": "03waws7m",
+      "name": "entry",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "8sdxkvog",
+      "name": "isEdit",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "g6wq42c3",
+      "name": "pageValid",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "fm6up8zl",
+      "name": "requiredStatus",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "isdyi438",
+      "name": "requiredMessage",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "gg5v2swe",
+      "name": "contactStatus",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "q47hcaye",
+      "name": "contactMessage",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "8ar4rx8q",
+      "name": "hasMobiles",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "j8xjcxpq",
+      "name": "mobileVariants",
+      "title": "",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_page_invalid",
+   "type": "if",
+   "data": {
+    "title": "Invalid Page Status?",
+    "isValidator": true,
+    "nodeName": "Invalid Page Status?",
+    "name": "Invalid Page Status?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1710000000001,
+       "parentId": 1710000000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_determine.data.pageValid}}' == 'N'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_page_invalid_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_page_402",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 402,
+        "msg": {
+         "type": "javascript",
+         "code": "'Invalid page status'"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_page_invalid_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "if_required_failed",
+   "type": "if",
+   "data": {
+    "title": "Required Fields Missing?",
+    "isValidator": true,
+    "nodeName": "Required Fields Missing?",
+    "name": "Required Fields Missing?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1710000000003,
+       "parentId": 1710000000004,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_determine.data.requiredStatus}}' == 'Failed'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_required_failed_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_required_400",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 400,
+        "msg": {
+         "type": "javascript",
+         "code": "{{node:code_determine.data.requiredMessage}}"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_required_failed_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "if_contact_dup",
+   "type": "if",
+   "data": {
+    "title": "Duplicate Mobile In Contacts?",
+    "isValidator": true,
+    "nodeName": "Duplicate Mobile In Contacts?",
+    "name": "Duplicate Mobile In Contacts?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1710000000005,
+       "parentId": 1710000000006,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_determine.data.contactStatus}}' == 'Failed'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_contact_dup_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_contact_dup_401",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 401,
+        "msg": {
+         "type": "javascript",
+         "code": "{{node:code_determine.data.contactMessage}}"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_contact_dup_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "if_has_mobiles",
+   "type": "if",
+   "data": {
+    "title": "Any Contact Mobile?",
+    "isValidator": true,
+    "nodeName": "Any Contact Mobile?",
+    "name": "Any Contact Mobile?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1710000000011,
+       "parentId": 1710000000012,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_determine.data.hasMobiles}}' == 'Y'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_has_mobiles_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "search_contacts",
+       "type": "search-node",
+       "data": {
+        "table_id": {
+         "source": "Contact List(Customer):Table:1942869939031912450",
+         "rules": {
+          "collectionId": "1942869939031912450",
+          "list": [
+           {
+            "id": 1710000000007,
+            "parentId": 1710000000008,
+            "isTop": true,
+            "prop": "mobile_number",
+            "operator": "equalAny",
+            "valueType": "field",
+            "value": "{{node:code_determine.data.mobileVariants}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "Mobile",
+            "valueLabel": "",
+            "operatorLabel": "equalAny"
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 1000,
+        "title": "Get Contacts By Mobile",
+        "isValidator": true,
+        "nodeName": "Get Contacts By Mobile",
+        "name": "Get Contacts By Mobile"
+       },
+       "blocks": []
+      },
+      {
+       "id": "code_contact_check",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Check Mobile Registered",
+        "isValidator": true,
+        "nodeName": "Check Mobile Registered",
+        "name": "Check Mobile Registered",
+        "script": {
+         "type": "javascript",
+         "code": "const entry = {{node:code_determine.data.entry}};\nconst found = {{node:search_contacts.data.data}} || [];\nconst rows = Array.isArray(found) ? found : [found];\n\nconst stripLeadingZero = (m) => {\n  const s = (m || '').toString();\n  return s.startsWith('0') ? s.slice(1) : s;\n};\n\nconst contacts = Array.isArray(entry.contact_list) ? entry.contact_list : [];\nconst inMemoryIds = contacts.filter((c) => c.id).map((c) => String(c.id));\nconst currentId = entry.id ? String(entry.id) : '';\n\nfor (const c of contacts.filter((x) => x.mobile_number)) {\n  const noLead = stripLeadingZero(c.mobile_number);\n  const collision = rows.find(\n    (r) =>\n      inMemoryIds.indexOf(String(r.id)) === -1 &&\n      stripLeadingZero(r.mobile_number) === noLead\n  );\n  if (collision) {\n    const owner = collision.Customer_id != null ? collision.Customer_id : collision.customer_id;\n    const sameCustomer = currentId !== '' && String(owner) === currentId;\n    return {\n      status: 'Failed',\n      message: sameCustomer\n        ? 'Mobile number ' + c.mobile_number + \" already exists in this customer's other contacts\"\n        : 'Mobile number ' + c.mobile_number + ' is already registered to another customer'\n    };\n  }\n}\n\nreturn { status: 'Passed', message: '' };"
+        },
+        "response_json": [
+         {
+          "key": "10uu44q9",
+          "name": "status",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ziih39vh",
+          "name": "message",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_contact_taken",
+       "type": "if",
+       "data": {
+        "title": "Mobile Already Registered?",
+        "isValidator": true,
+        "nodeName": "Mobile Already Registered?",
+        "name": "Mobile Already Registered?",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1710000000009,
+           "parentId": 1710000000010,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_contact_check.data.status}}' == 'Failed'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_contact_taken_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "end_contact_taken_401",
+           "type": "end-node",
+           "data": {
+            "title": "结束节点",
+            "outputs": {
+             "type": "object",
+             "properties": {
+              "result": {
+               "type": "string"
+              }
+             }
+            },
+            "isValidator": true,
+            "nodeName": "结束节点",
+            "name": "结束节点",
+            "back_data_type": "Default",
+            "code": 401,
+            "msg": {
+             "type": "javascript",
+             "code": "{{node:code_contact_check.data.message}}"
+            }
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_contact_taken_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "if_has_mobiles_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_fillback",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Fillback Header Fields",
+    "isValidator": true,
+    "nodeName": "Fillback Header Fields",
+    "name": "Fillback Header Fields",
+    "script": {
+     "type": "javascript",
+     "code": "const entry = {{node:code_determine.data.entry}};\n\n// decimal(65,2) columns. A raw float is serialized at full precision and the\n// BigDecimal multipleOf check rejects the whole save, so each one is coerced to a\n// fixed-scale STRING. This map is an ALLOW-LIST -- a missing decimal column will crash a save.\nconst DEC = { customer_credit_limit: 2, overdue_limit: 2, outstanding_balance: 2, overdue_inv_total_amount: 2 };\n\nconst formatted = Object.assign({}, entry);\nObject.keys(DEC).forEach((column) => {\n  const raw = formatted[column];\n  if (raw === null || raw === undefined || raw === '') {\n    return;\n  }\n  const parsed = parseFloat(raw);\n  formatted[column] = isNaN(parsed) ? raw : parsed.toFixed(DEC[column]);\n});\n\nreturn { entry: formatted };"
+    },
+    "response_json": [
+     {
+      "key": "89wbeg11",
+      "name": "entry",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_edit",
+   "type": "if",
+   "data": {
+    "title": "IF edit?",
+    "isValidator": true,
+    "nodeName": "IF edit?",
+    "name": "IF edit?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1710000000017,
+       "parentId": 1710000000018,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_determine.data.isEdit}}' == 'Y'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_edit_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "update_customer",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Customer:Table:1902779099617804290",
+         "rules": {
+          "collectionId": "1902779099617804290",
+          "list": [
+           {
+            "id": 1710000000013,
+            "parentId": 1710000000014,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_fillback.data.entry.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "id",
+            "valueLabel": "",
+            "operatorLabel": "in"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update Customer",
+        "isValidator": true,
+        "nodeName": "Update Customer",
+        "name": "Update Customer",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "id"
+          },
+          {
+           "prop": "access_group",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.access_group}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "access_group"
+          },
+          {
+           "prop": "adddress_state",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.adddress_state}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "adddress_state"
+          },
+          {
+           "prop": "address_attention",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_attention}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_attention"
+          },
+          {
+           "prop": "address_calling_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_calling_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_calling_code"
+          },
+          {
+           "prop": "address_calling_code_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_calling_code_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_calling_code_id"
+          },
+          {
+           "prop": "address_city",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_city}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_city"
+          },
+          {
+           "prop": "address_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_code"
+          },
+          {
+           "prop": "address_country_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_country_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_country_id"
+          },
+          {
+           "prop": "address_email",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_email}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_email"
+          },
+          {
+           "prop": "address_fax_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_fax_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_fax_no"
+          },
+          {
+           "prop": "address_fax_no2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_fax_no2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_fax_no2"
+          },
+          {
+           "prop": "address_line_1",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_1}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_1"
+          },
+          {
+           "prop": "address_line_2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_2"
+          },
+          {
+           "prop": "address_line_3",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_3"
+          },
+          {
+           "prop": "address_line_4",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_4"
+          },
+          {
+           "prop": "address_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_list"
+          },
+          {
+           "prop": "address_mobile",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_mobile}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_mobile"
+          },
+          {
+           "prop": "address_name",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_name"
+          },
+          {
+           "prop": "address_phone",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_phone}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_phone"
+          },
+          {
+           "prop": "address_phone2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_phone2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_phone2"
+          },
+          {
+           "prop": "address_postal_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_postal_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_postal_code"
+          },
+          {
+           "prop": "address_purpose_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_purpose_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_purpose_id"
+          },
+          {
+           "prop": "agent_user_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.agent_user_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "agent_user_id"
+          },
+          {
+           "prop": "attachment",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.attachment}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "attachment"
+          },
+          {
+           "prop": "business_activity_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.business_activity_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "business_activity_id"
+          },
+          {
+           "prop": "business_type_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.business_type_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "business_type_id"
+          },
+          {
+           "prop": "contact_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.contact_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "contact_list"
+          },
+          {
+           "prop": "control_type_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.control_type_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "control_type_list"
+          },
+          {
+           "prop": "created_date",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.created_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "created_date"
+          },
+          {
+           "prop": "customer_agent_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_agent_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_agent_id"
+          },
+          {
+           "prop": "customer_area_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_area_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_area_id"
+          },
+          {
+           "prop": "customer_com_name",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_com_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_com_name"
+          },
+          {
+           "prop": "customer_com_name2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_com_name2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_com_name2"
+          },
+          {
+           "prop": "customer_com_old_reg_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_com_old_reg_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_com_old_reg_no"
+          },
+          {
+           "prop": "customer_com_reg_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_com_reg_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_com_reg_no"
+          },
+          {
+           "prop": "customer_credit_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_credit_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_credit_limit"
+          },
+          {
+           "prop": "customer_currency_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_currency_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_currency_id"
+          },
+          {
+           "prop": "customer_facebook",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_facebook}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_facebook"
+          },
+          {
+           "prop": "customer_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_id"
+          },
+          {
+           "prop": "customer_id_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_id_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_id_type"
+          },
+          {
+           "prop": "customer_instagram",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_instagram}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_instagram"
+          },
+          {
+           "prop": "customer_irbm_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_irbm_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_irbm_id"
+          },
+          {
+           "prop": "customer_linkedin",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_linkedin}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_linkedin"
+          },
+          {
+           "prop": "customer_payment_term_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_payment_term_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_payment_term_id"
+          },
+          {
+           "prop": "customer_remark",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_remark}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_remark"
+          },
+          {
+           "prop": "customer_sst_sales_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_sst_sales_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_sst_sales_no"
+          },
+          {
+           "prop": "customer_sst_service_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_sst_service_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_sst_service_no"
+          },
+          {
+           "prop": "customer_status",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_status"
+          },
+          {
+           "prop": "customer_tax_percent",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_tax_percent}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_tax_percent"
+          },
+          {
+           "prop": "customer_tax_rate_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_tax_rate_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_tax_rate_id"
+          },
+          {
+           "prop": "customer_tin_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_tin_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_tin_no"
+          },
+          {
+           "prop": "customer_twitter",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_twitter}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_twitter"
+          },
+          {
+           "prop": "customer_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_type"
+          },
+          {
+           "prop": "customer_website",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_website}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_website"
+          },
+          {
+           "prop": "default_billing_index",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.default_billing_index}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "default_billing_index"
+          },
+          {
+           "prop": "is_accurate",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.is_accurate}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "is_accurate"
+          },
+          {
+           "prop": "is_exceed_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.is_exceed_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "is_exceed_limit"
+          },
+          {
+           "prop": "multiprice",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.multiprice}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "multiprice"
+          },
+          {
+           "prop": "organization_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.organization_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "organization_id"
+          },
+          {
+           "prop": "overdue_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.overdue_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "overdue_limit"
+          },
+          {
+           "prop": "price_tag_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.price_tag_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "price_tag_id"
+          },
+          {
+           "prop": "switch_save_as_default",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.switch_save_as_default}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "switch_save_as_default"
+          },
+          {
+           "prop": "unique_branch_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.unique_branch_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "unique_branch_code"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_edit_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [
+      {
+       "id": "add_customer",
+       "type": "add-node",
+       "data": {
+        "table_id": {
+         "source": "Customer:Table:1902779099617804290",
+         "rules": {
+          "collectionId": "1902779099617804290",
+          "list": [
+           {
+            "id": 1710000000015,
+            "parentId": 1710000000016,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "title": "Add Customer",
+        "isValidator": true,
+        "nodeName": "Add Customer",
+        "name": "Add Customer",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "access_group",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.access_group}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "access_group"
+          },
+          {
+           "prop": "adddress_state",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.adddress_state}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "adddress_state"
+          },
+          {
+           "prop": "address_attention",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_attention}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_attention"
+          },
+          {
+           "prop": "address_calling_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_calling_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_calling_code"
+          },
+          {
+           "prop": "address_calling_code_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_calling_code_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_calling_code_id"
+          },
+          {
+           "prop": "address_city",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_city}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_city"
+          },
+          {
+           "prop": "address_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_code"
+          },
+          {
+           "prop": "address_country_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_country_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_country_id"
+          },
+          {
+           "prop": "address_email",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_email}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_email"
+          },
+          {
+           "prop": "address_fax_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_fax_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_fax_no"
+          },
+          {
+           "prop": "address_fax_no2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_fax_no2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_fax_no2"
+          },
+          {
+           "prop": "address_line_1",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_1}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_1"
+          },
+          {
+           "prop": "address_line_2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_2"
+          },
+          {
+           "prop": "address_line_3",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_3"
+          },
+          {
+           "prop": "address_line_4",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_line_4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_line_4"
+          },
+          {
+           "prop": "address_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_list"
+          },
+          {
+           "prop": "address_mobile",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_mobile}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_mobile"
+          },
+          {
+           "prop": "address_name",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_name"
+          },
+          {
+           "prop": "address_phone",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_phone}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_phone"
+          },
+          {
+           "prop": "address_phone2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_phone2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_phone2"
+          },
+          {
+           "prop": "address_postal_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_postal_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_postal_code"
+          },
+          {
+           "prop": "address_purpose_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.address_purpose_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "address_purpose_id"
+          },
+          {
+           "prop": "agent_user_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.agent_user_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "agent_user_id"
+          },
+          {
+           "prop": "attachment",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.attachment}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "attachment"
+          },
+          {
+           "prop": "business_activity_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.business_activity_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "business_activity_id"
+          },
+          {
+           "prop": "business_type_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.business_type_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "business_type_id"
+          },
+          {
+           "prop": "contact_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.contact_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "contact_list"
+          },
+          {
+           "prop": "control_type_list",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.control_type_list}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "control_type_list"
+          },
+          {
+           "prop": "created_date",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.created_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "created_date"
+          },
+          {
+           "prop": "customer_agent_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_agent_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_agent_id"
+          },
+          {
+           "prop": "customer_area_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_area_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_area_id"
+          },
+          {
+           "prop": "customer_com_name",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_com_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_com_name"
+          },
+          {
+           "prop": "customer_com_name2",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_com_name2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_com_name2"
+          },
+          {
+           "prop": "customer_com_old_reg_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_com_old_reg_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_com_old_reg_no"
+          },
+          {
+           "prop": "customer_com_reg_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_com_reg_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_com_reg_no"
+          },
+          {
+           "prop": "customer_credit_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_credit_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_credit_limit"
+          },
+          {
+           "prop": "customer_currency_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_currency_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_currency_id"
+          },
+          {
+           "prop": "customer_facebook",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_facebook}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_facebook"
+          },
+          {
+           "prop": "customer_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_id"
+          },
+          {
+           "prop": "customer_id_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_id_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_id_type"
+          },
+          {
+           "prop": "customer_instagram",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_instagram}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_instagram"
+          },
+          {
+           "prop": "customer_irbm_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_irbm_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_irbm_id"
+          },
+          {
+           "prop": "customer_linkedin",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_linkedin}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_linkedin"
+          },
+          {
+           "prop": "customer_payment_term_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_payment_term_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_payment_term_id"
+          },
+          {
+           "prop": "customer_remark",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_remark}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_remark"
+          },
+          {
+           "prop": "customer_sst_sales_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_sst_sales_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_sst_sales_no"
+          },
+          {
+           "prop": "customer_sst_service_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_sst_service_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_sst_service_no"
+          },
+          {
+           "prop": "customer_status",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_status"
+          },
+          {
+           "prop": "customer_tax_percent",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_tax_percent}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_tax_percent"
+          },
+          {
+           "prop": "customer_tax_rate_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_tax_rate_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_tax_rate_id"
+          },
+          {
+           "prop": "customer_tin_no",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_tin_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_tin_no"
+          },
+          {
+           "prop": "customer_twitter",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_twitter}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_twitter"
+          },
+          {
+           "prop": "customer_type",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_type"
+          },
+          {
+           "prop": "customer_uuid",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_uuid}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_uuid"
+          },
+          {
+           "prop": "customer_website",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.customer_website}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "customer_website"
+          },
+          {
+           "prop": "default_billing_index",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.default_billing_index}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "default_billing_index"
+          },
+          {
+           "prop": "is_accurate",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.is_accurate}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "is_accurate"
+          },
+          {
+           "prop": "is_exceed_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.is_exceed_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "is_exceed_limit"
+          },
+          {
+           "prop": "last_sync_date",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.last_sync_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "last_sync_date"
+          },
+          {
+           "prop": "multiprice",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.multiprice}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "multiprice"
+          },
+          {
+           "prop": "organization_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.organization_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "organization_id"
+          },
+          {
+           "prop": "outstanding_balance",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.outstanding_balance}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "outstanding_balance"
+          },
+          {
+           "prop": "overdue_inv_total_amount",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.overdue_inv_total_amount}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "overdue_inv_total_amount"
+          },
+          {
+           "prop": "overdue_limit",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.overdue_limit}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "overdue_limit"
+          },
+          {
+           "prop": "price_tag_id",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.price_tag_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "price_tag_id"
+          },
+          {
+           "prop": "switch_save_as_default",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.switch_save_as_default}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "switch_save_as_default"
+          },
+          {
+           "prop": "unique_branch_code",
+           "valueType": "field",
+           "value": "{{node:code_fillback.data.entry.unique_branch_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "unique_branch_code"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_latest",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Map Saved Customer",
+    "isValidator": true,
+    "nodeName": "Map Saved Customer",
+    "name": "Map Saved Customer",
+    "script": {
+     "type": "javascript",
+     "code": "const isEdit = {{node:code_determine.data.isEdit}} === 'Y';\nconst entry = {{node:code_fillback.data.entry}};\nconst added = {{node:add_customer.data}};\n\n// On Add the insert returns the row the numbering engine wrote, so the real code\n// replaces the \"issued\" sentinel. On Edit the payload we just wrote is the record.\nconst addedRow = added && added.length > 0 ? added[0] : added;\nconst record = (isEdit ? entry : addedRow) || {};\n\nreturn {\n  id: record.id ? String(record.id) : '',\n  customer_code: record.customer_id || '',\n  customer_name: record.customer_com_name || '',\n  customer_status: record.customer_status || ''\n};"
+    },
+    "response_json": [
+     {
+      "key": "g738im3u",
+      "name": "id",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "eie9s9ze",
+      "name": "customer_code",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "xmf9cl87",
+      "name": "customer_name",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "xw9rlpdt",
+      "name": "customer_status",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "wf_ai_upsert",
+   "type": "workflow-node",
+   "data": {
+    "workflow_id": "",
+    "workflow_name": "",
+    "input_params": {},
+    "title": "Upsert Customer To AI Agent",
+    "isValidator": true,
+    "nodeName": "Upsert Customer To AI Agent",
+    "name": "Upsert Customer To AI Agent",
+    "workflow": {
+     "source": "Upsert-Customer:Workflow:2075496757336727553",
+     "rules": {
+      "collectionId": "2075496757336727553",
+      "list": [
+       {
+        "id": 1710000000019,
+        "parentId": 1710000000020,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "remote": true,
+    "remoteType": "innerdatasource",
+    "body_params": {
+     "list": [
+      {
+       "prop": "id",
+       "propLabel": "id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "customer_code",
+       "propLabel": "customer_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.customer_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "customer_name",
+       "propLabel": "customer_name",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.customer_name}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "customer_status",
+       "propLabel": "customer_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.customer_status}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node",
+    "nodeName": "End Node",
+    "name": "End Node",
+    "back_data_type": "OutputParams",
+    "code": "",
+    "msg": {
+     "type": "javascript",
+     "code": ""
+    },
+    "response_value": {
+     "list": [
+      {
+       "prop": "id",
+       "propLabel": "id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "customer_code",
+       "propLabel": "customer_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.customer_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "customer_name",
+       "propLabel": "customer_name",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.customer_name}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "customer_status",
+       "propLabel": "customer_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_latest.data.customer_status}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}
