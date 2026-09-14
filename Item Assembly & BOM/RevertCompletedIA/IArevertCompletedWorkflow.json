@@ -1,0 +1,3142 @@
+{
+  "request_json": [
+    {
+      "key": "iarvp001",
+      "name": "ia_id",
+      "title": "ia_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "iarvp002",
+      "name": "ia_no",
+      "title": "ia_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "iarvp003",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "iarvr001",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "iarvr002",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "iarvr003",
+      "name": "conflicts",
+      "title": "conflicts",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "iarvr004",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "isArrayItem": true,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_iaRvParams",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Normalize Params",
+        "isValidator": true,
+        "nodeName": "Normalize Params",
+        "name": "Normalize Params",
+        "script": {
+          "type": "javascript",
+          "code": "// Everything interpolated into an sql-node is guarded here: those nodes\n// substitute text before parsing. A failed guard matches no row, never all rows.\nconst S = (v) => (v === null || v === undefined ? \"\" : String(v).trim());\nconst digits = (v) => (/^[0-9]+$/.test(S(v)) ? S(v) : \"0\");\nconst token = (v) => (/^[A-Za-z0-9\\/\\-_. ]{1,64}$/.test(S(v)) ? S(v) : \"\");\n\nconst iaId = S({{workflowparams:ia_id}});\nconst iaNo = S({{workflowparams:ia_no}});\nconst organizationId = S({{workflowparams:organization_id}});\n\nreturn {\n  iaId,\n  iaNo,\n  organizationId,\n  iaIdSql: digits(iaId),\n  iaNoSql: token(iaNo),\n  orgSql: token(organizationId),\n  hasParams: iaId && iaNo && organizationId && digits(iaId) !== \"0\" && token(iaNo) && token(organizationId) ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "iaid0000",
+            "name": "iaId",
+            "title": "iaId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "iano0000",
+            "name": "iaNo",
+            "title": "iaNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "organiza",
+            "name": "organizationId",
+            "title": "organizationId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "iaidsql0",
+            "name": "iaIdSql",
+            "title": "iaIdSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ianosql0",
+            "name": "iaNoSql",
+            "title": "iaNoSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "orgsql00",
+            "name": "orgSql",
+            "title": "orgSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hasparam",
+            "name": "hasParams",
+            "title": "hasParams",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_iaRvNoParams",
+      "type": "if",
+      "data": {
+        "title": "IF Missing Params",
+        "isValidator": true,
+        "nodeName": "IF Missing Params",
+        "name": "IF Missing Params",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1791000000001,
+              "parentId": 1791000000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_iaRvParams.data.hasParams}}' != '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_iaRvNoParamsTrue",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_node_iaRvNoParams",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Missing Params",
+                "isValidator": true,
+                "nodeName": "Return Missing Params",
+                "name": "Return Missing Params",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "ia_id, ia_no and organization_id are required.",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    },
+                    {
+                      "prop": "conflicts",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "[]",
+                      "valueLabel": "",
+                      "propLabel": "conflicts"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_iaRvNoParamsFalse",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "condition_all_iaRvFetch1",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Branch",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_all_node_item_iaRvIa",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Item Assembly",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "get_node_iaRvIa",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Item Assembly:Table:2098256587713404929",
+                  "rules": {
+                    "collectionId": "2098256587713404929",
+                    "list": [
+                      {
+                        "id": 1791000000005,
+                        "parentId": 1791000000006,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1791000000003,
+                            "parentId": 1791000000005,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvParams.data.iaId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 1791000000004,
+                            "parentId": 1791000000005,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvParams.data.organizationId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "organization_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Item Assembly",
+                "isValidator": true,
+                "nodeName": "Get Item Assembly",
+                "name": "Get Item Assembly"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_iaRvMovs",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Stock Movements",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "sql_node_iaRvMovs",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Get This Assembly's Stock Movements",
+                "isValidator": true,
+                "nodeName": "Get This Assembly's Stock Movements",
+                "name": "Get This Assembly's Stock Movements",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(m.id AS CHAR) AS id,\n       m.transaction_type,\n       m.movement,\n       m.trx_no,\n       CAST(m.item_id AS CHAR) AS item_id,\n       CAST(m.plant_id AS CHAR) AS plant_id,\n       CAST(m.bin_location_id AS CHAR) AS bin_location_id,\n       CAST(m.batch_number_id AS CHAR) AS batch_number_id,\n       CAST(m.handling_unit_id AS CHAR) AS handling_unit_id,\n       m.inventory_category,\n       m.quantity,\n       m.base_qty,\n       CAST(m.uom_id AS CHAR) AS uom_id,\n       CAST(m.base_uom_id AS CHAR) AS base_uom_id,\n       m.unit_price,\n       m.total_price,\n       m.costing_method_id\nFROM inventory_movement m\nWHERE m.id > CAST('{{node:code_node_iaRvParams.data.iaIdSql}}' AS UNSIGNED)\n  AND m.organization_id = '{{node:code_node_iaRvParams.data.orgSql}}'\n  AND m.trx_no = '{{node:code_node_iaRvParams.data.iaNoSql}}'\n  AND m.transaction_type IN ('IA', 'IA-R')\n  AND m.is_deleted = 0\nORDER BY m.id"
+                },
+                "response_json": [
+                  {
+                    "key": "id000000",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "transact",
+                    "name": "transaction_type",
+                    "title": "transaction_type",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "movement",
+                    "name": "movement",
+                    "title": "movement",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "trxno000",
+                    "name": "trx_no",
+                    "title": "trx_no",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "itemid00",
+                    "name": "item_id",
+                    "title": "item_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "plantid0",
+                    "name": "plant_id",
+                    "title": "plant_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "binlocat",
+                    "name": "bin_location_id",
+                    "title": "bin_location_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "batchnum",
+                    "name": "batch_number_id",
+                    "title": "batch_number_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "handling",
+                    "name": "handling_unit_id",
+                    "title": "handling_unit_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "inventor",
+                    "name": "inventory_category",
+                    "title": "inventory_category",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "quantity",
+                    "name": "quantity",
+                    "title": "quantity",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "baseqty0",
+                    "name": "base_qty",
+                    "title": "base_qty",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "uomid000",
+                    "name": "uom_id",
+                    "title": "uom_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "baseuomi",
+                    "name": "base_uom_id",
+                    "title": "base_uom_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "unitpric",
+                    "name": "unit_price",
+                    "title": "unit_price",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "totalpri",
+                    "name": "total_price",
+                    "title": "total_price",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "costingm",
+                    "name": "costing_method_id",
+                    "title": "costing_method_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_iaRvBatch",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Batches",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "search_node_iaRvBatch",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Batch:Table:1902719754154655746",
+                  "rules": {
+                    "collectionId": "1902719754154655746",
+                    "list": [
+                      {
+                        "id": 1791000000009,
+                        "parentId": 1791000000010,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1791000000007,
+                            "parentId": 1791000000009,
+                            "isTop": false,
+                            "prop": "transaction_no",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvParams.data.iaNo}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "transaction_no",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          },
+                          {
+                            "id": 1791000000008,
+                            "parentId": 1791000000009,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvParams.data.organizationId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "organization_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Batches Minted Here",
+                "isValidator": true,
+                "nodeName": "Get Batches Minted Here",
+                "name": "Get Batches Minted Here"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_iaRvPrep",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Prep + Header Refusals",
+        "isValidator": true,
+        "nodeName": "Prep + Header Refusals",
+        "name": "Prep + Header Refusals",
+        "script": {
+          "type": "javascript",
+          "code": "// Prep + header refusals for \"Revert Completed Item Assembly\".\n//\n// Completion writes two kinds of movement under the document number: an IA OUT\n// per component pick and one IA IN for the assembled item. A revert writes the\n// mirror image as IA-R. Pairing each IA-R row with the IA row it undid tells\n// this run exactly what is still outstanding, which is what makes a retry after\n// a half-finished run safe.\nconst EPS = 0.005;\nconst num = (v) => {\n  const n = parseFloat(v);\n  return Number.isFinite(n) ? n : 0;\n};\nconst roundQty = (v) => parseFloat(num(v).toFixed(3));\nconst asArr = (v) => (Array.isArray(v) ? v : v === null || v === undefined || v === \"\" ? [] : [v]);\nconst S = (v) => (v === null || v === undefined ? \"\" : String(v));\n// Snowflake ids are past JS's safe integer range, so they are compared as strings.\nconst cmpId = (a, b) => {\n  a = S(a);\n  b = S(b);\n  if (a.length !== b.length) return a.length - b.length;\n  return a < b ? -1 : a > b ? 1 : 0;\n};\nconst digits = (v) => (/^[0-9]+$/.test(S(v)) ? S(v) : \"0\");\n\nconst iaRaw = {{node:get_node_iaRvIa.data.data}};\nconst ia = Array.isArray(iaRaw) ? iaRaw[0] || null : iaRaw && iaRaw.id ? iaRaw : null;\nconst movRows = asArr({{node:sql_node_iaRvMovs.data}});\nconst batchRows = asArr({{node:search_node_iaRvBatch.data.data}});\nconst iaId = S({{node:code_node_iaRvParams.data.iaId}});\nconst iaNo = S({{node:code_node_iaRvParams.data.iaNo}});\nconst orgId = S({{node:code_node_iaRvParams.data.organizationId}});\n\nlet refuse = 0;\nlet refuseMessage = \"\";\nconst deny = (msg) => {\n  if (!refuse) {\n    refuse = 1;\n    refuseMessage = msg;\n  }\n};\n\nif (!ia || !ia.id) {\n  deny(\"Item Assembly record not found for this organization.\");\n}\nconst status = ia ? S(ia.item_assembly_status) : \"\";\nconst postedStatus = ia ? S(ia.posted_status).trim() : \"\";\nif (!refuse && status === \"Fully Posted\") {\n  deny(\"This Item Assembly has been posted to accounting and cannot be reverted.\");\n}\nif (!refuse && status !== \"Completed\") {\n  deny(\"Only Completed Item Assembly can be reverted (this one is \" + (status || \"blank\") + \").\");\n}\nif (!refuse && postedStatus === \"Posted\") {\n  deny(\"This Item Assembly has been posted to accounting and cannot be reverted.\");\n}\n\n// Components go OUT and come back IN; the assembled item goes IN and goes back OUT.\nconst sideOf = (r) => {\n  const t = S(r.transaction_type);\n  const m = S(r.movement).toUpperCase();\n  if ((t === \"IA\" && m === \"OUT\") || (t === \"IA-R\" && m === \"IN\")) return \"component\";\n  if ((t === \"IA\" && m === \"IN\") || (t === \"IA-R\" && m === \"OUT\")) return \"assembled\";\n  return \"\";\n};\nconst ownRows = movRows.filter((r) => S(r.trx_no) === iaNo && sideOf(r) !== \"\");\n\n// A reversal is written to the same item, batch, bin, category and handling\n// unit as the row it undoes, so that tuple is the pairing key.\nconst tupleOf = (r) =>\n  sideOf(r) + \"|\" + S(r.item_id) + \"|\" + S(r.batch_number_id) + \"|\" + S(r.bin_location_id) + \"|\" +\n  S(r.inventory_category) + \"|\" + S(r.handling_unit_id);\nconst byTuple = {};\nfor (const r of ownRows) {\n  const t = tupleOf(r);\n  if (!byTuple[t]) byTuple[t] = [];\n  byTuple[t].push(r);\n}\nlet liveRows = [];\nlet partialRow = 0;\nfor (const t of Object.keys(byTuple)) {\n  const ordered = byTuple[t].slice().sort((a, b) => cmpId(a.id, b.id));\n  let outstanding = 0;\n  let cycle = [];\n  for (const r of ordered) {\n    if (S(r.transaction_type) === \"IA\") {\n      outstanding = roundQty(outstanding + num(r.base_qty));\n      cycle.push(r);\n      continue;\n    }\n    outstanding = roundQty(outstanding - num(r.base_qty));\n    if (outstanding <= EPS) {\n      outstanding = 0;\n      cycle = [];\n    }\n  }\n  let acc = 0;\n  const live = [];\n  for (let i = cycle.length - 1; i >= 0 && acc < outstanding - EPS; i--) {\n    live.unshift(cycle[i]);\n    acc = roundQty(acc + num(cycle[i].base_qty));\n  }\n  if (Math.abs(acc - outstanding) > EPS) partialRow = 1;\n  liveRows = liveRows.concat(live);\n}\nliveRows.sort((a, b) => cmpId(a.id, b.id));\nconst liveOut = liveRows.filter((r) => sideOf(r) === \"component\");\nconst liveIn = liveRows.filter((r) => sideOf(r) === \"assembled\");\n\nconst uniq = (arr) => {\n  const seen = {};\n  const out = [];\n  for (const v of arr) {\n    const k = S(v);\n    if (!k || seen[k]) continue;\n    seen[k] = 1;\n    out.push(k);\n  }\n  return out;\n};\nconst assembledItemId = ia ? S(ia.item_id) : \"\";\nconst itemIds = uniq(liveRows.map((r) => r.item_id));\nconst assembledIds = uniq([assembledItemId].concat(liveIn.map((r) => r.item_id)));\n// Every Batch row this document minted is a candidate for removal, including\n// one whose receipt never landed, so their balances are fetched as well.\nconst ownBatchIds = batchRows.filter((b) => S(b.material_id) === assembledItemId).map((b) => b.id);\nconst batchIds = uniq(liveIn.map((r) => r.batch_number_id).concat(ownBatchIds));\nconst huIds = uniq(liveOut.map((r) => r.handling_unit_id));\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"-1\"]);\nconst csv = (arr) => arr.map(digits).filter((v) => v !== \"0\").join(\",\") || \"0\";\nconst plantId = ia ? S(ia.issuing_operation_faci) : \"\";\n\nreturn {\n  refuse,\n  refuseMessage,\n  headerOnly: liveRows.length === 0 ? 1 : 0,\n  iaId,\n  iaNo,\n  organizationId: orgId,\n  plantId,\n  plantIdSql: digits(plantId),\n  iaIdSql: digits(iaId),\n  orgSql: S({{node:code_node_iaRvParams.data.orgSql}}),\n  assembledItemId,\n  itemIdsCsv: csv(itemIds),\n  assembledIdsCsv: csv(assembledIds),\n  liveOut,\n  liveIn,\n  partialRow,\n  itemIds: orNone(itemIds),\n  assembledIds: orNone(assembledIds),\n  batchIds: orNone(batchIds),\n  huIds: orNone(huIds),\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "refuse00",
+            "name": "refuse",
+            "title": "refuse",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "refuseme",
+            "name": "refuseMessage",
+            "title": "refuseMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "headeron",
+            "name": "headerOnly",
+            "title": "headerOnly",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "iaid0001",
+            "name": "iaId",
+            "title": "iaId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "iano0001",
+            "name": "iaNo",
+            "title": "iaNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "organi01",
+            "name": "organizationId",
+            "title": "organizationId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "planti01",
+            "name": "plantId",
+            "title": "plantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "plantids",
+            "name": "plantIdSql",
+            "title": "plantIdSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "iaidsq01",
+            "name": "iaIdSql",
+            "title": "iaIdSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "orgsql01",
+            "name": "orgSql",
+            "title": "orgSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "assemble",
+            "name": "assembledItemId",
+            "title": "assembledItemId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itemidsc",
+            "name": "itemIdsCsv",
+            "title": "itemIdsCsv",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "assemb01",
+            "name": "assembledIdsCsv",
+            "title": "assembledIdsCsv",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "liveout0",
+            "name": "liveOut",
+            "title": "liveOut",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "livein00",
+            "name": "liveIn",
+            "title": "liveIn",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "partialr",
+            "name": "partialRow",
+            "title": "partialRow",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "itemids0",
+            "name": "itemIds",
+            "title": "itemIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "assemb02",
+            "name": "assembledIds",
+            "title": "assembledIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "batchids",
+            "name": "batchIds",
+            "title": "batchIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "huids000",
+            "name": "huIds",
+            "title": "huIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_iaRvRefuse",
+      "type": "if",
+      "data": {
+        "title": "IF Refused By Document State",
+        "isValidator": true,
+        "nodeName": "IF Refused By Document State",
+        "name": "IF Refused By Document State",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1791000000011,
+              "parentId": 1791000000012,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_iaRvPrep.data.refuse}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_iaRvRefuseTrue",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_node_iaRvRefuse",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Refused",
+                "isValidator": true,
+                "nodeName": "Return Refused",
+                "name": "Return Refused",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_iaRvPrep.data.refuseMessage}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    },
+                    {
+                      "prop": "conflicts",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "[]",
+                      "valueLabel": "",
+                      "propLabel": "conflicts"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_iaRvRefuseFalse",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "condition_all_iaRvFetch2",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Branch",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_all_node_item_iaRvFifo",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "FIFO Layers",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "sql_node_iaRvFifo",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Get FIFO Layers Of The Assembled Item",
+                "isValidator": true,
+                "nodeName": "Get FIFO Layers Of The Assembled Item",
+                "name": "Get FIFO Layers Of The Assembled Item",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(f.id AS CHAR) AS id,\n       CAST(f.material_id AS CHAR) AS material_id,\n       CAST(f.batch_id AS CHAR) AS batch_id,\n       f.fifo_cost_price,\n       f.fifo_initial_quantity,\n       f.fifo_available_quantity,\n       f.fifo_sequence\nFROM fifo_costing_history f\nWHERE f.id > CAST('{{node:code_node_iaRvPrep.data.iaIdSql}}' AS UNSIGNED)\n  AND f.organization_id = '{{node:code_node_iaRvPrep.data.orgSql}}'\n  AND f.plant_id = CAST('{{node:code_node_iaRvPrep.data.plantIdSql}}' AS UNSIGNED)\n  AND f.material_id IN ({{node:code_node_iaRvPrep.data.assembledIdsCsv}})\n  AND f.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "id000001",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "material",
+                    "name": "material_id",
+                    "title": "material_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "batchid0",
+                    "name": "batch_id",
+                    "title": "batch_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fifocost",
+                    "name": "fifo_cost_price",
+                    "title": "fifo_cost_price",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fifoinit",
+                    "name": "fifo_initial_quantity",
+                    "title": "fifo_initial_quantity",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fifoavai",
+                    "name": "fifo_available_quantity",
+                    "title": "fifo_available_quantity",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fifosequ",
+                    "name": "fifo_sequence",
+                    "title": "fifo_sequence",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_iaRvWa",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Weighted Average Rows",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "sql_node_iaRvWa",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Get Weighted Average Rows",
+                "isValidator": true,
+                "nodeName": "Get Weighted Average Rows",
+                "name": "Get Weighted Average Rows",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(w.id AS CHAR) AS id,\n       CAST(w.material_id AS CHAR) AS material_id,\n       CAST(w.batch_id AS CHAR) AS batch_id,\n       w.wa_quantity,\n       w.wa_cost_price\nFROM wa_costing_method w\nWHERE w.organization_id = '{{node:code_node_iaRvPrep.data.orgSql}}'\n  AND w.plant_id = '{{node:code_node_iaRvPrep.data.plantIdSql}}'\n  AND w.material_id IN ({{node:code_node_iaRvPrep.data.assembledIdsCsv}})\n  AND w.is_deleted = 0\n  AND (w.batch_id IS NULL OR w.id > CAST('{{node:code_node_iaRvPrep.data.iaIdSql}}' AS UNSIGNED))"
+                },
+                "response_json": [
+                  {
+                    "key": "id000002",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "materi01",
+                    "name": "material_id",
+                    "title": "material_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "batchi01",
+                    "name": "batch_id",
+                    "title": "batch_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "waquanti",
+                    "name": "wa_quantity",
+                    "title": "wa_quantity",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "wacostpr",
+                    "name": "wa_cost_price",
+                    "title": "wa_cost_price",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_iaRvCost",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Costing Row Counts",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "sql_node_iaRvCostCounts",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Count Costing Rows Per Item",
+                "isValidator": true,
+                "nodeName": "Count Costing Rows Per Item",
+                "name": "Count Costing Rows Per Item",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT 'FIFO' AS t, CAST(f.material_id AS CHAR) AS material_id, COUNT(*) AS cnt\nFROM fifo_costing_history f\nWHERE f.organization_id = '{{node:code_node_iaRvPrep.data.orgSql}}'\n  AND f.plant_id = CAST('{{node:code_node_iaRvPrep.data.plantIdSql}}' AS UNSIGNED)\n  AND f.material_id IN ({{node:code_node_iaRvPrep.data.itemIdsCsv}})\n  AND f.is_deleted = 0\nGROUP BY f.material_id\nUNION ALL\nSELECT 'WA' AS t, CAST(w.material_id AS CHAR) AS material_id, COUNT(*) AS cnt\nFROM wa_costing_method w\nWHERE w.organization_id = '{{node:code_node_iaRvPrep.data.orgSql}}'\n  AND w.plant_id = '{{node:code_node_iaRvPrep.data.plantIdSql}}'\n  AND w.material_id IN ({{node:code_node_iaRvPrep.data.itemIdsCsv}})\n  AND w.is_deleted = 0\nGROUP BY w.material_id"
+                },
+                "response_json": [
+                  {
+                    "key": "t0000000",
+                    "name": "t",
+                    "title": "t",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "materi02",
+                    "name": "material_id",
+                    "title": "material_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cnt00000",
+                    "name": "cnt",
+                    "title": "cnt",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_iaRvItemBal",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Item Balances",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "search_node_iaRvItemBal",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item Balance:Table:1902698977724317697",
+                  "rules": {
+                    "collectionId": "1902698977724317697",
+                    "list": [
+                      {
+                        "id": 1791000000016,
+                        "parentId": 1791000000017,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1791000000013,
+                            "parentId": 1791000000016,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvPrep.data.assembledIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "material_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equalAny"
+                          },
+                          {
+                            "id": 1791000000014,
+                            "parentId": 1791000000016,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvPrep.data.plantId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "plant_id",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          },
+                          {
+                            "id": 1791000000015,
+                            "parentId": 1791000000016,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvPrep.data.organizationId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "organization_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get Item Balances",
+                "isValidator": true,
+                "nodeName": "Get Item Balances",
+                "name": "Get Item Balances"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_iaRvBatchBal",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Batch Balances",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "search_node_iaRvBatchBal",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item Batch Balance:Table:1902718803880558594",
+                  "rules": {
+                    "collectionId": "1902718803880558594",
+                    "list": [
+                      {
+                        "id": 1791000000021,
+                        "parentId": 1791000000022,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1791000000018,
+                            "parentId": 1791000000021,
+                            "isTop": false,
+                            "prop": "batch_id",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvPrep.data.batchIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "batch_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equalAny"
+                          },
+                          {
+                            "id": 1791000000019,
+                            "parentId": 1791000000021,
+                            "isTop": false,
+                            "prop": "plant_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvPrep.data.plantId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "plant_id",
+                            "valueLabel": "",
+                            "operatorLabel": "numberEqual"
+                          },
+                          {
+                            "id": 1791000000020,
+                            "parentId": 1791000000021,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvPrep.data.organizationId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "organization_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get Batch Balances",
+                "isValidator": true,
+                "nodeName": "Get Batch Balances",
+                "name": "Get Batch Balances"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_iaRvHu",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Handling Units",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "search_node_iaRvHu",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Handling Unit:Table:2036736671686529026",
+                  "rules": {
+                    "collectionId": "2036736671686529026",
+                    "list": [
+                      {
+                        "id": 1791000000025,
+                        "parentId": 1791000000026,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "all",
+                        "valueType": "",
+                        "value": "",
+                        "type": "branch",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 1791000000023,
+                            "parentId": 1791000000025,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvPrep.data.huIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "id",
+                            "valueLabel": "",
+                            "operatorLabel": "equalAny"
+                          },
+                          {
+                            "id": 1791000000024,
+                            "parentId": 1791000000025,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:code_node_iaRvPrep.data.organizationId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "organization_id",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Handling Units",
+                "isValidator": true,
+                "nodeName": "Get Handling Units",
+                "name": "Get Handling Units"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_iaRvItems",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Item Masters",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "search_node_iaRvItems",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 1791000000027,
+                        "parentId": 1791000000028,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equalAny",
+                        "valueType": "field",
+                        "value": "{{node:code_node_iaRvPrep.data.itemIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "equalAny"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 1000,
+                "title": "Get Item Masters",
+                "isValidator": true,
+                "nodeName": "Get Item Masters",
+                "name": "Get Item Masters"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_iaRvBuild",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Conflict Detect + Build Reverses",
+        "isValidator": true,
+        "nodeName": "Conflict Detect + Build Reverses",
+        "name": "Conflict Detect + Build Reverses",
+        "script": {
+          "type": "javascript",
+          "code": "// Conflict detection + reverse payloads for \"Revert Completed Item Assembly\".\n//\n// Nothing is written before this node has run. Every check appends to\n// `conflicts` rather than returning early, so a blocked revert reports every\n// reason at once.\nconst EPS = 0.005;\nconst PRICE_EPS = 0.00005;\nconst num = (v) => {\n  const n = parseFloat(v);\n  return Number.isFinite(n) ? n : 0;\n};\nconst roundQty = (v) => parseFloat(num(v).toFixed(3));\nconst roundPrice = (v) => parseFloat(num(v).toFixed(4));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\nconst priceStr = (v) => Math.max(0, roundPrice(v)).toFixed(4);\nconst S = (v) => (v === null || v === undefined ? \"\" : String(v));\nconst orNull = (v) => (S(v) ? S(v) : null);\nconst asArr = (v) => (Array.isArray(v) ? v : v === null || v === undefined || v === \"\" ? [] : [v]);\nconst cmpId = (a, b) => {\n  a = S(a);\n  b = S(b);\n  if (a.length !== b.length) return a.length - b.length;\n  return a < b ? -1 : a > b ? 1 : 0;\n};\n// Only used to find the id closest to another; a double keeps millisecond order.\nconst idGap = (a, b) => Math.abs(parseFloat(S(a)) - parseFloat(S(b)));\nconst parseJson = (v) => {\n  if (Array.isArray(v) || (v && typeof v === \"object\")) return v;\n  try {\n    return JSON.parse(v);\n  } catch (e) {\n    return null;\n  }\n};\n\n// Category -> balance column, copied from SUBTRACT_INVENTORY code_node_TC1cqaOy.\nconst CATEGORY_FIELD_MAP = {\n  Unrestricted: \"unrestricted_qty\",\n  Reserved: \"reserved_qty\",\n  Blocked: \"block_qty\",\n  \"Quality Inspection\": \"qualityinsp_qty\",\n  \"In Transit\": \"intransit_qty\",\n};\nconst catField = (c) => CATEGORY_FIELD_MAP[S(c)] || \"unrestricted_qty\";\n\nconst iaId = S({{node:code_node_iaRvPrep.data.iaId}});\nconst plantId = S({{node:code_node_iaRvPrep.data.plantId}});\nconst assembledItemId = S({{node:code_node_iaRvPrep.data.assembledItemId}});\nconst liveOut = asArr({{node:code_node_iaRvPrep.data.liveOut}}).slice().sort((a, b) => cmpId(a.id, b.id));\nconst liveIn = asArr({{node:code_node_iaRvPrep.data.liveIn}}).slice().sort((a, b) => cmpId(a.id, b.id));\nconst partialRow = Number({{node:code_node_iaRvPrep.data.partialRow}}) || 0;\n\nconst fifoRows = asArr({{node:sql_node_iaRvFifo.data}});\nconst waRows = asArr({{node:sql_node_iaRvWa.data}});\nconst costCounts = asArr({{node:sql_node_iaRvCostCounts.data}});\nconst itemBalRows = asArr({{node:search_node_iaRvItemBal.data.data}});\nconst batchBalRows = asArr({{node:search_node_iaRvBatchBal.data.data}});\nconst huRecords = asArr({{node:search_node_iaRvHu.data.data}});\nconst itemRecords = asArr({{node:search_node_iaRvItems.data.data}});\nconst batchRows = asArr({{node:search_node_iaRvBatch.data.data}});\n\nconst docDate = new Date().toISOString();\n\nconst conflicts = [];\nconst flag = (type, id, message) => conflicts.push({ type: type, id: S(id), message: message });\n\nconst ceiling = (rows, limit, label) => {\n  if (rows.length >= limit) flag(\"fetch_truncated\", label, label + \" hit the fetch limit; the revert cannot be verified.\");\n};\nceiling(itemBalRows, 1000, \"Item Balance\");\nceiling(batchBalRows, 1000, \"Item Batch Balance\");\nceiling(itemRecords, 1000, \"Item\");\nceiling(huRecords, 100, \"Handling Unit\");\nceiling(batchRows, 100, \"Batch\");\n\nconst itemById = {};\nfor (const it of itemRecords) itemById[S(it.id)] = it;\nconst nameOf = (itemId) => {\n  const it = itemById[S(itemId)];\n  return (it && (it.material_code || it.material_name)) || S(itemId);\n};\nconst isStockControlled = (it) =>\n  !it || it.stock_control === null || it.stock_control === undefined || Number(it.stock_control) !== 0;\nconst liveRows = liveOut.concat(liveIn);\n\n// --- 1. Item master drift ---------------------------------------------------\nconst checkedItems = {};\nfor (const r of liveRows) {\n  const iid = S(r.item_id);\n  if (checkedItems[iid]) continue;\n  checkedItems[iid] = 1;\n  const it = itemById[iid];\n  if (!it) {\n    flag(\"item_missing\", iid, \"Item master \" + iid + \" no longer exists.\");\n    continue;\n  }\n  if (!isStockControlled(it)) {\n    flag(\"stock_control_changed\", iid, \"Item \" + nameOf(iid) + \" is no longer stock controlled, so its stock cannot be reversed.\");\n  }\n  if (S(r.costing_method_id) && S(it.material_costing_method) && S(r.costing_method_id) !== S(it.material_costing_method)) {\n    flag(\"costing_method_changed\", iid, \"Item \" + nameOf(iid) + \" changed costing method from \" + S(r.costing_method_id) + \" to \" + S(it.material_costing_method) + \".\");\n  }\n  // Reversals are made in base units, so the base unit must convert one for one.\n  const convs = Array.isArray(it.table_uom_conversion) ? it.table_uom_conversion : [];\n  const baseConv = convs.find((c) => S(c.alt_uom_id) === S(it.based_uom));\n  if (baseConv && Math.abs(num(baseConv.base_qty) - 1) > 0.000001) {\n    flag(\"uom_conversion_changed\", iid, \"Item \" + nameOf(iid) + \" does not convert its own base unit one for one.\");\n  }\n}\nif (partialRow === 1) {\n  flag(\"partial_row_state\", iaId, \"An earlier revert stopped part way through a single movement of this assembly. It cannot be finished automatically.\");\n}\n\n// ADD and SUBTRACT both run a costing-migration branch that writes when an item\n// has rows in both costing tables, or only in the table its method does not use.\nconst countBy = {};\nfor (const c of costCounts) countBy[S(c.t) + \"|\" + S(c.material_id)] = num(c.cnt);\nfor (const iid of Object.keys(checkedItems)) {\n  const it = itemById[iid];\n  const method = it ? S(it.material_costing_method) : \"\";\n  const nFifo = countBy[\"FIFO|\" + iid] || 0;\n  const nWa = countBy[\"WA|\" + iid] || 0;\n  if (nFifo > 0 && nWa > 0) {\n    flag(\"costing_inconsistent\", iid, \"Item \" + nameOf(iid) + \" has both FIFO and weighted-average costing rows; fix the costing data before reverting.\");\n  } else if (method === \"First In First Out\" && nFifo === 0 && nWa > 0) {\n    flag(\"costing_inconsistent\", iid, \"Item \" + nameOf(iid) + \" is FIFO but only has weighted-average costing rows.\");\n  } else if (method === \"Weighted Average\" && nWa === 0 && nFifo > 0) {\n    flag(\"costing_inconsistent\", iid, \"Item \" + nameOf(iid) + \" is weighted average but only has FIFO costing rows.\");\n  }\n}\n\n// --- 2. The assembled item must still be where the assembly put it ----------\nconst itemBalBy = {};\nfor (const b of itemBalRows) itemBalBy[S(b.material_id) + \"|\" + S(b.location_id) + \"|\" + S(b.plant_id)] = b;\nconst batchBalBy = {};\nfor (const b of batchBalRows) {\n  batchBalBy[S(b.material_id) + \"|\" + S(b.location_id) + \"|\" + S(b.batch_id) + \"|\" + S(b.plant_id)] = b;\n}\nconst needBy = {};\nfor (const r of liveIn) {\n  const k = S(r.item_id) + \"|\" + S(r.bin_location_id) + \"|\" + S(r.batch_number_id) + \"|\" + S(r.inventory_category);\n  if (!needBy[k]) needBy[k] = { row: r, qty: 0 };\n  needBy[k].qty = roundQty(needBy[k].qty + num(r.base_qty));\n}\nfor (const k of Object.keys(needBy)) {\n  const r = needBy[k].row;\n  const qty = needBy[k].qty;\n  const col = catField(r.inventory_category);\n  const itemBal = itemBalBy[S(r.item_id) + \"|\" + S(r.bin_location_id) + \"|\" + plantId];\n  if (!itemBal) {\n    flag(\"balance_missing\", r.item_id, \"No stock balance row for \" + nameOf(r.item_id) + \" at the bin the assembly received it into.\");\n    continue;\n  }\n  if (num(itemBal[col]) < qty - EPS) {\n    flag(\"balance_short\", r.item_id, \"Item \" + nameOf(r.item_id) + \" only has \" + roundQty(itemBal[col]) + \" left of the \" + qty + \" this assembly produced.\");\n  }\n  if (S(r.batch_number_id)) {\n    // SUBTRACT dereferences the batch balance without a guard.\n    const bb = batchBalBy[S(r.item_id) + \"|\" + S(r.bin_location_id) + \"|\" + S(r.batch_number_id) + \"|\" + plantId];\n    if (!bb) {\n      flag(\"balance_missing\", r.item_id, \"No batch balance row for \" + nameOf(r.item_id) + \" at the bin the assembly received it into.\");\n    } else if (num(bb[col]) < qty - EPS) {\n      flag(\"balance_short\", r.item_id, \"The batch of \" + nameOf(r.item_id) + \" only has \" + roundQty(bb[col]) + \" left of the \" + qty + \" this assembly produced.\");\n    }\n  }\n}\n\n// --- 3. The assembled item's own costing row --------------------------------\n// Only this assembly's own layer decides whether its output has been used. A\n// sale of the same item that drew on older layers does not block the revert.\nconst fifoDeleteFor = {};\nconst waDeleteFor = {};\nconst waUpdateFor = {};\nconst rowsByTuple = {};\nfor (const r of liveIn) {\n  const k = S(r.item_id) + \"|\" + S(r.batch_number_id);\n  if (!rowsByTuple[k]) rowsByTuple[k] = [];\n  rowsByTuple[k].push(r);\n}\nconst nearest = (candidates, anchorId) => {\n  let best = null;\n  for (const c of candidates) if (!best || idGap(c.id, anchorId) < idGap(best.id, anchorId)) best = c;\n  return best;\n};\nfor (const k of Object.keys(rowsByTuple)) {\n  const rows = rowsByTuple[k];\n  const itemId = S(rows[0].item_id);\n  const batchId = S(rows[0].batch_number_id);\n  const it = itemById[itemId];\n  const method = it ? S(it.material_costing_method) : \"\";\n\n  if (method === \"First In First Out\") {\n    const used = {};\n    for (const r of rows) {\n      // Another receipt of the same quantity and price can exist, so the layer\n      // written in the same call as this movement is the one closest to it.\n      const candidates = fifoRows.filter(\n        (f) =>\n          !used[S(f.id)] &&\n          S(f.material_id) === itemId &&\n          S(f.batch_id) === batchId &&\n          Math.abs(num(f.fifo_initial_quantity) - num(r.base_qty)) <= EPS &&\n          Math.abs(num(f.fifo_cost_price) - num(r.unit_price)) <= PRICE_EPS\n      );\n      const hit = nearest(candidates, r.id);\n      if (!hit) {\n        flag(\"fifo_layer_missing\", itemId, \"No costing layer matches the \" + roundQty(r.base_qty) + \" of \" + nameOf(itemId) + \" this assembly produced.\");\n        continue;\n      }\n      used[S(hit.id)] = 1;\n      if (Math.abs(num(hit.fifo_available_quantity) - num(hit.fifo_initial_quantity)) > EPS) {\n        flag(\"fifo_layer_consumed\", itemId, \"The assembled \" + nameOf(itemId) + \" has already been used (\" + roundQty(hit.fifo_available_quantity) + \" of \" + roundQty(hit.fifo_initial_quantity) + \" left in its costing layer).\");\n        continue;\n      }\n      fifoDeleteFor[S(r.id)] = S(hit.id);\n    }\n  } else if (method === \"Weighted Average\") {\n    if (batchId) {\n      const used = {};\n      for (const r of rows) {\n        const candidates = waRows.filter(\n          (w) =>\n            !used[S(w.id)] &&\n            S(w.material_id) === itemId &&\n            S(w.batch_id) === batchId &&\n            Math.abs(num(w.wa_cost_price) - num(r.unit_price)) <= PRICE_EPS\n        );\n        const hit = nearest(candidates, r.id);\n        if (!hit) {\n          flag(\"wa_row_missing\", itemId, \"No costing row matches the batch of \" + nameOf(itemId) + \" this assembly produced.\");\n          continue;\n        }\n        used[S(hit.id)] = 1;\n        if (Math.abs(num(hit.wa_quantity) - num(r.base_qty)) > EPS) {\n          flag(\"wa_qty_short\", itemId, \"The batch of \" + nameOf(itemId) + \" this assembly produced has already been used.\");\n          continue;\n        }\n        waDeleteFor[S(r.id)] = S(hit.id);\n      }\n    } else {\n      // The receipt merged into one running average; take its quantity and value back out.\n      const pool = waRows\n        .filter((w) => S(w.material_id) === itemId && !S(w.batch_id))\n        .slice()\n        .sort((a, b) => cmpId(a.id, b.id));\n      const target = pool.length > 0 ? pool[pool.length - 1] : null;\n      if (!target) {\n        flag(\"wa_row_missing\", itemId, \"The weighted-average costing row for \" + nameOf(itemId) + \" no longer exists.\");\n        continue;\n      }\n      let B = 0;\n      let C = 0;\n      for (const r of rows) {\n        B = roundQty(B + num(r.base_qty));\n        C = C + num(r.base_qty) * num(r.unit_price);\n      }\n      const q1 = num(target.wa_quantity);\n      const p1 = num(target.wa_cost_price);\n      if (q1 < B - EPS) {\n        flag(\"wa_qty_short\", itemId, \"The weighted-average quantity for \" + nameOf(itemId) + \" (\" + roundQty(q1) + \") is below the \" + B + \" this assembly produced.\");\n        continue;\n      }\n      const q0 = roundQty(q1 - B);\n      let p0 = p1;\n      if (q0 > 0.0005) {\n        p0 = roundPrice((p1 * q1 - C) / q0);\n        if (p0 < 0) {\n          flag(\"wa_backsolve_negative\", itemId, \"Undoing the weighted-average cost for \" + nameOf(itemId) + \" would give a negative unit cost.\");\n          continue;\n        }\n      }\n      waUpdateFor[S(rows[rows.length - 1].id)] = {\n        id: S(target.id),\n        wa_quantity: q0 > 0.0005 ? qtyStr(q0) : \"0.000\",\n        wa_cost_price: priceStr(p0),\n      };\n    }\n  }\n}\n\n// --- 4. Handling units the components were picked from ----------------------\nconst huById = {};\nfor (const h of huRecords) huById[S(h.id)] = h;\nconst huLoadFor = {};\nfor (const r of liveOut) {\n  const huId = S(r.handling_unit_id);\n  if (!huId) continue;\n  const hu = huById[huId];\n  if (!hu) {\n    flag(\"hu_missing\", huId, \"Handling unit \" + huId + \" no longer exists.\");\n    continue;\n  }\n  if (S(hu.hu_status) !== \"Created\") {\n    flag(\"hu_status\", huId, \"Handling unit \" + S(hu.handling_no) + \" is \" + (S(hu.hu_status) || \"blank\") + \" and can no longer take stock back.\");\n    continue;\n  }\n  if (S(hu.parent_hu_id) || S(hu.packing_id)) {\n    flag(\"hu_nested\", huId, \"Handling unit \" + S(hu.handling_no) + \" has been nested or packed.\");\n    continue;\n  }\n  if (S(hu.location_id) !== S(r.bin_location_id)) {\n    flag(\"hu_moved\", huId, \"Handling unit \" + S(hu.handling_no) + \" has been moved to another bin.\");\n    continue;\n  }\n  // The unload at completion keeps an emptied line in the array as is_deleted,\n  // and the load re-activates a line only on an exact material + balance match,\n  // so the line's own ids are sent back verbatim.\n  const lines = asArr(parseJson(hu.table_hu_items) || []).filter(\n    (i) => S(i.material_id) === S(r.item_id) && S(i.batch_id) === S(r.batch_number_id)\n  );\n  const line = lines.find((i) => Number(i.is_deleted) !== 1) || lines[lines.length - 1];\n  if (!line) {\n    flag(\"hu_line_missing\", huId, \"Handling unit \" + S(hu.handling_no) + \" has no line for \" + nameOf(r.item_id) + \" to put it back into.\");\n    continue;\n  }\n  huLoadFor[S(r.id)] = {\n    huId: huId,\n    plantId: S(hu.plant_id) || plantId,\n    storageLocationId: orNull(hu.storage_location_id),\n    locationId: orNull(hu.location_id),\n    items: [\n      {\n        material_id: line.material_id,\n        balance_id: line.balance_id,\n        batch_id: orNull(r.batch_number_id),\n        location_id: orNull(hu.location_id),\n        material_uom: S(r.base_uom_id),\n        quantity: roundQty(r.base_qty),\n      },\n    ],\n  };\n}\n\n// --- 5. Batch rows this assembly minted --------------------------------------\n// Completion inserts a Batch row for the assembled item every time, a blank one\n// when the item is not batch managed. A row is removed once no stock is left in\n// it after this reversal.\nconst reversedByBatch = {};\nfor (const r of liveIn) {\n  const b = S(r.batch_number_id);\n  if (b) reversedByBatch[b] = roundQty((reversedByBatch[b] || 0) + num(r.base_qty));\n}\nconst heldByBatch = {};\nfor (const bb of batchBalRows) {\n  const b = S(bb.batch_id);\n  heldByBatch[b] = roundQty((heldByBatch[b] || 0) + num(bb.balance_quantity));\n}\nconst batchDeletes = [];\nfor (const b of batchRows) {\n  if (S(b.material_id) !== assembledItemId) continue;\n  const bid = S(b.id);\n  const left = roundQty((heldByBatch[bid] || 0) - (reversedByBatch[bid] || 0));\n  if (!S(b.batch_number).trim() || left <= EPS) batchDeletes.push({ id: bid });\n}\n\n// --- 6. Reverse payloads ------------------------------------------------------\nconst subtracts = [];\nconst adds = [];\nlet index = 0;\nfor (const r of liveIn) {\n  const waU = waUpdateFor[S(r.id)] || null;\n  const fifoId = fifoDeleteFor[S(r.id)] || \"\";\n  const waDelId = waDeleteFor[S(r.id)] || \"\";\n  subtracts.push({\n    index: index++,\n    material_id: S(r.item_id),\n    quantity: roundQty(r.base_qty),\n    material_uom: S(r.base_uom_id),\n    unit_price: roundPrice(r.unit_price),\n    inventory_category: S(r.inventory_category) || \"Unrestricted\",\n    location_id: orNull(r.bin_location_id),\n    // SUBTRACT reassigns a const when batch_id is \"\", so absent values are null.\n    batch_id: orNull(r.batch_number_id),\n    itemData: itemById[S(r.item_id)] || null,\n    doc_date: docDate,\n    failLabel: \"Assembled item \" + nameOf(r.item_id) + \" (\" + roundQty(r.base_qty) + \")\",\n    fifoDeleteId: fifoId,\n    hasFifoDelete: fifoId ? 1 : 0,\n    waDeleteId: waDelId,\n    hasWaDelete: waDelId ? 1 : 0,\n    waUpdateId: waU ? waU.id : \"\",\n    waQuantity: waU ? waU.wa_quantity : \"0.000\",\n    waCostPrice: waU ? waU.wa_cost_price : \"0.0000\",\n    hasWaUpdate: waU ? 1 : 0,\n  });\n}\nfor (const r of liveOut) {\n  const hu = huLoadFor[S(r.id)] || null;\n  adds.push({\n    index: index++,\n    material_id: S(r.item_id),\n    quantity: roundQty(r.base_qty),\n    material_uom: S(r.base_uom_id),\n    // The component comes back at the cost it left at, as a new FIFO layer or\n    // blended back into the weighted average.\n    unit_price: roundPrice(r.unit_price),\n    inventory_category: S(r.inventory_category) || \"Unrestricted\",\n    location_id: orNull(r.bin_location_id),\n    batch_id: orNull(r.batch_number_id),\n    handling_unit_id: orNull(r.handling_unit_id),\n    itemData: itemById[S(r.item_id)] || null,\n    doc_date: docDate,\n    failLabel: \"Component \" + nameOf(r.item_id) + \" (\" + roundQty(r.base_qty) + \")\",\n    hasHuLoad: hu ? 1 : 0,\n    huId: hu ? hu.huId : \"\",\n    huPlantId: hu ? hu.plantId : plantId,\n    huStorageLocationId: hu ? hu.storageLocationId : null,\n    huLocationId: hu ? hu.locationId : null,\n    huItems: hu ? hu.items : [],\n  });\n}\n\nconst hasConflicts = conflicts.length > 0 ? 1 : 0;\nconst gate = (arr) => (hasConflicts === 1 ? [] : arr);\nconst flagOf = (arr) => (hasConflicts === 0 && arr.length > 0 ? 1 : 0);\nconst outSubtracts = gate(subtracts);\nconst outAdds = gate(adds);\nconst outBatch = gate(batchDeletes);\n\nreturn {\n  hasConflicts: hasConflicts,\n  conflictCount: conflicts.length,\n  conflicts: conflicts,\n  subtracts: outSubtracts,\n  hasSubtracts: flagOf(outSubtracts),\n  adds: outAdds,\n  hasAdds: flagOf(outAdds),\n  batchDeletes: outBatch,\n  hasBatchDeletes: flagOf(outBatch),\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "hasconfl",
+            "name": "hasConflicts",
+            "title": "hasConflicts",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "conflict",
+            "name": "conflictCount",
+            "title": "conflictCount",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "confli01",
+            "name": "conflicts",
+            "title": "conflicts",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "subtract",
+            "name": "subtracts",
+            "title": "subtracts",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hassubtr",
+            "name": "hasSubtracts",
+            "title": "hasSubtracts",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "adds0000",
+            "name": "adds",
+            "title": "adds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hasadds0",
+            "name": "hasAdds",
+            "title": "hasAdds",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "batchdel",
+            "name": "batchDeletes",
+            "title": "batchDeletes",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hasbatch",
+            "name": "hasBatchDeletes",
+            "title": "hasBatchDeletes",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_iaRvConflicts",
+      "type": "if",
+      "data": {
+        "title": "IF Has Conflicts",
+        "isValidator": true,
+        "nodeName": "IF Has Conflicts",
+        "name": "IF Has Conflicts",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1791000000029,
+              "parentId": 1791000000030,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_iaRvBuild.data.hasConflicts}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_iaRvConflictsTrue",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_node_iaRvConflicts",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Conflicts",
+                "isValidator": true,
+                "nodeName": "Return Conflicts",
+                "name": "Return Conflicts",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "409",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "Revert blocked: the assembled item has been used or its stock has moved on.",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    },
+                    {
+                      "prop": "conflicts",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_iaRvBuild.data.conflicts}}",
+                      "valueLabel": "",
+                      "propLabel": "conflicts"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_iaRvConflictsFalse",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_iaRvHasSubtracts",
+      "type": "if",
+      "data": {
+        "title": "IF Has Assembled Item To Reverse",
+        "isValidator": true,
+        "nodeName": "IF Has Assembled Item To Reverse",
+        "name": "IF Has Assembled Item To Reverse",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1791000000047,
+              "parentId": 1791000000048,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_iaRvBuild.data.hasSubtracts}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_iaRvHasSubtractsTrue",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "loop_iaRvSubtract",
+              "type": "loop",
+              "data": {
+                "title": "Loop Assembled Item Movements",
+                "isValidator": true,
+                "nodeName": "Loop Assembled Item Movements",
+                "name": "Loop Assembled Item Movements",
+                "loopType": "Var",
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_iaRvBuild.data.subtracts}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "workflow_node_iaRvSubtract",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Subtract Assembled Item",
+                    "isValidator": true,
+                    "nodeName": "Subtract Assembled Item",
+                    "name": "Subtract Assembled Item",
+                    "workflow": {
+                      "source": "SUBTRACT_INVENTORY:Workflow:2012096660219564034",
+                      "rules": {
+                        "collectionId": "2012096660219564034",
+                        "list": [
+                          {
+                            "id": 1791000000031,
+                            "parentId": 1791000000032,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "plant_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_iaRvPrep.data.plantId}}",
+                          "valueLabel": "",
+                          "propLabel": "plant_id"
+                        },
+                        {
+                          "prop": "organization_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_iaRvPrep.data.organizationId}}",
+                          "valueLabel": "",
+                          "propLabel": "organization_id"
+                        },
+                        {
+                          "prop": "material_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.material_id}}",
+                          "valueLabel": "",
+                          "propLabel": "material_id"
+                        },
+                        {
+                          "prop": "quantity",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.quantity}}",
+                          "valueLabel": "",
+                          "propLabel": "quantity"
+                        },
+                        {
+                          "prop": "material_uom",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.material_uom}}",
+                          "valueLabel": "",
+                          "propLabel": "material_uom"
+                        },
+                        {
+                          "prop": "unit_price",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.unit_price}}",
+                          "valueLabel": "",
+                          "propLabel": "unit_price"
+                        },
+                        {
+                          "prop": "transaction_type",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": "IA-R",
+                          "valueLabel": "",
+                          "propLabel": "transaction_type"
+                        },
+                        {
+                          "prop": "trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_iaRvPrep.data.iaNo}}",
+                          "valueLabel": "",
+                          "propLabel": "trx_no"
+                        },
+                        {
+                          "prop": "inventory_category",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.inventory_category}}",
+                          "valueLabel": "",
+                          "propLabel": "inventory_category"
+                        },
+                        {
+                          "prop": "location_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.location_id}}",
+                          "valueLabel": "",
+                          "propLabel": "location_id"
+                        },
+                        {
+                          "prop": "batch_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.batch_id}}",
+                          "valueLabel": "",
+                          "propLabel": "batch_id"
+                        },
+                        {
+                          "prop": "index",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.index}}",
+                          "valueLabel": "",
+                          "propLabel": "index"
+                        },
+                        {
+                          "prop": "itemData",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.itemData}}",
+                          "valueLabel": "",
+                          "propLabel": "itemData"
+                        },
+                        {
+                          "prop": "doc_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvSubtract.doc_date}}",
+                          "valueLabel": "",
+                          "propLabel": "doc_date"
+                        },
+                        {
+                          "prop": "isMovingInv",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": 1,
+                          "valueLabel": "",
+                          "propLabel": "isMovingInv"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_iaRvSubtractFail",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Subtract Failed",
+                    "isValidator": true,
+                    "nodeName": "IF Subtract Failed",
+                    "name": "IF Subtract Failed",
+                    "condition_type": "Expression",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1791000000033,
+                          "parentId": 1791000000034,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:workflow_node_iaRvSubtract.data.code}}' != '200'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_iaRvSubtractFailTrue",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "true"
+                      },
+                      "blocks": [
+                        {
+                          "id": "code_node_iaRvSubFailMsg",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "Build Failure Message",
+                            "isValidator": true,
+                            "nodeName": "Build Failure Message",
+                            "name": "Build Failure Message",
+                            "script": {
+                              "type": "javascript",
+                              "code": "\nconst S = (v) => (v === null || v === undefined ? \"\" : String(v));\nconst label = S({{node:loop_iaRvSubtract.failLabel}});\nconst detail = S({{node:workflow_node_iaRvSubtract.data.errorMessage}}) ||\n  S({{node:workflow_node_iaRvSubtract.data.message}}) || \"the assembled item could not be taken back out\";\nreturn {\n  message: \"Revert stopped part way through: \" + label + \" - \" + detail +\n    \". Earlier lines have already been reversed. Do not edit or complete this Item Assembly; run Revert again to finish it.\",\n};\n"
+                            },
+                            "response_json": [
+                              {
+                                "key": "message0",
+                                "name": "message",
+                                "title": "message",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "return_node_iaRvSubtractFail",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Partial Revert",
+                            "isValidator": true,
+                            "nodeName": "Return Partial Revert",
+                            "name": "Return Partial Revert",
+                            "response_value": {
+                              "list": [
+                                {
+                                  "prop": "code",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "500",
+                                  "valueLabel": "",
+                                  "propLabel": "code"
+                                },
+                                {
+                                  "prop": "message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_iaRvSubFailMsg.data.message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "message"
+                                },
+                                {
+                                  "prop": "conflicts",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "[]",
+                                  "valueLabel": "",
+                                  "propLabel": "conflicts"
+                                }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_iaRvSubtractFailFalse",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "false"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_iaRvFifoDel",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Has FIFO Layer",
+                    "isValidator": true,
+                    "nodeName": "IF Has FIFO Layer",
+                    "name": "IF Has FIFO Layer",
+                    "condition_type": "Expression",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1791000000037,
+                          "parentId": 1791000000038,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:loop_iaRvSubtract.hasFifoDelete}}' == '1'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_iaRvFifoDelTrue",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "true"
+                      },
+                      "blocks": [
+                        {
+                          "id": "update_node_iaRvFifoDel",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "FIFO Costing History:Table:1902947165008400386",
+                              "rules": {
+                                "collectionId": "1902947165008400386",
+                                "list": [
+                                  {
+                                    "id": 1791000000035,
+                                    "parentId": 1791000000036,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:loop_iaRvSubtract.fifoDeleteId}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Remove FIFO Layer",
+                            "isValidator": true,
+                            "nodeName": "Remove FIFO Layer",
+                            "name": "Remove FIFO Layer",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "id",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvSubtract.fifoDeleteId}}",
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "id"
+                                },
+                                {
+                                  "prop": "is_deleted",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "is_deleted"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_iaRvFifoDelFalse",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "false"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_iaRvWaDel",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Has Weighted Average Row",
+                    "isValidator": true,
+                    "nodeName": "IF Has Weighted Average Row",
+                    "name": "IF Has Weighted Average Row",
+                    "condition_type": "Expression",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1791000000041,
+                          "parentId": 1791000000042,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:loop_iaRvSubtract.hasWaDelete}}' == '1'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_iaRvWaDelTrue",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "true"
+                      },
+                      "blocks": [
+                        {
+                          "id": "update_node_iaRvWaDel",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Weighted Average Costing History:Table:1902948453171433474",
+                              "rules": {
+                                "collectionId": "1902948453171433474",
+                                "list": [
+                                  {
+                                    "id": 1791000000039,
+                                    "parentId": 1791000000040,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:loop_iaRvSubtract.waDeleteId}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Remove Weighted Average Row",
+                            "isValidator": true,
+                            "nodeName": "Remove Weighted Average Row",
+                            "name": "Remove Weighted Average Row",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "id",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvSubtract.waDeleteId}}",
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "id"
+                                },
+                                {
+                                  "prop": "is_deleted",
+                                  "valueType": "value",
+                                  "value": 1,
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "is_deleted"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_iaRvWaDelFalse",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "false"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_iaRvWaUpd",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Has Weighted Average To Restate",
+                    "isValidator": true,
+                    "nodeName": "IF Has Weighted Average To Restate",
+                    "name": "IF Has Weighted Average To Restate",
+                    "condition_type": "Expression",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1791000000045,
+                          "parentId": 1791000000046,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:loop_iaRvSubtract.hasWaUpdate}}' == '1'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_iaRvWaUpdTrue",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "true"
+                      },
+                      "blocks": [
+                        {
+                          "id": "update_node_iaRvWaUpd",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Weighted Average Costing History:Table:1902948453171433474",
+                              "rules": {
+                                "collectionId": "1902948453171433474",
+                                "list": [
+                                  {
+                                    "id": 1791000000043,
+                                    "parentId": 1791000000044,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:loop_iaRvSubtract.waUpdateId}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "id",
+                                    "valueLabel": "",
+                                    "operatorLabel": "in"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Restate Weighted Average",
+                            "isValidator": true,
+                            "nodeName": "Restate Weighted Average",
+                            "name": "Restate Weighted Average",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "id",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvSubtract.waUpdateId}}",
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "id"
+                                },
+                                {
+                                  "prop": "wa_quantity",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvSubtract.waQuantity}}",
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "wa_quantity"
+                                },
+                                {
+                                  "prop": "wa_cost_price",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvSubtract.waCostPrice}}",
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "wa_cost_price"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_iaRvWaUpdFalse",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "false"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_iaRvHasSubtractsFalse",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_iaRvHasAdds",
+      "type": "if",
+      "data": {
+        "title": "IF Has Components To Return",
+        "isValidator": true,
+        "nodeName": "IF Has Components To Return",
+        "name": "IF Has Components To Return",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1791000000059,
+              "parentId": 1791000000060,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_iaRvBuild.data.hasAdds}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_iaRvHasAddsTrue",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "loop_iaRvAdd",
+              "type": "loop",
+              "data": {
+                "title": "Loop Component Movements",
+                "isValidator": true,
+                "nodeName": "Loop Component Movements",
+                "name": "Loop Component Movements",
+                "loopType": "Var",
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_iaRvBuild.data.adds}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "workflow_node_iaRvAdd",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Return Component",
+                    "isValidator": true,
+                    "nodeName": "Return Component",
+                    "name": "Return Component",
+                    "workflow": {
+                      "source": "ADD_INVENTORY:Workflow:2012005532688723970",
+                      "rules": {
+                        "collectionId": "2012005532688723970",
+                        "list": [
+                          {
+                            "id": 1791000000049,
+                            "parentId": 1791000000050,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "plant_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_iaRvPrep.data.plantId}}",
+                          "valueLabel": "",
+                          "propLabel": "plant_id"
+                        },
+                        {
+                          "prop": "organization_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_iaRvPrep.data.organizationId}}",
+                          "valueLabel": "",
+                          "propLabel": "organization_id"
+                        },
+                        {
+                          "prop": "material_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.material_id}}",
+                          "valueLabel": "",
+                          "propLabel": "material_id"
+                        },
+                        {
+                          "prop": "quantity",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.quantity}}",
+                          "valueLabel": "",
+                          "propLabel": "quantity"
+                        },
+                        {
+                          "prop": "material_uom",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.material_uom}}",
+                          "valueLabel": "",
+                          "propLabel": "material_uom"
+                        },
+                        {
+                          "prop": "unit_price",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.unit_price}}",
+                          "valueLabel": "",
+                          "propLabel": "unit_price"
+                        },
+                        {
+                          "prop": "transaction_type",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": "IA-R",
+                          "valueLabel": "",
+                          "propLabel": "transaction_type"
+                        },
+                        {
+                          "prop": "trx_no",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_iaRvPrep.data.iaNo}}",
+                          "valueLabel": "",
+                          "propLabel": "trx_no"
+                        },
+                        {
+                          "prop": "inventory_category",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.inventory_category}}",
+                          "valueLabel": "",
+                          "propLabel": "inventory_category"
+                        },
+                        {
+                          "prop": "location_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.location_id}}",
+                          "valueLabel": "",
+                          "propLabel": "location_id"
+                        },
+                        {
+                          "prop": "batch_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.batch_id}}",
+                          "valueLabel": "",
+                          "propLabel": "batch_id"
+                        },
+                        {
+                          "prop": "batch_number",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": "-",
+                          "valueLabel": "",
+                          "propLabel": "batch_number"
+                        },
+                        {
+                          "prop": "handling_unit_id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.handling_unit_id}}",
+                          "valueLabel": "",
+                          "propLabel": "handling_unit_id"
+                        },
+                        {
+                          "prop": "index",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.index}}",
+                          "valueLabel": "",
+                          "propLabel": "index"
+                        },
+                        {
+                          "prop": "itemData",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.itemData}}",
+                          "valueLabel": "",
+                          "propLabel": "itemData"
+                        },
+                        {
+                          "prop": "doc_date",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:loop_iaRvAdd.doc_date}}",
+                          "valueLabel": "",
+                          "propLabel": "doc_date"
+                        },
+                        {
+                          "prop": "isMovingInv",
+                          "operator": "",
+                          "valueType": "value",
+                          "value": 0,
+                          "valueLabel": "",
+                          "propLabel": "isMovingInv"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_iaRvAddFail",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Add Failed",
+                    "isValidator": true,
+                    "nodeName": "IF Add Failed",
+                    "name": "IF Add Failed",
+                    "condition_type": "Expression",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1791000000051,
+                          "parentId": 1791000000052,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:workflow_node_iaRvAdd.data.code}}' != '200'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_iaRvAddFailTrue",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "true"
+                      },
+                      "blocks": [
+                        {
+                          "id": "code_node_iaRvAddFailMsg",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "Build Failure Message",
+                            "isValidator": true,
+                            "nodeName": "Build Failure Message",
+                            "name": "Build Failure Message",
+                            "script": {
+                              "type": "javascript",
+                              "code": "\nconst S = (v) => (v === null || v === undefined ? \"\" : String(v));\nconst label = S({{node:loop_iaRvAdd.failLabel}});\nconst detail = S({{node:workflow_node_iaRvAdd.data.errorMessage}}) ||\n  S({{node:workflow_node_iaRvAdd.data.message}}) || \"the component could not be put back\";\nreturn {\n  message: \"Revert stopped part way through: \" + label + \" - \" + detail +\n    \". Earlier lines have already been reversed. Do not edit or complete this Item Assembly; run Revert again to finish it.\",\n};\n"
+                            },
+                            "response_json": [
+                              {
+                                "key": "messag01",
+                                "name": "message",
+                                "title": "message",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "return_node_iaRvAddFail",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Partial Revert",
+                            "isValidator": true,
+                            "nodeName": "Return Partial Revert",
+                            "name": "Return Partial Revert",
+                            "response_value": {
+                              "list": [
+                                {
+                                  "prop": "code",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "500",
+                                  "valueLabel": "",
+                                  "propLabel": "code"
+                                },
+                                {
+                                  "prop": "message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_iaRvAddFailMsg.data.message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "message"
+                                },
+                                {
+                                  "prop": "conflicts",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "[]",
+                                  "valueLabel": "",
+                                  "propLabel": "conflicts"
+                                }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_iaRvAddFailFalse",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "false"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_iaRvHuLoad",
+                  "type": "if",
+                  "data": {
+                    "title": "IF Picked From A Handling Unit",
+                    "isValidator": true,
+                    "nodeName": "IF Picked From A Handling Unit",
+                    "name": "IF Picked From A Handling Unit",
+                    "condition_type": "Expression",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1791000000057,
+                          "parentId": 1791000000058,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:loop_iaRvAdd.hasHuLoad}}' == '1'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "if_block_iaRvHuLoadTrue",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "true"
+                      },
+                      "blocks": [
+                        {
+                          "id": "workflow_node_iaRvHuLoad",
+                          "type": "workflow-node",
+                          "data": {
+                            "workflow_id": "",
+                            "workflow_name": "",
+                            "input_params": {},
+                            "title": "Load Handling Unit",
+                            "isValidator": true,
+                            "nodeName": "Load Handling Unit",
+                            "name": "Load Handling Unit",
+                            "workflow": {
+                              "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+                              "rules": {
+                                "collectionId": "2037062451509002241",
+                                "list": [
+                                  {
+                                    "id": 1791000000053,
+                                    "parentId": 1791000000054,
+                                    "isTop": true,
+                                    "prop": "",
+                                    "operator": "",
+                                    "valueType": "",
+                                    "value": "",
+                                    "type": "leaf",
+                                    "level": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "body_params": {
+                              "list": [
+                                {
+                                  "prop": "handling_unit_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvAdd.huId}}",
+                                  "valueLabel": "",
+                                  "propLabel": "handling_unit_id"
+                                },
+                                {
+                                  "prop": "organization_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_iaRvPrep.data.organizationId}}",
+                                  "valueLabel": "",
+                                  "propLabel": "organization_id"
+                                },
+                                {
+                                  "prop": "process_type",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "load",
+                                  "valueLabel": "",
+                                  "propLabel": "process_type"
+                                },
+                                {
+                                  "prop": "plant_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvAdd.huPlantId}}",
+                                  "valueLabel": "",
+                                  "propLabel": "plant_id"
+                                },
+                                {
+                                  "prop": "storage_location_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvAdd.huStorageLocationId}}",
+                                  "valueLabel": "",
+                                  "propLabel": "storage_location_id"
+                                },
+                                {
+                                  "prop": "location_id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvAdd.huLocationId}}",
+                                  "valueLabel": "",
+                                  "propLabel": "location_id"
+                                },
+                                {
+                                  "prop": "table_hu_items",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_iaRvAdd.huItems}}",
+                                  "valueLabel": "",
+                                  "propLabel": "table_hu_items"
+                                },
+                                {
+                                  "prop": "parent_trx_no",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_iaRvPrep.data.iaNo}}",
+                                  "valueLabel": "",
+                                  "propLabel": "parent_trx_no"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "if_iaRvHuLoadFail",
+                          "type": "if",
+                          "data": {
+                            "title": "IF Handling Unit Load Failed",
+                            "isValidator": true,
+                            "nodeName": "IF Handling Unit Load Failed",
+                            "name": "IF Handling Unit Load Failed",
+                            "condition_type": "Expression",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1791000000055,
+                                  "parentId": 1791000000056,
+                                  "isTop": true,
+                                  "prop": "",
+                                  "operator": "",
+                                  "valueType": "",
+                                  "value": "",
+                                  "type": "leaf",
+                                  "level": 1
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "type": "javascript",
+                              "code": "'{{node:workflow_node_iaRvHuLoad.data.code}}' != '200'"
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_block_iaRvHuLoadFailTrue",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "true"
+                              },
+                              "blocks": [
+                                {
+                                  "id": "return_node_iaRvHuLoadFail",
+                                  "type": "return-node",
+                                  "data": {
+                                    "return_data": {},
+                                    "status_code": 200,
+                                    "title": "Return Load Failed",
+                                    "isValidator": true,
+                                    "nodeName": "Return Load Failed",
+                                    "name": "Return Load Failed",
+                                    "response_value": {
+                                      "list": [
+                                        {
+                                          "prop": "code",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "500",
+                                          "valueLabel": "",
+                                          "propLabel": "code"
+                                        },
+                                        {
+                                          "prop": "message",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "Revert stopped part way through: a component could not be put back into its handling unit. Do not edit or complete this Item Assembly; run Revert again to finish it.",
+                                          "valueLabel": "",
+                                          "propLabel": "message"
+                                        },
+                                        {
+                                          "prop": "conflicts",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "[]",
+                                          "valueLabel": "",
+                                          "propLabel": "conflicts"
+                                        }
+                                      ]
+                                    },
+                                    "return_raw_data": 0
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_block_iaRvHuLoadFailFalse",
+                              "type": "ifBlock",
+                              "data": {
+                                "title": "false"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_block_iaRvHuLoadFalse",
+                      "type": "ifBlock",
+                      "data": {
+                        "title": "false"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_iaRvHasAddsFalse",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_iaRvHasBatch",
+      "type": "if",
+      "data": {
+        "title": "IF Has Batches To Remove",
+        "isValidator": true,
+        "nodeName": "IF Has Batches To Remove",
+        "name": "IF Has Batches To Remove",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1791000000063,
+              "parentId": 1791000000064,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_iaRvBuild.data.hasBatchDeletes}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_iaRvHasBatchTrue",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_node_iaRvBatchDel",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Batch:Table:1902719754154655746",
+                  "rules": {
+                    "collectionId": "1902719754154655746",
+                    "list": [
+                      {
+                        "id": 1791000000061,
+                        "parentId": 1791000000062,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_iaRvBuild.data.batchDeletes.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "id",
+                        "valueLabel": "",
+                        "operatorLabel": "in"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Remove Batches Minted Here",
+                "isValidator": true,
+                "nodeName": "Remove Batches Minted Here",
+                "name": "Remove Batches Minted Here",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_iaRvBuild.data.batchDeletes.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "id"
+                    },
+                    {
+                      "prop": "is_deleted",
+                      "valueType": "value",
+                      "value": 1,
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "is_deleted"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_iaRvHasBatchFalse",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_iaRvIa",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Item Assembly:Table:2098256587713404929",
+          "rules": {
+            "collectionId": "2098256587713404929",
+            "list": [
+              {
+                "id": 1791000000065,
+                "parentId": 1791000000066,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_iaRvPrep.data.iaId}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "id",
+                "valueLabel": "",
+                "operatorLabel": "in"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Set Item Assembly To Draft",
+        "isValidator": true,
+        "nodeName": "Set Item Assembly To Draft",
+        "name": "Set Item Assembly To Draft",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "item_assembly_status",
+              "valueType": "value",
+              "value": "Draft",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "item_assembly_status"
+            },
+            {
+              "prop": "posted_status",
+              "valueType": "value",
+              "value": "",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "posted_status"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_iaRvSuccess",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Revert Success",
+        "isValidator": true,
+        "nodeName": "Return Revert Success",
+        "name": "Return Revert Success",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "operator": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": "",
+              "propLabel": "code"
+            },
+            {
+              "prop": "message",
+              "operator": "",
+              "valueType": "value",
+              "value": "Item Assembly reverted to Draft successfully.",
+              "valueLabel": "",
+              "propLabel": "message"
+            },
+            {
+              "prop": "conflicts",
+              "operator": "",
+              "valueType": "value",
+              "value": "[]",
+              "valueLabel": "",
+              "propLabel": "conflicts"
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

@@ -9,6 +9,8 @@
 | `BOMlistPageJSON.json` | **enabled v4 as page `Basic BOM` `2098296691163975682` — IDENTICAL** |
 | `ItemAssemblyListPageJSON.json` | **enabled v4 as page `Item Assembly` `2098312073316716546` — IDENTICAL** |
 | `ItemAssemblyFullJSON.json` | enabled v8 — handlers identical, but the "no status badge on Add" change is **not deployed yet** |
+| `RevertCompletedIA/IArevertCompletedWorkflow.json` | **not deployed** — see "Revert Completed" below |
+| `ItemAssemblyListPageJSON.json` (Revert Completed button) | **not deployed** — carries the placeholder workflow id |
 
 List pages live in `su_code_pages` / `su_code_pages_history`, same
 `status='enabled'` mechanism as forms and workflows — not in `su_code_tables`.
@@ -401,6 +403,60 @@ gone wrong.
 - `bill_of_materials` child rows in dev are all orphaned (40 rows, no surviving
   parent). Worth a cleanup pass, separately.
 
+## Revert Completed
+
+`RevertCompletedIA/IArevertCompletedWorkflow.json` (`IA_REVERT_COMPLETED`), driven
+by the list page's **Revert Completed** toolbar button
+(`ItemAssemblyListRevertCompleted.js`, handler key `iarvcmp1`). Modelled on the GR
+revert, not the GD one: GD restores stock at cost 0.
+
+**Deploy:** paste the workflow and enable it, put its id into
+`IA_REVERT_WORKFLOW_ID`, run `patch_ia_listpage_revert.py`, paste the list page.
+
+**What it undoes**, read from `inventory_movement` (`trx_no` = the number,
+`transaction_type IN ('IA','IA-R')`), never from the document lines:
+
+- the assembled item's `IA IN` → SUBTRACT `IA-R`, `isMovingInv 1` at the receipt's
+  own price, then its own FIFO layer soft-deleted / WA batch row deleted / WA pool
+  back-solved;
+- each component `IA OUT` → ADD `IA-R`, `isMovingInv 0` at the price it left at
+  (a new FIFO layer, or blended back into WA), `batch_number "-"` so no Batch row
+  is minted; an HU pick is loaded back with HANDLING_UNIT `process_type "load"`,
+  reusing the emptied line's `balance_id` so the line re-activates;
+- the Batch rows completion minted for the assembled item (`transaction_no` = the
+  number), once no stock is left in them. Completion inserts one on **every** run,
+  a blank one for a non-batch item;
+- header → `Draft`, `posted_status` blank. The number is kept on the Draft;
+  completing it again issues a **new** number (chosen over reusing it), so the cost
+  roll-up never sees the old cycle's rows.
+
+**Pairing makes it retryable.** Each `IA-R` row cancels the `IA` row it undid
+(key: item, batch, bin, category, HU). A run that stops returns **500**; a rerun
+reverses only what is still unpaired. A Completed assembly with **no** live rows is a
+header-only revert — that covers IA-2609-001/002 on dev, whose saves failed before
+the issue leg.
+
+**Blocks (409, nothing written)** only when this assembly's own output is used:
+its FIFO layer drawn down (the layer nearest the IN movement's id, since an
+identical receipt can exist), the WA pool or batch row short, or the bin/batch
+balance short. A sale of the same item from older stock does **not** block. Also
+item-master drift, mixed FIFO/WA rows, and an HU that is missing, not `Created`,
+nested or moved. **400**: not `Completed`, or posted.
+
+**Limitations:**
+
+- A component comes back as a new FIFO layer at its average cost, not into the
+  layers it came from — `inventory_movement` does not record those. Value is exact,
+  layer order is not.
+- Commits are line-by-line. If ADD succeeds and the HU load then fails, a rerun
+  treats that row as done and does not retry the load.
+- IA_SAVE never checks its HU unload result; if that silently failed, loading back
+  over-fills the HU.
+- `last_transaction_date` is not restored.
+- A receipt at unit cost 0 (IA-2609-003) is reversed correctly, but SUBTRACT treats
+  a 0 `unit_price` as absent and stamps the `IA-R` movement with the FIFO/WA price.
+  Only that audit row's price is affected.
+
 ## Re-running the tooling
 
     python3 scratchpad/gen_bom_save_workflow.py      # regenerate the workflow
@@ -413,6 +469,11 @@ gone wrong.
     python3 scratchpad/patch_bom_form_filters.py     # datasource scoping (idempotent)
     python3 scratchpad/patch_bom_listpage.py         # BOM list page filters/columns/Delete
     python3 scratchpad/patch_ia_listpage.py          # IA list page datasource/columns/filters/Delete
+
+    python3 scratchpad/iarv/gen.py                   # regenerate the revert workflow (prep.js/build.js)
+    python3 scratchpad/validate.py "Item Assembly & BOM/RevertCompletedIA/IArevertCompletedWorkflow.json"
+    python3 scratchpad/test_ia_revert.py             # node tests, scripts extracted from the JSON
+    python3 scratchpad/patch_ia_listpage_revert.py   # Revert Completed button (idempotent)
 
 `patch_bom_form.py`, `patch_bom_form_filters.py` and `patch_bom_listpage.py` are
 idempotent. `patch_ia_form.py` is **not** — it drops handlers and clones
