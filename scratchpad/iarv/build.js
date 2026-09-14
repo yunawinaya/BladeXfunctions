@@ -57,9 +57,7 @@ const itemBalRows = asArr({{node:search_node_iaRvItemBal.data.data}});
 const batchBalRows = asArr({{node:search_node_iaRvBatchBal.data.data}});
 const huRecords = asArr({{node:search_node_iaRvHu.data.data}});
 const itemRecords = asArr({{node:search_node_iaRvItems.data.data}});
-// The raw fetch is only needed for its size; the rows come from prep, scoped to the organization.
-const batchFetched = asArr({{node:search_node_iaRvBatch.data.data}});
-const batchRows = asArr({{node:code_node_iaRvPrep.data.batchRows}});
+const batchRows = asArr({{node:search_node_iaRvBatch.data.data}});
 
 const docDate = new Date().toISOString();
 
@@ -73,7 +71,7 @@ ceiling(itemBalRows, 1000, "Item Balance");
 ceiling(batchBalRows, 1000, "Item Batch Balance");
 ceiling(itemRecords, 1000, "Item");
 ceiling(huRecords, 100, "Handling Unit");
-ceiling(batchFetched, 100, "Batch");
+ceiling(batchRows, 100, "Batch");
 
 const itemById = {};
 for (const it of itemRecords) itemById[S(it.id)] = it;

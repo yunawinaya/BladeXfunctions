@@ -9,8 +9,8 @@
 | `BOMlistPageJSON.json` | **enabled v4 as page `Basic BOM` `2098296691163975682` — IDENTICAL** |
 | `ItemAssemblyListPageJSON.json` | **enabled v4 as page `Item Assembly` `2098312073316716546` — IDENTICAL** |
 | `ItemAssemblyFullJSON.json` | enabled v8 — handlers identical, but the "no status badge on Add" change is **not deployed yet** |
-| `RevertCompletedIA/IArevertCompletedWorkflow.json` | **not deployed** — see "Revert Completed" below |
-| `ItemAssemblyListPageJSON.json` (Revert Completed button) | **not deployed** — carries the placeholder workflow id |
+| `RevertCompletedIA/IArevertCompletedWorkflow.json` | **enabled v3 as `IA_REVERT` `2099319746652852225` — IDENTICAL** |
+| `ItemAssemblyListPageJSON.json` | **enabled v8 — repo synced from it** (Revert Completed button + hidden `organization_id` column) |
 
 List pages live in `su_code_pages` / `su_code_pages_history`, same
 `status='enabled'` mechanism as forms and workflows — not in `su_code_tables`.
@@ -410,8 +410,14 @@ by the list page's **Revert Completed** toolbar button
 (`ItemAssemblyListRevertCompleted.js`, handler key `iarvcmp1`). Modelled on the GR
 revert, not the GD one: GD restores stock at cost 0.
 
-**Deploy:** paste the workflow and enable it, put its id into
-`IA_REVERT_WORKFLOW_ID`, run `patch_ia_listpage_revert.py`, paste the list page.
+**Deployed on dev** 2026-09-14. IA-2609-004 reverted cleanly: `IA-R` OUT 1 @ 10,
+`IA-R` IN 5 @ 1 for both components, layer `2098341888627363841` soft-deleted,
+blank Batch deleted, header Draft; balances reconcile with the ledger.
+
+**The grid must carry `organization_id`.** `tableSelect` rows hold only the list's
+columns (+ `id`), so without the hidden `organization_id` column the request
+omits it and the workflow stops at `return_node_iaRvNoParams` (first dev run).
+Handler key is the platform's `8r9xuzc4` / `IArevertCompleted`.
 
 **What it undoes**, read from `inventory_movement` (`trx_no` = the number,
 `transaction_type IN ('IA','IA-R')`), never from the document lines:

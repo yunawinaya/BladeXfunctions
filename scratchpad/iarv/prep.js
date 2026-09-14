@@ -21,17 +21,14 @@ const cmpId = (a, b) => {
   return a < b ? -1 : a > b ? 1 : 0;
 };
 const digits = (v) => (/^[0-9]+$/.test(S(v)) ? S(v) : "0");
-const token = (v) => (/^[A-Za-z0-9\/\-_. ]{1,64}$/.test(S(v)) ? S(v) : "");
 
 const iaRaw = {{node:get_node_iaRvIa.data.data}};
 const ia = Array.isArray(iaRaw) ? iaRaw[0] || null : iaRaw && iaRaw.id ? iaRaw : null;
+const movRows = asArr({{node:sql_node_iaRvMovs.data}});
+const batchRows = asArr({{node:search_node_iaRvBatch.data.data}});
 const iaId = S({{node:code_node_iaRvParams.data.iaId}});
 const iaNo = S({{node:code_node_iaRvParams.data.iaNo}});
-const orgParam = S({{node:code_node_iaRvParams.data.organizationId}});
-const orgId = ia ? S(ia.organization_id) : "";
-// A Manual Input number can repeat in another organization.
-const movRows = asArr({{node:sql_node_iaRvMovs.data}}).filter((r) => S(r.organization_id) === orgId);
-const batchRows = asArr({{node:search_node_iaRvBatch.data.data}}).filter((b) => S(b.organization_id) === orgId);
+const orgId = S({{node:code_node_iaRvParams.data.organizationId}});
 
 let refuse = 0;
 let refuseMessage = "";
@@ -42,7 +39,7 @@ const deny = (msg) => {
   }
 };
 
-if (!ia || !ia.id || !token(orgId) || (orgParam && orgParam !== orgId)) {
+if (!ia || !ia.id) {
   deny("Item Assembly record not found for this organization.");
 }
 const status = ia ? S(ia.item_assembly_status) : "";
@@ -142,7 +139,7 @@ return {
   plantId,
   plantIdSql: digits(plantId),
   iaIdSql: digits(iaId),
-  orgSql: token(orgId),
+  orgSql: S({{node:code_node_iaRvParams.data.orgSql}}),
   assembledItemId,
   itemIdsCsv: csv(itemIds),
   assembledIdsCsv: csv(assembledIds),
@@ -153,5 +150,4 @@ return {
   assembledIds: orNone(assembledIds),
   batchIds: orNone(batchIds),
   huIds: orNone(huIds),
-  batchRows,
 };

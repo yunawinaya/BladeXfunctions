@@ -9,8 +9,9 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 MOD = os.path.join(ROOT, "Item Assembly & BOM")
 PAGE = os.path.join(MOD, "ItemAssemblyListPageJSON.json")
 TITLE = "Revert Completed"
-KEY = "iarvcmp1"
-NAME = "revertCompleted"
+# The platform assigned these when the button was re-created on dev (list page v8).
+KEY = "8r9xuzc4"
+NAME = "IArevertCompleted"
 
 doc = json.load(open(PAGE, encoding="utf-8"))
 cp = doc["list"][0]["options"]["customProps"]

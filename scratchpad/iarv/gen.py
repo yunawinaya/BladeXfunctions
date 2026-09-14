@@ -189,20 +189,18 @@ const iaId = S({{workflowparams:ia_id}});
 const iaNo = S({{workflowparams:ia_no}});
 const organizationId = S({{workflowparams:organization_id}});
 
-// organization_id is optional: a list grid only carries its visible columns, so
-// the org is taken from the record itself and a supplied one must match it.
 return {
   iaId,
   iaNo,
   organizationId,
   iaIdSql: digits(iaId),
   iaNoSql: token(iaNo),
-  hasParams: iaId && iaNo && digits(iaId) !== "0" && token(iaNo) ? 1 : 0,
+  orgSql: token(organizationId),
+  hasParams: iaId && iaNo && organizationId && digits(iaId) !== "0" && token(iaNo) && token(organizationId) ? 1 : 0,
 };
 """.lstrip()
 
 SQL_MOVS = """SELECT CAST(m.id AS CHAR) AS id,
-       m.organization_id,
        m.transaction_type,
        m.movement,
        m.trx_no,
@@ -221,6 +219,7 @@ SQL_MOVS = """SELECT CAST(m.id AS CHAR) AS id,
        m.costing_method_id
 FROM inventory_movement m
 WHERE m.id > CAST('""" + P + """iaIdSql}}' AS UNSIGNED)
+  AND m.organization_id = '""" + P + """orgSql}}'
   AND m.trx_no = '""" + P + """iaNoSql}}'
   AND m.transaction_type IN ('IA', 'IA-R')
   AND m.is_deleted = 0
@@ -286,26 +285,24 @@ def build():
 
     nodes.append(code("code_node_iaRvParams", "Normalize Params", PARAMS, [
         ("iaId", "string"), ("iaNo", "string"), ("organizationId", "string"),
-        ("iaIdSql", "string"), ("iaNoSql", "string"),
+        ("iaIdSql", "string"), ("iaNoSql", "string"), ("orgSql", "string"),
         ("hasParams", "int")]))
 
     nodes.append(if_expr("if_iaRvNoParams", "IF Missing Params",
         "'" + P + "hasParams}}' != '1'",
         [ret("return_node_iaRvNoParams", "Return Missing Params", [
             ("code", "400", "value"),
-            ("message", "ia_id and ia_no are required.", "value"),
+            ("message", "ia_id, ia_no and organization_id are required.", "value"),
             ("conflicts", "[]", "value")])]))
 
-    # The organization is not known until the record is read, so round one is
-    # scoped by id and number and prep drops rows from any other organization.
     nodes.append(parallel("condition_all_iaRvFetch1", [
         ("condition_all_node_item_iaRvIa", "Item Assembly", [
             get_node("get_node_iaRvIa", "Get Item Assembly", T["ia"], [
-                leaf("id", "in", P + "iaId}}")])]),
+                leaf("id", "in", P + "iaId}}"),
+                leaf("organization_id", "equal", P + "organizationId}}")])]),
         ("condition_all_node_item_iaRvMovs", "Stock Movements", [
             sql("sql_node_iaRvMovs", "Get This Assembly's Stock Movements", SQL_MOVS, [
-                ("id", "string"), ("organization_id", "string"),
-                ("transaction_type", "string"), ("movement", "string"),
+                ("id", "string"), ("transaction_type", "string"), ("movement", "string"),
                 ("trx_no", "string"), ("item_id", "string"), ("plant_id", "string"),
                 ("bin_location_id", "string"), ("batch_number_id", "string"),
                 ("handling_unit_id", "string"), ("inventory_category", "string"),
@@ -314,7 +311,8 @@ def build():
                 ("total_price", "string"), ("costing_method_id", "string")])]),
         ("condition_all_node_item_iaRvBatch", "Batches", [
             search_node("search_node_iaRvBatch", "Get Batches Minted Here", T["batch"], [
-                leaf("transaction_no", "equal", P + "iaNo}}")], 100)]),
+                leaf("transaction_no", "equal", P + "iaNo}}"),
+                leaf("organization_id", "equal", P + "organizationId}}")], 100)]),
     ]))
 
     nodes.append(code("code_node_iaRvPrep", "Prep + Header Refusals", body("prep.js"), [
@@ -324,7 +322,7 @@ def build():
         ("orgSql", "string"), ("assembledItemId", "string"), ("itemIdsCsv", "string"),
         ("assembledIdsCsv", "string"), ("liveOut", "array"), ("liveIn", "array"),
         ("partialRow", "int"), ("itemIds", "array"), ("assembledIds", "array"),
-        ("batchIds", "array"), ("huIds", "array"), ("batchRows", "array")]))
+        ("batchIds", "array"), ("huIds", "array")]))
 
     nodes.append(if_expr("if_iaRvRefuse", "IF Refused By Document State",
         "'" + R + "refuse}}' == '1'",

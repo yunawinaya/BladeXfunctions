@@ -125,20 +125,9 @@ p = run(PARAMS, {"wp": {"ia_id": IA_ID, "ia_no": IA_NO, "organization_id": ORG},
 ok(p["hasParams"] == 1 and p["iaNoSql"] == IA_NO, "valid params pass")
 p = run(PARAMS, {"wp": {"ia_id": "1 OR 1=1", "ia_no": "x' OR '1", "organization_id": ORG}, "node": {}})
 ok(p["hasParams"] == 0 and p["iaIdSql"] == "0" and p["iaNoSql"] == "", "injection-shaped params are neutralised")
-# The list grid only carries its visible columns, so organization_id arrives undefined.
+# The list grid only carries its visible columns; organization_id must be one of them.
 p = run(PARAMS, {"wp": {"ia_id": IA_ID, "ia_no": IA_NO, "organization_id": None}, "node": {}})
-ok(p["hasParams"] == 1, "a call without organization_id is accepted (IA-2609-004 regression)")
-p, b = go(scenario(), wp={"ia_id": IA_ID, "ia_no": IA_NO, "organization_id": None})
-ok(p["refuse"] == 0 and p["organizationId"] == ORG and p["orgSql"] == ORG and b["hasConflicts"] == 0,
-   "without organization_id the org is taken from the record")
-p, b = go(scenario(), wp={"ia_id": IA_ID, "ia_no": IA_NO, "organization_id": "ORG2"})
-ok(p["refuse"] == 1, "a supplied organization_id that does not match the record is refused")
-s = scenario(movs=scenario()["movs"] + [dict(mov(300, "IA", "OUT", "C1", 7, 1), organization_id="ORG2")],
-             batch=scenario()["batch"] + [{"id": "BTX", "material_id": "A1", "batch_number": "",
-                                           "transaction_no": IA_NO, "organization_id": "ORG2"}])
-p, b = go(s)
-ok(len(b["adds"]) == 2 and b["batchDeletes"] == [{"id": "BT1"}],
-   "another organization's movement and batch under the same number are ignored")
+ok(p["hasParams"] == 0, "a call without organization_id is refused before any fetch")
 
 print("HAPPY PATHS")
 p, b = go(scenario())
