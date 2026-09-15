@@ -84,7 +84,10 @@
       );
 
       return {
-        hu_row_type: "locked",
+        // Contents, not provenance: an empty existing HU is a carton the
+        // operator can still pack into, and completing it loads into that
+        // same handling_unit record rather than minting a new one.
+        hu_row_type: preexistingEntries.length > 0 ? "locked" : "generated",
         source_hu_id: dialogRow.handling_unit_id,
         handling_unit_id: dialogRow.handling_unit_id,
         handling_no: dialogRow.handling_no || "",

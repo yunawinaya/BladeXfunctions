@@ -51,6 +51,12 @@
       );
       return;
     }
+    if (targetHu.hu_status === "Completed") {
+      this.$message.warning(
+        "Cannot nest an HU inside a completed HU.",
+      );
+      return;
+    }
 
     const sourceHuId = sourceHeader.handling_unit_id;
     if (!sourceHuId) {

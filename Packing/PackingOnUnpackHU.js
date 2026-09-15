@@ -244,6 +244,15 @@
           .update({ parent_hu_id: "" });
       }
 
+      // Emptied and no longer committed to this packing — release the claim so
+      // GD allocation and Repack stop treating it as taken.
+      if (row.handling_unit_id) {
+        await db
+          .collection("handling_unit")
+          .doc(row.handling_unit_id)
+          .update({ packing_id: "" });
+      }
+
       // Revert source HU locks (Completed / Picked → Unpacked) for Locked
       // and any nested_hu entries.
       const sourceHuIdsToRevert = new Set();
@@ -350,6 +359,24 @@
         ) {
           updates[`table_hu_source.${i}.hu_status`] = "Unpacked";
         }
+      }
+    }
+
+    // The row is leaving the packing. If this packing had claimed the HU
+    // (set at completion), release the claim — but only our own, since the
+    // picker can offer an HU another packing already holds.
+    if (row.handling_unit_id) {
+      const ownPackingId = this.getValue("id");
+      const huRes = await db
+        .collection("handling_unit")
+        .doc(row.handling_unit_id)
+        .get();
+      const huRec = Array.isArray(huRes?.data) ? huRes.data[0] : huRes?.data;
+      if (huRec && huRec.packing_id && huRec.packing_id === ownPackingId) {
+        await db
+          .collection("handling_unit")
+          .doc(row.handling_unit_id)
+          .update({ packing_id: "" });
       }
     }
 

@@ -37,6 +37,12 @@
       );
       return;
     }
+    if (targetHu.hu_status === "Completed") {
+      this.$message.warning(
+        "This HU is already completed and cannot receive more items.",
+      );
+      return;
+    }
 
     const existing = JSON.parse(targetHu.temp_data || "[]");
     const pickedIds = new Set();

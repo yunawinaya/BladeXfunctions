@@ -40,6 +40,12 @@
       );
       return;
     }
+    if (targetHu.hu_status === "Completed") {
+      this.$message.warning(
+        "This HU is already completed and cannot receive more items.",
+      );
+      return;
+    }
 
     if (!sourceRow.id) {
       this.$message.error(

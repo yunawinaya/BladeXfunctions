@@ -22,11 +22,18 @@ const rowIndex =
         await db
           .collection("handling_unit")
           .doc(lockedHuId)
-          .update({ hu_status: "Packed" });
+          .update({ hu_status: "Packed", packing_id: lockedPackingId });
 
-        await this.setData({
+        const lockedCompletedUpdates = {
           [`table_hu.${rowIndex}.hu_status`]: "Completed",
-        });
+          [`table_hu.${rowIndex}.select_hu`]: 0,
+        };
+        // A completed row must stop being the active pick target, or a later
+        // pick flips it back to "Packed" and the save re-completes it.
+        if (Number(this.getValue("selected_hu_index")) === rowIndex) {
+          lockedCompletedUpdates.selected_hu_index = -1;
+        }
+        await this.setData(lockedCompletedUpdates);
 
         if (row.source_hu_id) {
           const huSource = this.getValue("table_hu_source") || [];
@@ -178,6 +185,15 @@ const rowIndex =
     const huId = workflowResult.data.huId;
     const huNo = workflowResult.data.huNo;
 
+    // The repack sub-workflow writes packing_id on its ADD path only, so an HU
+    // we loaded into (row already carried an id) is never claimed. Stamp it.
+    if (row.handling_unit_id) {
+      await db
+        .collection("handling_unit")
+        .doc(huId)
+        .update({ packing_id: packingId });
+    }
+
     // Relink nested child HUs to the new parent.
     for (const nested of nestedHus) {
       if (!nested.nested_hu_id) continue;
@@ -187,11 +203,19 @@ const rowIndex =
         .update({ parent_hu_id: huId });
     }
 
-    await this.setData({
+    const completedUpdates = {
       [`table_hu.${rowIndex}.handling_unit_id`]: huId,
       [`table_hu.${rowIndex}.handling_no`]: huNo,
       [`table_hu.${rowIndex}.hu_status`]: "Completed",
-    });
+      [`table_hu.${rowIndex}.select_hu`]: 0,
+    };
+    // A completed row must stop being the active pick target, or a later pick
+    // flips it back to "Packed" and the save re-completes it — the repack
+    // UPDATE path then SUMS the already-loaded items onto themselves.
+    if (Number(this.getValue("selected_hu_index")) === rowIndex) {
+      completedUpdates.selected_hu_index = -1;
+    }
+    await this.setData(completedUpdates);
 
     // Flip table_hu_source rows (header + items) to Completed for each
     // nested child HU. Without this, PackingCompletedWorkflow's post-check
