@@ -3962,7 +3962,14 @@
                                 "right": 4,
                                 "pad": "*",
                                 "desensitization_pattern": "",
-                                "desensitization_replace": ""
+                                "desensitization_replace": "",
+                                "highFrequencyInput": false,
+                                "highFrequencyTimeField": "",
+                                "highFrequencyDuration": 30,
+                                "highFrequencyMinCount": 20,
+                                "highFrequencyMaxItems": 5,
+                                "highFrequencySortRule": 1,
+                                "select-card_4c8m22dh": []
                               },
                               "events": {
                                 "onChange": "",
@@ -3984,7 +3991,7 @@
                               "groupSort": 0,
                               "enableScopes": ["Component", "Table", "Page"],
                               "options": {
-                                "customClass": "",
+                                "customClass": "margin",
                                 "disabled": false,
                                 "labelWidth": 100,
                                 "isLabelWidth": false,
@@ -3998,7 +4005,7 @@
                                 "buttonName": "Refresh",
                                 "width": "",
                                 "customProps": {},
-                                "tip": "Re-read this currency's rate from the Currency master",
+                                "tip": "",
                                 "remoteFunc": "func_rfxrate1",
                                 "remoteOption": "option_rfxrate1",
                                 "tableColumn": false,
