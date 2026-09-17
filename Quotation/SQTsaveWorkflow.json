@@ -1451,6 +1451,16 @@
                         "body_params": {
                           "list": [
                             {
+                              "prop": "passNo",
+                              "propLabel": "passNo",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": 1,
+                              "valueLabel": ""
+                            },
+                            {
                               "prop": "sqt_id",
                               "propLabel": "sqt_id",
                               "operator": "",
@@ -4558,6 +4568,629 @@
         }
       },
       "blocks": []
+    },
+    {
+      "id": "code_node_SqtCascadeB_Gate",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Cascade Append Gate",
+        "isValidator": true,
+        "nodeName": "Cascade Append Gate",
+        "name": "Cascade Append Gate",
+        "script": {
+          "type": "javascript",
+          "code": "// Pass 2. A line added during this save had no row id while pass 1 ran, and the new order\n// line has to carry that id as sqt_line_id -- so the append waits until the quotation row\n// is written and code_node_S7Ynb4nr has re-read it with the platform-assigned ids in\n// place. Mirrors SOsaveWorkflow's code_node_CascadeB_Gate exactly.\nconst sqtDataRaw = {{node:code_node_S7Ynb4nr.data.sqtData}};\nconst prevSqtRaw = {{node:get_node_SqtPrev.data.data}};\nconst allData = {{workflowparams:data}};\n\nconst sqtData = Array.isArray(sqtDataRaw) ? sqtDataRaw[0] || null : sqtDataRaw || null;\nconst prevSqt = Array.isArray(prevSqtRaw) ? prevSqtRaw[0] || null : prevSqtRaw || null;\n\nconst flat = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\n\n// No stored quotation means this was an Add, and a brand new quotation has no order yet.\nif (!sqtData || !prevSqt) {\n  return {\n    needsAppend: 0, sqtId: \"\", prevTableSqt: [], nextTableSqt: [],\n    confirmPickReversal: \"\", raiseGdQty: \"\"\n  };\n}\n\nconst prevIds = {};\nflat(prevSqt.table_sqt).forEach((r) => { if (r && r.id) prevIds[sid(r.id)] = 1; });\nconst added = flat(sqtData.table_sqt).filter(\n  (r) => r && r.id && !prevIds[sid(r.id)] && r.material_id\n);\n\nreturn {\n  needsAppend: added.length ? 1 : 0,\n  sqtId: sid(sqtData.id || allData.id),\n  prevTableSqt: prevSqt.table_sqt || [],\n  nextTableSqt: sqtData.table_sqt || [],\n  confirmPickReversal: sid(allData.confirmPickReversal),\n  raiseGdQty: sid(allData.raiseGdQty)\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "sqtb_code_node_SqtCascadeB_Gate_needsAppend",
+            "name": "needsAppend",
+            "title": "needsAppend",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sqtb_code_node_SqtCascadeB_Gate_sqtId",
+            "name": "sqtId",
+            "title": "sqtId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtb_code_node_SqtCascadeB_Gate_prevTableSqt",
+            "name": "prevTableSqt",
+            "title": "prevTableSqt",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sqtb_code_node_SqtCascadeB_Gate_nextTableSqt",
+            "name": "nextTableSqt",
+            "title": "nextTableSqt",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sqtb_code_node_SqtCascadeB_Gate_confirmPickReversal",
+            "name": "confirmPickReversal",
+            "title": "confirmPickReversal",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtb_code_node_SqtCascadeB_Gate_raiseGdQty",
+            "name": "raiseGdQty",
+            "title": "raiseGdQty",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_SqtCascadeB",
+      "type": "if",
+      "data": {
+        "title": "IF Append Needed",
+        "isValidator": true,
+        "nodeName": "IF Append Needed",
+        "name": "IF Append Needed",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 194000000001,
+              "parentId": 194000000002,
+              "isTop": true,
+              "prop": "node.code_node_SqtCascadeB_Gate.data.needsAppend",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "needsAppend",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_SqtCascadeB_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "workflow_node_SqtCascadeB",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Append To Sales Order",
+                "isValidator": true,
+                "nodeName": "Append To Sales Order",
+                "name": "Append To Sales Order",
+                "workflow": {
+                  "source": "SQT_CASCADE:Workflow:2100512392867549185",
+                  "rules": {
+                    "collectionId": "2100512392867549185",
+                    "list": [
+                      {
+                        "id": 194000000003,
+                        "parentId": 194000000004,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "passNo",
+                      "propLabel": "passNo",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": 2,
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "sqt_id",
+                      "propLabel": "sqt_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SqtCascadeB_Gate.data.sqtId}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "prev_table_sqt",
+                      "propLabel": "prev_table_sqt",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SqtCascadeB_Gate.data.prevTableSqt}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "next_table_sqt",
+                      "propLabel": "next_table_sqt",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SqtCascadeB_Gate.data.nextTableSqt}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "organization_id",
+                      "propLabel": "organization_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{workflowparams:data.organization_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "confirmPickReversal",
+                      "propLabel": "confirmPickReversal",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SqtCascadeB_Gate.data.confirmPickReversal}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "raiseGdQty",
+                      "propLabel": "raiseGdQty",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SqtCascadeB_Gate.data.raiseGdQty}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_SqtCascadeBOut",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Cascade Append Payload",
+                "isValidator": true,
+                "nodeName": "Cascade Append Payload",
+                "name": "Cascade Append Payload",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Same HTTP-200-with-the-code-in-the-body contract as pass 1's gate payload.\nreturn {\n  gate: {\n    gateCode: {{node:workflow_node_SqtCascadeB.data.code}} || \"\",\n    message: {{node:workflow_node_SqtCascadeB.data.message}} || \"\"\n  }\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "sqtb_code_node_SqtCascadeBOut_gate",
+                    "name": "gate",
+                    "title": "gate",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_SqtCascadeBRaise",
+              "type": "if",
+              "data": {
+                "title": "IF Append Raise",
+                "isValidator": true,
+                "nodeName": "IF Append Raise",
+                "name": "IF Append Raise",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 194000000005,
+                      "parentId": 194000000006,
+                      "isTop": true,
+                      "prop": "node.workflow_node_SqtCascadeB.data.blockSignal",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 3,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "blockSignal",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_SqtCascadeBRaise_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_node_SqtCascadeBRaise",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "OutputParams",
+                        "code": "",
+                        "msg": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "sqt_id",
+                              "propLabel": "sqt_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "sqt_no",
+                              "propLabel": "sqt_no",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.sqt_no}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "gate",
+                              "propLabel": "gate",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SqtCascadeBOut.data.gate}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "pickingReversalNote",
+                              "propLabel": "pickingReversalNote",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_SqtCascadeBRaise_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_SqtCascadeBReversal",
+              "type": "if",
+              "data": {
+                "title": "IF Append Reversal",
+                "isValidator": true,
+                "nodeName": "IF Append Reversal",
+                "name": "IF Append Reversal",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 194000000007,
+                      "parentId": 194000000008,
+                      "isTop": true,
+                      "prop": "node.workflow_node_SqtCascadeB.data.blockSignal",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 2,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "blockSignal",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_SqtCascadeBReversal_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_node_SqtCascadeBReversal",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "OutputParams",
+                        "code": "",
+                        "msg": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "sqt_id",
+                              "propLabel": "sqt_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "sqt_no",
+                              "propLabel": "sqt_no",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.sqt_no}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "gate",
+                              "propLabel": "gate",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SqtCascadeBOut.data.gate}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "pickingReversalNote",
+                              "propLabel": "pickingReversalNote",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_SqtCascadeBReversal_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_SqtCascadeBFailed",
+              "type": "if",
+              "data": {
+                "title": "IF Append Failed",
+                "isValidator": true,
+                "nodeName": "IF Append Failed",
+                "name": "IF Append Failed",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 194000000009,
+                      "parentId": 194000000010,
+                      "isTop": true,
+                      "prop": "node.workflow_node_SqtCascadeB.data.blockSignal",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "blockSignal",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_SqtCascadeBFailed_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_node_SqtCascadeBFailed",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "OutputParams",
+                        "code": "",
+                        "msg": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "sqt_id",
+                              "propLabel": "sqt_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "sqt_no",
+                              "propLabel": "sqt_no",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.sqt_no}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "gate",
+                              "propLabel": "gate",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SqtCascadeBOut.data.gate}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "pickingReversalNote",
+                              "propLabel": "pickingReversalNote",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_SqtCascadeBFailed_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_SqtCascadeB_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "code_node_SqtReturn",
