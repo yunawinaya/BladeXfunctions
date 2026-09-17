@@ -862,8 +862,14 @@ return {
 REDIS_KEY = REDIS_PREFIX + "{{node:code_unique.data.unique}}"
 
 def LANE_KEY(i):
-    """Each lane owns its accumulator, so concurrent lanes never clobber each other."""
-    return "%s_L%d" % (REDIS_KEY, i)
+    """Each lane owns its accumulator, so concurrent lanes never clobber each other.
+
+    The lane number goes in the PREFIX so the key still ENDS on the placeholder.
+    208 of the 209 redis keys in this repo end on a placeholder; the one that does
+    not has no prefix. `prefix_{{ph}}_suffix` crashed the run with
+    "Index 0 out of bounds for length 0" at the first cache node.
+    """
+    return "%sL%d_%s" % (REDIS_PREFIX, i, "{{node:code_unique.data.unique}}")
 
 nodes = [
     start_node(),
