@@ -1169,7 +1169,7 @@
         "name": "Fillback Header Fields",
         "script": {
           "type": "javascript",
-          "code": "let updatedLineItem = [];\nlet customerName = \"\";\nlet table = {{workflowparams:data.sqt_status}} == 'Draft' ? {{node:code_node_UBbCdEPT.data.table}} : {{node:code_node_CO6q7Vm4.data.table}};\n\nif (table.customer_type === \"Existing Customer\") {\n  customerName = {{node:get_node_ka9vQdgM.data.data.customer_com_name}}\n} else {\n  customerName = {{node:code_node_RJdYLy0i.data.customer_name}}\n}\n\nfor(const [index, sqtLineItem] of table.table_sqt.entries()) {\n  // Create a new object with formatted values\n  const formattedItem = {\n    // Copy all existing properties\n    ...sqtLineItem,\n    \n    // Apply number formatting to numeric fields\n    quantity: parseFloat(sqtLineItem.quantity?.toFixed(3)) || 0,\n    unit_price: parseFloat(sqtLineItem.unit_price?.toFixed(4)) || 0,\n    sqt_gross: parseFloat(sqtLineItem.sqt_gross?.toFixed(4)) || 0,\n    sqt_discount: parseFloat(sqtLineItem.sqt_discount?.toFixed(4)) || 0,\n    sqt_discount_amount: parseFloat(sqtLineItem.sqt_discount_amount?.toFixed(4)) || 0,\n    sqt_taxes_fee_amount: parseFloat(sqtLineItem.sqt_taxes_fee_amount?.toFixed(4)) || 0,\n    total_price: parseFloat(sqtLineItem.total_price?.toFixed(4)) || 0,\n    \n    // Override with new field assignments\n    customer_id: table.sqt_customer_id || null,\n    plant_id: table.sqt_plant || null,\n    payment_term_id: table.sqt_payment_term || null,\n    sales_person_id: table.sales_person_id || null,\n    area_id: table.sqt_area_id || null,\n    billing_state_id: table.billing_address_state || null,\n    billing_country_id: table.billing_address_country || null,\n    shipping_state_id: table.shipping_address_state || null,\n    shipping_country_id: table.shipping_address_country || null,\n    customer_name: customerName,\n    line_index: index + 1,\n    organization_id: table.organization_id,\n    access_group: table.access_group || [],\n    agent_user_id: table.agent_user_id || null,\n    expected_shipment_date: sqtLineItem.expected_shipment_date ? sqtLineItem.expected_shipment_date : table.expected_shipment_date\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\ntable.need_cl = '';\ntable.table_sqt = updatedLineItem;\nreturn {table};"
+          "code": "let updatedLineItem = [];\nlet customerName = \"\";\nlet table = {{workflowparams:data.sqt_status}} == 'Draft' ? {{node:code_node_UBbCdEPT.data.table}} : {{node:code_node_CO6q7Vm4.data.table}};\n\nif (table.customer_type === \"Existing Customer\") {\n  customerName = {{node:get_node_ka9vQdgM.data.data.customer_com_name}}\n} else {\n  customerName = {{node:code_node_RJdYLy0i.data.customer_name}}\n}\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  customer_id: table.sqt_customer_id || null,\n  plant_id: table.sqt_plant || null,\n  payment_term_id: table.sqt_payment_term || null,\n  sales_person_id: table.sales_person_id || null,\n  area_id: table.sqt_area_id || null,\n  billing_state_id: table.billing_address_state || null,\n  billing_country_id: table.billing_address_country || null,\n  shipping_state_id: table.shipping_address_state || null,\n  shipping_country_id: table.shipping_address_country || null,\n  customer_name: customerName,\n  organization_id: table.organization_id,\n  access_group: table.access_group || [],\n  agent_user_id: table.agent_user_id || null,\n};\n\nconst formatLine = (sqtLineItem) => ({\n  // Copy all existing properties\n  ...sqtLineItem,\n\n  // Apply number formatting to numeric fields\n  quantity: parseFloat(sqtLineItem.quantity || 0),\n  unit_price: parseFloat(sqtLineItem.unit_price || 0),\n  sqt_gross: parseFloat(sqtLineItem.sqt_gross || 0),\n  sqt_discount: parseFloat(sqtLineItem.sqt_discount || 0),\n  sqt_discount_amount: parseFloat(sqtLineItem.sqt_discount_amount || 0),\n  sqt_taxes_fee_amount: parseFloat(sqtLineItem.sqt_taxes_fee_amount || 0),\n  total_price: parseFloat(sqtLineItem.total_price || 0),\n\n  expected_shipment_date: sqtLineItem.expected_shipment_date ? sqtLineItem.expected_shipment_date : table.expected_shipment_date,\n});\n\nfor (const [index, sqtLineItem] of table.table_sqt.entries()) {\n  const formattedItem = {\n    ...formatLine(sqtLineItem),\n    ...commonFields,\n    line_index: index + 1,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(sqtLineItem.children) && {\n      children: sqtLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\ntable.need_cl = '';\ntable.table_sqt = updatedLineItem;\nreturn {table};\n"
         },
         "response_json": [
           {
@@ -2409,6 +2409,15 @@
                       "valueLabel": "",
                       "propLabel": "Posted Status",
                       "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_description",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_description}}",
+                      "is_negative_number": false,
+                      "valueLabel": "",
+                      "propLabel": "Description"
                     }
                   ]
                 }
@@ -3647,6 +3656,15 @@
                       "valueLabel": "",
                       "propLabel": "Posted Status",
                       "is_negative_number": false
+                    },
+                    {
+                      "prop": "sqt_description",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.sqt_description}}",
+                      "is_negative_number": false,
+                      "valueLabel": "",
+                      "propLabel": "Description"
                     }
                   ]
                 }
