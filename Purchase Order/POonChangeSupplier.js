@@ -69,6 +69,7 @@ const fetchLatestPricing = async (
   const newSupplierId = arguments[0].value;
 
   this.disabled("table_po", !newSupplierId);
+  this.getComponent('table_po').hideChildRecord();
 
   const tablePO = this.getValue("table_po");
 
@@ -98,19 +99,22 @@ const fetchLatestPricing = async (
           document_type: "PO",
           supp_cust_id: newSupplierId,
           plant_id: plantID,
+          // Map first to keep the real row position, then skip the rows with
+          // no item -- a bundle parent has an empty item_id.
           item_data: tablePO.map((item, index) => {
-            return {
-              item_id: item.item_id,
-              unit_price: item.unit_price,
-              line_index: index,
-              uom_id: item.quantity_uom,
-              tax_rate: item.tax_preference || null,
-              tax_percent: item.tax_percent || null,
-              quantity: item.quantity,
-              discount: item.discount,
-              discount_uom: item.discount_uom,
-            };
-          }),
+              return {
+                item_id: item.item_id,
+                unit_price: item.unit_price,
+                line_index: index,
+                uom_id: item.quantity_uom,
+                tax_rate: item.tax_preference || null,
+                tax_percent: item.tax_percent || null,
+                quantity: item.quantity,
+                discount: item.discount,
+                discount_uom: item.discount_uom,
+              };
+            })
+            .filter((row) => row.item_id),
         },
         async (result) => {
           console.log("result", result);
@@ -193,6 +197,7 @@ const fetchLatestPricing = async (
       "exchange_rate",
       "exchange_rate_myr",
       "exchange_rate_currency",
+      "button_refresh_rate",
       "myr_total_amount",
       "total_amount_myr",
     ]);
@@ -213,6 +218,7 @@ const fetchLatestPricing = async (
         "exchange_rate",
         "exchange_rate_myr",
         "exchange_rate_currency",
+        "button_refresh_rate",
         "myr_total_amount",
         "total_amount_myr",
       ]);
@@ -222,6 +228,7 @@ const fetchLatestPricing = async (
         "exchange_rate",
         "exchange_rate_myr",
         "exchange_rate_currency",
+        "button_refresh_rate",
         "myr_total_amount",
         "total_amount_myr",
       ]);

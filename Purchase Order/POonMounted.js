@@ -47,6 +47,7 @@ const displayCurrency = async () => {
       "exchange_rate",
       "exchange_rate_myr",
       "exchange_rate_currency",
+      "button_refresh_rate",
       "myr_total_amount",
       "total_amount_myr",
     ]);
@@ -139,6 +140,7 @@ const disabledEditField = async (status) => {
         "shipping_address_country",
         "exchange_rate",
         "myr_total_amount",
+        "button_refresh_rate",
       ],
       true,
     );
@@ -148,6 +150,7 @@ const disabledEditField = async (status) => {
       "link_shipping_address",
       "button_save_as_draft",
       "button_save_as_issue",
+      "button_refresh_rate",
     ]);
   } else if (status === "Issued") {
     this.hide("button_save_as_draft");
@@ -157,7 +160,7 @@ const disabledEditField = async (status) => {
 const cloneResetQuantity = async (data) => {
   const tablePO = this.getValue("table_po");
 
-  for (const po of tablePO) {
+  const resetLineQuantity = (po) => {
     po.received_qty = 0;
     po.created_received_qty = 0;
     po.return_quantity = 0;
@@ -169,6 +172,19 @@ const cloneResetQuantity = async (data) => {
     po.preq_id = "";
     po.line_status = "";
     po.pi_status = "";
+  };
+
+  for (const po of tablePO) {
+    resetLineQuantity(po);
+
+    // An item bundle is one row with its items under `children`. The items are
+    // lines in their own right and carry the same received / invoiced
+    // quantities, so a clone has to clear theirs too.
+    const bundleChildren = Array.isArray(po.children) ? po.children : [];
+
+    for (const child of bundleChildren) {
+      resetLineQuantity(child);
+    }
   }
 
   data["table_po"] = tablePO;
@@ -250,6 +266,7 @@ const checkAccIntegrationType = async (organizationId, data) => {
       "exchange_rate",
       "exchange_rate_myr",
       "exchange_rate_currency",
+      "button_refresh_rate",
       "myr_total_amount",
       "total_amount_myr",
     ]);
@@ -339,6 +356,7 @@ const checkAccIntegrationType = async (organizationId, data) => {
     }
 
     this.setData(data);
+    this.getComponent("table_po")?.hideChildRecord();
     this.refreshFieldOptionData("po_plant");
   } catch (error) {
     this.$message.error(error);
