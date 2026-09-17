@@ -2409,6 +2409,23 @@
               "collapse": 1
             },
             {
+              "title": "Import Item",
+              "permission": "item_bulk_import",
+              "icon": "upload",
+              "type": "custom",
+              "showBottomBar": 1,
+              "dialogPosition": "center",
+              "dialogWidth": "",
+              "close_on_click_modal": 1,
+              "events": [
+                {
+                  "key": "u8tg5cgd",
+                  "name": "onCustom7rq6zmn4func_u8tg5cgd"
+                }
+              ],
+              "collapse": 1
+            },
+            {
               "title": "",
               "permission": "",
               "icon": "",
@@ -3174,6 +3191,301 @@
       "key": "oejltcyo",
       "model": "dialog_update",
       "rules": []
+    },
+    {
+      "version": "1.0.0",
+      "type": "dialog",
+      "mainIcon": "对话框",
+      "typeIcon": "对话框",
+      "icon": "icon-Dialog",
+      "group": "Container",
+      "groupSort": 2,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "defaultValue": {},
+        "visible": false,
+        "drawerMode": false,
+        "customClass": "",
+        "title": "Import Item",
+        "width": "50%",
+        "top": "15vh",
+        "center": false,
+        "cancelText": "Cancel",
+        "showClose": false,
+        "okText": "Import",
+        "showCancel": true,
+        "showOk": true,
+        "confirmLoading": false,
+        "dataBind": true,
+        "remoteFunc": "func_itq9pajx",
+        "remoteOption": "option_itq9pajx",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": ""
+      },
+      "list": [
+        {
+          "version": "1.0.0",
+          "type": "utext",
+          "el": "su-fm-text",
+          "mainIcon": "文字",
+          "typeIcon": "文字",
+          "icon": "icon-wenzishezhi-",
+          "group": "Design",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "dataBind": false,
+            "defaultValue": "<b>Columns:</b> Item Code · <b>Item Name</b> · Description · <b>Item Category</b> · <b>Base UOM</b> · Item Properties · Item Type · Stock Control · Active · Barcode · Item Group<br>Bold = required. Blank Item Code → auto-numbered. One row = one item. Any invalid row blocks the whole file.",
+            "customClass": "",
+            "hidden": false,
+            "isRich": true,
+            "padding": ["", "", "", ""],
+            "margin": ["", "", "12px", ""],
+            "boxSizing": "border-box",
+            "width": "",
+            "maxWidth": "",
+            "lineHeight": "20px",
+            "color": "#8C8C8C",
+            "fontSize": "13px",
+            "fontWeight": "400",
+            "textAlign": "left",
+            "fontStyle": "",
+            "textOverflow": "",
+            "whiteSpace": "",
+            "lines": 0,
+            "radius": ["", "", "", ""],
+            "position": "",
+            "positions": ["", "", "", ""],
+            "zIndex": "",
+            "flex": "",
+            "flexGrow": "",
+            "flexShrink": "",
+            "fills": [],
+            "borders": [],
+            "effects": [],
+            "states": [],
+            "styleFx": "",
+            "remoteFunc": "func_9v87nn4z",
+            "remoteOption": "option_9v87nn4z",
+            "tableColumn": false,
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
+          },
+          "events": {
+            "onClick": ""
+          },
+          "name": "Text",
+          "novalid": {},
+          "key": "9v87nn4z",
+          "model": "import_help_text",
+          "rules": []
+        },
+        {
+          "version": "1.0.0",
+          "name": "Excel",
+          "el": "su-fm-excel-parse",
+          "mainIcon": "解析Excel",
+          "typeIcon": "解析Excel",
+          "group": "File",
+          "groupSort": 3,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": false,
+            "required": false,
+            "validator": "",
+            "disabled": false,
+            "hideLabel": false,
+            "label": "解析Excel",
+            "width": null,
+            "height": null,
+            "placeholder": "Click to Upload Excel",
+            "buttonSize": "default",
+            "buttonType": "primary",
+            "buttonPlain": false,
+            "buttonRound": false,
+            "buttonCircle": false,
+            "action": "/su-code-service/io/convertExcelToJson",
+            "accept": ".xlsx,.xls",
+            "headers": [],
+            "customProps": {
+              "valueType": "array",
+              "arrayType": "object",
+              "buttonText": "Upload Excel",
+              "uploadingText": "Uploading..."
+            },
+            "remoteFunc": "func_bxcjhsb5",
+            "remoteOption": "option_bxcjhsb5",
+            "tableColumn": false,
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
+          },
+          "events": {
+            "onUploadSuccess": "rb9rg9n2",
+            "onUploadError": "4irat5hf",
+            "onFocus": "",
+            "onBlur": "",
+            "change": ""
+          },
+          "source": "system",
+          "type": "custom",
+          "key": "bxcjhsb5",
+          "model": "import_file",
+          "rules": [],
+          "novalid": {}
+        },
+        {
+          "version": "1.0.0",
+          "type": "utext",
+          "el": "su-fm-text",
+          "mainIcon": "文字",
+          "typeIcon": "文字",
+          "icon": "icon-wenzishezhi-",
+          "group": "Design",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "dataBind": false,
+            "defaultValue": "Upload successfully",
+            "customClass": "",
+            "hidden": true,
+            "isRich": false,
+            "padding": ["", "", "", ""],
+            "margin": ["", "", "", "180px"],
+            "boxSizing": "border-box",
+            "width": "",
+            "maxWidth": "",
+            "lineHeight": "",
+            "color": "#73D13D",
+            "fontSize": "14px",
+            "fontWeight": "700",
+            "textAlign": "left",
+            "fontStyle": "",
+            "textOverflow": "",
+            "whiteSpace": "",
+            "lines": 0,
+            "radius": ["", "", "", ""],
+            "position": "",
+            "positions": ["", "", "", ""],
+            "zIndex": "",
+            "flex": "",
+            "flexGrow": "",
+            "flexShrink": "",
+            "fills": [],
+            "borders": [],
+            "effects": [],
+            "states": [],
+            "styleFx": "",
+            "remoteFunc": "func_a57kwqom",
+            "remoteOption": "option_a57kwqom",
+            "tableColumn": false,
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
+          },
+          "events": {
+            "onClick": ""
+          },
+          "name": "Text",
+          "novalid": {},
+          "key": "a57kwqom",
+          "model": "import_ok_text",
+          "rules": []
+        },
+        {
+          "version": "1.0.0",
+          "type": "utext",
+          "el": "su-fm-text",
+          "mainIcon": "文字",
+          "typeIcon": "文字",
+          "icon": "icon-wenzishezhi-",
+          "group": "Design",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "dataBind": false,
+            "defaultValue": "Upload failed",
+            "customClass": "",
+            "hidden": true,
+            "isRich": false,
+            "padding": ["", "", "", ""],
+            "margin": ["", "", "", "180px"],
+            "boxSizing": "border-box",
+            "width": "",
+            "maxWidth": "",
+            "lineHeight": "",
+            "color": "#FF4D4F",
+            "fontSize": "14px",
+            "fontWeight": "700",
+            "textAlign": "left",
+            "fontStyle": "",
+            "textOverflow": "",
+            "whiteSpace": "",
+            "lines": 0,
+            "radius": ["", "", "", ""],
+            "position": "",
+            "positions": ["", "", "", ""],
+            "zIndex": "",
+            "flex": "",
+            "flexGrow": "",
+            "flexShrink": "",
+            "fills": [],
+            "borders": [],
+            "effects": [],
+            "states": [],
+            "styleFx": "",
+            "remoteFunc": "func_03mcy6pn",
+            "remoteOption": "option_03mcy6pn",
+            "tableColumn": false,
+            "subform": false,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": ""
+          },
+          "events": {
+            "onClick": ""
+          },
+          "name": "Text",
+          "novalid": {},
+          "key": "03mcy6pn",
+          "model": "import_fail_text",
+          "rules": []
+        }
+      ],
+      "events": {
+        "onConfirm": "kych6eln",
+        "onCancel": "gy927c9d"
+      },
+      "name": "Import Item",
+      "key": "itq9pajx",
+      "model": "dialog_item_import",
+      "rules": []
     }
   ],
   "config": {
@@ -3467,6 +3779,105 @@
               "condition": "",
               "isCondition": false,
               "field": "dialog_update"
+            }
+          }
+        ]
+      },
+      {
+        "key": "u8tg5cgd",
+        "name": "onCustom7rq6zmn4func_u8tg5cgd",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "5z2jyri3",
+            "action": "openDialog",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "dialog_item_import"
+            }
+          },
+          {
+            "key": "3jysj9xu",
+            "action": "js",
+            "options": {
+              "func": "this.setData({ 'dialog_item_import.import_file': '' });\nthis.hide(['dialog_item_import.import_ok_text', 'dialog_item_import.import_fail_text']);"
+            }
+          }
+        ]
+      },
+      {
+        "key": "rb9rg9n2",
+        "name": "onImportFileUploadSuccess_rb9rg9n2",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "batprqtf",
+            "action": "display",
+            "options": {
+              "fields": ["dialog_item_import.import_ok_text"],
+              "condition": "",
+              "isCondition": false
+            }
+          },
+          {
+            "key": "g1dq6lru",
+            "action": "hide",
+            "options": {
+              "fields": ["dialog_item_import.import_fail_text"],
+              "condition": "",
+              "isCondition": false
+            }
+          }
+        ]
+      },
+      {
+        "key": "4irat5hf",
+        "name": "onImportFileUploadError_4irat5hf",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "82sjy5p6",
+            "action": "hide",
+            "options": {
+              "fields": ["dialog_item_import.import_ok_text"],
+              "condition": "",
+              "isCondition": false
+            }
+          },
+          {
+            "key": "eem00oej",
+            "action": "display",
+            "options": {
+              "fields": ["dialog_item_import.import_fail_text"],
+              "condition": "",
+              "isCondition": false
+            }
+          }
+        ]
+      },
+      {
+        "key": "kych6eln",
+        "name": "onDialogItemImportConfirm_kych6eln",
+        "func": "(async () => {\n  const ITEM_BULK_IMPORT_WORKFLOW_ID = \"2100466107330400257\";\n\n  const DIALOG = \"dialog_item_import\";\n  const FILE_FIELD = DIALOG + \".import_file\";\n\n  const clearImport = () => {\n    this.setData({ [FILE_FIELD]: \"\" });\n    this.hide([DIALOG + \".import_ok_text\", DIALOG + \".import_fail_text\"]);\n  };\n\n  // The workflow already escapes the values it interpolates, but anything this\n  // file adds to an HTML alert goes through here too.\n  const escapeHtml = (s) =>\n    String(s === undefined || s === null ? \"\" : s).replace(\n      /[&<>\"']/g,\n      (c) =>\n        ({\n          \"&\": \"&amp;\",\n          \"<\": \"&lt;\",\n          \">\": \"&gt;\",\n          '\"': \"&quot;\",\n          \"'\": \"&#39;\",\n        })[c],\n    );\n\n  try {\n    const file = this.getValue(FILE_FIELD);\n\n    // The parser emits an object keyed \"0\",\"1\",\"2\"... plus name/size/type meta\n    // keys, so \"has rows\" is \"has at least one numeric key\".\n    const hasRows =\n      Array.isArray(file)\n        ? file.length > 0\n        : !!file &&\n          typeof file === \"object\" &&\n          Object.keys(file).some((k) => /^\\d+$/.test(k));\n\n    if (!hasRows) {\n      this.$message.error(\"Upload an Excel file before importing.\");\n      return;\n    }\n\n    const organizationId =\n      this.getVarGlobal(\"deptParentId\") ||\n      String(this.getVarSystem(\"deptIds\") || \"\").split(\",\")[0];\n\n    if (!organizationId) {\n      this.$message.error(\"Organization is required to import items.\");\n      return;\n    }\n\n    this.showLoading(\"Importing Items...\");\n\n    this.runWorkflow(\n      ITEM_BULK_IMPORT_WORKFLOW_ID,\n      {\n        import_file: JSON.stringify(file),\n        organization_id: organizationId,\n      },\n      (res) => {\n        this.hideLoading();\n\n        const out = (res && res.data && res.data.data) || (res && res.data) || {};\n        const code = String(out.code || \"\");\n        const message = out.message || \"\";\n\n        if (code === \"402\") {\n          // Some rows were created and some were not. Keep the dialog open so\n          // the file is still in front of the user, and refresh so the Item\n          // list shows exactly what landed.\n          this.refresh();\n          this.$alert(escapeHtml(message), \"Imported with problems\", {\n            dangerouslyUseHTMLString: true,\n            confirmButtonText: \"OK\",\n          }).catch(() => {});\n          return;\n        }\n\n        this.$message.success(message || \"Items imported successfully.\");\n        clearImport();\n        this.closeDialog(DIALOG);\n        this.refresh();\n      },\n      (err) => {\n        this.hideLoading();\n        console.error(\"Item bulk import failed\", err);\n\n        // code_parse and code_build both block the whole file with 401 and an\n        // HTML-formatted list of what to fix.\n        const detail = (err && err.data) || {};\n        if (Number(detail.code) === 401 && detail.msg) {\n          this.$alert(detail.msg, \"Import failed\", {\n            dangerouslyUseHTMLString: true,\n            confirmButtonText: \"OK\",\n          }).catch(() => {});\n        } else {\n          this.$message.error(detail.msg || \"Failed to import items.\");\n        }\n        clearImport();\n      },\n    );\n  } catch (error) {\n    this.hideLoading();\n    console.error(\"Item bulk import failed\", error);\n    this.$message.error(error.message || String(error));\n    clearImport();\n  }\n})();\n",
+        "type": "js"
+      },
+      {
+        "key": "gy927c9d",
+        "name": "onDialogItemImportCancel_gy927c9d",
+        "func": "",
+        "type": "rule",
+        "rules": [
+          {
+            "key": "stpg2o38",
+            "action": "closeDialog",
+            "options": {
+              "condition": "",
+              "isCondition": false,
+              "field": "dialog_item_import"
             }
           }
         ]

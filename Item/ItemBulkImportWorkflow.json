@@ -1,0 +1,1356 @@
+{
+ "request_json": [
+  {
+   "key": "95aiak0w",
+   "name": "import_file",
+   "title": "Import File",
+   "description": "Parsed Excel JSON from su-fm-excel-parse",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "8ag8gcsb",
+   "name": "organization_id",
+   "title": "Organization",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "pr5g2m9o",
+   "name": "code",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "w70s2d7a",
+   "name": "message",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "2fz84d3w",
+   "name": "created",
+   "title": "",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "b9npeolc",
+   "name": "createdCount",
+   "title": "",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node",
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_parse",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "1. Parse Excel Rows",
+    "isValidator": true,
+    "nodeName": "1. Parse Excel Rows",
+    "name": "1. Parse Excel Rows",
+    "script": {
+     "type": "javascript",
+     "code": "const raw = {{workflowparams:import_file}};\n\n// Keeps one file well inside the search-node limits below, and gives a clean\n// error instead of a silent \"name not found\" from a truncated lookup.\nconst MAX_ROWS = 500;\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\n\n// Same normalised header lookup as ItemCustBindImport.js: \"Item Code\",\n// \"item_code\" and \"ITEMCODE\" all collapse to the same key. (GR's importers match\n// byte-for-byte and silently blank out on a case mismatch.)\nconst normKey = (k) =>\n  String(k || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9]/g, '');\n\nconst HEADERS = {\n  code: ['itemcode'],\n  name: ['itemname'],\n  desc: ['description', 'itemdescription', 'desc'],\n  category: ['itemcategory', 'materialcategory', 'category'],\n  uom: ['baseuom', 'basedoum', 'uom'],\n  properties: ['itemproperties', 'itemproperty', 'properties'],\n  type: ['itemtype', 'type'],\n  stock: ['stockcontrol'],\n  active: ['active', 'isactive'],\n  barcode: ['barcode', 'barcodenumber'],\n  group: ['itemgroup', 'group']\n};\n\nconst pick = (normRow, names) => {\n  for (const n of names) {\n    if (normRow[n] !== undefined) {\n      const v = str(normRow[n]);\n      if (v) return v;\n    }\n  }\n  return '';\n};\n\nlet excelData = raw;\nif (typeof excelData === 'string') {\n  try {\n    excelData = JSON.parse(excelData);\n  } catch (e) {\n    excelData = null;\n  }\n}\n\n// The parser emits an object keyed \"0\",\"1\",\"2\"... alongside name/size/type meta\n// keys; a plain array is accepted too. Line 1 is consumed as the header row, so\n// data index 0 is spreadsheet line 2.\nlet rawRows = [];\nif (Array.isArray(excelData)) {\n  rawRows = excelData.map((data, i) => ({ seq: i + 2, data: data || {} }));\n} else if (excelData && typeof excelData === 'object') {\n  rawRows = Object.keys(excelData)\n    .filter((k) => /^\\d+$/.test(k))\n    .map((k) => parseInt(k, 10))\n    .sort((a, b) => a - b)\n    .map((k) => ({ seq: k + 2, data: excelData[k] || {} }));\n}\n\nconst rows = [];\nfor (const r of rawRows) {\n  const normRow = {};\n  Object.keys(r.data).forEach((k) => {\n    normRow[normKey(k)] = r.data[k];\n  });\n\n  const row = {\n    seq: r.seq,\n    itemCode: pick(normRow, HEADERS.code),\n    itemName: pick(normRow, HEADERS.name),\n    itemDesc: pick(normRow, HEADERS.desc),\n    categoryName: pick(normRow, HEADERS.category),\n    uomName: pick(normRow, HEADERS.uom),\n    properties: pick(normRow, HEADERS.properties),\n    itemType: pick(normRow, HEADERS.type),\n    stockControl: pick(normRow, HEADERS.stock),\n    active: pick(normRow, HEADERS.active),\n    barcode: pick(normRow, HEADERS.barcode),\n    groupName: pick(normRow, HEADERS.group)\n  };\n\n  // Trailing/blank spreadsheet rows are ignored, not reported.\n  const filled = Object.keys(row).some((k) => k !== 'seq' && row[k] !== '');\n  if (filled) rows.push(row);\n}\n\n// An empty array in an `equalAny` filter is unsafe; \"0\" matches nothing.\nconst blocked = (message) => ({\n  rows: [],\n  itemCodes: ['0'],\n  uomNames: ['0'],\n  categoryNames: ['0'],\n  groupNames: ['0'],\n  hasRows: 'N',\n  message: message\n});\n\nif (rows.length === 0) {\n  return blocked('No data found in the imported file.');\n}\n\nif (rows.length > MAX_ROWS) {\n  return blocked(\n    'The file has ' + rows.length + ' rows. Import at most ' + MAX_ROWS +\n      ' items per file.'\n  );\n}\n\nconst distinct = (list) => {\n  const out = [];\n  list.forEach((v) => {\n    if (v && out.indexOf(v) === -1) out.push(v);\n  });\n  return out.length > 0 ? out : ['0'];\n};\n\nreturn {\n  rows: rows,\n  itemCodes: distinct(rows.map((r) => r.itemCode)),\n  uomNames: distinct(rows.map((r) => r.uomName)),\n  categoryNames: distinct(rows.map((r) => r.categoryName)),\n  groupNames: distinct(rows.map((r) => r.groupName)),\n  hasRows: 'Y',\n  message: ''\n};"
+    },
+    "response_json": [
+     {
+      "key": "itq9pajx",
+      "name": "rows",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9v87nn4z",
+      "name": "itemCodes",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "bxcjhsb5",
+      "name": "uomNames",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "a57kwqom",
+      "name": "categoryNames",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "03mcy6pn",
+      "name": "groupNames",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "u8tg5cgd",
+      "name": "hasRows",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rb9rg9n2",
+      "name": "message",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_no_rows",
+   "type": "if",
+   "data": {
+    "title": "Nothing To Import?",
+    "isValidator": true,
+    "nodeName": "Nothing To Import?",
+    "name": "Nothing To Import?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1800000000001,
+       "parentId": 1800000000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_parse.data.hasRows}}' == 'N'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_no_rows_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_no_rows_401",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 401,
+        "msg": {
+         "type": "javascript",
+         "code": "{{node:code_parse.data.message}}"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_no_rows_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "par_lookups",
+   "type": "condition-all-node",
+   "data": {
+    "title": "Parallel Lookups",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cai_uom",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "UOM",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000027,
+         "parentId": 1800000000028,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "UOM",
+      "name": "UOM",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "search_uom",
+       "type": "search-node",
+       "data": {
+        "table_id": {
+         "source": "UOM:Table:1901805375573839874",
+         "rules": {
+          "collectionId": "1901805375573839874",
+          "list": [
+           {
+            "id": 1800000000003,
+            "parentId": 1800000000004,
+            "isTop": true,
+            "type": "branch",
+            "operator": "all",
+            "prop": "",
+            "valueType": "",
+            "value": "",
+            "level": 1,
+            "children": [
+             {
+              "prop": "uom_name",
+              "operator": "equalAny",
+              "valueType": "field",
+              "value": "{{node:code_parse.data.uomNames}}",
+              "propLabel": "uom_name",
+              "valueLabel": "",
+              "operatorLabel": "equalAny",
+              "id": 1800000000005,
+              "parentId": 1800000000003,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             },
+             {
+              "prop": "organization_id",
+              "operator": "equal",
+              "valueType": "field",
+              "value": "{{workflowparams:organization_id}}",
+              "propLabel": "organization_id",
+              "valueLabel": "",
+              "operatorLabel": "equal",
+              "id": 1800000000006,
+              "parentId": 1800000000003,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             }
+            ]
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 200,
+        "title": "Get UOMs",
+        "isValidator": true,
+        "nodeName": "Get UOMs",
+        "name": "Get UOMs"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_category",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Item Category",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000029,
+         "parentId": 1800000000030,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Item Category",
+      "name": "Item Category",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "search_category",
+       "type": "search-node",
+       "data": {
+        "table_id": {
+         "source": "Material Category:Table:1901981572257665025",
+         "rules": {
+          "collectionId": "1901981572257665025",
+          "list": [
+           {
+            "id": 1800000000007,
+            "parentId": 1800000000008,
+            "isTop": true,
+            "type": "branch",
+            "operator": "all",
+            "prop": "",
+            "valueType": "",
+            "value": "",
+            "level": 1,
+            "children": [
+             {
+              "prop": "mat_cat_name",
+              "operator": "equalAny",
+              "valueType": "field",
+              "value": "{{node:code_parse.data.categoryNames}}",
+              "propLabel": "mat_cat_name",
+              "valueLabel": "",
+              "operatorLabel": "equalAny",
+              "id": 1800000000009,
+              "parentId": 1800000000007,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             },
+             {
+              "prop": "organization_id",
+              "operator": "equal",
+              "valueType": "field",
+              "value": "{{workflowparams:organization_id}}",
+              "propLabel": "organization_id",
+              "valueLabel": "",
+              "operatorLabel": "equal",
+              "id": 1800000000010,
+              "parentId": 1800000000007,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             }
+            ]
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 200,
+        "title": "Get Item Categories",
+        "isValidator": true,
+        "nodeName": "Get Item Categories",
+        "name": "Get Item Categories"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_group",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Item Group",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000031,
+         "parentId": 1800000000032,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Item Group",
+      "name": "Item Group",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "search_group",
+       "type": "search-node",
+       "data": {
+        "table_id": {
+         "source": "Item Group:Table:2069359258406567937",
+         "rules": {
+          "collectionId": "2069359258406567937",
+          "list": [
+           {
+            "id": 1800000000011,
+            "parentId": 1800000000012,
+            "isTop": true,
+            "type": "branch",
+            "operator": "all",
+            "prop": "",
+            "valueType": "",
+            "value": "",
+            "level": 1,
+            "children": [
+             {
+              "prop": "group_code",
+              "operator": "equalAny",
+              "valueType": "field",
+              "value": "{{node:code_parse.data.groupNames}}",
+              "propLabel": "group_code",
+              "valueLabel": "",
+              "operatorLabel": "equalAny",
+              "id": 1800000000013,
+              "parentId": 1800000000011,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             },
+             {
+              "prop": "organization_id",
+              "operator": "equal",
+              "valueType": "field",
+              "value": "{{global:firstLvDeptId}}",
+              "propLabel": "organization_id",
+              "valueLabel": "",
+              "operatorLabel": "equal",
+              "id": 1800000000014,
+              "parentId": 1800000000011,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             }
+            ]
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 200,
+        "title": "Get Item Groups",
+        "isValidator": true,
+        "nodeName": "Get Item Groups",
+        "name": "Get Item Groups"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_props",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Item Properties",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000033,
+         "parentId": 1800000000034,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Item Properties",
+      "name": "Item Properties",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "search_props",
+       "type": "search-node",
+       "data": {
+        "table_id": {
+         "source": "系统字典(勿删):Table:1897577528487428098",
+         "rules": {
+          "collectionId": "1897577528487428098",
+          "list": [
+           {
+            "prop": "parent_id",
+            "operator": "numberEqual",
+            "valueType": "value",
+            "value": "1993566695331348481",
+            "propLabel": "parent_id",
+            "valueLabel": "",
+            "operatorLabel": "numberEqual",
+            "id": 1800000000015,
+            "parentId": 1800000000016,
+            "isTop": true,
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Item Properties",
+        "isValidator": true,
+        "nodeName": "Get Item Properties",
+        "name": "Get Item Properties"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_existing",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Existing Item Codes",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000035,
+         "parentId": 1800000000036,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Existing Item Codes",
+      "name": "Existing Item Codes",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "search_existing",
+       "type": "search-node",
+       "data": {
+        "table_id": {
+         "source": "Item:Table:1901546842240438273",
+         "rules": {
+          "collectionId": "1901546842240438273",
+          "list": [
+           {
+            "id": 1800000000017,
+            "parentId": 1800000000018,
+            "isTop": true,
+            "type": "branch",
+            "operator": "all",
+            "prop": "",
+            "valueType": "",
+            "value": "",
+            "level": 1,
+            "children": [
+             {
+              "prop": "material_code",
+              "operator": "equalAny",
+              "valueType": "field",
+              "value": "{{node:code_parse.data.itemCodes}}",
+              "propLabel": "material_code",
+              "valueLabel": "",
+              "operatorLabel": "equalAny",
+              "id": 1800000000019,
+              "parentId": 1800000000017,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             },
+             {
+              "prop": "organization_id",
+              "operator": "equal",
+              "valueType": "field",
+              "value": "{{workflowparams:organization_id}}",
+              "propLabel": "organization_id",
+              "valueLabel": "",
+              "operatorLabel": "equal",
+              "id": 1800000000020,
+              "parentId": 1800000000017,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             }
+            ]
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 1000,
+        "title": "Get Existing Items",
+        "isValidator": true,
+        "nodeName": "Get Existing Items",
+        "name": "Get Existing Items"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_rule",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Item Number Rule",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000037,
+         "parentId": 1800000000038,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Item Number Rule",
+      "name": "Item Number Rule",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "get_code_rule",
+       "type": "get-node",
+       "data": {
+        "table_id": {
+         "source": "流水号规则表:Table:1994006139209117697",
+         "rules": {
+          "collectionId": "1994006139209117697",
+          "list": [
+           {
+            "id": 1800000000021,
+            "parentId": 1800000000022,
+            "isTop": true,
+            "type": "branch",
+            "operator": "all",
+            "prop": "",
+            "valueType": "",
+            "value": "",
+            "level": 1,
+            "children": [
+             {
+              "prop": "department_id",
+              "operator": "numberEqual",
+              "valueType": "field",
+              "value": "{{global:firstLvDeptId}}",
+              "propLabel": "department_id",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual",
+              "id": 1800000000023,
+              "parentId": 1800000000021,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             },
+             {
+              "prop": "business_type",
+              "operator": "equal",
+              "valueType": "value",
+              "value": "Items",
+              "propLabel": "business_type",
+              "valueLabel": "",
+              "operatorLabel": "equal",
+              "id": 1800000000024,
+              "parentId": 1800000000021,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             },
+             {
+              "prop": "is_draft",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 0,
+              "propLabel": "is_draft",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual",
+              "id": 1800000000025,
+              "parentId": 1800000000021,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             },
+             {
+              "prop": "is_default",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "propLabel": "is_default",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual",
+              "id": 1800000000026,
+              "parentId": 1800000000021,
+              "isTop": false,
+              "type": "leaf",
+              "level": 2
+             }
+            ]
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "title": "Get Item Number Rule",
+        "isValidator": true,
+        "nodeName": "Get Item Number Rule",
+        "name": "Get Item Number Rule"
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_costing_ids",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "2. Costing Method Ids",
+    "isValidator": true,
+    "nodeName": "2. Costing Method Ids",
+    "name": "2. Costing Method Ids",
+    "script": {
+     "type": "javascript",
+     "code": "const categories = {{node:search_category.data.data}} || [];\n\n// costing_method is seeded per tenant (1300+ rows), so it cannot be fetched whole\n// under a search-node limit -- the limit is a ceiling, not a guard, and the rows\n// past it come back as \"no Costing Method configured\". Fetch exactly the ids the\n// matched categories point at instead.\nconst ids = [];\ncategories.forEach((c) => {\n  const id = c.mat_costing_method;\n  if (id !== null && id !== undefined && id !== '') {\n    const s = String(id);\n    if (ids.indexOf(s) === -1) ids.push(s);\n  }\n});\n\n// An empty array in an `equalAny` filter is unsafe; \"0\" matches nothing.\nreturn { costingIds: ids.length > 0 ? ids : ['0'] };"
+    },
+    "response_json": [
+     {
+      "key": "4irat5hf",
+      "name": "costingIds",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "search_costing",
+   "type": "search-node",
+   "data": {
+    "table_id": {
+     "source": "Costing Method:Table:1901980856973643777",
+     "rules": {
+      "collectionId": "1901980856973643777",
+      "list": [
+       {
+        "prop": "id",
+        "operator": "equalAny",
+        "valueType": "field",
+        "value": "{{node:code_costing_ids.data.costingIds}}",
+        "propLabel": "id",
+        "valueLabel": "",
+        "operatorLabel": "equalAny",
+        "id": 1800000000039,
+        "parentId": 1800000000040,
+        "isTop": true,
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "condition": {},
+    "limit": 200,
+    "title": "Get Costing Methods",
+    "isValidator": true,
+    "nodeName": "Get Costing Methods",
+    "name": "Get Costing Methods"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_build",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "3. Validate & Build Payloads",
+    "isValidator": true,
+    "nodeName": "3. Validate & Build Payloads",
+    "name": "3. Validate & Build Payloads",
+    "script": {
+     "type": "javascript",
+     "code": "const rows = {{node:code_parse.data.rows}} || [];\nconst organizationId = {{workflowparams:organization_id}};\n\nconst uomData = {{node:search_uom.data.data}} || [];\nconst categoryData = {{node:search_category.data.data}} || [];\nconst groupData = {{node:search_group.data.data}} || [];\nconst propsData = {{node:search_props.data.data}} || [];\nconst costingData = {{node:search_costing.data.data}} || [];\nconst existingData = {{node:search_existing.data.data}} || [];\nconst ruleRaw = {{node:get_code_rule.data.data}};\n\n// A get-node's record is a single OBJECT when count === 1, an array otherwise.\nconst ruleRows = !ruleRaw ? [] : Array.isArray(ruleRaw) ? ruleRaw : [ruleRaw];\nconst codeRuleId = ruleRows.length > 0 ? ruleRows[0].id : '';\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\nconst lc = (v) => str(v).toLowerCase();\n\nconst escapeHtml = (s) =>\n  str(s).replace(\n    /[&<>\"']/g,\n    (c) =>\n      ({\n        '&': '&amp;',\n        '<': '&lt;',\n        '>': '&gt;',\n        '\"': '&quot;',\n        \"'\": '&#39;'\n      })[c]\n  );\n\n// The platform's equalAny matching is case-insensitive, so key the maps the same way.\nconst indexBy = (list, field) => {\n  const map = {};\n  list.forEach((r) => {\n    const k = lc(r[field]);\n    if (k) (map[k] = map[k] || []).push(r);\n  });\n  return map;\n};\n\nconst uomByName = indexBy(uomData, 'uom_name');\nconst catByName = indexBy(categoryData, 'mat_cat_name');\nconst groupByName = indexBy(groupData, 'group_code');\n\nconst costingById = {};\ncostingData.forEach((c) => {\n  costingById[String(c.id)] = str(c.method_name);\n});\n\nconst existingCodes = {};\nexistingData.forEach((i) => {\n  const k = lc(i.material_code);\n  if (k) existingCodes[k] = true;\n});\n\nconst allowedProps = [];\npropsData.forEach((p) => {\n  const v = str(p.dict_key);\n  if (v && allowedProps.indexOf(v) === -1) allowedProps.push(v);\n});\n\n// Mirrors the form's onItemPropertiesChange handler.\nconst SCOPE_BY_PROPERTY = {\n  'Packaging Material': ['2', '1'],\n  'Work in Progress': ['3'],\n  'Raw Material': ['2', '3'],\n  'Semi-Finished Goods': ['1', '3'],\n  Product: ['1'],\n  Default: ['1', '2', '3'],\n  'Auxiliary Material': ['2', '3']\n};\n\nconst YES = ['1', 'y', 'yes', 'true', 't'];\nconst NO = ['0', 'n', 'no', 'false', 'f'];\n// Returns -1 for an unparseable cell so the caller can report it.\nconst parseBool = (v, dflt) => {\n  const s = lc(v);\n  if (s === '') return dflt;\n  if (YES.indexOf(s) !== -1) return 1;\n  if (NO.indexOf(s) !== -1) return 0;\n  return -1;\n};\n\nconst resolveOne = (map, name) => {\n  const hits = map[lc(name)] || [];\n  return { count: hits.length, row: hits.length === 1 ? hits[0] : null };\n};\n\nconst errors = [];\nconst payloads = [];\nconst seenCodes = {};\n\nrows.forEach((row) => {\n  const label = 'Row ' + row.seq;\n  const rowErrors = [];\n\n  if (!row.itemName) rowErrors.push(label + ': Item Name is required.');\n\n  // --- Item Category -> id, and the Costing Method it carries ---------------\n  let categoryId = '';\n  let costingMethod = '';\n  if (!row.categoryName) {\n    rowErrors.push(label + ': Item Category is required.');\n  } else {\n    const hit = resolveOne(catByName, row.categoryName);\n    if (hit.count === 0) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" not found.'\n      );\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" matches ' +\n          hit.count + ' categories.'\n      );\n    } else {\n      categoryId = hit.row.id;\n      // Costing Method is not an Excel column: the form derives it from the\n      // category (onChange_item_category) and keeps the field read-only.\n      costingMethod = costingById[String(hit.row.mat_costing_method)] || '';\n      if (!costingMethod) {\n        rowErrors.push(\n          label + ': Item Category \"' + row.categoryName +\n            '\" has no Costing Method configured.'\n        );\n      }\n    }\n  }\n\n  // --- Base UOM -> id --------------------------------------------------------\n  let basedUom = '';\n  if (!row.uomName) {\n    rowErrors.push(label + ': Base UOM is required.');\n  } else {\n    const hit = resolveOne(uomByName, row.uomName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Base UOM \"' + row.uomName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Base UOM \"' + row.uomName + '\" matches ' + hit.count + ' UOMs.'\n      );\n    } else {\n      basedUom = hit.row.id;\n    }\n  }\n\n  // --- Item Group -> id (optional) ------------------------------------------\n  let groupId = '';\n  if (row.groupName) {\n    const hit = resolveOne(groupByName, row.groupName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Item Group \"' + row.groupName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Group \"' + row.groupName + '\" matches ' + hit.count +\n          ' groups.'\n      );\n    } else {\n      groupId = hit.row.id;\n    }\n  }\n\n  // --- Item Properties (blank -> \"Default\") ---------------------------------\n  let properties = 'Default';\n  if (row.properties) {\n    const match = allowedProps.filter((p) => lc(p) === lc(row.properties));\n    if (match.length === 0) {\n      rowErrors.push(\n        label + ': Item Properties \"' + row.properties +\n          '\" is not valid. Allowed: ' + allowedProps.join(', ') + '.'\n      );\n    } else {\n      properties = match[0];\n    }\n  }\n  const businessScope = SCOPE_BY_PROPERTY[properties] || [];\n\n  // --- Item Type -------------------------------------------------------------\n  let materialType = 'Goods';\n  if (row.itemType) {\n    const t = lc(row.itemType);\n    if (t === 'goods') materialType = 'Goods';\n    else if (t === 'services' || t === 'service') materialType = 'Services';\n    else rowErrors.push(label + ': Item Type must be Goods or Services.');\n  }\n\n  // --- switches --------------------------------------------------------------\n  const stockControl = parseBool(row.stockControl, 1);\n  if (stockControl === -1) {\n    rowErrors.push(label + ': Stock Control must be Yes or No.');\n  }\n  const isActive = parseBool(row.active, 1);\n  if (isActive === -1) {\n    rowErrors.push(label + ': Active must be Yes or No.');\n  }\n\n  // --- Item Code: filled = manual rule, blank = the serial rule assigns ------\n  let materialCode = row.itemCode;\n  let materialCodeType = codeRuleId;\n  if (materialCode) {\n    materialCodeType = -9999;\n    const dupKey = lc(materialCode);\n    if (seenCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" is also used on ' +\n          seenCodes[dupKey] + ' of this file.'\n      );\n    } else {\n      seenCodes[dupKey] = label;\n    }\n    if (existingCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" already exists.'\n      );\n    }\n  } else if (!codeRuleId) {\n    rowErrors.push(\n      label +\n        ': Item Code is required — no default numbering rule is configured for Items.'\n    );\n  }\n\n  if (rowErrors.length > 0) {\n    rowErrors.forEach((e) => errors.push(e));\n    return;\n  }\n\n  payloads.push({\n    seq: row.seq,\n    itemName: row.itemName,\n    allData: {\n      page_status: 'Add',\n      is_post: 0,\n      organization_id: organizationId,\n      material_code: materialCode,\n      material_code_type: materialCodeType,\n      material_name: row.itemName,\n      material_desc: row.itemDesc,\n      material_type: materialType,\n      item_category: categoryId,\n      item_group_id: groupId,\n      material_costing_method: costingMethod,\n      based_uom: basedUom,\n      item_properties: properties,\n      business_scope: businessScope,\n      barcode_number: row.barcode,\n      is_active: isActive,\n      stock_control: stockControl,\n      // The form forces both to 0 while Stock Control is on. With it off they\n      // go to 1: stock_control === 0 && show_delivery === 0 is the\n      // description-only marker, which no imported item should silently become.\n      show_delivery: stockControl === 1 ? 0 : 1,\n      show_receiving: stockControl === 1 ? 0 : 1,\n      item_batch_management: 0,\n      serial_number_management: 0,\n      auto_bom: 0,\n      // ITEM_SAVE demands exactly one default purchase UOM and exactly one\n      // default sales UOM, so generate the base row instead of asking a\n      // spreadsheet to model conversions.\n      table_uom_conversion: [\n        {\n          alt_uom_id: basedUom,\n          base_uom_id: basedUom,\n          alt_qty: 1,\n          base_qty: 1,\n          purchase_default_uom: 1,\n          sales_default_uom: 1\n        }\n      ],\n      table_packing_detail: [],\n      table_supplier_price: [],\n      table_customer_price: [],\n      table_sup_item_access: [],\n      table_cust_item_access: [],\n      table_sup_item_bind: [],\n      table_cust_item_bind: [],\n      table_reorder_supplier: [],\n      table_default_bin: []\n    }\n  });\n});\n\n// All-or-nothing: one bad row blocks the file so the user fixes it and re-uploads,\n// rather than half a spreadsheet landing in the Item master.\nconst MAX_LISTED = 15;\nif (errors.length > 0) {\n  const shown = errors.slice(0, MAX_LISTED).map((m) => '• ' + escapeHtml(m));\n  if (errors.length > MAX_LISTED) {\n    shown.push('… and ' + (errors.length - MAX_LISTED) + ' more.');\n  }\n  return {\n    status: 'Failed',\n    message:\n      'The file was not imported. Fix the following and upload again:<br><br>' +\n      shown.join('<br>'),\n    payloads: [],\n    count: 0\n  };\n}\n\nreturn { status: 'Passed', message: '', payloads: payloads, count: payloads.length };"
+    },
+    "response_json": [
+     {
+      "key": "kych6eln",
+      "name": "status",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "gy927c9d",
+      "name": "message",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "5z2jyri3",
+      "name": "payloads",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "3jysj9xu",
+      "name": "count",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_build_failed",
+   "type": "if",
+   "data": {
+    "title": "Validation Failed?",
+    "isValidator": true,
+    "nodeName": "Validation Failed?",
+    "name": "Validation Failed?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1800000000041,
+       "parentId": 1800000000042,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_build.data.status}}' == 'Failed'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_build_failed_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_build_401",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 401,
+        "msg": {
+         "type": "javascript",
+         "code": "{{node:code_build.data.message}}"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_build_failed_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_unique",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Unique Index",
+    "isValidator": true,
+    "nodeName": "Unique Index",
+    "name": "Unique Index",
+    "script": {
+     "type": "javascript",
+     "code": "// Per-run redis namespace, so concurrent imports never share an accumulator.\nconst org = {{workflowparams:organization_id}} || '';\n\nreturn { unique: org + '_' + Date.now() };"
+    },
+    "response_json": [
+     {
+      "key": "batprqtf",
+      "name": "unique",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "set_results_init",
+   "type": "set-cache-node",
+   "data": {
+    "cache_key": "",
+    "cache_value": "",
+    "expire_time": 3600,
+    "title": "Set importResults",
+    "isValidator": true,
+    "nodeName": "Set importResults",
+    "name": "Set importResults",
+    "custom_wkbocgni": {
+     "type": "javascript",
+     "code": "[]"
+    },
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}"
+   },
+   "blocks": []
+  },
+  {
+   "id": "loop_payloads",
+   "type": "loop",
+   "data": {
+    "title": "Loop Item Payloads",
+    "isValidator": true,
+    "nodeName": "Loop Item Payloads",
+    "name": "Loop Item Payloads",
+    "loopType": "Var",
+    "loopSeletSource": {
+     "datasource": {
+      "rules": {
+       "collectionId": "",
+       "list": [
+        {
+         "id": 1800000000045,
+         "parentId": 1800000000046,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      }
+     },
+     "auto_refresh": 1,
+     "auto_refresh_debounce": 100,
+     "options": [],
+     "props": {
+      "value": "",
+      "label": "",
+      "image": "",
+      "icon": "",
+      "explain": ""
+     },
+     "remote": false,
+     "remoteType": "datasource"
+    },
+    "loopSeletVar": {
+     "type": "markdown",
+     "code": "{{node:code_build.data.payloads}}"
+    }
+   },
+   "blocks": [
+    {
+     "id": "get_results",
+     "type": "get-cache-node",
+     "data": {
+      "cache_key": "",
+      "title": "Get importResults",
+      "isValidator": true,
+      "nodeName": "Get importResults",
+      "name": "Get importResults",
+      "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}"
+     },
+     "blocks": []
+    },
+    {
+     "id": "wf_item_save",
+     "type": "workflow-node",
+     "data": {
+      "workflow_id": "",
+      "workflow_name": "",
+      "input_params": {},
+      "title": "Save Item",
+      "isValidator": true,
+      "nodeName": "Save Item",
+      "name": "Save Item",
+      "workflow": {
+       "source": "ITEM_SAVE:Workflow:2098251509145264130",
+       "rules": {
+        "collectionId": "2098251509145264130",
+        "list": [
+         {
+          "id": 1800000000043,
+          "parentId": 1800000000044,
+          "isTop": true,
+          "prop": "",
+          "operator": "",
+          "valueType": "",
+          "value": "",
+          "type": "leaf",
+          "level": 1
+         }
+        ]
+       }
+      },
+      "remote": true,
+      "remoteType": "innerdatasource",
+      "body_params": {
+       "list": [
+        {
+         "prop": "allData",
+         "propLabel": "allData",
+         "operator": "",
+         "operatorLabel": "",
+         "valueType": "field",
+         "valueTypeLabel": "",
+         "value": "{{node:loop_payloads.allData}}",
+         "valueLabel": ""
+        }
+       ]
+      }
+     },
+     "blocks": []
+    },
+    {
+     "id": "code_collect",
+     "type": "code-node",
+     "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Collect Item Result",
+      "isValidator": true,
+      "nodeName": "Collect Item Result",
+      "name": "Collect Item Result",
+      "script": {
+       "type": "javascript",
+       "code": "const raw = {{node:get_results.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save.data.id}};\nconst savedCode = {{node:wf_item_save.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_payloads.seq}},\n  item_name: {{node:loop_payloads.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+      },
+      "response_json": [
+       {
+        "key": "g1dq6lru",
+        "name": "results",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "children": []
+       }
+      ]
+     },
+     "blocks": []
+    },
+    {
+     "id": "set_results",
+     "type": "set-cache-node",
+     "data": {
+      "cache_key": "",
+      "cache_value": "",
+      "expire_time": 3600,
+      "title": "Set importResults",
+      "isValidator": true,
+      "nodeName": "Set importResults",
+      "name": "Set importResults",
+      "custom_wkbocgni": {
+       "type": "javascript",
+       "code": "{{node:code_collect.data.results}}"
+      },
+      "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "get_results_final",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final importResults",
+    "isValidator": true,
+    "nodeName": "Get Final importResults",
+    "name": "Get Final importResults",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_summary",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "4. Build Summary",
+    "isValidator": true,
+    "nodeName": "4. Build Summary",
+    "name": "4. Build Summary",
+    "script": {
+     "type": "javascript",
+     "code": "const raw = {{node:get_results_final.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst expected = {{node:code_build.data.count}} || 0;\nconst created = results.filter((r) => r.item_id);\n\nconst codes = created.map((r) => r.material_code).filter((c) => c);\nconst distinctCodes = [];\ncodes.forEach((c) => {\n  if (distinctCodes.indexOf(c) === -1) distinctCodes.push(c);\n});\n// Two rows sharing a code means the serial sentinel handed out the same number\n// twice. Say so rather than letting it read as a clean import.\nconst duplicateCodes = codes.length !== distinctCodes.length;\n\nif (created.length < expected || duplicateCodes) {\n  return {\n    code: '402',\n    message:\n      'Imported ' + created.length + ' of ' + expected + ' item(s).' +\n      (duplicateCodes\n        ? ' Some items were given the same Item Code — check the numbering rule for Items.'\n        : '') +\n      ' Review the Item list before re-uploading the rest of the file.',\n    created: created,\n    createdCount: created.length\n  };\n}\n\nreturn {\n  code: '200',\n  message:\n    'Imported ' + created.length + ' item' + (created.length === 1 ? '' : 's') + '.',\n  created: created,\n  createdCount: created.length\n};"
+    },
+    "response_json": [
+     {
+      "key": "82sjy5p6",
+      "name": "code",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "eem00oej",
+      "name": "message",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "stpg2o38",
+      "name": "created",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0qjbwdh1",
+      "name": "createdCount",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "ret_summary",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return Summary",
+    "isValidator": true,
+    "nodeName": "Return Summary",
+    "name": "Return Summary",
+    "response_value": {
+     "list": [
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_summary.data.code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "propLabel": "message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_summary.data.message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "created",
+       "propLabel": "created",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_summary.data.created}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "createdCount",
+       "propLabel": "createdCount",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_summary.data.createdCount}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node",
+    "nodeName": "End Node",
+    "name": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}
