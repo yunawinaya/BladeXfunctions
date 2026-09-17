@@ -55,6 +55,9 @@ const buildTablePickingItems = (entries) => {
         item_code: materialId,
         item_name: line.material_name,
         item_desc: line.gd_material_desc || "",
+        remark: line.line_remark_1 || "",
+        remark_2: line.line_remark_2 || "",
+        remark_3: line.line_remark_3 || "",
         batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,
         item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,
         qty_to_pick: 0,
@@ -298,10 +301,16 @@ const buildTablePickingItems = (entries) => {
         ...new Set(gdsInGroup.map((gd) => gd.customer_name).filter(Boolean)),
       ];
       const refDoc = gdsInGroup[0]?.gd_ref_doc || "";
+      // Header remarks follow the single-source rule the convert workflows use:
+      // a group spanning several GDs makes the attribution ambiguous.
+      const onlyGd = gdsInGroup.length === 1 ? gdsInGroup[0] : null;
 
       return {
         key: g.key,
         gd_ids: gdNoArr,
+        remarks: onlyGd ? onlyGd.order_remark || "" : "",
+        remarks_2: onlyGd ? onlyGd.order_remark2 || "" : "",
+        remarks_3: onlyGd ? onlyGd.order_remark3 || "" : "",
         delivery_no: deliveryNo,
         so_no: soNos,
         customer_id: customerIds,

@@ -77,6 +77,9 @@
         item_code: child.item_code,
         item_name: child.item_name,
         item_desc: child.item_desc,
+        remark: child.remark,
+        remark_2: child.remark_2,
+        remark_3: child.remark_3,
         item_uom: child.item_uom,
         batch_no: child.batch_no,
         bin_location: child.bin_location,
@@ -100,6 +103,9 @@
         0,
       );
 
+      // The HU's remarks come from the first child carrying one.
+      const firstRemark = (f) => (childItems.find((c) => c[f]) || {})[f] || "";
+
       newRows.push({
         hu_row_type: "locked",
         source_hu_id: sourceHuId,
@@ -115,6 +121,9 @@
         net_weight: huMaster.net_weight || 0,
         net_volume: huMaster.net_volume || 0,
         hu_status: "Packed",
+        remark: firstRemark("remark"),
+        remark_2: firstRemark("remark_2"),
+        remark_3: firstRemark("remark_3"),
         temp_data: JSON.stringify(tempDataEntries),
         item_count: distinctItemIds.size,
         total_quantity: totalQty,

@@ -48,6 +48,8 @@ const disabledField = async (status) => {
         "ref_doc",
         "table_hu",
         "remarks",
+        "remarks_2",
+        "remarks_3",
       ],
       true,
     );

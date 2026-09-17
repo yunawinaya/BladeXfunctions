@@ -2175,6 +2175,22 @@
                                       "propLabel": "Remarks"
                                     },
                                     {
+                                      "prop": "remarks_2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 2"
+                                    },
+                                    {
+                                      "prop": "remarks_3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 3"
+                                    },
+                                    {
                                       "prop": "di_shipping_method",
                                       "operator": "",
                                       "valueType": "field",
@@ -2557,6 +2573,22 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "remarks_2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 2"
+                                    },
+                                    {
+                                      "prop": "remarks_3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 3"
                                     },
                                     {
                                       "prop": "di_shipping_method",
@@ -3639,6 +3671,22 @@
                                       "propLabel": "Remarks"
                                     },
                                     {
+                                      "prop": "remarks_2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 2"
+                                    },
+                                    {
+                                      "prop": "remarks_3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 3"
+                                    },
+                                    {
                                       "prop": "di_shipping_method",
                                       "operator": "",
                                       "valueType": "field",
@@ -4021,6 +4069,22 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "remarks_2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 2"
+                                    },
+                                    {
+                                      "prop": "remarks_3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 3"
                                     },
                                     {
                                       "prop": "di_shipping_method",
@@ -4505,6 +4569,22 @@
                                       "propLabel": "Remarks"
                                     },
                                     {
+                                      "prop": "remarks_2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 2"
+                                    },
+                                    {
+                                      "prop": "remarks_3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 3"
+                                    },
+                                    {
                                       "prop": "di_shipping_method",
                                       "operator": "",
                                       "valueType": "field",
@@ -4903,6 +4983,22 @@
                                       "value": "{{workflowparams:entry.remarks}}",
                                       "valueLabel": "",
                                       "propLabel": "Remarks"
+                                    },
+                                    {
+                                      "prop": "remarks_2",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_2}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 2"
+                                    },
+                                    {
+                                      "prop": "remarks_3",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{workflowparams:entry.remarks_3}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Remarks 3"
                                     },
                                     {
                                       "prop": "di_shipping_method",

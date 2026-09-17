@@ -86,6 +86,9 @@
         item_code: sourceRow.item_code,
         item_name: sourceRow.item_name,
         item_desc: sourceRow.item_desc,
+        remark: sourceRow.remark,
+        remark_2: sourceRow.remark_2,
+        remark_3: sourceRow.remark_3,
         item_uom: sourceRow.item_uom,
         batch_no: sourceRow.batch_no,
         bin_location: sourceRow.bin_location,
@@ -117,7 +120,27 @@
       }
     }
 
+
+    // Seed the HU's remarks from the first packed item carrying one. A value
+    // already on the row -- typed or seeded -- is never overwritten.
+    const huRemarks = {};
+    for (const f of ["remark", "remark_2", "remark_3"]) {
+      if (targetHu[f]) continue;
+      let v = "";
+      for (const e of existing) {
+        for (const r of e.type === "nested_hu" ? e.children || [] : [e]) {
+          if (r[f]) {
+            v = r[f];
+            break;
+          }
+        }
+        if (v) break;
+      }
+      if (v) huRemarks[`table_hu.${selectedHuIndex}.${f}`] = v;
+    }
+
     await this.setData({
+      ...huRemarks,
       [`table_hu.${selectedHuIndex}.temp_data`]: JSON.stringify(existing),
       [`table_hu.${selectedHuIndex}.item_count`]: distinctItemIds.size,
       [`table_hu.${selectedHuIndex}.total_quantity`]: totalQty,
