@@ -43,6 +43,12 @@ ITEM_PROPERTIES_PARENT = "1993566695331348481"
 
 REDIS_PREFIX = "itemBulkImport_"
 
+# Rows are sharded across this many parallel lanes. The per-item cost is ~273ms
+# on dev, of which only ~79ms is actual work -- the rest is fixed per-invocation
+# overhead, which is exactly what parallelising removes. Each lane owns its own
+# redis accumulator so the lanes never contend.
+LANES = 10
+
 # ---------------------------------------------------------------- id helpers
 _fid = [1800000000000]
 def fid():
@@ -163,6 +169,19 @@ def workflow_node(nid, title, source, coll_id, body):
         "blocks": [],
     }
 
+def sql_node(nid, title, sql, returns):
+    return {
+        "id": nid, "type": "sql-node",
+        "data": {"database_id": "", "sql": "", "params": {},
+                 "title": title, "isValidator": True, "nodeName": title, "name": title,
+                 "script": {"type": "sql", "code": sql},
+                 "response_json": [
+                     {"key": key(), "name": n, "title": n, "description": "",
+                      "bsonType": t, "isExpand": False, "children": []}
+                     for n, t in returns]},
+        "blocks": [],
+    }
+
 def cond_all(nid, title, branches):
     """Fork-JOIN: branches run in parallel, the next sibling waits for all."""
     blocks = []
@@ -222,10 +241,14 @@ def return_node(nid, title, props, status_code=200):
 
 # --------------------------------------------------------------- node scripts
 SCRIPT_PARSE = """const raw = {{workflowparams:import_file}};
+const orgId = {{workflowparams:organization_id}};
 
-// Keeps one file well inside the search-node limits below, and gives a clean
-// error instead of a silent "name not found" from a truncated lookup.
-const MAX_ROWS = 500;
+// Each row is a separate ITEM_SAVE run, ~273ms on dev. Rows are sharded across
+// LANES parallel lanes, so the wall clock is roughly 0.3s x rows / LANES:
+// 1000 rows is ~27s at 10 lanes. The cap is NOT the performance control -- it
+// exists because search_existing has to return every code in the file, and 1000
+// is the largest search-node limit used anywhere in this repo.
+const MAX_ROWS = 1000;
 
 const str = (v) => (v === undefined || v === null ? '' : String(v).trim());
 
@@ -326,6 +349,13 @@ const blocked = (message) => ({
   message: message
 });
 
+// organization_id is the ONLY value interpolated into raw SQL downstream, so it
+// has to be exactly an id and nothing else. Every organization_id in the DB is
+// digits-only, so this rejects nothing legitimate.
+if (!/^[0-9]+$/.test(String(orgId === undefined || orgId === null ? '' : orgId))) {
+  return blocked('Invalid organization.');
+}
+
 if (rows.length === 0) {
   return blocked('No data found in the imported file.');
 }
@@ -345,6 +375,8 @@ const distinct = (list) => {
   return out.length > 0 ? out : ['0'];
 };
 
+// Excel content never reaches SQL: live codes go through a search-node (the
+// platform parameterises it) and the soft-deleted ones come back org-scoped.
 return {
   rows: rows,
   itemCodes: distinct(rows.map((r) => r.itemCode)),
@@ -364,6 +396,7 @@ const groupData = {{node:search_group.data.data}} || [];
 const propsData = {{node:search_props.data.data}} || [];
 const costingData = {{node:search_costing.data.data}} || [];
 const existingData = {{node:search_existing.data.data}} || [];
+const deletedData = {{node:sql_deleted_codes.data}} || [];
 const batchCfgData = {{node:search_batch_config.data.data}} || [];
 const ruleRaw = {{node:get_code_rule.data.data}};
 
@@ -412,8 +445,9 @@ costingData.forEach((c) => {
   costingById[String(c.id)] = str(c.method_name);
 });
 
+// Both sources, because the unique index does not ignore soft-deleted rows.
 const existingCodes = {};
-existingData.forEach((i) => {
+existingData.concat(deletedData).forEach((i) => {
   const k = lc(i.material_code);
   if (k) existingCodes[k] = true;
 });
@@ -613,7 +647,8 @@ rows.forEach((row) => {
     }
     if (existingCodes[dupKey]) {
       rowErrors.push(
-        label + ': Item Code "' + materialCode + '" already exists.'
+        label + ': Item Code "' + materialCode +
+          '" already exists in this organization (it may belong to a deleted item).'
       );
     }
   } else if (!codeRuleId) {
@@ -724,12 +759,30 @@ categories.forEach((c) => {
 // An empty array in an `equalAny` filter is unsafe; "0" matches nothing.
 return { costingIds: ids.length > 0 ? ids : ['0'] };"""
 
+SCRIPT_SHARD = """const payloads = {{node:code_build.data.payloads}} || [];
+
+// Round-robin rather than contiguous slices: every row costs about the same, so
+// this keeps the lanes within one item of each other for any row count.
+const LANES = __LANES__;
+const lanes = [];
+for (let i = 0; i < LANES; i++) lanes.push([]);
+payloads.forEach((p, i) => {
+  lanes[i % LANES].push(p);
+});
+
+return {
+__LANE_RETURNS__
+};""".replace("__LANES__", str(LANES)).replace(
+    "__LANE_RETURNS__",
+    ",\n".join("  lane%d: lanes[%d]" % (i, i) for i in range(LANES)))
+
+
 SCRIPT_UNIQUE = """// Per-run redis namespace, so concurrent imports never share an accumulator.
 const org = {{workflowparams:organization_id}} || '';
 
 return { unique: org + '_' + Date.now() };"""
 
-SCRIPT_COLLECT = """const raw = {{node:get_results.data}};
+SCRIPT_COLLECT = """const raw = {{node:get_results_LANE.data}};
 
 let results = [];
 if (raw) {
@@ -742,25 +795,34 @@ if (!Array.isArray(results)) results = [];
 // code_build pre-validates every one of those conditions -- organization, the
 // required fields, the UOM conversion shape, the price tables and batch config --
 // so those paths stay unreachable by construction.
-const savedId = {{node:wf_item_save.data.id}};
-const savedCode = {{node:wf_item_save.data.material_code}};
+const savedId = {{node:wf_item_save_LANE.data.id}};
+const savedCode = {{node:wf_item_save_LANE.data.material_code}};
 
 results.push({
-  seq: {{node:loop_payloads.seq}},
-  item_name: {{node:loop_payloads.itemName}} || '',
+  seq: {{node:loop_LANE.seq}},
+  item_name: {{node:loop_LANE.itemName}} || '',
   item_id: savedId ? String(savedId) : '',
   material_code: savedCode || ''
 });
 
 return { results: results };"""
 
-SCRIPT_SUMMARY = """const raw = {{node:get_results_final.data}};
+SCRIPT_SUMMARY = """// One accumulator per lane, merged here after the fork-join.
+const rawLanes = [
+__LANE_READS__
+];
 
-let results = [];
-if (raw) {
-  results = typeof raw === 'string' ? JSON.parse(raw) : raw;
-}
-if (!Array.isArray(results)) results = [];
+const results = [];
+rawLanes.forEach((raw) => {
+  let part = [];
+  if (raw) {
+    part = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  }
+  if (Array.isArray(part)) {
+    part.forEach((r) => results.push(r));
+  }
+});
+results.sort((a, b) => (a.seq || 0) - (b.seq || 0));
 
 const expected = {{node:code_build.data.count}} || 0;
 const created = results.filter((r) => r.item_id);
@@ -799,6 +861,10 @@ return {
 # ------------------------------------------------------------------- assembly
 REDIS_KEY = REDIS_PREFIX + "{{node:code_unique.data.unique}}"
 
+def LANE_KEY(i):
+    """Each lane owns its accumulator, so concurrent lanes never clobber each other."""
+    return "%s_L%d" % (REDIS_KEY, i)
+
 nodes = [
     start_node(),
 
@@ -836,12 +902,28 @@ nodes = [
                 leaf("parent_id", "numberEqual", ITEM_PROPERTIES_PARENT, "value"),
             ], limit=100)]),
         ("cai_existing", "Existing Item Codes", [
-            # The dup check must cover every code in the file, so this limit
-            # tracks MAX_ROWS in code_parse.
+            # Live codes: a search-node, so the file's codes are parameterised by
+            # the platform and never touch SQL text.
             search_node("search_existing", "Get Existing Items", ITEM_TABLE, ITEM_ID, [
                 leaf("material_code", "equalAny", "{{node:code_parse.data.itemCodes}}"),
                 leaf("organization_id", "equal", "{{workflowparams:organization_id}}"),
             ], limit=1000)]),
+        ("cai_deleted", "Deleted Item Codes", [
+            # The UNIQUE index "Document Number" (material_code, organization_id)
+            # counts SOFT-DELETED rows, but a search-node auto-filters is_deleted --
+            # dev has 681 deleted items still holding a clean code. Without this the
+            # importer calls those codes free and the insert then violates the index
+            # mid-import. Raw SQL is the only way to see them.
+            # The org id is the only interpolated value and code_parse has already
+            # asserted it is digits-only, so no caller-controlled text reaches SQL.
+            sql_node("sql_deleted_codes", "Get Deleted Item Codes",
+                     "SELECT material_code AS material_code\n"
+                     "FROM item\n"
+                     "WHERE organization_id = '{{workflowparams:organization_id}}'\n"
+                     "  AND is_deleted = 1\n"
+                     "  AND material_code IS NOT NULL\n"
+                     "LIMIT 1000",
+                     [("material_code", "string")])]),
         ("cai_batchcfg", "Batch Number Config", [
             search_node("search_batch_config", "Get Batch Number Config",
                         BATCHCFG_TABLE, BATCHCFG_ID, [
@@ -875,24 +957,46 @@ nodes = [
 
     code_node("code_unique", "Unique Index", SCRIPT_UNIQUE, [("unique", "string")]),
 
-    set_cache("set_results_init", "Set importResults", REDIS_KEY, "[]"),
+    code_node("code_shard", "4. Shard Rows Across Lanes", SCRIPT_SHARD,
+              [("lane%d" % i, "any") for i in range(LANES)]),
 
-    # Loop iterations cannot accumulate in JS, so results go through redis --
-    # the same shape SOconvertGDCreatedWorkflow uses.
-    loop_node("loop_payloads", "Loop Item Payloads",
-              "{{node:code_build.data.payloads}}", [
-        get_cache("get_results", "Get importResults", REDIS_KEY),
-        workflow_node("wf_item_save", "Save Item", WF_ITEM_SAVE, WF_ITEM_SAVE_ID,
-                      [("allData", "{{node:loop_payloads.allData}}")]),
-        code_node("code_collect", "Collect Item Result", SCRIPT_COLLECT,
-                  [("results", "any")]),
-        set_cache("set_results", "Set importResults", REDIS_KEY,
-                  "{{node:code_collect.data.results}}"),
+    # Each lane is its own parallel branch: nodes WITHIN a branch run in order
+    # (init the accumulator, then loop), branches run concurrently, and the next
+    # top-level node waits for all of them. Loops nest inside branches -- see
+    # GDinventoryProcessWorkflow, which is deployed.
+    cond_all("par_import", "Import Lanes", [
+        ("cai_lane%d" % i, "Lane %d" % i, [
+            set_cache("set_init_lane%d" % i, "Init Lane %d" % i,
+                      LANE_KEY(i), "[]"),
+            loop_node("loop_lane%d" % i, "Loop Lane %d" % i,
+                      "{{node:code_shard.data.lane%d}}" % i, [
+                get_cache("get_results_lane%d" % i, "Get Lane %d" % i, LANE_KEY(i)),
+                workflow_node("wf_item_save_lane%d" % i, "Save Item",
+                              WF_ITEM_SAVE, WF_ITEM_SAVE_ID,
+                              [("allData", "{{node:loop_lane%d.allData}}" % i)]),
+                code_node("code_collect_lane%d" % i, "Collect Lane %d" % i,
+                          SCRIPT_COLLECT.replace("LANE", "lane%d" % i),
+                          [("results", "any")]),
+                set_cache("set_results_lane%d" % i, "Set Lane %d" % i, LANE_KEY(i),
+                          "{{node:code_collect_lane%d.data.results}}" % i),
+            ]),
+        ]) for i in range(LANES)
     ]),
 
-    get_cache("get_results_final", "Get Final importResults", REDIS_KEY),
+    get_cache("get_final_lane0", "Get Final Lane 0", LANE_KEY(0)),
+    get_cache("get_final_lane1", "Get Final Lane 1", LANE_KEY(1)),
+    get_cache("get_final_lane2", "Get Final Lane 2", LANE_KEY(2)),
+    get_cache("get_final_lane3", "Get Final Lane 3", LANE_KEY(3)),
+    get_cache("get_final_lane4", "Get Final Lane 4", LANE_KEY(4)),
+    get_cache("get_final_lane5", "Get Final Lane 5", LANE_KEY(5)),
+    get_cache("get_final_lane6", "Get Final Lane 6", LANE_KEY(6)),
+    get_cache("get_final_lane7", "Get Final Lane 7", LANE_KEY(7)),
+    get_cache("get_final_lane8", "Get Final Lane 8", LANE_KEY(8)),
+    get_cache("get_final_lane9", "Get Final Lane 9", LANE_KEY(9)),
 
-    code_node("code_summary", "4. Build Summary", SCRIPT_SUMMARY,
+    code_node("code_summary", "5. Build Summary",
+              SCRIPT_SUMMARY.replace("__LANE_READS__", ",\n".join(
+                  "  {{node:get_final_lane%d.data}}" % i for i in range(LANES))),
               [("code", "string"), ("message", "string"),
                ("created", "any"), ("createdCount", "any")]),
 

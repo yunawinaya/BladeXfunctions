@@ -14,8 +14,10 @@ def check(path):
     def walk(bs):
         for n in bs:
             dd = n.get("data") or {}
-            sc = (dd.get("script") or {}).get("code")
-            if sc:
+            script = dd.get("script") or {}
+            sc = script.get("code")
+            # sql-nodes carry SQL in the same slot; node --check would reject it.
+            if sc and script.get("type") != "sql":
                 items.append((n["id"], "script", sc, True))
             msg = (dd.get("msg") or {}).get("code")
             if msg:

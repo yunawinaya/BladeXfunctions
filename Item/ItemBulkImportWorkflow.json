@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "95aiak0w",
+   "key": "vjyse4wz",
    "name": "import_file",
    "title": "Import File",
    "description": "Parsed Excel JSON from su-fm-excel-parse",
@@ -10,7 +10,7 @@
    "children": []
   },
   {
-   "key": "8ag8gcsb",
+   "key": "6gjjhbg8",
    "name": "organization_id",
    "title": "Organization",
    "description": "",
@@ -21,7 +21,7 @@
  ],
  "response_json": [
   {
-   "key": "pr5g2m9o",
+   "key": "2h9npovt",
    "name": "code",
    "title": "",
    "description": "",
@@ -30,7 +30,7 @@
    "children": []
   },
   {
-   "key": "w70s2d7a",
+   "key": "jzrflryf",
    "name": "message",
    "title": "",
    "description": "",
@@ -39,7 +39,7 @@
    "children": []
   },
   {
-   "key": "2fz84d3w",
+   "key": "l4x5mg3e",
    "name": "created",
    "title": "",
    "description": "",
@@ -48,7 +48,7 @@
    "children": []
   },
   {
-   "key": "b9npeolc",
+   "key": "4uj1vbqm",
    "name": "createdCount",
    "title": "",
    "description": "",
@@ -83,7 +83,7 @@
     "name": "1. Parse Excel Rows",
     "script": {
      "type": "javascript",
-     "code": "const raw = {{workflowparams:import_file}};\n\n// Keeps one file well inside the search-node limits below, and gives a clean\n// error instead of a silent \"name not found\" from a truncated lookup.\nconst MAX_ROWS = 500;\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\n\n// Same normalised header lookup as ItemCustBindImport.js: \"Item Code\",\n// \"item_code\" and \"ITEMCODE\" all collapse to the same key. (GR's importers match\n// byte-for-byte and silently blank out on a case mismatch.)\nconst normKey = (k) =>\n  String(k || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9]/g, '');\n\nconst HEADERS = {\n  code: ['itemcode'],\n  name: ['itemname'],\n  desc: ['description', 'itemdescription', 'desc'],\n  category: ['itemcategory', 'materialcategory', 'category'],\n  uom: ['baseuom', 'basedoum', 'uom'],\n  properties: ['itemproperties', 'itemproperty', 'properties'],\n  type: ['itemtype', 'type'],\n  stock: ['stockcontrol'],\n  active: ['active', 'isactive'],\n  barcode: ['barcode', 'barcodenumber'],\n  group: ['itemgroup', 'group'],\n  batch: ['batchmanagement', 'batch'],\n  batchRule: ['batchnumbergeneration', 'batchnumbergenerationrule', 'batchgeneration']\n};\n\nconst pick = (normRow, names) => {\n  for (const n of names) {\n    if (normRow[n] !== undefined) {\n      const v = str(normRow[n]);\n      if (v) return v;\n    }\n  }\n  return '';\n};\n\nlet excelData = raw;\nif (typeof excelData === 'string') {\n  try {\n    excelData = JSON.parse(excelData);\n  } catch (e) {\n    excelData = null;\n  }\n}\n\n// The parser emits an object keyed \"0\",\"1\",\"2\"... alongside name/size/type meta\n// keys; a plain array is accepted too. Line 1 is consumed as the header row, so\n// data index 0 is spreadsheet line 2.\nlet rawRows = [];\nif (Array.isArray(excelData)) {\n  rawRows = excelData.map((data, i) => ({ seq: i + 2, data: data || {} }));\n} else if (excelData && typeof excelData === 'object') {\n  rawRows = Object.keys(excelData)\n    .filter((k) => /^\\d+$/.test(k))\n    .map((k) => parseInt(k, 10))\n    .sort((a, b) => a - b)\n    .map((k) => ({ seq: k + 2, data: excelData[k] || {} }));\n}\n\nconst rows = [];\nfor (const r of rawRows) {\n  const normRow = {};\n  Object.keys(r.data).forEach((k) => {\n    normRow[normKey(k)] = r.data[k];\n  });\n\n  const row = {\n    seq: r.seq,\n    itemCode: pick(normRow, HEADERS.code),\n    itemName: pick(normRow, HEADERS.name),\n    itemDesc: pick(normRow, HEADERS.desc),\n    categoryName: pick(normRow, HEADERS.category),\n    uomName: pick(normRow, HEADERS.uom),\n    properties: pick(normRow, HEADERS.properties),\n    itemType: pick(normRow, HEADERS.type),\n    stockControl: pick(normRow, HEADERS.stock),\n    active: pick(normRow, HEADERS.active),\n    barcode: pick(normRow, HEADERS.barcode),\n    groupName: pick(normRow, HEADERS.group),\n    batch: pick(normRow, HEADERS.batch),\n    batchRule: pick(normRow, HEADERS.batchRule)\n  };\n\n  // Trailing/blank spreadsheet rows are ignored, not reported.\n  const filled = Object.keys(row).some((k) => k !== 'seq' && row[k] !== '');\n  if (filled) rows.push(row);\n}\n\n// An empty array in an `equalAny` filter is unsafe; \"0\" matches nothing.\nconst blocked = (message) => ({\n  rows: [],\n  itemCodes: ['0'],\n  uomNames: ['0'],\n  categoryNames: ['0'],\n  groupNames: ['0'],\n  hasRows: 'N',\n  message: message\n});\n\nif (rows.length === 0) {\n  return blocked('No data found in the imported file.');\n}\n\nif (rows.length > MAX_ROWS) {\n  return blocked(\n    'The file has ' + rows.length + ' rows. Import at most ' + MAX_ROWS +\n      ' items per file.'\n  );\n}\n\nconst distinct = (list) => {\n  const out = [];\n  list.forEach((v) => {\n    if (v && out.indexOf(v) === -1) out.push(v);\n  });\n  return out.length > 0 ? out : ['0'];\n};\n\nreturn {\n  rows: rows,\n  itemCodes: distinct(rows.map((r) => r.itemCode)),\n  uomNames: distinct(rows.map((r) => r.uomName)),\n  categoryNames: distinct(rows.map((r) => r.categoryName)),\n  groupNames: distinct(rows.map((r) => r.groupName)),\n  hasRows: 'Y',\n  message: ''\n};"
+     "code": "const raw = {{workflowparams:import_file}};\nconst orgId = {{workflowparams:organization_id}};\n\n// Each row is a separate ITEM_SAVE run, ~273ms on dev. Rows are sharded across\n// LANES parallel lanes, so the wall clock is roughly 0.3s x rows / LANES:\n// 1000 rows is ~27s at 10 lanes. The cap is NOT the performance control -- it\n// exists because search_existing has to return every code in the file, and 1000\n// is the largest search-node limit used anywhere in this repo.\nconst MAX_ROWS = 1000;\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\n\n// Same normalised header lookup as ItemCustBindImport.js: \"Item Code\",\n// \"item_code\" and \"ITEMCODE\" all collapse to the same key. (GR's importers match\n// byte-for-byte and silently blank out on a case mismatch.)\nconst normKey = (k) =>\n  String(k || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9]/g, '');\n\nconst HEADERS = {\n  code: ['itemcode'],\n  name: ['itemname'],\n  desc: ['description', 'itemdescription', 'desc'],\n  category: ['itemcategory', 'materialcategory', 'category'],\n  uom: ['baseuom', 'basedoum', 'uom'],\n  properties: ['itemproperties', 'itemproperty', 'properties'],\n  type: ['itemtype', 'type'],\n  stock: ['stockcontrol'],\n  active: ['active', 'isactive'],\n  barcode: ['barcode', 'barcodenumber'],\n  group: ['itemgroup', 'group'],\n  batch: ['batchmanagement', 'batch'],\n  batchRule: ['batchnumbergeneration', 'batchnumbergenerationrule', 'batchgeneration']\n};\n\nconst pick = (normRow, names) => {\n  for (const n of names) {\n    if (normRow[n] !== undefined) {\n      const v = str(normRow[n]);\n      if (v) return v;\n    }\n  }\n  return '';\n};\n\nlet excelData = raw;\nif (typeof excelData === 'string') {\n  try {\n    excelData = JSON.parse(excelData);\n  } catch (e) {\n    excelData = null;\n  }\n}\n\n// The parser emits an object keyed \"0\",\"1\",\"2\"... alongside name/size/type meta\n// keys; a plain array is accepted too. Line 1 is consumed as the header row, so\n// data index 0 is spreadsheet line 2.\nlet rawRows = [];\nif (Array.isArray(excelData)) {\n  rawRows = excelData.map((data, i) => ({ seq: i + 2, data: data || {} }));\n} else if (excelData && typeof excelData === 'object') {\n  rawRows = Object.keys(excelData)\n    .filter((k) => /^\\d+$/.test(k))\n    .map((k) => parseInt(k, 10))\n    .sort((a, b) => a - b)\n    .map((k) => ({ seq: k + 2, data: excelData[k] || {} }));\n}\n\nconst rows = [];\nfor (const r of rawRows) {\n  const normRow = {};\n  Object.keys(r.data).forEach((k) => {\n    normRow[normKey(k)] = r.data[k];\n  });\n\n  const row = {\n    seq: r.seq,\n    itemCode: pick(normRow, HEADERS.code),\n    itemName: pick(normRow, HEADERS.name),\n    itemDesc: pick(normRow, HEADERS.desc),\n    categoryName: pick(normRow, HEADERS.category),\n    uomName: pick(normRow, HEADERS.uom),\n    properties: pick(normRow, HEADERS.properties),\n    itemType: pick(normRow, HEADERS.type),\n    stockControl: pick(normRow, HEADERS.stock),\n    active: pick(normRow, HEADERS.active),\n    barcode: pick(normRow, HEADERS.barcode),\n    groupName: pick(normRow, HEADERS.group),\n    batch: pick(normRow, HEADERS.batch),\n    batchRule: pick(normRow, HEADERS.batchRule)\n  };\n\n  // Trailing/blank spreadsheet rows are ignored, not reported.\n  const filled = Object.keys(row).some((k) => k !== 'seq' && row[k] !== '');\n  if (filled) rows.push(row);\n}\n\n// An empty array in an `equalAny` filter is unsafe; \"0\" matches nothing.\nconst blocked = (message) => ({\n  rows: [],\n  itemCodes: ['0'],\n  uomNames: ['0'],\n  categoryNames: ['0'],\n  groupNames: ['0'],\n  hasRows: 'N',\n  message: message\n});\n\n// organization_id is the ONLY value interpolated into raw SQL downstream, so it\n// has to be exactly an id and nothing else. Every organization_id in the DB is\n// digits-only, so this rejects nothing legitimate.\nif (!/^[0-9]+$/.test(String(orgId === undefined || orgId === null ? '' : orgId))) {\n  return blocked('Invalid organization.');\n}\n\nif (rows.length === 0) {\n  return blocked('No data found in the imported file.');\n}\n\nif (rows.length > MAX_ROWS) {\n  return blocked(\n    'The file has ' + rows.length + ' rows. Import at most ' + MAX_ROWS +\n      ' items per file.'\n  );\n}\n\nconst distinct = (list) => {\n  const out = [];\n  list.forEach((v) => {\n    if (v && out.indexOf(v) === -1) out.push(v);\n  });\n  return out.length > 0 ? out : ['0'];\n};\n\n// Excel content never reaches SQL: live codes go through a search-node (the\n// platform parameterises it) and the soft-deleted ones come back org-scoped.\nreturn {\n  rows: rows,\n  itemCodes: distinct(rows.map((r) => r.itemCode)),\n  uomNames: distinct(rows.map((r) => r.uomName)),\n  categoryNames: distinct(rows.map((r) => r.categoryName)),\n  groupNames: distinct(rows.map((r) => r.groupName)),\n  hasRows: 'Y',\n  message: ''\n};"
     },
     "response_json": [
      {
@@ -690,6 +690,68 @@
      ]
     },
     {
+     "id": "cai_deleted",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Deleted Item Codes",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000039,
+         "parentId": 1800000000040,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Deleted Item Codes",
+      "name": "Deleted Item Codes",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "sql_deleted_codes",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Get Deleted Item Codes",
+        "isValidator": true,
+        "nodeName": "Get Deleted Item Codes",
+        "name": "Get Deleted Item Codes",
+        "script": {
+         "type": "sql",
+         "code": "SELECT material_code AS material_code\nFROM item\nWHERE organization_id = '{{workflowparams:organization_id}}'\n  AND is_deleted = 1\n  AND material_code IS NOT NULL\nLIMIT 1000"
+        },
+        "response_json": [
+         {
+          "key": "4irat5hf",
+          "name": "material_code",
+          "title": "material_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
      "id": "cai_batchcfg",
      "type": "condition-all-node-item",
      "data": {
@@ -697,8 +759,8 @@
       "filter": {
        "list": [
         {
-         "id": 1800000000039,
-         "parentId": 1800000000040,
+         "id": 1800000000041,
+         "parentId": 1800000000042,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -765,8 +827,8 @@
       "filter": {
        "list": [
         {
-         "id": 1800000000041,
-         "parentId": 1800000000042,
+         "id": 1800000000043,
+         "parentId": 1800000000044,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -898,7 +960,7 @@
     },
     "response_json": [
      {
-      "key": "4irat5hf",
+      "key": "kych6eln",
       "name": "costingIds",
       "title": "",
       "description": "",
@@ -927,8 +989,8 @@
         "propLabel": "id",
         "valueLabel": "",
         "operatorLabel": "equalAny",
-        "id": 1800000000043,
-        "parentId": 1800000000044,
+        "id": 1800000000045,
+        "parentId": 1800000000046,
         "isTop": true,
         "type": "leaf",
         "level": 1
@@ -958,11 +1020,11 @@
     "name": "3. Validate & Build Payloads",
     "script": {
      "type": "javascript",
-     "code": "const rows = {{node:code_parse.data.rows}} || [];\nconst organizationId = {{workflowparams:organization_id}};\n\nconst uomData = {{node:search_uom.data.data}} || [];\nconst categoryData = {{node:search_category.data.data}} || [];\nconst groupData = {{node:search_group.data.data}} || [];\nconst propsData = {{node:search_props.data.data}} || [];\nconst costingData = {{node:search_costing.data.data}} || [];\nconst existingData = {{node:search_existing.data.data}} || [];\nconst batchCfgData = {{node:search_batch_config.data.data}} || [];\nconst ruleRaw = {{node:get_code_rule.data.data}};\n\n// ITEM_SAVE's own batch check reads rows[0] of exactly this query, so mirror\n// that rather than scanning for an Item Level row anywhere in the org.\nconst orgBatchCfg = batchCfgData.length > 0 ? batchCfgData[0] : null;\nconst batchIsItemLevel =\n  !!orgBatchCfg && orgBatchCfg.batch_level_selection === 'Item Level';\n\n// A get-node's record is a single OBJECT when count === 1, an array otherwise.\nconst ruleRows = !ruleRaw ? [] : Array.isArray(ruleRaw) ? ruleRaw : [ruleRaw];\nconst codeRuleId = ruleRows.length > 0 ? ruleRows[0].id : '';\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\nconst lc = (v) => str(v).toLowerCase();\n\nconst escapeHtml = (s) =>\n  str(s).replace(\n    /[&<>\"']/g,\n    (c) =>\n      ({\n        '&': '&amp;',\n        '<': '&lt;',\n        '>': '&gt;',\n        '\"': '&quot;',\n        \"'\": '&#39;'\n      })[c]\n  );\n\n// The platform's equalAny matching is case-insensitive, so key the maps the same way.\nconst indexBy = (list, field) => {\n  const map = {};\n  list.forEach((r) => {\n    const k = lc(r[field]);\n    if (k) (map[k] = map[k] || []).push(r);\n  });\n  return map;\n};\n\nconst uomByName = indexBy(uomData, 'uom_name');\nconst catByName = indexBy(categoryData, 'mat_cat_name');\nconst groupByName = indexBy(groupData, 'group_code');\n\nconst costingById = {};\ncostingData.forEach((c) => {\n  costingById[String(c.id)] = str(c.method_name);\n});\n\nconst existingCodes = {};\nexistingData.forEach((i) => {\n  const k = lc(i.material_code);\n  if (k) existingCodes[k] = true;\n});\n\nconst allowedProps = [];\npropsData.forEach((p) => {\n  const v = str(p.dict_key);\n  if (v && allowedProps.indexOf(v) === -1) allowedProps.push(v);\n});\n\n// Mirrors the form's onItemPropertiesChange handler.\nconst SCOPE_BY_PROPERTY = {\n  'Packaging Material': ['2', '1'],\n  'Work in Progress': ['3'],\n  'Raw Material': ['2', '3'],\n  'Semi-Finished Goods': ['1', '3'],\n  Product: ['1'],\n  Default: ['1', '2', '3'],\n  'Auxiliary Material': ['2', '3']\n};\n\nconst YES = ['1', 'y', 'yes', 'true', 't'];\nconst NO = ['0', 'n', 'no', 'false', 'f'];\n// Returns -1 for an unparseable cell so the caller can report it.\nconst parseBool = (v, dflt) => {\n  const s = lc(v);\n  if (s === '') return dflt;\n  if (YES.indexOf(s) !== -1) return 1;\n  if (NO.indexOf(s) !== -1) return 0;\n  return -1;\n};\n\nconst resolveOne = (map, name) => {\n  const hits = map[lc(name)] || [];\n  return { count: hits.length, row: hits.length === 1 ? hits[0] : null };\n};\n\nconst errors = [];\nconst payloads = [];\nconst seenCodes = {};\n\nrows.forEach((row) => {\n  const label = 'Row ' + row.seq;\n  const rowErrors = [];\n\n  if (!row.itemName) rowErrors.push(label + ': Item Name is required.');\n\n  // --- Item Category -> id, and the Costing Method it carries ---------------\n  let categoryId = '';\n  let costingMethod = '';\n  if (!row.categoryName) {\n    rowErrors.push(label + ': Item Category is required.');\n  } else {\n    const hit = resolveOne(catByName, row.categoryName);\n    if (hit.count === 0) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" not found.'\n      );\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" matches ' +\n          hit.count + ' categories.'\n      );\n    } else {\n      categoryId = hit.row.id;\n      // Costing Method is not an Excel column: the form derives it from the\n      // category (onChange_item_category) and keeps the field read-only.\n      costingMethod = costingById[String(hit.row.mat_costing_method)] || '';\n      if (!costingMethod) {\n        rowErrors.push(\n          label + ': Item Category \"' + row.categoryName +\n            '\" has no Costing Method configured.'\n        );\n      }\n    }\n  }\n\n  // --- Base UOM -> id --------------------------------------------------------\n  let basedUom = '';\n  if (!row.uomName) {\n    rowErrors.push(label + ': Base UOM is required.');\n  } else {\n    const hit = resolveOne(uomByName, row.uomName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Base UOM \"' + row.uomName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Base UOM \"' + row.uomName + '\" matches ' + hit.count + ' UOMs.'\n      );\n    } else {\n      basedUom = hit.row.id;\n    }\n  }\n\n  // --- Item Group -> id (optional) ------------------------------------------\n  let groupId = '';\n  if (row.groupName) {\n    const hit = resolveOne(groupByName, row.groupName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Item Group \"' + row.groupName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Group \"' + row.groupName + '\" matches ' + hit.count +\n          ' groups.'\n      );\n    } else {\n      groupId = hit.row.id;\n    }\n  }\n\n  // --- Item Properties (blank -> \"Default\") ---------------------------------\n  let properties = 'Default';\n  if (row.properties) {\n    const match = allowedProps.filter((p) => lc(p) === lc(row.properties));\n    if (match.length === 0) {\n      rowErrors.push(\n        label + ': Item Properties \"' + row.properties +\n          '\" is not valid. Allowed: ' + allowedProps.join(', ') + '.'\n      );\n    } else {\n      properties = match[0];\n    }\n  }\n  const businessScope = SCOPE_BY_PROPERTY[properties] || [];\n\n  // --- Item Type -------------------------------------------------------------\n  let materialType = 'Goods';\n  if (row.itemType) {\n    const t = lc(row.itemType);\n    if (t === 'goods') materialType = 'Goods';\n    else if (t === 'services' || t === 'service') materialType = 'Services';\n    else rowErrors.push(label + ': Item Type must be Goods or Services.');\n  }\n\n  // --- switches --------------------------------------------------------------\n  const stockControl = parseBool(row.stockControl, 1);\n  if (stockControl === -1) {\n    rowErrors.push(label + ': Stock Control must be Yes or No.');\n  }\n  const isActive = parseBool(row.active, 1);\n  if (isActive === -1) {\n    rowErrors.push(label + ': Active must be Yes or No.');\n  }\n\n  // --- Batch Management ------------------------------------------------------\n  const batchFlag = parseBool(row.batch, 0);\n  if (batchFlag === -1) {\n    rowErrors.push(label + ': Batch Management must be Yes or No.');\n  }\n\n  // The form only offers these two, and the second one skips the config check\n  // entirely (ITEM_SAVE's needsBatchCheck).\n  const BATCH_RULES = ['According To System Settings', 'Manual Input'];\n  let batchRule = '';\n  if (batchFlag === 1) {\n    batchRule = BATCH_RULES[0];\n    if (row.batchRule) {\n      const hit = BATCH_RULES.filter((r) => lc(r) === lc(row.batchRule));\n      if (hit.length === 0) {\n        rowErrors.push(\n          label + ': Batch Number Generation must be ' + BATCH_RULES.join(' or ') + '.'\n        );\n      } else {\n        batchRule = hit[0];\n      }\n    }\n    // A brand-new item has no id yet, so ITEM_SAVE's item-level config lookup\n    // can never find a row and it would 403 mid-import. Block it here instead,\n    // while nothing has been created.\n    if (batchIsItemLevel && batchRule === BATCH_RULES[0]) {\n      rowErrors.push(\n        label +\n          ': this organization sets batch numbers at Item Level, which needs a ' +\n          'per-item batch configuration that cannot come from Excel. Use ' +\n          '\"Manual Input\", or create this item in the form.'\n      );\n    }\n  } else if (row.batchRule) {\n    rowErrors.push(\n      label + ': Batch Number Generation was filled but Batch Management is off.'\n    );\n  }\n\n  // --- Item Code: filled = manual rule, blank = the serial rule assigns ------\n  let materialCode = row.itemCode;\n  let materialCodeType = codeRuleId;\n  if (materialCode) {\n    materialCodeType = -9999;\n    const dupKey = lc(materialCode);\n    if (seenCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" is also used on ' +\n          seenCodes[dupKey] + ' of this file.'\n      );\n    } else {\n      seenCodes[dupKey] = label;\n    }\n    if (existingCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" already exists.'\n      );\n    }\n  } else if (!codeRuleId) {\n    rowErrors.push(\n      label +\n        ': Item Code is required — no default numbering rule is configured for Items.'\n    );\n  }\n\n  if (rowErrors.length > 0) {\n    rowErrors.forEach((e) => errors.push(e));\n    return;\n  }\n\n  payloads.push({\n    seq: row.seq,\n    itemName: row.itemName,\n    allData: {\n      page_status: 'Add',\n      is_post: 0,\n      organization_id: organizationId,\n      material_code: materialCode,\n      material_code_type: materialCodeType,\n      material_name: row.itemName,\n      material_desc: row.itemDesc,\n      material_type: materialType,\n      item_category: categoryId,\n      item_group_id: groupId,\n      material_costing_method: costingMethod,\n      based_uom: basedUom,\n      item_properties: properties,\n      business_scope: businessScope,\n      barcode_number: row.barcode,\n      is_active: isActive,\n      stock_control: stockControl,\n      // The form forces both to 0 while Stock Control is on. With it off they\n      // go to 1: stock_control === 0 && show_delivery === 0 is the\n      // description-only marker, which no imported item should silently become.\n      show_delivery: stockControl === 1 ? 0 : 1,\n      show_receiving: stockControl === 1 ? 0 : 1,\n      item_batch_management: batchFlag,\n      batch_number_genaration: batchRule,\n      // Deliberately no batch_config: ITEM_SAVE's post-save UPDATE_BATCH_CONFIG\n      // only runs when this object is non-empty.\n      serial_number_management: 0,\n      auto_bom: 0,\n      // ITEM_SAVE demands exactly one default purchase UOM and exactly one\n      // default sales UOM, so generate the base row instead of asking a\n      // spreadsheet to model conversions.\n      table_uom_conversion: [\n        {\n          alt_uom_id: basedUom,\n          base_uom_id: basedUom,\n          alt_qty: 1,\n          base_qty: 1,\n          purchase_default_uom: 1,\n          sales_default_uom: 1\n        }\n      ],\n      table_packing_detail: [],\n      table_supplier_price: [],\n      table_customer_price: [],\n      table_sup_item_access: [],\n      table_cust_item_access: [],\n      table_sup_item_bind: [],\n      table_cust_item_bind: [],\n      table_reorder_supplier: [],\n      table_default_bin: []\n    }\n  });\n});\n\n// All-or-nothing: one bad row blocks the file so the user fixes it and re-uploads,\n// rather than half a spreadsheet landing in the Item master.\nconst MAX_LISTED = 15;\nif (errors.length > 0) {\n  const shown = errors.slice(0, MAX_LISTED).map((m) => '• ' + escapeHtml(m));\n  if (errors.length > MAX_LISTED) {\n    shown.push('… and ' + (errors.length - MAX_LISTED) + ' more.');\n  }\n  return {\n    status: 'Failed',\n    message:\n      'The file was not imported. Fix the following and upload again:<br><br>' +\n      shown.join('<br>'),\n    payloads: [],\n    count: 0\n  };\n}\n\nreturn { status: 'Passed', message: '', payloads: payloads, count: payloads.length };"
+     "code": "const rows = {{node:code_parse.data.rows}} || [];\nconst organizationId = {{workflowparams:organization_id}};\n\nconst uomData = {{node:search_uom.data.data}} || [];\nconst categoryData = {{node:search_category.data.data}} || [];\nconst groupData = {{node:search_group.data.data}} || [];\nconst propsData = {{node:search_props.data.data}} || [];\nconst costingData = {{node:search_costing.data.data}} || [];\nconst existingData = {{node:search_existing.data.data}} || [];\nconst deletedData = {{node:sql_deleted_codes.data}} || [];\nconst batchCfgData = {{node:search_batch_config.data.data}} || [];\nconst ruleRaw = {{node:get_code_rule.data.data}};\n\n// ITEM_SAVE's own batch check reads rows[0] of exactly this query, so mirror\n// that rather than scanning for an Item Level row anywhere in the org.\nconst orgBatchCfg = batchCfgData.length > 0 ? batchCfgData[0] : null;\nconst batchIsItemLevel =\n  !!orgBatchCfg && orgBatchCfg.batch_level_selection === 'Item Level';\n\n// A get-node's record is a single OBJECT when count === 1, an array otherwise.\nconst ruleRows = !ruleRaw ? [] : Array.isArray(ruleRaw) ? ruleRaw : [ruleRaw];\nconst codeRuleId = ruleRows.length > 0 ? ruleRows[0].id : '';\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\nconst lc = (v) => str(v).toLowerCase();\n\nconst escapeHtml = (s) =>\n  str(s).replace(\n    /[&<>\"']/g,\n    (c) =>\n      ({\n        '&': '&amp;',\n        '<': '&lt;',\n        '>': '&gt;',\n        '\"': '&quot;',\n        \"'\": '&#39;'\n      })[c]\n  );\n\n// The platform's equalAny matching is case-insensitive, so key the maps the same way.\nconst indexBy = (list, field) => {\n  const map = {};\n  list.forEach((r) => {\n    const k = lc(r[field]);\n    if (k) (map[k] = map[k] || []).push(r);\n  });\n  return map;\n};\n\nconst uomByName = indexBy(uomData, 'uom_name');\nconst catByName = indexBy(categoryData, 'mat_cat_name');\nconst groupByName = indexBy(groupData, 'group_code');\n\nconst costingById = {};\ncostingData.forEach((c) => {\n  costingById[String(c.id)] = str(c.method_name);\n});\n\n// Both sources, because the unique index does not ignore soft-deleted rows.\nconst existingCodes = {};\nexistingData.concat(deletedData).forEach((i) => {\n  const k = lc(i.material_code);\n  if (k) existingCodes[k] = true;\n});\n\nconst allowedProps = [];\npropsData.forEach((p) => {\n  const v = str(p.dict_key);\n  if (v && allowedProps.indexOf(v) === -1) allowedProps.push(v);\n});\n\n// Mirrors the form's onItemPropertiesChange handler.\nconst SCOPE_BY_PROPERTY = {\n  'Packaging Material': ['2', '1'],\n  'Work in Progress': ['3'],\n  'Raw Material': ['2', '3'],\n  'Semi-Finished Goods': ['1', '3'],\n  Product: ['1'],\n  Default: ['1', '2', '3'],\n  'Auxiliary Material': ['2', '3']\n};\n\nconst YES = ['1', 'y', 'yes', 'true', 't'];\nconst NO = ['0', 'n', 'no', 'false', 'f'];\n// Returns -1 for an unparseable cell so the caller can report it.\nconst parseBool = (v, dflt) => {\n  const s = lc(v);\n  if (s === '') return dflt;\n  if (YES.indexOf(s) !== -1) return 1;\n  if (NO.indexOf(s) !== -1) return 0;\n  return -1;\n};\n\nconst resolveOne = (map, name) => {\n  const hits = map[lc(name)] || [];\n  return { count: hits.length, row: hits.length === 1 ? hits[0] : null };\n};\n\nconst errors = [];\nconst payloads = [];\nconst seenCodes = {};\n\nrows.forEach((row) => {\n  const label = 'Row ' + row.seq;\n  const rowErrors = [];\n\n  if (!row.itemName) rowErrors.push(label + ': Item Name is required.');\n\n  // --- Item Category -> id, and the Costing Method it carries ---------------\n  let categoryId = '';\n  let costingMethod = '';\n  if (!row.categoryName) {\n    rowErrors.push(label + ': Item Category is required.');\n  } else {\n    const hit = resolveOne(catByName, row.categoryName);\n    if (hit.count === 0) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" not found.'\n      );\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" matches ' +\n          hit.count + ' categories.'\n      );\n    } else {\n      categoryId = hit.row.id;\n      // Costing Method is not an Excel column: the form derives it from the\n      // category (onChange_item_category) and keeps the field read-only.\n      costingMethod = costingById[String(hit.row.mat_costing_method)] || '';\n      if (!costingMethod) {\n        rowErrors.push(\n          label + ': Item Category \"' + row.categoryName +\n            '\" has no Costing Method configured.'\n        );\n      }\n    }\n  }\n\n  // --- Base UOM -> id --------------------------------------------------------\n  let basedUom = '';\n  if (!row.uomName) {\n    rowErrors.push(label + ': Base UOM is required.');\n  } else {\n    const hit = resolveOne(uomByName, row.uomName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Base UOM \"' + row.uomName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Base UOM \"' + row.uomName + '\" matches ' + hit.count + ' UOMs.'\n      );\n    } else {\n      basedUom = hit.row.id;\n    }\n  }\n\n  // --- Item Group -> id (optional) ------------------------------------------\n  let groupId = '';\n  if (row.groupName) {\n    const hit = resolveOne(groupByName, row.groupName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Item Group \"' + row.groupName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Group \"' + row.groupName + '\" matches ' + hit.count +\n          ' groups.'\n      );\n    } else {\n      groupId = hit.row.id;\n    }\n  }\n\n  // --- Item Properties (blank -> \"Default\") ---------------------------------\n  let properties = 'Default';\n  if (row.properties) {\n    const match = allowedProps.filter((p) => lc(p) === lc(row.properties));\n    if (match.length === 0) {\n      rowErrors.push(\n        label + ': Item Properties \"' + row.properties +\n          '\" is not valid. Allowed: ' + allowedProps.join(', ') + '.'\n      );\n    } else {\n      properties = match[0];\n    }\n  }\n  const businessScope = SCOPE_BY_PROPERTY[properties] || [];\n\n  // --- Item Type -------------------------------------------------------------\n  let materialType = 'Goods';\n  if (row.itemType) {\n    const t = lc(row.itemType);\n    if (t === 'goods') materialType = 'Goods';\n    else if (t === 'services' || t === 'service') materialType = 'Services';\n    else rowErrors.push(label + ': Item Type must be Goods or Services.');\n  }\n\n  // --- switches --------------------------------------------------------------\n  const stockControl = parseBool(row.stockControl, 1);\n  if (stockControl === -1) {\n    rowErrors.push(label + ': Stock Control must be Yes or No.');\n  }\n  const isActive = parseBool(row.active, 1);\n  if (isActive === -1) {\n    rowErrors.push(label + ': Active must be Yes or No.');\n  }\n\n  // --- Batch Management ------------------------------------------------------\n  const batchFlag = parseBool(row.batch, 0);\n  if (batchFlag === -1) {\n    rowErrors.push(label + ': Batch Management must be Yes or No.');\n  }\n\n  // The form only offers these two, and the second one skips the config check\n  // entirely (ITEM_SAVE's needsBatchCheck).\n  const BATCH_RULES = ['According To System Settings', 'Manual Input'];\n  let batchRule = '';\n  if (batchFlag === 1) {\n    batchRule = BATCH_RULES[0];\n    if (row.batchRule) {\n      const hit = BATCH_RULES.filter((r) => lc(r) === lc(row.batchRule));\n      if (hit.length === 0) {\n        rowErrors.push(\n          label + ': Batch Number Generation must be ' + BATCH_RULES.join(' or ') + '.'\n        );\n      } else {\n        batchRule = hit[0];\n      }\n    }\n    // A brand-new item has no id yet, so ITEM_SAVE's item-level config lookup\n    // can never find a row and it would 403 mid-import. Block it here instead,\n    // while nothing has been created.\n    if (batchIsItemLevel && batchRule === BATCH_RULES[0]) {\n      rowErrors.push(\n        label +\n          ': this organization sets batch numbers at Item Level, which needs a ' +\n          'per-item batch configuration that cannot come from Excel. Use ' +\n          '\"Manual Input\", or create this item in the form.'\n      );\n    }\n  } else if (row.batchRule) {\n    rowErrors.push(\n      label + ': Batch Number Generation was filled but Batch Management is off.'\n    );\n  }\n\n  // --- Item Code: filled = manual rule, blank = the serial rule assigns ------\n  let materialCode = row.itemCode;\n  let materialCodeType = codeRuleId;\n  if (materialCode) {\n    materialCodeType = -9999;\n    const dupKey = lc(materialCode);\n    if (seenCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" is also used on ' +\n          seenCodes[dupKey] + ' of this file.'\n      );\n    } else {\n      seenCodes[dupKey] = label;\n    }\n    if (existingCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode +\n          '\" already exists in this organization (it may belong to a deleted item).'\n      );\n    }\n  } else if (!codeRuleId) {\n    rowErrors.push(\n      label +\n        ': Item Code is required — no default numbering rule is configured for Items.'\n    );\n  }\n\n  if (rowErrors.length > 0) {\n    rowErrors.forEach((e) => errors.push(e));\n    return;\n  }\n\n  payloads.push({\n    seq: row.seq,\n    itemName: row.itemName,\n    allData: {\n      page_status: 'Add',\n      is_post: 0,\n      organization_id: organizationId,\n      material_code: materialCode,\n      material_code_type: materialCodeType,\n      material_name: row.itemName,\n      material_desc: row.itemDesc,\n      material_type: materialType,\n      item_category: categoryId,\n      item_group_id: groupId,\n      material_costing_method: costingMethod,\n      based_uom: basedUom,\n      item_properties: properties,\n      business_scope: businessScope,\n      barcode_number: row.barcode,\n      is_active: isActive,\n      stock_control: stockControl,\n      // The form forces both to 0 while Stock Control is on. With it off they\n      // go to 1: stock_control === 0 && show_delivery === 0 is the\n      // description-only marker, which no imported item should silently become.\n      show_delivery: stockControl === 1 ? 0 : 1,\n      show_receiving: stockControl === 1 ? 0 : 1,\n      item_batch_management: batchFlag,\n      batch_number_genaration: batchRule,\n      // Deliberately no batch_config: ITEM_SAVE's post-save UPDATE_BATCH_CONFIG\n      // only runs when this object is non-empty.\n      serial_number_management: 0,\n      auto_bom: 0,\n      // ITEM_SAVE demands exactly one default purchase UOM and exactly one\n      // default sales UOM, so generate the base row instead of asking a\n      // spreadsheet to model conversions.\n      table_uom_conversion: [\n        {\n          alt_uom_id: basedUom,\n          base_uom_id: basedUom,\n          alt_qty: 1,\n          base_qty: 1,\n          purchase_default_uom: 1,\n          sales_default_uom: 1\n        }\n      ],\n      table_packing_detail: [],\n      table_supplier_price: [],\n      table_customer_price: [],\n      table_sup_item_access: [],\n      table_cust_item_access: [],\n      table_sup_item_bind: [],\n      table_cust_item_bind: [],\n      table_reorder_supplier: [],\n      table_default_bin: []\n    }\n  });\n});\n\n// All-or-nothing: one bad row blocks the file so the user fixes it and re-uploads,\n// rather than half a spreadsheet landing in the Item master.\nconst MAX_LISTED = 15;\nif (errors.length > 0) {\n  const shown = errors.slice(0, MAX_LISTED).map((m) => '• ' + escapeHtml(m));\n  if (errors.length > MAX_LISTED) {\n    shown.push('… and ' + (errors.length - MAX_LISTED) + ' more.');\n  }\n  return {\n    status: 'Failed',\n    message:\n      'The file was not imported. Fix the following and upload again:<br><br>' +\n      shown.join('<br>'),\n    payloads: [],\n    count: 0\n  };\n}\n\nreturn { status: 'Passed', message: '', payloads: payloads, count: payloads.length };"
     },
     "response_json": [
      {
-      "key": "kych6eln",
+      "key": "gy927c9d",
       "name": "status",
       "title": "",
       "description": "",
@@ -971,7 +1033,7 @@
       "children": []
      },
      {
-      "key": "gy927c9d",
+      "key": "5z2jyri3",
       "name": "message",
       "title": "",
       "description": "",
@@ -980,7 +1042,7 @@
       "children": []
      },
      {
-      "key": "5z2jyri3",
+      "key": "3jysj9xu",
       "name": "payloads",
       "title": "",
       "description": "",
@@ -989,7 +1051,7 @@
       "children": []
      },
      {
-      "key": "3jysj9xu",
+      "key": "batprqtf",
       "name": "count",
       "title": "",
       "description": "",
@@ -1013,8 +1075,8 @@
     "filter": {
      "list": [
       {
-       "id": 1800000000045,
-       "parentId": 1800000000046,
+       "id": 1800000000047,
+       "parentId": 1800000000048,
        "isTop": true,
        "prop": "",
        "operator": "",
@@ -1092,7 +1154,7 @@
     },
     "response_json": [
      {
-      "key": "batprqtf",
+      "key": "g1dq6lru",
       "name": "unique",
       "title": "",
       "description": "",
@@ -1105,41 +1167,139 @@
    "blocks": []
   },
   {
-   "id": "set_results_init",
-   "type": "set-cache-node",
+   "id": "code_shard",
+   "type": "code-node",
    "data": {
-    "cache_key": "",
-    "cache_value": "",
-    "expire_time": 3600,
-    "title": "Set importResults",
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "4. Shard Rows Across Lanes",
     "isValidator": true,
-    "nodeName": "Set importResults",
-    "name": "Set importResults",
-    "custom_wkbocgni": {
+    "nodeName": "4. Shard Rows Across Lanes",
+    "name": "4. Shard Rows Across Lanes",
+    "script": {
      "type": "javascript",
-     "code": "[]"
+     "code": "const payloads = {{node:code_build.data.payloads}} || [];\n\n// Round-robin rather than contiguous slices: every row costs about the same, so\n// this keeps the lanes within one item of each other for any row count.\nconst LANES = 10;\nconst lanes = [];\nfor (let i = 0; i < LANES; i++) lanes.push([]);\npayloads.forEach((p, i) => {\n  lanes[i % LANES].push(p);\n});\n\nreturn {\n  lane0: lanes[0],\n  lane1: lanes[1],\n  lane2: lanes[2],\n  lane3: lanes[3],\n  lane4: lanes[4],\n  lane5: lanes[5],\n  lane6: lanes[6],\n  lane7: lanes[7],\n  lane8: lanes[8],\n  lane9: lanes[9]\n};"
     },
-    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}"
+    "response_json": [
+     {
+      "key": "82sjy5p6",
+      "name": "lane0",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "eem00oej",
+      "name": "lane1",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "stpg2o38",
+      "name": "lane2",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0qjbwdh1",
+      "name": "lane3",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "95aiak0w",
+      "name": "lane4",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "8ag8gcsb",
+      "name": "lane5",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "pr5g2m9o",
+      "name": "lane6",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "w70s2d7a",
+      "name": "lane7",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2fz84d3w",
+      "name": "lane8",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "b9npeolc",
+      "name": "lane9",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
    },
    "blocks": []
   },
   {
-   "id": "loop_payloads",
-   "type": "loop",
+   "id": "par_import",
+   "type": "condition-all-node",
    "data": {
-    "title": "Loop Item Payloads",
-    "isValidator": true,
-    "nodeName": "Loop Item Payloads",
-    "name": "Loop Item Payloads",
-    "loopType": "Var",
-    "loopSeletSource": {
-     "datasource": {
-      "rules": {
-       "collectionId": "",
+    "title": "Import Lanes",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cai_lane0",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Lane 0",
+      "filter": {
        "list": [
         {
-         "id": 1800000000049,
-         "parentId": 1800000000050,
+         "id": 1800000000089,
+         "parentId": 1800000000090,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -1149,149 +1309,2226 @@
          "level": 1
         }
        ]
-      }
-     },
-     "auto_refresh": 1,
-     "auto_refresh_debounce": 100,
-     "options": [],
-     "props": {
-      "value": "",
-      "label": "",
-      "image": "",
-      "icon": "",
-      "explain": ""
-     },
-     "remote": false,
-     "remoteType": "datasource"
-    },
-    "loopSeletVar": {
-     "type": "markdown",
-     "code": "{{node:code_build.data.payloads}}"
-    }
-   },
-   "blocks": [
-    {
-     "id": "get_results",
-     "type": "get-cache-node",
-     "data": {
-      "cache_key": "",
-      "title": "Get importResults",
-      "isValidator": true,
-      "nodeName": "Get importResults",
-      "name": "Get importResults",
-      "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}"
-     },
-     "blocks": []
-    },
-    {
-     "id": "wf_item_save",
-     "type": "workflow-node",
-     "data": {
-      "workflow_id": "",
-      "workflow_name": "",
-      "input_params": {},
-      "title": "Save Item",
-      "isValidator": true,
-      "nodeName": "Save Item",
-      "name": "Save Item",
-      "workflow": {
-       "source": "ITEM_SAVE:Workflow:2098251509145264130",
-       "rules": {
-        "collectionId": "2098251509145264130",
-        "list": [
-         {
-          "id": 1800000000047,
-          "parentId": 1800000000048,
-          "isTop": true,
-          "prop": "",
-          "operator": "",
-          "valueType": "",
-          "value": "",
-          "type": "leaf",
-          "level": 1
-         }
-        ]
-       }
       },
-      "remote": true,
-      "remoteType": "innerdatasource",
-      "body_params": {
-       "list": [
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 0",
+      "name": "Lane 0",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "set_init_lane0",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 0",
+        "isValidator": true,
+        "nodeName": "Init Lane 0",
+        "name": "Init Lane 0",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L0"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane0",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 0",
+        "isValidator": true,
+        "nodeName": "Loop Lane 0",
+        "name": "Loop Lane 0",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000051,
+             "parentId": 1800000000052,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane0}}"
+        }
+       },
+       "blocks": [
         {
-         "prop": "allData",
-         "propLabel": "allData",
-         "operator": "",
-         "operatorLabel": "",
-         "valueType": "field",
-         "valueTypeLabel": "",
-         "value": "{{node:loop_payloads.allData}}",
-         "valueLabel": ""
+         "id": "get_results_lane0",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 0",
+          "isValidator": true,
+          "nodeName": "Get Lane 0",
+          "name": "Get Lane 0",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L0"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane0",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000049,
+              "parentId": 1800000000050,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane0.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane0",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 0",
+          "isValidator": true,
+          "nodeName": "Collect Lane 0",
+          "name": "Collect Lane 0",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane0.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane0.data.id}};\nconst savedCode = {{node:wf_item_save_lane0.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane0.seq}},\n  item_name: {{node:loop_lane0.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "ho9glyv0",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane0",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 0",
+          "isValidator": true,
+          "nodeName": "Set Lane 0",
+          "name": "Set Lane 0",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane0.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L0"
+         },
+         "blocks": []
         }
        ]
       }
-     },
-     "blocks": []
+     ]
     },
     {
-     "id": "code_collect",
-     "type": "code-node",
+     "id": "cai_lane1",
+     "type": "condition-all-node-item",
      "data": {
-      "language": "javascript",
-      "code": "",
-      "timeout": 30000,
-      "title": "Collect Item Result",
-      "isValidator": true,
-      "nodeName": "Collect Item Result",
-      "name": "Collect Item Result",
-      "script": {
-       "type": "javascript",
-       "code": "const raw = {{node:get_results.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save.data.id}};\nconst savedCode = {{node:wf_item_save.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_payloads.seq}},\n  item_name: {{node:loop_payloads.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+      "title": "Lane 1",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000091,
+         "parentId": 1800000000092,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
       },
-      "response_json": [
-       {
-        "key": "g1dq6lru",
-        "name": "results",
-        "title": "",
-        "description": "",
-        "bsonType": "any",
-        "isExpand": false,
-        "children": []
-       }
-      ]
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 1",
+      "name": "Lane 1",
+      "condition_type": "Expression"
      },
-     "blocks": []
+     "blocks": [
+      {
+       "id": "set_init_lane1",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 1",
+        "isValidator": true,
+        "nodeName": "Init Lane 1",
+        "name": "Init Lane 1",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L1"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane1",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 1",
+        "isValidator": true,
+        "nodeName": "Loop Lane 1",
+        "name": "Loop Lane 1",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000055,
+             "parentId": 1800000000056,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane1}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane1",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 1",
+          "isValidator": true,
+          "nodeName": "Get Lane 1",
+          "name": "Get Lane 1",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L1"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane1",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000053,
+              "parentId": 1800000000054,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane1.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane1",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 1",
+          "isValidator": true,
+          "nodeName": "Collect Lane 1",
+          "name": "Collect Lane 1",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane1.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane1.data.id}};\nconst savedCode = {{node:wf_item_save_lane1.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane1.seq}},\n  item_name: {{node:loop_lane1.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "eo7q4zs0",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane1",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 1",
+          "isValidator": true,
+          "nodeName": "Set Lane 1",
+          "name": "Set Lane 1",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane1.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L1"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
     },
     {
-     "id": "set_results",
-     "type": "set-cache-node",
+     "id": "cai_lane2",
+     "type": "condition-all-node-item",
      "data": {
-      "cache_key": "",
-      "cache_value": "",
-      "expire_time": 3600,
-      "title": "Set importResults",
-      "isValidator": true,
-      "nodeName": "Set importResults",
-      "name": "Set importResults",
-      "custom_wkbocgni": {
-       "type": "javascript",
-       "code": "{{node:code_collect.data.results}}"
+      "title": "Lane 2",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000093,
+         "parentId": 1800000000094,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
       },
-      "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}"
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 2",
+      "name": "Lane 2",
+      "condition_type": "Expression"
      },
-     "blocks": []
+     "blocks": [
+      {
+       "id": "set_init_lane2",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 2",
+        "isValidator": true,
+        "nodeName": "Init Lane 2",
+        "name": "Init Lane 2",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L2"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane2",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 2",
+        "isValidator": true,
+        "nodeName": "Loop Lane 2",
+        "name": "Loop Lane 2",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000059,
+             "parentId": 1800000000060,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane2}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane2",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 2",
+          "isValidator": true,
+          "nodeName": "Get Lane 2",
+          "name": "Get Lane 2",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L2"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane2",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000057,
+              "parentId": 1800000000058,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane2.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane2",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 2",
+          "isValidator": true,
+          "nodeName": "Collect Lane 2",
+          "name": "Collect Lane 2",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane2.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane2.data.id}};\nconst savedCode = {{node:wf_item_save_lane2.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane2.seq}},\n  item_name: {{node:loop_lane2.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "78n08l05",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane2",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 2",
+          "isValidator": true,
+          "nodeName": "Set Lane 2",
+          "name": "Set Lane 2",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane2.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L2"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cai_lane3",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Lane 3",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000095,
+         "parentId": 1800000000096,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 3",
+      "name": "Lane 3",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "set_init_lane3",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 3",
+        "isValidator": true,
+        "nodeName": "Init Lane 3",
+        "name": "Init Lane 3",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L3"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane3",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 3",
+        "isValidator": true,
+        "nodeName": "Loop Lane 3",
+        "name": "Loop Lane 3",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000063,
+             "parentId": 1800000000064,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane3}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane3",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 3",
+          "isValidator": true,
+          "nodeName": "Get Lane 3",
+          "name": "Get Lane 3",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L3"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane3",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000061,
+              "parentId": 1800000000062,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane3.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane3",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 3",
+          "isValidator": true,
+          "nodeName": "Collect Lane 3",
+          "name": "Collect Lane 3",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane3.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane3.data.id}};\nconst savedCode = {{node:wf_item_save_lane3.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane3.seq}},\n  item_name: {{node:loop_lane3.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "wcfg1xty",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane3",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 3",
+          "isValidator": true,
+          "nodeName": "Set Lane 3",
+          "name": "Set Lane 3",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane3.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L3"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cai_lane4",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Lane 4",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000097,
+         "parentId": 1800000000098,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 4",
+      "name": "Lane 4",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "set_init_lane4",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 4",
+        "isValidator": true,
+        "nodeName": "Init Lane 4",
+        "name": "Init Lane 4",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L4"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane4",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 4",
+        "isValidator": true,
+        "nodeName": "Loop Lane 4",
+        "name": "Loop Lane 4",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000067,
+             "parentId": 1800000000068,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane4}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane4",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 4",
+          "isValidator": true,
+          "nodeName": "Get Lane 4",
+          "name": "Get Lane 4",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L4"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane4",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000065,
+              "parentId": 1800000000066,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane4.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane4",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 4",
+          "isValidator": true,
+          "nodeName": "Collect Lane 4",
+          "name": "Collect Lane 4",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane4.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane4.data.id}};\nconst savedCode = {{node:wf_item_save_lane4.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane4.seq}},\n  item_name: {{node:loop_lane4.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "3b2uxmrm",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane4",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 4",
+          "isValidator": true,
+          "nodeName": "Set Lane 4",
+          "name": "Set Lane 4",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane4.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L4"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cai_lane5",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Lane 5",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000099,
+         "parentId": 1800000000100,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 5",
+      "name": "Lane 5",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "set_init_lane5",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 5",
+        "isValidator": true,
+        "nodeName": "Init Lane 5",
+        "name": "Init Lane 5",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L5"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane5",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 5",
+        "isValidator": true,
+        "nodeName": "Loop Lane 5",
+        "name": "Loop Lane 5",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000071,
+             "parentId": 1800000000072,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane5}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane5",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 5",
+          "isValidator": true,
+          "nodeName": "Get Lane 5",
+          "name": "Get Lane 5",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L5"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane5",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000069,
+              "parentId": 1800000000070,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane5.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane5",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 5",
+          "isValidator": true,
+          "nodeName": "Collect Lane 5",
+          "name": "Collect Lane 5",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane5.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane5.data.id}};\nconst savedCode = {{node:wf_item_save_lane5.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane5.seq}},\n  item_name: {{node:loop_lane5.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "xmzic9oi",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane5",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 5",
+          "isValidator": true,
+          "nodeName": "Set Lane 5",
+          "name": "Set Lane 5",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane5.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L5"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cai_lane6",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Lane 6",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000101,
+         "parentId": 1800000000102,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 6",
+      "name": "Lane 6",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "set_init_lane6",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 6",
+        "isValidator": true,
+        "nodeName": "Init Lane 6",
+        "name": "Init Lane 6",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L6"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane6",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 6",
+        "isValidator": true,
+        "nodeName": "Loop Lane 6",
+        "name": "Loop Lane 6",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000075,
+             "parentId": 1800000000076,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane6}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane6",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 6",
+          "isValidator": true,
+          "nodeName": "Get Lane 6",
+          "name": "Get Lane 6",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L6"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane6",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000073,
+              "parentId": 1800000000074,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane6.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane6",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 6",
+          "isValidator": true,
+          "nodeName": "Collect Lane 6",
+          "name": "Collect Lane 6",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane6.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane6.data.id}};\nconst savedCode = {{node:wf_item_save_lane6.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane6.seq}},\n  item_name: {{node:loop_lane6.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "f9bbmkr2",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane6",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 6",
+          "isValidator": true,
+          "nodeName": "Set Lane 6",
+          "name": "Set Lane 6",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane6.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L6"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cai_lane7",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Lane 7",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000103,
+         "parentId": 1800000000104,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 7",
+      "name": "Lane 7",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "set_init_lane7",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 7",
+        "isValidator": true,
+        "nodeName": "Init Lane 7",
+        "name": "Init Lane 7",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L7"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane7",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 7",
+        "isValidator": true,
+        "nodeName": "Loop Lane 7",
+        "name": "Loop Lane 7",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000079,
+             "parentId": 1800000000080,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane7}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane7",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 7",
+          "isValidator": true,
+          "nodeName": "Get Lane 7",
+          "name": "Get Lane 7",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L7"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane7",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000077,
+              "parentId": 1800000000078,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane7.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane7",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 7",
+          "isValidator": true,
+          "nodeName": "Collect Lane 7",
+          "name": "Collect Lane 7",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane7.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane7.data.id}};\nconst savedCode = {{node:wf_item_save_lane7.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane7.seq}},\n  item_name: {{node:loop_lane7.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "7fefl870",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane7",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 7",
+          "isValidator": true,
+          "nodeName": "Set Lane 7",
+          "name": "Set Lane 7",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane7.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L7"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cai_lane8",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Lane 8",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000105,
+         "parentId": 1800000000106,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 8",
+      "name": "Lane 8",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "set_init_lane8",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 8",
+        "isValidator": true,
+        "nodeName": "Init Lane 8",
+        "name": "Init Lane 8",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L8"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane8",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 8",
+        "isValidator": true,
+        "nodeName": "Loop Lane 8",
+        "name": "Loop Lane 8",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000083,
+             "parentId": 1800000000084,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane8}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane8",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 8",
+          "isValidator": true,
+          "nodeName": "Get Lane 8",
+          "name": "Get Lane 8",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L8"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane8",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000081,
+              "parentId": 1800000000082,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane8.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane8",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 8",
+          "isValidator": true,
+          "nodeName": "Collect Lane 8",
+          "name": "Collect Lane 8",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane8.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane8.data.id}};\nconst savedCode = {{node:wf_item_save_lane8.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane8.seq}},\n  item_name: {{node:loop_lane8.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "8j5s71h3",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane8",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 8",
+          "isValidator": true,
+          "nodeName": "Set Lane 8",
+          "name": "Set Lane 8",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane8.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L8"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cai_lane9",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Lane 9",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000107,
+         "parentId": 1800000000108,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Lane 9",
+      "name": "Lane 9",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "set_init_lane9",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Init Lane 9",
+        "isValidator": true,
+        "nodeName": "Init Lane 9",
+        "name": "Init Lane 9",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "[]"
+        },
+        "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L9"
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_lane9",
+       "type": "loop",
+       "data": {
+        "title": "Loop Lane 9",
+        "isValidator": true,
+        "nodeName": "Loop Lane 9",
+        "name": "Loop Lane 9",
+        "loopType": "Var",
+        "loopSeletSource": {
+         "datasource": {
+          "rules": {
+           "collectionId": "",
+           "list": [
+            {
+             "id": 1800000000087,
+             "parentId": 1800000000088,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "auto_refresh": 1,
+         "auto_refresh_debounce": 100,
+         "options": [],
+         "props": {
+          "value": "",
+          "label": "",
+          "image": "",
+          "icon": "",
+          "explain": ""
+         },
+         "remote": false,
+         "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:code_shard.data.lane9}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_results_lane9",
+         "type": "get-cache-node",
+         "data": {
+          "cache_key": "",
+          "title": "Get Lane 9",
+          "isValidator": true,
+          "nodeName": "Get Lane 9",
+          "name": "Get Lane 9",
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L9"
+         },
+         "blocks": []
+        },
+        {
+         "id": "wf_item_save_lane9",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Save Item",
+          "isValidator": true,
+          "nodeName": "Save Item",
+          "name": "Save Item",
+          "workflow": {
+           "source": "ITEM_SAVE:Workflow:2098251509145264130",
+           "rules": {
+            "collectionId": "2098251509145264130",
+            "list": [
+             {
+              "id": 1800000000085,
+              "parentId": 1800000000086,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:loop_lane9.allData}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_collect_lane9",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Collect Lane 9",
+          "isValidator": true,
+          "nodeName": "Collect Lane 9",
+          "name": "Collect Lane 9",
+          "script": {
+           "type": "javascript",
+           "code": "const raw = {{node:get_results_lane9.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// ITEM_SAVE reports failure through error end-nodes (400/401/402/403/404), not\n// output params, so a failing row aborts this workflow instead of arriving here.\n// code_build pre-validates every one of those conditions -- organization, the\n// required fields, the UOM conversion shape, the price tables and batch config --\n// so those paths stay unreachable by construction.\nconst savedId = {{node:wf_item_save_lane9.data.id}};\nconst savedCode = {{node:wf_item_save_lane9.data.material_code}};\n\nresults.push({\n  seq: {{node:loop_lane9.seq}},\n  item_name: {{node:loop_lane9.itemName}} || '',\n  item_id: savedId ? String(savedId) : '',\n  material_code: savedCode || ''\n});\n\nreturn { results: results };"
+          },
+          "response_json": [
+           {
+            "key": "woyn745b",
+            "name": "results",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "set_results_lane9",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Lane 9",
+          "isValidator": true,
+          "nodeName": "Set Lane 9",
+          "name": "Set Lane 9",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_collect_lane9.data.results}}"
+          },
+          "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L9"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
     }
    ]
   },
   {
-   "id": "get_results_final",
+   "id": "get_final_lane0",
    "type": "get-cache-node",
    "data": {
     "cache_key": "",
-    "title": "Get Final importResults",
+    "title": "Get Final Lane 0",
     "isValidator": true,
-    "nodeName": "Get Final importResults",
-    "name": "Get Final importResults",
-    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}"
+    "nodeName": "Get Final Lane 0",
+    "name": "Get Final Lane 0",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L0"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane1",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 1",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 1",
+    "name": "Get Final Lane 1",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L1"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane2",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 2",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 2",
+    "name": "Get Final Lane 2",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L2"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane3",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 3",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 3",
+    "name": "Get Final Lane 3",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L3"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane4",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 4",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 4",
+    "name": "Get Final Lane 4",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L4"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane5",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 5",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 5",
+    "name": "Get Final Lane 5",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L5"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane6",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 6",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 6",
+    "name": "Get Final Lane 6",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L6"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane7",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 7",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 7",
+    "name": "Get Final Lane 7",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L7"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane8",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 8",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 8",
+    "name": "Get Final Lane 8",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L8"
+   },
+   "blocks": []
+  },
+  {
+   "id": "get_final_lane9",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Final Lane 9",
+    "isValidator": true,
+    "nodeName": "Get Final Lane 9",
+    "name": "Get Final Lane 9",
+    "redis_key": "itemBulkImport_{{node:code_unique.data.unique}}_L9"
    },
    "blocks": []
   },
@@ -1302,17 +3539,17 @@
     "language": "javascript",
     "code": "",
     "timeout": 30000,
-    "title": "4. Build Summary",
+    "title": "5. Build Summary",
     "isValidator": true,
-    "nodeName": "4. Build Summary",
-    "name": "4. Build Summary",
+    "nodeName": "5. Build Summary",
+    "name": "5. Build Summary",
     "script": {
      "type": "javascript",
-     "code": "const raw = {{node:get_results_final.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === 'string' ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst expected = {{node:code_build.data.count}} || 0;\nconst created = results.filter((r) => r.item_id);\n\nconst codes = created.map((r) => r.material_code).filter((c) => c);\nconst distinctCodes = [];\ncodes.forEach((c) => {\n  if (distinctCodes.indexOf(c) === -1) distinctCodes.push(c);\n});\n// Two rows sharing a code means the serial sentinel handed out the same number\n// twice. Say so rather than letting it read as a clean import.\nconst duplicateCodes = codes.length !== distinctCodes.length;\n\nif (created.length < expected || duplicateCodes) {\n  return {\n    code: '402',\n    message:\n      'Imported ' + created.length + ' of ' + expected + ' item(s).' +\n      (duplicateCodes\n        ? ' Some items were given the same Item Code — check the numbering rule for Items.'\n        : '') +\n      ' Review the Item list before re-uploading the rest of the file.',\n    created: created,\n    createdCount: created.length\n  };\n}\n\nreturn {\n  code: '200',\n  message:\n    'Imported ' + created.length + ' item' + (created.length === 1 ? '' : 's') + '.',\n  created: created,\n  createdCount: created.length\n};"
+     "code": "// One accumulator per lane, merged here after the fork-join.\nconst rawLanes = [\n  {{node:get_final_lane0.data}},\n  {{node:get_final_lane1.data}},\n  {{node:get_final_lane2.data}},\n  {{node:get_final_lane3.data}},\n  {{node:get_final_lane4.data}},\n  {{node:get_final_lane5.data}},\n  {{node:get_final_lane6.data}},\n  {{node:get_final_lane7.data}},\n  {{node:get_final_lane8.data}},\n  {{node:get_final_lane9.data}}\n];\n\nconst results = [];\nrawLanes.forEach((raw) => {\n  let part = [];\n  if (raw) {\n    part = typeof raw === 'string' ? JSON.parse(raw) : raw;\n  }\n  if (Array.isArray(part)) {\n    part.forEach((r) => results.push(r));\n  }\n});\nresults.sort((a, b) => (a.seq || 0) - (b.seq || 0));\n\nconst expected = {{node:code_build.data.count}} || 0;\nconst created = results.filter((r) => r.item_id);\n\nconst codes = created.map((r) => r.material_code).filter((c) => c);\nconst distinctCodes = [];\ncodes.forEach((c) => {\n  if (distinctCodes.indexOf(c) === -1) distinctCodes.push(c);\n});\n// Two rows sharing a code means the serial sentinel handed out the same number\n// twice. Say so rather than letting it read as a clean import.\nconst duplicateCodes = codes.length !== distinctCodes.length;\n\nif (created.length < expected || duplicateCodes) {\n  return {\n    code: '402',\n    message:\n      'Imported ' + created.length + ' of ' + expected + ' item(s).' +\n      (duplicateCodes\n        ? ' Some items were given the same Item Code — check the numbering rule for Items.'\n        : '') +\n      ' Review the Item list before re-uploading the rest of the file.',\n    created: created,\n    createdCount: created.length\n  };\n}\n\nreturn {\n  code: '200',\n  message:\n    'Imported ' + created.length + ' item' + (created.length === 1 ? '' : 's') + '.',\n  created: created,\n  createdCount: created.length\n};"
     },
     "response_json": [
      {
-      "key": "82sjy5p6",
+      "key": "c7pe10sz",
       "name": "code",
       "title": "",
       "description": "",
@@ -1321,7 +3558,7 @@
       "children": []
      },
      {
-      "key": "eem00oej",
+      "key": "bple0i65",
       "name": "message",
       "title": "",
       "description": "",
@@ -1330,7 +3567,7 @@
       "children": []
      },
      {
-      "key": "stpg2o38",
+      "key": "yur5isfo",
       "name": "created",
       "title": "",
       "description": "",
@@ -1339,7 +3576,7 @@
       "children": []
      },
      {
-      "key": "0qjbwdh1",
+      "key": "epxlbgxm",
       "name": "createdCount",
       "title": "",
       "description": "",

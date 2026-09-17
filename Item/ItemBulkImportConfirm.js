@@ -41,9 +41,12 @@
       return;
     }
 
-    const organizationId =
-      this.getVarGlobal("deptParentId") ||
-      String(this.getVarSystem("deptIds") || "").split(",")[0];
+    // "0" is the platform's "not set" sentinel and is truthy in JS, so it needs
+    // its own check -- same fallback ItemOnMounted.js uses.
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (!organizationId || organizationId === "0") {
+      organizationId = String(this.getVarSystem("deptIds") || "").split(",")[0];
+    }
 
     if (!organizationId) {
       this.$message.error("Organization is required to import items.");

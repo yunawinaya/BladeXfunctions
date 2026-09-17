@@ -15,7 +15,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "Item", "ItemBulkImportTemplate.xlsx")
 
-MAX_ROWS = 500          # mirrors MAX_ROWS in code_parse
+MAX_ROWS = 1000         # mirrors MAX_ROWS in code_parse
 PROPERTIES = ["Default", "Product", "Raw Material", "Packaging Material",
               "Work in Progress", "Semi-Finished Goods", "Auxiliary Material"]
 BATCH_RULES = ["According To System Settings", "Manual Input"]

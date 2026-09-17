@@ -86,7 +86,7 @@ HELP_HTML = (
     "Stock Control · Active · Barcode · Item Group · Batch Management · "
     "Batch Number Generation<br>"
     "Bold = required. Blank Item Code → auto-numbered. One row = one item. "
-    "Any invalid row blocks the whole file."
+    "Up to 1000 rows per file. Any invalid row blocks the whole file."
 )
 
 help_text = retag(src_text, K_HELP, "import_help_text", "Text")
