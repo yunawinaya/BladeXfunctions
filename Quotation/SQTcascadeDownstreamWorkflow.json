@@ -1,0 +1,1406 @@
+{
+  "request_json": [
+    {
+      "key": "sqtcd_req_sqt_id",
+      "name": "sqt_id",
+      "title": "sqt_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.sqt_id",
+      "label": "sqt_id",
+      "model": "0",
+      "valueCom": "input"
+    },
+    {
+      "key": "sqtcd_req_prev_table_sqt",
+      "name": "prev_table_sqt",
+      "title": "prev_table_sqt",
+      "description": "The quotation's line array as stored, before this save.",
+      "bsonType": "any",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.prev_table_sqt",
+      "label": "prev_table_sqt",
+      "model": "1",
+      "valueCom": "input",
+      "children": []
+    },
+    {
+      "key": "sqtcd_req_next_table_sqt",
+      "name": "next_table_sqt",
+      "title": "next_table_sqt",
+      "description": "The quotation's line array as submitted.",
+      "bsonType": "any",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.next_table_sqt",
+      "label": "next_table_sqt",
+      "model": "2",
+      "valueCom": "input",
+      "children": []
+    },
+    {
+      "key": "sqtcd_req_organization_id",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.organization_id",
+      "label": "organization_id",
+      "model": "3",
+      "valueCom": "input"
+    },
+    {
+      "key": "sqtcd_req_confirmpickreversal",
+      "name": "confirmPickReversal",
+      "title": "confirmPickReversal",
+      "description": "Yes pre-answers the 413 relayed up from the delivery",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.confirmPickReversal",
+      "label": "confirmPickReversal",
+      "model": "4",
+      "valueCom": "input"
+    },
+    {
+      "key": "sqtcd_req_raisegdqty",
+      "name": "raiseGdQty",
+      "title": "raiseGdQty",
+      "description": "Yes / No answer to the 414 relayed up from the delivery",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.raiseGdQty",
+      "label": "raiseGdQty",
+      "model": "5",
+      "valueCom": "input"
+    }
+  ],
+  "response_json": [
+    {
+      "key": "sqtcd_res_code",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sqtcd_res_message",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sqtcd_res_blockkind",
+      "name": "blockKind",
+      "title": "blockKind",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sqtcd_res_blocksignal",
+      "name": "blockSignal",
+      "title": "blockSignal",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false
+    },
+    {
+      "key": "sqtcd_res_pickingreversalnote",
+      "name": "pickingReversalNote",
+      "title": "pickingReversalNote",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "sqtcd_res_appliedsummary",
+      "name": "appliedSummary",
+      "title": "appliedSummary",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node",
+        "run_filter": {
+          "list": [
+            {
+              "id": 192000000001,
+              "parentId": 192000000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_sqtcd_diff",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Diff Quotation Lines",
+        "isValidator": true,
+        "nodeName": "Diff Quotation Lines",
+        "name": "Diff Quotation Lines",
+        "script": {
+          "type": "javascript",
+          "code": "// Classify every quotation line against the stored quotation. The child-table row `id`\n// is the only stable handle -- line_index is positional and table_sqt has no fm_key.\n// Mirrors code_cd_diff one level down, with one addition: price is in scope here, so a\n// line whose money moved and whose quantity did not still produces a change.\nconst prevRaw = {{workflowparams:prev_table_sqt}};\nconst nextRaw = {{workflowparams:next_table_sqt}};\n\nconst flat = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\nconst round3 = (v) => Math.round(num(v) * 1000) / 1000;\nconst QTY_EPS = 0.0005;\n// Money is decimal(65,4), so it needs a tighter epsilon than quantity's 3dp.\nconst MONEY_EPS = 0.00005;\n\nconst prevLines = flat(prevRaw).filter((r) => r);\nconst nextLines = flat(nextRaw).filter((r) => r);\n\nconst prevById = {};\nprevLines.forEach((r) => { if (r.id) prevById[sid(r.id)] = r; });\nconst nextById = {};\nnextLines.forEach((r) => { if (r.id) nextById[sid(r.id)] = r; });\n\nconst changes = [];\nconst materialIds = [];\nconst pushMat = (m) => {\n  const s = sid(m);\n  if (s && materialIds.indexOf(s) < 0) materialIds.push(s);\n};\n\n// Every money input ConvertToSO maps onto the SO line. Carried whole, so code_sqtcd_plan\n// can restate the order line without re-reading the quotation.\nconst money = (r) => ({\n  price: num(r.unit_price),\n  discount: num(r.sqt_discount),\n  discountUom: sid(r.sqt_discount_uom_id),\n  taxPreference: r.sqt_taxes_rate_id ? sid(r.sqt_taxes_rate_id) : null,\n  taxPercent: num(r.sqt_tax_rate_percent),\n  taxInclusive: Number(r.sqt_tax_inclusive) === 1 ? 1 : 0\n});\n\nconst moneyMoved = (a, b) => {\n  const x = money(a);\n  const y = money(b);\n  return Math.abs(x.price - y.price) > MONEY_EPS ||\n    Math.abs(x.discount - y.discount) > MONEY_EPS ||\n    x.discountUom !== y.discountUom ||\n    sid(x.taxPreference) !== sid(y.taxPreference) ||\n    Math.abs(x.taxPercent - y.taxPercent) > MONEY_EPS ||\n    x.taxInclusive !== y.taxInclusive;\n};\n\nconst entry = (row, kind, base) => ({\n  sqtLineId: sid(row.id),\n  kind: kind,\n  prevQty: round3(base.quantity),\n  nextQty: round3(row.quantity),\n  prevItem: sid(base.material_id),\n  nextItem: sid(row.material_id),\n  prevUom: sid(base.sqt_order_uom_id),\n  nextUom: sid(row.sqt_order_uom_id),\n  desc: sid(row.sqt_desc),\n  moreDesc: sid(row.more_desc),\n  furtherDesc: sid(row.further_description),\n  itemCode: sid(row.material_name),\n  lineIndex: sid(row.line_index),\n  shippingDate: row.expected_shipment_date || null,\n  // ConvertToSO never mapped children, so a bundle has no faithful representation on\n  // the order line to cascade into. Flagged here, refused in code_sqtcd_plan.\n  isBundle: (Array.isArray(row.children) && row.children.length) || row.item_bundle_id ? 1 : 0,\n  money: money(row),\n  moneyChanged: moneyMoved(base, row) ? 1 : 0\n});\n\nnextLines.forEach((r) => {\n  const before = r.id ? prevById[sid(r.id)] : null;\n  if (!before) {\n    const e = entry(r, \"added\", r);\n    e.prevQty = 0;\n    e.prevItem = \"\";\n    e.moneyChanged = 1;\n    changes.push(e);\n    pushMat(r.material_id);\n    return;\n  }\n  const prevItem = sid(before.material_id);\n  const nextItem = sid(r.material_id);\n  if (prevItem !== nextItem) {\n    changes.push(entry(r, \"swap\", before));\n    pushMat(nextItem);\n    pushMat(prevItem);\n  } else if (sid(before.sqt_order_uom_id) !== sid(r.sqt_order_uom_id)) {\n    // Same item, different unit. The order quantity may not have moved at all, but the\n    // base quantity did, so SO_CASCADE restates the delivery across the ratio.\n    changes.push(entry(r, \"uom\", before));\n    pushMat(nextItem);\n  } else if (Math.abs(round3(r.quantity) - round3(before.quantity)) > QTY_EPS) {\n    changes.push(entry(r, \"qty\", before));\n    pushMat(nextItem);\n  } else if (moneyMoved(before, r)) {\n    changes.push(entry(r, \"price\", before));\n    pushMat(nextItem);\n  }\n});\n\n// Absent from the submitted array = removed. code_node_CO6q7Vm4 already dropped blank\n// and zero-quantity rows upstream, so a zeroed line reaches us as a removal.\nprevLines.forEach((r) => {\n  if (!r.id || nextById[sid(r.id)]) return;\n  const e = entry(r, \"removed\", r);\n  e.nextQty = 0;\n  e.nextItem = \"\";\n  changes.push(e);\n  pushMat(r.material_id);\n});\n\n// An empty `in` / `equalAny` matches every row, so never hand a search a bare [].\n// The sentinel must be NUMERIC: the id column it reaches is BigInt, and \"0\" is never a\n// real snowflake id.\nreturn {\n  changes: changes,\n  changeCount: changes.length,\n  addedCount: changes.filter((c) => c.kind === \"added\").length,\n  removedCount: changes.filter((c) => c.kind === \"removed\").length,\n  materialIds: materialIds.length ? materialIds : [\"0\"],\n  emptyList: []\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "sqtcd_code_sqtcd_diff_changes",
+            "name": "changes",
+            "title": "changes",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sqtcd_code_sqtcd_diff_changeCount",
+            "name": "changeCount",
+            "title": "changeCount",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_diff_addedCount",
+            "name": "addedCount",
+            "title": "addedCount",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_diff_removedCount",
+            "name": "removedCount",
+            "title": "removedCount",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_diff_materialIds",
+            "name": "materialIds",
+            "title": "materialIds",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sqtcd_code_sqtcd_diff_emptyList",
+            "name": "emptyList",
+            "title": "emptyList",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_sqtcd_nothing",
+      "type": "if",
+      "data": {
+        "title": "IF Nothing Changed",
+        "isValidator": true,
+        "nodeName": "IF Nothing Changed",
+        "name": "IF Nothing Changed",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 192000000003,
+              "parentId": 192000000004,
+              "isTop": true,
+              "prop": "node.code_sqtcd_diff.data.changeCount",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 0,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "changeCount",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_sqtcd_nothing_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "ret_sqtcd_noop",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Nothing To Cascade",
+                "isValidator": true,
+                "nodeName": "Return Nothing To Cascade",
+                "name": "Return Nothing To Cascade",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "200",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "blockKind",
+                      "propLabel": "blockKind",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "blockSignal",
+                      "propLabel": "blockSignal",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": 0,
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "pickingReversalNote",
+                      "propLabel": "pickingReversalNote",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "appliedSummary",
+                      "propLabel": "appliedSummary",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_sqtcd_diff.data.emptyList}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_sqtcd_nothing_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "par_sqtcd_fetch",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Fetch - Order And Rules",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_sqtcd_sos",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Sales Orders",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Sales Orders",
+            "name": "Sales Orders",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_sqtcd_sos",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Order:Table:1902773735979597826",
+                  "rules": {
+                    "collectionId": "1902773735979597826",
+                    "list": [
+                      {
+                        "id": 192000000007,
+                        "parentId": 192000000008,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 192000000005,
+                            "parentId": 192000000007,
+                            "isTop": false,
+                            "prop": "sqt_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{workflowparams:sqt_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Quotation ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 192000000006,
+                            "parentId": 192000000007,
+                            "isTop": false,
+                            "prop": "so_status",
+                            "operator": "notEqual",
+                            "valueType": "value",
+                            "value": "Cancelled",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "SO Status",
+                            "valueLabel": "",
+                            "operatorLabel": "notEqual"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Linked SOs",
+                "isValidator": true,
+                "nodeName": "Get Linked SOs",
+                "name": "Get Linked SOs"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_sqtcd_items",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Items",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Items",
+            "name": "Items",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_sqtcd_items",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Item:Table:1901546842240438273",
+                  "rules": {
+                    "collectionId": "1901546842240438273",
+                    "list": [
+                      {
+                        "id": 192000000011,
+                        "parentId": 192000000012,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 192000000009,
+                            "parentId": 192000000011,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "equalAny",
+                            "valueType": "field",
+                            "value": "{{node:code_sqtcd_diff.data.materialIds}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "ID",
+                            "valueLabel": "",
+                            "operatorLabel": "equalAny"
+                          },
+                          {
+                            "id": 192000000010,
+                            "parentId": 192000000011,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Get Items",
+                "isValidator": true,
+                "nodeName": "Get Items",
+                "name": "Get Items"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_sqtcd_approval",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Approval Config",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Approval Config",
+            "name": "Approval Config",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "get_sqtcd_approval",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Approval Config:Table:2082032938602799106",
+                  "rules": {
+                    "collectionId": "2082032938602799106",
+                    "list": [
+                      {
+                        "id": 192000000013,
+                        "parentId": 0,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{workflowparams:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Approval Config",
+                "isValidator": true,
+                "nodeName": "Get Approval Config",
+                "name": "Get Approval Config"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_sqtcd_select",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Select Sales Order",
+        "isValidator": true,
+        "nodeName": "Select Sales Order",
+        "name": "Select Sales Order",
+        "script": {
+          "type": "javascript",
+          "code": "// Pick the one live sales order this quotation edit can act on. Thin on purpose: the\n// draft-delivery and draft-invoice searches below need a concrete so_id to filter on,\n// while every refusal -- including \"more than one order\" -- is worded in\n// code_sqtcd_plan, so the messages live in one place.\nconst sosRaw = {{node:search_sqtcd_sos.data.data}};\nconst list = Array.isArray(sosRaw) ? sosRaw : (sosRaw ? [sosRaw] : []);\nconst live = list.filter((s) => s && String(s.so_status || \"\") !== \"Cancelled\");\n\n// \"0\" is never a real snowflake id, so when there is no single order to act on the\n// searches match nothing -- rather than matching everything, the way an empty `in` does.\nreturn {\n  soId: live.length === 1 ? String(live[0].id) : \"0\",\n  liveCount: live.length\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "sqtcd_code_sqtcd_select_soId",
+            "name": "soId",
+            "title": "soId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_select_liveCount",
+            "name": "liveCount",
+            "title": "liveCount",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "par_sqtcd_fetch2",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Fetch - Draft Documents",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_sqtcd_dgd",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Draft Deliveries",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Draft Deliveries",
+            "name": "Draft Deliveries",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_sqtcd_draftgd",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Delivery:Table:1902054888473481218",
+                  "rules": {
+                    "collectionId": "1902054888473481218",
+                    "list": [
+                      {
+                        "id": 192000000016,
+                        "parentId": 192000000017,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 192000000014,
+                            "parentId": 192000000016,
+                            "isTop": false,
+                            "prop": "so_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_sqtcd_select.data.soId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "SO ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 192000000015,
+                            "parentId": 192000000016,
+                            "isTop": false,
+                            "prop": "gd_status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Draft",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "GD Status",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Draft GD",
+                "isValidator": true,
+                "nodeName": "Get Draft GD",
+                "name": "Get Draft GD"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_sqtcd_dsi",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Draft Invoices",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Draft Invoices",
+            "name": "Draft Invoices",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_sqtcd_draftsi",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Invoice:Table:1902525285396496385",
+                  "rules": {
+                    "collectionId": "1902525285396496385",
+                    "list": [
+                      {
+                        "id": 192000000020,
+                        "parentId": 192000000021,
+                        "isTop": true,
+                        "type": "branch",
+                        "operator": "all",
+                        "prop": "",
+                        "valueType": "",
+                        "value": "",
+                        "level": 1,
+                        "children": [
+                          {
+                            "id": 192000000018,
+                            "parentId": 192000000020,
+                            "isTop": false,
+                            "prop": "so_id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_sqtcd_select.data.soId}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "SO ID",
+                            "valueLabel": "",
+                            "operatorLabel": "in"
+                          },
+                          {
+                            "id": 192000000019,
+                            "parentId": 192000000020,
+                            "isTop": false,
+                            "prop": "si_status",
+                            "operator": "equal",
+                            "valueType": "value",
+                            "value": "Draft",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "SI Status",
+                            "valueLabel": "",
+                            "operatorLabel": "equal"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get Draft SI",
+                "isValidator": true,
+                "nodeName": "Get Draft SI",
+                "name": "Get Draft SI"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_sqtcd_plan",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Plan Cascade",
+        "isValidator": true,
+        "nodeName": "Plan Cascade",
+        "name": "Plan Cascade",
+        "script": {
+          "type": "javascript",
+          "code": "// Decide what this quotation edit does to its sales order, and refuse in words when it\n// cannot be done. Everything delivery-shaped -- reducing below what is already picked, a\n// unit change on a line a picking plan holds -- is deliberately NOT re-implemented here.\n// SO_CASCADE already produces better messages for those, and they bubble up through\n// SO_SAVE as 406 / 413 / 414. Never write a second version of one of its refusals.\nconst changes = {{node:code_sqtcd_diff.data.changes}} || [];\nconst addedCount = Number({{node:code_sqtcd_diff.data.addedCount}}) || 0;\nconst removedCount = Number({{node:code_sqtcd_diff.data.removedCount}}) || 0;\nconst sosRaw = {{node:search_sqtcd_sos.data.data}};\nconst itemsRaw = {{node:search_sqtcd_items.data.data}};\nconst approvalRaw = {{node:get_sqtcd_approval.data.data}};\nconst draftGdRaw = {{node:search_sqtcd_draftgd.data.data}};\nconst draftSiRaw = {{node:search_sqtcd_draftsi.data.data}};\n\nconst asArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);\nconst num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\nconst round3 = (v) => Math.round(num(v) * 1000) / 1000;\n// SOCalculation's rounder, copied exactly. The order has to stay arithmetically\n// consistent with what the browser would compute for the same lines, because the next\n// person to touch a row recomputes only that row and sums the rest as stored.\nconst roundPrice = (v) => parseFloat(parseFloat(v || 0).toFixed(4));\n\nconst block = (msg) => ({\n  blocked: 1, blockCode: \"406\", blockSignal: 1, blockKind: \"block\",\n  blockMessage: msg, soPayloads: [], emptyList: []\n});\n\n// ---- which order, and may we touch it at all --------------------------------------\nconst sos = asArray(sosRaw).filter((s) => s && sid(s.so_status) !== \"Cancelled\");\n// No live order behind this quotation -- it was never converted, or the order it produced\n// was cancelled. Nothing downstream to update, so this is a no-op and NOT a refusal:\n// an ordinary Issued quotation is edited through this same path and must not be blocked.\nif (!sos.length) {\n  return {\n    blocked: 0, blockCode: \"200\", blockSignal: 0, blockKind: \"\", blockMessage: \"\",\n    soPayloads: [], emptyList: []\n  };\n}\nif (sos.length > 1) {\n  return block(\"This quotation has been converted to more than one sales order (\" +\n    sos.map((s) => sid(s.so_no)).join(\", \") +\n    \").<br><br>Edit those sales orders one at a time.\");\n}\nconst so = JSON.parse(JSON.stringify(sos[0]));\nconst soNo = sid(so.so_no) || sid(so.id);\nconst soStatus = sid(so.so_status);\n\n// B1 -- the order's line set is the order's to change. Matching an added or removed\n// quotation line onto it would have to guess where it belongs.\nif (addedCount > 0 || removedCount > 0) {\n  return block(\"Lines were added to or removed from this quotation, and it has already \" +\n    \"been converted to \" + soNo + \".<br><br>Add or remove the line on that sales order instead.\");\n}\n\n// B4\nif (soStatus === \"Completed\" || soStatus === \"Cancelled\") {\n  return block(soNo + \" is \" + soStatus + \" and can no longer be changed.\");\n}\n\n// B13 -- SO_SAVE runs CHECK_REQUIRED_FIELD over these and ends 400 if one is blank.\n// Pre-empted here so the user gets a sentence instead of a validation dump.\nconst REQUIRED = [\n  [\"so_no\", \"Sales Order Number\"], [\"customer_name\", \"Customer\"],\n  [\"plant_name\", \"Plant\"], [\"so_date\", \"Sales Order Date\"],\n  [\"so_payment_term\", \"Payment Term\"], [\"acc_integration_type\", \"Accounting Integration\"]\n];\nconst missing = REQUIRED.filter((f) => !sid(so[f[0]])).map((f) => f[1]);\nif (missing.length) {\n  return block(soNo + \" is missing \" + missing.join(\", \") +\n    \", so it cannot be saved automatically.<br><br>Open that sales order and complete it first.\");\n}\nif (!asArray(so.table_so).length) {\n  return block(soNo + \" has no line items, so it cannot be saved automatically.\");\n}\n\n// B6 -- if_6MfJ2Oif has no already-created guard: every re-save of an Issued auto-invoice\n// order raises another invoice.\nif (Number(so.auto_si) === 1 && soStatus === \"Issued\") {\n  return block(soNo + \" raises its invoice automatically. Saving it again from here would \" +\n    \"create a second invoice.<br><br>Edit that sales order directly.\");\n}\n\n// B7 -- an approval slot suspends the run waiting on a person, so a cascade that reaches\n// one never returns. so_convert fires on EVERY order carrying a quotation id, which is\n// exactly this population. The other triggers cannot fire from here: so_issued needs the\n// 'issued' doc-number sentinel and so_credit_limit needs cl_result 'override', neither of\n// which the payload we build can produce.\nconst approval = asArray(approvalRaw)[0] || approvalRaw || null;\nlet approvalRules = (approval && approval.approval_rules) || [];\nif (typeof approvalRules === \"string\") {\n  try { approvalRules = JSON.parse(approvalRules); } catch (e) { approvalRules = []; }\n}\nconst soRule = asArray(approvalRules).find((r) => r && sid(r.document_type) === \"SO\") || null;\nif (soRule && Number(soRule.so_convert) === 1) {\n  return block(\"Sales orders converted from a quotation need approval in this organisation, \" +\n    \"so the change cannot be pushed into \" + soNo + \" automatically.<br><br>Edit that sales order directly.\");\n}\n\n// B5 -- if_ZprBCz35 ends 404 on these, and answering that 404 deletes the documents. A\n// quotation edit must never do that silently, so it refuses and names them instead.\nconst draftGds = asArray(draftGdRaw).filter((g) => g && sid(g.gd_status) === \"Draft\");\nconst draftSis = asArray(draftSiRaw).filter((s) => s && sid(s.si_status) === \"Draft\");\nif (draftGds.length || draftSis.length) {\n  const names = draftGds.map((g) => sid(g.delivery_no)).concat(draftSis.map((s) => sid(s.si_no)));\n  return block(soNo + \" has a draft document waiting on it (\" + names.join(\", \") +\n    \").<br><br>Complete or delete it, then edit the quotation again.\");\n}\n\n// ---- pair each changed quotation line to its order line ---------------------------\nconst soLines = asArray(so.table_so);\nconst soLineBySqtLine = {};\nsoLines.forEach((r) => {\n  if (r && sid(r.sqt_line_id)) soLineBySqtLine[sid(r.sqt_line_id)] = r;\n});\n\nconst items = asArray(itemsRaw);\nconst itemById = {};\nitems.forEach((i) => { if (i && i.id) itemById[sid(i.id)] = i; });\n\nconst getPackingDetail = (tpd, uom) =>\n  (!Array.isArray(tpd) || !tpd.length || !uom) ? null : (tpd.find((c) => c.uom_id === uom) || null);\nconst getBaseQty = (tuc, uom) => {\n  if (!Array.isArray(tuc) || !tuc.length || !uom) return 1;\n  const c = tuc.find((x) => x.alt_uom_id === uom);\n  return c && c.base_qty ? c.base_qty : 1;\n};\n\nconst moneyChangedAnywhere = changes.some((c) => Number(c.moneyChanged) === 1);\n\n// B10 -- a posted order whose amounts move leaves the accounting document behind, and\n// if__zXmoKQP will not re-post something already Posted.\nif (moneyChangedAnywhere && sid(so.posted_status) === \"Posted\") {\n  return block(soNo + \" has already been posted to accounting. Changing its amounts would \" +\n    \"leave that posting out of date.<br><br>Reverse the posting first.\");\n}\n\nconst patched = {};\nconst priceFailures = [];\n\nfor (const ch of changes) {\n  const label = sid(ch.itemCode) || sid(ch.desc) || (\"line \" + sid(ch.lineIndex));\n\n  // B12\n  if (Number(ch.isBundle) === 1) {\n    return block(\"Item bundles are not carried into the sales order line by line, so \" +\n      label + \" cannot be cascaded.<br><br>Edit \" + soNo + \" directly.\");\n  }\n\n  // B2 -- the pairing column only exists on orders converted after it shipped.\n  const line = soLineBySqtLine[sid(ch.sqtLineId)];\n  if (!line) {\n    return block(soNo + \" was created before quotation lines were linked to order lines \" +\n      \"individually, so the change to \" + label + \" cannot be matched to it.<br><br>\" +\n      \"Edit that sales order directly.\");\n  }\n\n  // B9 -- nothing in the system blocks a price change on an invoiced order today, and\n  // the invoice took its prices from this very line.\n  if (Number(ch.moneyChanged) === 1) {\n    const invoiced = round3(line.invoice_qty) > 0 ||\n      sid(so.si_status) === \"Partially Invoiced\" || sid(so.si_status) === \"Fully Invoiced\";\n    if (invoiced) {\n      return block(soNo + \" has already been invoiced, so the price on \" + label +\n        \" can no longer be changed.<br><br>Credit the invoice first, or edit that sales order directly.\");\n    }\n  }\n\n  const m = ch.money || {};\n\n  // B8 -- outside min/max the order either ends 402 or suspends on an approval slot,\n  // depending on config. Both are refusals, so pre-empt with CHECK_APPROVAL's own wording.\n  const lineNo = sid(ch.lineIndex) || \"?\";\n  const minPrice = parseFloat(line.min_price);\n  if (!(line.min_price == null || line.min_price === \"\" || isNaN(minPrice) || minPrice === 0) &&\n      num(m.price) < minPrice) {\n    priceFailures.push(\"Line \" + lineNo + \": Unit Price \" + num(m.price) + \" is below Min Price \" + line.min_price);\n  }\n  const maxPrice = parseFloat(line.max_price);\n  if (!(line.max_price == null || line.max_price === \"\" || isNaN(maxPrice) || maxPrice === 0) &&\n      num(m.price) > maxPrice) {\n    priceFailures.push(\"Line \" + lineNo + \": Unit Price \" + num(m.price) + \" exceeds Max Price \" + line.max_price);\n  }\n\n  // ---- the patch itself ----\n  line.so_quantity = round3(ch.nextQty);\n  line.so_item_uom = sid(ch.nextUom) || line.so_item_uom;\n  line.item_name = sid(ch.nextItem) || line.item_name;\n  line.item_id = sid(ch.itemCode) || line.item_id;\n  line.so_desc = ch.desc;\n  line.more_desc = ch.moreDesc;\n  line.further_description = ch.furtherDesc;\n  if (ch.shippingDate) line.so_shipping_date = ch.shippingDate;\n  line.so_item_price = roundPrice(m.price);\n  line.so_discount = num(m.discount);\n  line.so_discount_uom = sid(m.discountUom);\n  line.so_tax_preference = m.taxPreference || null;\n  // so_tax_percentage is an int column -- never a toFixed string.\n  line.so_tax_percentage = Math.round(num(m.taxPercent));\n  line.so_tax_inclusive = Number(m.taxInclusive) === 1 ? 1 : 0;\n\n  // A different item, or the same item counted in a different unit, invalidates the\n  // packing and weight ratios GDheadWorkflow derives packing_qty and net_weight from.\n  if (ch.kind === \"swap\" || ch.kind === \"uom\") {\n    const item = itemById[sid(ch.nextItem)];\n    if (!item) {\n      return block(\"The item on \" + label + \" could not be read, so \" + soNo +\n        \" cannot be updated.<br><br>Edit that sales order directly.\");\n    }\n    const uom = sid(ch.nextUom);\n    const pd = getPackingDetail(item.table_packing_detail, uom);\n    const packingConversion = (pd && pd.quantity) || 1;\n    line.packing_uom = (pd && pd.packing_uom_id) || \"\";\n    line.packing_conversion = parseFloat(packingConversion || 0).toFixed(3);\n    line.weight_conversion =\n      round3((Number(item.net_weight) || 0) * getBaseQty(item.table_uom_conversion, uom)).toFixed(3);\n  }\n\n  patched[sid(line.id)] = 1;\n}\n\nif (priceFailures.length) {\n  return block(\"The new price is outside the limits set on the item, so \" + soNo +\n    \" cannot be updated automatically:<br><br>\" + priceFailures.join(\"<br>\") +\n    \"<br><br>Change the price, or edit that sales order directly.\");\n}\n\n// ---- restate the money, SOCalculation's way ---------------------------------------\n// A line this edit did not touch contributes its STORED figures, which is what makes an\n// order built from more than one quotation safe: the other quotation's lines pass\n// through untouched, exactly as the browser leaves them.\nlet totalGross = 0;\nlet totalDiscount = 0;\nlet totalTax = 0;\nlet totalAmount = 0;\n\nsoLines.forEach((row) => {\n  if (!row) return;\n  if (!patched[sid(row.id)]) {\n    totalGross += roundPrice(row.so_gross);\n    totalDiscount += roundPrice(row.so_discount_amount);\n    totalTax += roundPrice(row.so_tax_amount);\n    totalAmount += roundPrice(row.so_amount);\n    return;\n  }\n\n  const quantity = num(row.so_quantity);\n  const unitPrice = roundPrice(row.so_item_price);\n  const grossValue = quantity * unitPrice;\n  row.so_gross = roundPrice(grossValue);\n\n  let discount = num(row.so_discount);\n  let discountUOM = sid(row.so_discount_uom);\n  if (discount > 0 && !discountUOM) {\n    discountUOM = \"Amount\";\n    row.so_discount_uom = \"Amount\";\n  }\n  let discountAmount = 0;\n  if (discountUOM && discount !== 0) {\n    if (discountUOM === \"Amount\") {\n      discountAmount = roundPrice(discount);\n    } else if (discountUOM === \"%\") {\n      discountAmount = roundPrice((grossValue * discount) / 100);\n    }\n    // A discount bigger than the line is a data-entry slip; SOCalculation zeroes both.\n    if (roundPrice(discountAmount) > roundPrice(grossValue)) {\n      discountAmount = 0;\n      row.so_discount = 0;\n    }\n  }\n  row.so_discount_amount = roundPrice(discountAmount);\n\n  const amountAfterDiscount = roundPrice(grossValue - discountAmount);\n  const taxRate = num(row.so_tax_percentage);\n  let taxAmount = 0;\n  let finalAmount = amountAfterDiscount;\n  if (taxRate) {\n    const d = taxRate / 100;\n    if (Number(row.so_tax_inclusive) === 1) {\n      taxAmount = roundPrice(amountAfterDiscount - amountAfterDiscount / (1 + d));\n      finalAmount = amountAfterDiscount;\n    } else {\n      taxAmount = roundPrice(amountAfterDiscount * d);\n      finalAmount = amountAfterDiscount + taxAmount;\n    }\n  }\n  row.so_tax_amount = roundPrice(taxAmount);\n  row.so_amount = roundPrice(finalAmount);\n\n  totalGross += roundPrice(grossValue);\n  totalDiscount += roundPrice(discountAmount);\n  totalTax += roundPrice(taxAmount);\n  totalAmount += roundPrice(finalAmount);\n});\n\nso.so_total_gross = roundPrice(totalGross);\nso.so_total_discount = roundPrice(totalDiscount);\nso.so_total_tax = roundPrice(totalTax);\nso.so_total = roundPrice(totalAmount);\n// Only moves when a rate is actually set; an order with a blank rate keeps its stored\n// MYR total rather than being zeroed.\nif (num(so.exchange_rate)) {\n  so.myr_total_amount = roundPrice(num(so.exchange_rate) * roundPrice(totalAmount));\n}\n\n// B11 -- if_C6bxfvdn ends 405 on a zero-total auto-invoice order, and a zero-total order\n// is a mistake regardless.\nif (roundPrice(totalAmount) <= 0) {\n  return block(\"The change would leave \" + soNo + \" with a total of 0, so it was not applied.\");\n}\n\n// ---- the payload SO_SAVE is handed ------------------------------------------------\n// Built by patching the row as fetched, never by constructing a literal:\n// update_node_Bw4VsiNH rewrites 142 header columns from whatever arrives here, and a\n// column left out is blanked on a live order.\nso.page_status = \"Edit\";\n// code_node_X4j8BSXd redraws the document number when so_no is blank or previous_status\n// is 'Draft'. The order already has its number, and this must not burn another.\nso.previous_status = soStatus === \"Draft\" ? \"\" : soStatus;\n// Non-blank, so the same node does not force the credit-limit path on. Never persisted:\n// code_node_BtxYhPym blanks it again before the write.\nso.need_cl = \"not required\";\nso.create_si = sid(so.create_si) || \"No\";\nso.confirmPickReversal = {{workflowparams:confirmPickReversal}};\nso.raiseGdQty = {{workflowparams:raiseGdQty}};\n\nreturn {\n  blocked: 0, blockCode: \"200\", blockSignal: 0, blockKind: \"\", blockMessage: \"\",\n  soPayloads: [{ so_id: sid(so.id), so_no: soNo, allData: so }],\n  emptyList: []\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "sqtcd_code_sqtcd_plan_blocked",
+            "name": "blocked",
+            "title": "blocked",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_plan_blockCode",
+            "name": "blockCode",
+            "title": "blockCode",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_plan_blockSignal",
+            "name": "blockSignal",
+            "title": "blockSignal",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_plan_blockKind",
+            "name": "blockKind",
+            "title": "blockKind",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_plan_blockMessage",
+            "name": "blockMessage",
+            "title": "blockMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_plan_soPayloads",
+            "name": "soPayloads",
+            "title": "soPayloads",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sqtcd_code_sqtcd_plan_emptyList",
+            "name": "emptyList",
+            "title": "emptyList",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_sqtcd_block",
+      "type": "if",
+      "data": {
+        "title": "IF Blocked",
+        "isValidator": true,
+        "nodeName": "IF Blocked",
+        "name": "IF Blocked",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 192000000022,
+              "parentId": 192000000023,
+              "isTop": true,
+              "prop": "node.code_sqtcd_plan.data.blocked",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "blocked",
+              "valueLabel": "",
+              "operatorLabel": "numberEqual"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_sqtcd_block_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "ret_sqtcd_block",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Block",
+                "isValidator": true,
+                "nodeName": "Return Block",
+                "name": "Return Block",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_sqtcd_plan.data.blockCode}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_sqtcd_plan.data.blockMessage}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "blockKind",
+                      "propLabel": "blockKind",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_sqtcd_plan.data.blockKind}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "blockSignal",
+                      "propLabel": "blockSignal",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_sqtcd_plan.data.blockSignal}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "pickingReversalNote",
+                      "propLabel": "pickingReversalNote",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "appliedSummary",
+                      "propLabel": "appliedSummary",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_sqtcd_plan.data.emptyList}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_sqtcd_block_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_sqtcd_unique",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Unique Index",
+        "isValidator": true,
+        "nodeName": "Unique Index",
+        "name": "Unique Index",
+        "script": {
+          "type": "javascript",
+          "code": "// Per-run redis namespace, so concurrent quotation saves never share an accumulator.\nconst sqtId = {{workflowparams:sqt_id}} || \"\";\n\nreturn {\n  unique: String(sqtId) + \"_\" + Date.now(),\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "sqtcd_code_sqtcd_unique_unique",
+            "name": "unique",
+            "title": "unique",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "set_sqtcd_res_init",
+      "type": "set-cache-node",
+      "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Set cascadeResults",
+        "isValidator": true,
+        "nodeName": "Set cascadeResults",
+        "name": "Set cascadeResults",
+        "custom_wkbocgni": {
+          "type": "javascript",
+          "code": "[]"
+        },
+        "redis_key": "sqtcdRes_sqtcd_{{node:code_sqtcd_unique.data.unique}}"
+      },
+      "blocks": []
+    },
+    {
+      "id": "loop_sqtcd_so",
+      "type": "loop",
+      "data": {
+        "title": "Loop SO Payloads",
+        "isValidator": true,
+        "nodeName": "Loop SO Payloads",
+        "name": "Loop SO Payloads",
+        "loopType": "Var",
+        "loopSeletSource": {
+          "datasource": {
+            "rules": {
+              "collectionId": "",
+              "list": [
+                {
+                  "id": 192000000024,
+                  "parentId": 192000000025,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            }
+          },
+          "auto_refresh": 1,
+          "auto_refresh_debounce": 100,
+          "options": [],
+          "props": {
+            "value": "",
+            "label": "",
+            "image": "",
+            "icon": "",
+            "explain": ""
+          },
+          "remote": false,
+          "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{node:code_sqtcd_plan.data.soPayloads}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "get_sqtcd_res",
+          "type": "get-cache-node",
+          "data": {
+            "cache_key": "",
+            "title": "Get cascadeResults",
+            "isValidator": true,
+            "nodeName": "Get cascadeResults",
+            "name": "Get cascadeResults",
+            "redis_key": "sqtcdRes_sqtcd_{{node:code_sqtcd_unique.data.unique}}"
+          },
+          "blocks": []
+        },
+        {
+          "id": "wf_sqtcd_so",
+          "type": "workflow-node",
+          "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "Save Sales Order",
+            "isValidator": true,
+            "nodeName": "Save Sales Order",
+            "name": "Save Sales Order",
+            "workflow": {
+              "source": "SO_SAVE:Workflow:1988908545345945602",
+              "rules": {
+                "collectionId": "1988908545345945602",
+                "list": [
+                  {
+                    "id": 192000000026,
+                    "parentId": 192000000027,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                  }
+                ]
+              }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+              "list": [
+                {
+                  "prop": "allData",
+                  "propLabel": "allData",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "field",
+                  "valueTypeLabel": "",
+                  "value": "{{node:loop_sqtcd_so.allData}}",
+                  "valueLabel": ""
+                }
+              ]
+            }
+          },
+          "blocks": []
+        },
+        {
+          "id": "code_sqtcd_collect",
+          "type": "code-node",
+          "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Collect SO Result",
+            "isValidator": true,
+            "nodeName": "Collect SO Result",
+            "name": "Collect SO Result",
+            "script": {
+              "type": "javascript",
+              "code": "const raw = {{node:get_sqtcd_res.data}};\nlet results = [];\nif (raw) { results = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(results)) results = [];\n\n// SO_SAVE declares ONE response key, `data`, and puts two different payloads in it: a\n// saved order carries so_id, a gate carries gateCode. Never test for a particular failure\n// code -- the same reason code_cd_collect_gd does not: a refusal can arrive with none.\nlet payload = {{node:wf_sqtcd_so.data.data}};\nif (typeof payload === \"string\") {\n  try { payload = JSON.parse(payload); } catch (e) { payload = {}; }\n}\nif (!payload || typeof payload !== \"object\") payload = {};\n\nconst gateCode = String(payload.gateCode || \"\");\nconst savedId = String(payload.so_id || \"\");\n\nresults.push({\n  doc: \"SO\",\n  doc_no: {{node:loop_sqtcd_so.so_no}} || \"\",\n  code: gateCode || (savedId ? \"200\" : \"\"),\n  ok: !gateCode && savedId ? 1 : 0,\n  // 414 (raise the delivery quantity) and 413 (reverse what is already picked) are\n  // questions the delivery asked, relayed up through the order. Both return before\n  // anything is written, so they are relayed rather than reported as failures.\n  confirm: gateCode === \"413\" || gateCode === \"414\" ? 1 : 0,\n  gateCode: gateCode,\n  message: String(payload.message || \"\"),\n  note: String(payload.pickingReversalNote || \"\")\n});\n\nreturn { results: results };\n"
+            },
+            "response_json": [
+              {
+                "key": "sqtcd_code_sqtcd_collect_results",
+                "name": "results",
+                "title": "results",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "children": []
+              }
+            ]
+          },
+          "blocks": []
+        },
+        {
+          "id": "set_sqtcd_res",
+          "type": "set-cache-node",
+          "data": {
+            "cache_key": "",
+            "cache_value": "",
+            "expire_time": 3600,
+            "title": "Set cascadeResults",
+            "isValidator": true,
+            "nodeName": "Set cascadeResults",
+            "name": "Set cascadeResults",
+            "custom_wkbocgni": {
+              "type": "javascript",
+              "code": "{{node:code_sqtcd_collect.data.results}}"
+            },
+            "redis_key": "sqtcdRes_sqtcd_{{node:code_sqtcd_unique.data.unique}}"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "get_sqtcd_res_final",
+      "type": "get-cache-node",
+      "data": {
+        "cache_key": "",
+        "title": "Get Final cascadeResults",
+        "isValidator": true,
+        "nodeName": "Get Final cascadeResults",
+        "name": "Get Final cascadeResults",
+        "redis_key": "sqtcdRes_sqtcd_{{node:code_sqtcd_unique.data.unique}}"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_sqtcd_summary",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build Summary",
+        "isValidator": true,
+        "nodeName": "Build Summary",
+        "name": "Build Summary",
+        "script": {
+          "type": "javascript",
+          "code": "const raw = {{node:get_sqtcd_res_final.data}};\nlet results = [];\nif (raw) { results = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(results)) results = [];\n\nconst ok = results.filter((r) => r.ok === 1);\nconst raise = results.filter((r) => r.gateCode === \"414\");\nconst reversal = results.filter((r) => r.gateCode === \"413\");\nconst bad = results.filter((r) => r.ok !== 1 && r.confirm !== 1);\nconst note = ok.map((r) => r.note).filter((n) => n).join(\"<br><br>\");\nconst joined = (rows) => rows.map((r) => r.message).filter((m) => m).join(\"<br><br>\");\n\n// A question outranks the work: the user answers, the quotation save re-runs whole, and\n// an order or delivery already updated is a no-op the second time round. Raise is asked\n// before reversal, the same order SOsaveWorkflow's three gate branches test in.\nif (raise.length) {\n  return {\n    code: \"414\", message: joined(raise), blockKind: \"confirmRaise\", blockSignal: 3,\n    pickingReversalNote: \"\", appliedSummary: results\n  };\n}\nif (reversal.length) {\n  return {\n    code: \"413\", message: joined(reversal), blockKind: \"confirmReversal\", blockSignal: 2,\n    pickingReversalNote: \"\", appliedSummary: results\n  };\n}\nif (!bad.length) {\n  return {\n    code: \"200\", message: \"\", blockKind: \"\", blockSignal: 0,\n    pickingReversalNote: note, appliedSummary: results\n  };\n}\n\n// Nothing of the quotation itself is written yet -- SQT_CASCADE runs ahead of\n// update_node_ag4jFZch -- so the lead must say so plainly. The payload is rebuilt from\n// the stored order on every attempt, so a retry converges rather than compounding.\nconst lead = ok.length\n  ? \"The quotation was not saved. \" + ok.length +\n    \" linked sales order(s) were already updated (\" + ok.map((r) => r.doc_no).join(\", \") +\n    \") and saving again will leave them as they are.<br><br>\"\n  : \"The quotation was not saved.<br><br>\";\n\nreturn {\n  code: \"406\",\n  message: lead + bad.map((r) => (r.doc_no || r.doc) + \": \" + (r.message || \"failed\")).join(\"<br>\"),\n  blockKind: \"block\",\n  blockSignal: 1,\n  pickingReversalNote: note,\n  appliedSummary: results\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "sqtcd_code_sqtcd_summary_code",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_summary_message",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_summary_blockKind",
+            "name": "blockKind",
+            "title": "blockKind",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_summary_blockSignal",
+            "name": "blockSignal",
+            "title": "blockSignal",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_summary_pickingReversalNote",
+            "name": "pickingReversalNote",
+            "title": "pickingReversalNote",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "sqtcd_code_sqtcd_summary_appliedSummary",
+            "name": "appliedSummary",
+            "title": "appliedSummary",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "ret_sqtcd_done",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Cascade Result",
+        "isValidator": true,
+        "nodeName": "Return Cascade Result",
+        "name": "Return Cascade Result",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_sqtcd_summary.data.code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_sqtcd_summary.data.message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "blockKind",
+              "propLabel": "blockKind",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_sqtcd_summary.data.blockKind}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "blockSignal",
+              "propLabel": "blockSignal",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_sqtcd_summary.data.blockSignal}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "pickingReversalNote",
+              "propLabel": "pickingReversalNote",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_sqtcd_summary.data.pickingReversalNote}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "appliedSummary",
+              "propLabel": "appliedSummary",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_sqtcd_summary.data.appliedSummary}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

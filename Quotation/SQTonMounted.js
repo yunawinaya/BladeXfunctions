@@ -193,6 +193,15 @@ const disabledField = async (status) => {
       "button_save_as_draft",
       "button_issued",
     ]);
+
+    // A converted quotation stays editable on its lines only, so a renegotiated
+    // quantity or price can cascade down into the sales order it produced. The
+    // header stays locked, and the server gate refuses what the SO cannot absorb.
+    // Save as Draft stays hidden -- a converted quotation must never go back.
+    if (status === "Completed") {
+      this.disabled(["table_sqt"], false);
+      this.display(["button_issued"]);
+    }
   } else {
     this.display([
       "link_billing_address",

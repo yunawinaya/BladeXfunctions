@@ -26,6 +26,23 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "sqtg_res_gate",
+      "name": "gate",
+      "title": "Gate",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "sqtg_res_note",
+      "name": "pickingReversalNote",
+      "title": "Picking Reversal Note",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "config": {},
@@ -92,7 +109,9 @@
         {
           "id": "ifBlock_j6TnNAxV",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_UBbCdEPT",
@@ -251,7 +270,9 @@
                 {
                   "id": "ifBlock_AXOjVbAV",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_node_C7AvyWU5",
@@ -260,7 +281,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -279,7 +304,9 @@
                 {
                   "id": "ifBlock_iL2Cflws",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -289,7 +316,9 @@
         {
           "id": "ifBlock_qoGBVMWO",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "code_node_WKdTecmg",
@@ -304,7 +333,7 @@
                 "name": "Check Doc No",
                 "script": {
                   "type": "javascript",
-                  "code": "let table = {{workflowparams:data}};\n\nif (\n  table.sqt_no_type !== -9999 &&\n  (!table.sqt_no ||\n    table.sqt_no === null ||\n    table.sqt_no === \"\" ||\n    table.previous_status !== \"Issued\")\n) {\n  table.sqt_no = 'issued'\n}\n\nif(!table.need_cl || table.need_cl === '' || table.need_cl === null) {\n  if(table.customer_type === 'Existing Customer' && table.acc_integration_type !== 'No Accounting') {\n    table.need_cl = 'required'\n  } else {\n    table.need_cl = 'not required'\n  }\n}\n\nreturn { table };"
+                  "code": "let table = {{workflowparams:data}};\n\nif (\n  table.sqt_no_type !== -9999 &&\n  (!table.sqt_no ||\n    table.sqt_no === null ||\n    table.sqt_no === \"\" ||\n    table.previous_status == \"Draft\")\n) {\n  table.sqt_no = 'issued'\n}\n\nif(!table.need_cl || table.need_cl === '' || table.need_cl === null) {\n  if(table.customer_type === 'Existing Customer' && table.acc_integration_type !== 'No Accounting') {\n    table.need_cl = 'required'\n  } else {\n    table.need_cl = 'not required'\n  }\n}\n\nreturn { table };"
                 },
                 "response_json": [
                   {
@@ -448,7 +477,9 @@
                 {
                   "id": "ifBlock_Ia3EnDuR",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_node_GeafP2Wd",
@@ -457,7 +488,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -476,7 +511,9 @@
                 {
                   "id": "ifBlock_KT8x2eu8",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_hqEv9Xfv",
@@ -608,7 +645,9 @@
                         {
                           "id": "ifBlock_NqRMBxpg",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "code_node_CO6q7Vm4",
@@ -701,7 +740,9 @@
                                 {
                                   "id": "ifBlock_x1WSSz3h",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "end_node_yKMrOBeF",
@@ -711,7 +752,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -731,7 +774,9 @@
                                 {
                                   "id": "ifBlock_Kc0WZeVX",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -769,7 +814,9 @@
                                 {
                                   "id": "ifBlock_nSX3AhUh",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "workflow_node_ysBZI7jQ",
@@ -872,7 +919,9 @@
                                         {
                                           "id": "ifBlock_xod7YBnd",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "code_node_mKcfRLOe",
@@ -920,7 +969,9 @@
                                                 {
                                                   "id": "ifBlock_864wu4gM",
                                                   "type": "ifBlock",
-                                                  "data": { "title": "true" },
+                                                  "data": {
+                                                    "title": "true"
+                                                  },
                                                   "blocks": [
                                                     {
                                                       "id": "end_node_ityV6LEf",
@@ -952,7 +1003,9 @@
                                                 {
                                                   "id": "ifBlock_QxMmp7ZQ",
                                                   "type": "ifBlock",
-                                                  "data": { "title": "false" },
+                                                  "data": {
+                                                    "title": "false"
+                                                  },
                                                   "blocks": [
                                                     {
                                                       "id": "end_node_CNTBQpE8",
@@ -988,7 +1041,9 @@
                                         {
                                           "id": "ifBlock_dpFLsz2d",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -998,7 +1053,9 @@
                                 {
                                   "id": "ifBlock_5OFfpp6X",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -1008,7 +1065,9 @@
                         {
                           "id": "ifBlock_VlBu5hk3",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "end_node_XIJzly7E",
@@ -1018,7 +1077,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -1081,7 +1142,9 @@
         {
           "id": "ifBlock_Grgid9vX",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_node_ka9vQdgM",
@@ -1122,7 +1185,9 @@
         {
           "id": "ifBlock_JKhxUDY1",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "code_node_RJdYLy0i",
@@ -1203,8 +1268,657 @@
         {
           "id": "if_block_AUKyoW-q",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
+            {
+              "id": "get_node_SqtPrev",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Quotation:Table:1902775274655825922",
+                  "rules": {
+                    "collectionId": "1902775274655825922",
+                    "list": [
+                      {
+                        "id": 193000000001,
+                        "parentId": 193000000002,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:data.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get Previous SQT Data",
+                "isValidator": true,
+                "nodeName": "Get Previous SQT Data",
+                "name": "Get Previous SQT Data"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_SqtCascadeGate",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Cascade Gate",
+                "isValidator": true,
+                "nodeName": "Cascade Gate",
+                "name": "Cascade Gate",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Does this edit touch anything the sales order carries? A cheap id-keyed diff, so an\n// edit that only moved header fields never pays for the cascade call. Deliberately WIDER\n// than SOsaveWorkflow's own gate: price is in scope one level up, and a renegotiated unit\n// price moves no quantity at all yet still has to reach the order.\n// A quotation with no order behind it passes through here too -- SQT_CASCADE answers 200\n// for that, so ordinary Issued-quotation editing is untouched.\nconst prevRaw = {{node:get_node_SqtPrev.data.data}};\nconst nextTable = {{node:code_node_JVj8v3Y0.data.table}};\nconst allData = {{workflowparams:data}};\n\nconst before = Array.isArray(prevRaw) ? prevRaw[0] || {} : prevRaw || {};\nconst flat = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\nconst num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };\nconst MONEY_EPS = 0.00005;\n\nconst prevLines = flat(before.table_sqt).filter((r) => r && r.id);\nconst nextLines = flat(nextTable && nextTable.table_sqt).filter((r) => r);\nconst prevIds = {};\nprevLines.forEach((r) => { prevIds[sid(r.id)] = 1; });\nconst nextById = {};\nnextLines.forEach((r) => { if (r.id) nextById[sid(r.id)] = r; });\n\nlet needsCascade = 0;\n// A line added after conversion is refused by SQT_CASCADE with the order named, so it\n// has to reach it rather than being filtered out here.\nnextLines.forEach((r) => {\n  if (!r.id || !prevIds[sid(r.id)]) needsCascade = 1;\n});\n\nprevLines.forEach((r) => {\n  const after = nextById[sid(r.id)];\n  if (!after) { needsCascade = 1; return; }\n  if (sid(after.material_id) !== sid(r.material_id)) { needsCascade = 1; return; }\n  // A unit change leaves quantity alone but restates it in a different unit, so the base\n  // quantity the delivery and its picking hold moves by the conversion ratio.\n  if (sid(after.sqt_order_uom_id) !== sid(r.sqt_order_uom_id)) { needsCascade = 1; return; }\n  if (Math.abs(num(after.quantity) - num(r.quantity)) > 0.0005) { needsCascade = 1; return; }\n  if (Math.abs(num(after.unit_price) - num(r.unit_price)) > MONEY_EPS) { needsCascade = 1; return; }\n  if (Math.abs(num(after.sqt_discount) - num(r.sqt_discount)) > MONEY_EPS) { needsCascade = 1; return; }\n  if (sid(after.sqt_discount_uom_id) !== sid(r.sqt_discount_uom_id)) { needsCascade = 1; return; }\n  if (sid(after.sqt_taxes_rate_id) !== sid(r.sqt_taxes_rate_id)) { needsCascade = 1; return; }\n  if (Math.abs(num(after.sqt_tax_rate_percent) - num(r.sqt_tax_rate_percent)) > MONEY_EPS) {\n    needsCascade = 1; return;\n  }\n  if (Number(after.sqt_tax_inclusive || 0) !== Number(r.sqt_tax_inclusive || 0)) {\n    needsCascade = 1;\n  }\n});\n\nreturn {\n  needsCascade: needsCascade,\n  sqtId: sid(before.id || allData.id),\n  prevTableSqt: before.table_sqt || [],\n  nextTableSqt: (nextTable && nextTable.table_sqt) || [],\n  // The confirm answers ride inside data, the way need_cl already does.\n  confirmPickReversal: sid(allData.confirmPickReversal),\n  raiseGdQty: sid(allData.raiseGdQty)\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "sqtg_code_node_SqtCascadeGate_needsCascade",
+                    "name": "needsCascade",
+                    "title": "needsCascade",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sqtg_code_node_SqtCascadeGate_sqtId",
+                    "name": "sqtId",
+                    "title": "sqtId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sqtg_code_node_SqtCascadeGate_prevTableSqt",
+                    "name": "prevTableSqt",
+                    "title": "prevTableSqt",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sqtg_code_node_SqtCascadeGate_nextTableSqt",
+                    "name": "nextTableSqt",
+                    "title": "nextTableSqt",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sqtg_code_node_SqtCascadeGate_confirmPickReversal",
+                    "name": "confirmPickReversal",
+                    "title": "confirmPickReversal",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "sqtg_code_node_SqtCascadeGate_raiseGdQty",
+                    "name": "raiseGdQty",
+                    "title": "raiseGdQty",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_SqtCascade",
+              "type": "if",
+              "data": {
+                "title": "IF Cascade Needed",
+                "isValidator": true,
+                "nodeName": "IF Cascade Needed",
+                "name": "IF Cascade Needed",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 193000000003,
+                      "parentId": 193000000004,
+                      "isTop": true,
+                      "prop": "node.code_node_SqtCascadeGate.data.needsCascade",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "needsCascade",
+                      "valueLabel": "",
+                      "operatorLabel": "numberEqual"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_SqtCascade_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "workflow_node_SqtCascade",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "Cascade To Sales Order",
+                        "isValidator": true,
+                        "nodeName": "Cascade To Sales Order",
+                        "name": "Cascade To Sales Order",
+                        "workflow": {
+                          "source": "SQT_CASCADE:Workflow:2100512392867549185",
+                          "rules": {
+                            "collectionId": "2100512392867549185",
+                            "list": [
+                              {
+                                "id": 193000000005,
+                                "parentId": 193000000006,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "sqt_id",
+                              "propLabel": "sqt_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SqtCascadeGate.data.sqtId}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "prev_table_sqt",
+                              "propLabel": "prev_table_sqt",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SqtCascadeGate.data.prevTableSqt}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "next_table_sqt",
+                              "propLabel": "next_table_sqt",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SqtCascadeGate.data.nextTableSqt}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "organization_id",
+                              "propLabel": "organization_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{workflowparams:data.organization_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "confirmPickReversal",
+                              "propLabel": "confirmPickReversal",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SqtCascadeGate.data.confirmPickReversal}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "raiseGdQty",
+                              "propLabel": "raiseGdQty",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SqtCascadeGate.data.raiseGdQty}}",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_SqtCascadeOut",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Cascade Gate Payload",
+                        "isValidator": true,
+                        "nodeName": "Cascade Gate Payload",
+                        "name": "Cascade Gate Payload",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// The gates return HTTP 200 with the code in the BODY, the way SOsaveWorkflow's\n// code_node_CascadeGateOut does. A non-2xx end-node makes runWorkflow REJECT, and the\n// platform then raises its own error toast beside the confirm -- rendering the raw <br>\n// tags, because that toast takes no dangerouslyUseHTMLString. gateCode is what tells the\n// client this is a question or a refusal rather than a saved quotation.\nreturn {\n  gate: {\n    gateCode: {{node:workflow_node_SqtCascade.data.code}} || \"\",\n    message: {{node:workflow_node_SqtCascade.data.message}} || \"\"\n  }\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "sqtg_code_node_SqtCascadeOut_gate",
+                            "name": "gate",
+                            "title": "gate",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_SqtCascadeRaise",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Cascade Raise",
+                        "isValidator": true,
+                        "nodeName": "IF Cascade Raise",
+                        "name": "IF Cascade Raise",
+                        "condition_type": "ConditionRule",
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 193000000007,
+                              "parentId": 193000000008,
+                              "isTop": true,
+                              "prop": "node.workflow_node_SqtCascade.data.blockSignal",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 3,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "blockSignal",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_SqtCascadeRaise_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "end_node_SqtCascadeRaise",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "OutputParams",
+                                "code": "",
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": ""
+                                },
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "sqt_id",
+                                      "propLabel": "sqt_id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "sqt_no",
+                                      "propLabel": "sqt_no",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "gate",
+                                      "propLabel": "gate",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_SqtCascadeOut.data.gate}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "pickingReversalNote",
+                                      "propLabel": "pickingReversalNote",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_SqtCascadeRaise_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_SqtCascadeReversal",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Cascade Reversal",
+                        "isValidator": true,
+                        "nodeName": "IF Cascade Reversal",
+                        "name": "IF Cascade Reversal",
+                        "condition_type": "ConditionRule",
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 193000000009,
+                              "parentId": 193000000010,
+                              "isTop": true,
+                              "prop": "node.workflow_node_SqtCascade.data.blockSignal",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 2,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "blockSignal",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_SqtCascadeReversal_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "end_node_SqtCascadeReversal",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "OutputParams",
+                                "code": "",
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": ""
+                                },
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "sqt_id",
+                                      "propLabel": "sqt_id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "sqt_no",
+                                      "propLabel": "sqt_no",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "gate",
+                                      "propLabel": "gate",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_SqtCascadeOut.data.gate}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "pickingReversalNote",
+                                      "propLabel": "pickingReversalNote",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_SqtCascadeReversal_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_SqtCascadeBlocked",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Cascade Blocked",
+                        "isValidator": true,
+                        "nodeName": "IF Cascade Blocked",
+                        "name": "IF Cascade Blocked",
+                        "condition_type": "ConditionRule",
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 193000000011,
+                              "parentId": 193000000012,
+                              "isTop": true,
+                              "prop": "node.workflow_node_SqtCascade.data.blockSignal",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 1,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "blockSignal",
+                              "valueLabel": "",
+                              "operatorLabel": "numberEqual"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_SqtCascadeBlocked_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "end_node_SqtCascadeBlocked",
+                              "type": "end-node",
+                              "data": {
+                                "title": "结束节点",
+                                "outputs": {
+                                  "type": "object",
+                                  "properties": {
+                                    "result": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "isValidator": true,
+                                "nodeName": "结束节点",
+                                "name": "结束节点",
+                                "back_data_type": "OutputParams",
+                                "code": "",
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": ""
+                                },
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "sqt_id",
+                                      "propLabel": "sqt_id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "sqt_no",
+                                      "propLabel": "sqt_no",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "gate",
+                                      "propLabel": "gate",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_SqtCascadeOut.data.gate}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "pickingReversalNote",
+                                      "propLabel": "pickingReversalNote",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_SqtCascadeBlocked_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_SqtCascade_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
             {
               "id": "update_node_ag4jFZch",
               "type": "update-node",
@@ -2463,7 +3177,9 @@
         {
           "id": "if_block_qtJn-Aum",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "add_node_bZFAQhsi",
@@ -3844,6 +4560,52 @@
       "blocks": []
     },
     {
+      "id": "code_node_SqtReturn",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Returned Data",
+        "isValidator": true,
+        "nodeName": "Map Returned Data",
+        "name": "Map Returned Data",
+        "script": {
+          "type": "javascript",
+          "code": "const sqtData = {{node:code_node_S7Ynb4nr.data.sqtData}};\n// workflow_node_SqtCascade lives two ifBlocks deep while this node is top-level, so the\n// linter calls this DIVERGENT. It is the same read SOsaveWorkflow's code_node_xtWJshxF\n// makes of workflow_node_CascadeA: it resolves to null when the branch did not run, and\n// the fallback absorbs it. Do not \"fix\" it by moving the node.\nconst note = {{node:workflow_node_SqtCascade.data.pickingReversalNote}};\n\nreturn {\n  sqtData: sqtData,\n  // An empty gateCode is what tells the browser this is a saved quotation.\n  gate: { gateCode: \"\", message: \"\" },\n  pickingReversalNote: note || null\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "sqtg_code_node_SqtReturn_sqtData",
+            "name": "sqtData",
+            "title": "sqtData",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sqtg_code_node_SqtReturn_gate",
+            "name": "gate",
+            "title": "gate",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sqtg_code_node_SqtReturn_pickingReversalNote",
+            "name": "pickingReversalNote",
+            "title": "pickingReversalNote",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "end",
       "type": "end-node",
       "data": {
@@ -3856,23 +4618,47 @@
           "list": [
             {
               "prop": "sqt_id",
-              "propLabel": "SQT ID",
+              "propLabel": "sqt_id",
               "operator": "",
               "operatorLabel": "",
               "valueType": "field",
               "valueTypeLabel": "",
               "valueLabel": "",
               "is_negative_number": false,
-              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.id}}"
+              "value": "{{node:code_node_SqtReturn.data.sqtData.id}}"
             },
             {
               "prop": "sqt_no",
+              "propLabel": "sqt_no",
               "operator": "",
+              "operatorLabel": "",
               "valueType": "field",
-              "value": "{{node:code_node_S7Ynb4nr.data.sqtData.sqt_no}}",
-              "is_negative_number": false,
+              "valueTypeLabel": "",
               "valueLabel": "",
-              "propLabel": "SQT No"
+              "is_negative_number": false,
+              "value": "{{node:code_node_SqtReturn.data.sqtData.sqt_no}}"
+            },
+            {
+              "prop": "gate",
+              "propLabel": "gate",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "is_negative_number": false,
+              "value": "{{node:code_node_SqtReturn.data.gate}}"
+            },
+            {
+              "prop": "pickingReversalNote",
+              "propLabel": "pickingReversalNote",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "is_negative_number": false,
+              "value": "{{node:code_node_SqtReturn.data.pickingReversalNote}}"
             }
           ]
         }
