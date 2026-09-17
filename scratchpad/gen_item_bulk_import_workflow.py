@@ -30,6 +30,8 @@ COSTING_TABLE = "Costing Method:Table:1901980856973643777"
 COSTING_ID = "1901980856973643777"
 RULE_TABLE = "流水号规则表:Table:1994006139209117697"
 RULE_ID = "1994006139209117697"
+BATCHCFG_TABLE = "batch_number_config:Table:2058765580973846530"
+BATCHCFG_ID = "2058765580973846530"
 
 WF_ITEM_SAVE = "ITEM_SAVE:Workflow:2098251509145264130"
 WF_ITEM_SAVE_ID = "2098251509145264130"
@@ -246,7 +248,9 @@ const HEADERS = {
   stock: ['stockcontrol'],
   active: ['active', 'isactive'],
   barcode: ['barcode', 'barcodenumber'],
-  group: ['itemgroup', 'group']
+  group: ['itemgroup', 'group'],
+  batch: ['batchmanagement', 'batch'],
+  batchRule: ['batchnumbergeneration', 'batchnumbergenerationrule', 'batchgeneration']
 };
 
 const pick = (normRow, names) => {
@@ -301,7 +305,9 @@ for (const r of rawRows) {
     stockControl: pick(normRow, HEADERS.stock),
     active: pick(normRow, HEADERS.active),
     barcode: pick(normRow, HEADERS.barcode),
-    groupName: pick(normRow, HEADERS.group)
+    groupName: pick(normRow, HEADERS.group),
+    batch: pick(normRow, HEADERS.batch),
+    batchRule: pick(normRow, HEADERS.batchRule)
   };
 
   // Trailing/blank spreadsheet rows are ignored, not reported.
@@ -358,7 +364,14 @@ const groupData = {{node:search_group.data.data}} || [];
 const propsData = {{node:search_props.data.data}} || [];
 const costingData = {{node:search_costing.data.data}} || [];
 const existingData = {{node:search_existing.data.data}} || [];
+const batchCfgData = {{node:search_batch_config.data.data}} || [];
 const ruleRaw = {{node:get_code_rule.data.data}};
+
+// ITEM_SAVE's own batch check reads rows[0] of exactly this query, so mirror
+// that rather than scanning for an Item Level row anywhere in the org.
+const orgBatchCfg = batchCfgData.length > 0 ? batchCfgData[0] : null;
+const batchIsItemLevel =
+  !!orgBatchCfg && orgBatchCfg.batch_level_selection === 'Item Level';
 
 // A get-node's record is a single OBJECT when count === 1, an array otherwise.
 const ruleRows = !ruleRaw ? [] : Array.isArray(ruleRaw) ? ruleRaw : [ruleRaw];
@@ -545,6 +558,45 @@ rows.forEach((row) => {
     rowErrors.push(label + ': Active must be Yes or No.');
   }
 
+  // --- Batch Management ------------------------------------------------------
+  const batchFlag = parseBool(row.batch, 0);
+  if (batchFlag === -1) {
+    rowErrors.push(label + ': Batch Management must be Yes or No.');
+  }
+
+  // The form only offers these two, and the second one skips the config check
+  // entirely (ITEM_SAVE's needsBatchCheck).
+  const BATCH_RULES = ['According To System Settings', 'Manual Input'];
+  let batchRule = '';
+  if (batchFlag === 1) {
+    batchRule = BATCH_RULES[0];
+    if (row.batchRule) {
+      const hit = BATCH_RULES.filter((r) => lc(r) === lc(row.batchRule));
+      if (hit.length === 0) {
+        rowErrors.push(
+          label + ': Batch Number Generation must be ' + BATCH_RULES.join(' or ') + '.'
+        );
+      } else {
+        batchRule = hit[0];
+      }
+    }
+    // A brand-new item has no id yet, so ITEM_SAVE's item-level config lookup
+    // can never find a row and it would 403 mid-import. Block it here instead,
+    // while nothing has been created.
+    if (batchIsItemLevel && batchRule === BATCH_RULES[0]) {
+      rowErrors.push(
+        label +
+          ': this organization sets batch numbers at Item Level, which needs a ' +
+          'per-item batch configuration that cannot come from Excel. Use ' +
+          '"Manual Input", or create this item in the form.'
+      );
+    }
+  } else if (row.batchRule) {
+    rowErrors.push(
+      label + ': Batch Number Generation was filled but Batch Management is off.'
+    );
+  }
+
   // --- Item Code: filled = manual rule, blank = the serial rule assigns ------
   let materialCode = row.itemCode;
   let materialCodeType = codeRuleId;
@@ -602,7 +654,10 @@ rows.forEach((row) => {
       // description-only marker, which no imported item should silently become.
       show_delivery: stockControl === 1 ? 0 : 1,
       show_receiving: stockControl === 1 ? 0 : 1,
-      item_batch_management: 0,
+      item_batch_management: batchFlag,
+      batch_number_genaration: batchRule,
+      // Deliberately no batch_config: ITEM_SAVE's post-save UPDATE_BATCH_CONFIG
+      // only runs when this object is non-empty.
       serial_number_management: 0,
       auto_bom: 0,
       // ITEM_SAVE demands exactly one default purchase UOM and exactly one
@@ -787,6 +842,11 @@ nodes = [
                 leaf("material_code", "equalAny", "{{node:code_parse.data.itemCodes}}"),
                 leaf("organization_id", "equal", "{{workflowparams:organization_id}}"),
             ], limit=1000)]),
+        ("cai_batchcfg", "Batch Number Config", [
+            search_node("search_batch_config", "Get Batch Number Config",
+                        BATCHCFG_TABLE, BATCHCFG_ID, [
+                leaf("organization_id", "equal", "{{workflowparams:organization_id}}"),
+            ], limit=100)]),
         ("cai_rule", "Item Number Rule", [
             # 流水号规则表 is org-shared: without department_id this returns one
             # row per tenant and the add-node throws 所选流水号规则不属于当前部门.

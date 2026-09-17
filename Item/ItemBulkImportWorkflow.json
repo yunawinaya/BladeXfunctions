@@ -83,7 +83,7 @@
     "name": "1. Parse Excel Rows",
     "script": {
      "type": "javascript",
-     "code": "const raw = {{workflowparams:import_file}};\n\n// Keeps one file well inside the search-node limits below, and gives a clean\n// error instead of a silent \"name not found\" from a truncated lookup.\nconst MAX_ROWS = 500;\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\n\n// Same normalised header lookup as ItemCustBindImport.js: \"Item Code\",\n// \"item_code\" and \"ITEMCODE\" all collapse to the same key. (GR's importers match\n// byte-for-byte and silently blank out on a case mismatch.)\nconst normKey = (k) =>\n  String(k || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9]/g, '');\n\nconst HEADERS = {\n  code: ['itemcode'],\n  name: ['itemname'],\n  desc: ['description', 'itemdescription', 'desc'],\n  category: ['itemcategory', 'materialcategory', 'category'],\n  uom: ['baseuom', 'basedoum', 'uom'],\n  properties: ['itemproperties', 'itemproperty', 'properties'],\n  type: ['itemtype', 'type'],\n  stock: ['stockcontrol'],\n  active: ['active', 'isactive'],\n  barcode: ['barcode', 'barcodenumber'],\n  group: ['itemgroup', 'group']\n};\n\nconst pick = (normRow, names) => {\n  for (const n of names) {\n    if (normRow[n] !== undefined) {\n      const v = str(normRow[n]);\n      if (v) return v;\n    }\n  }\n  return '';\n};\n\nlet excelData = raw;\nif (typeof excelData === 'string') {\n  try {\n    excelData = JSON.parse(excelData);\n  } catch (e) {\n    excelData = null;\n  }\n}\n\n// The parser emits an object keyed \"0\",\"1\",\"2\"... alongside name/size/type meta\n// keys; a plain array is accepted too. Line 1 is consumed as the header row, so\n// data index 0 is spreadsheet line 2.\nlet rawRows = [];\nif (Array.isArray(excelData)) {\n  rawRows = excelData.map((data, i) => ({ seq: i + 2, data: data || {} }));\n} else if (excelData && typeof excelData === 'object') {\n  rawRows = Object.keys(excelData)\n    .filter((k) => /^\\d+$/.test(k))\n    .map((k) => parseInt(k, 10))\n    .sort((a, b) => a - b)\n    .map((k) => ({ seq: k + 2, data: excelData[k] || {} }));\n}\n\nconst rows = [];\nfor (const r of rawRows) {\n  const normRow = {};\n  Object.keys(r.data).forEach((k) => {\n    normRow[normKey(k)] = r.data[k];\n  });\n\n  const row = {\n    seq: r.seq,\n    itemCode: pick(normRow, HEADERS.code),\n    itemName: pick(normRow, HEADERS.name),\n    itemDesc: pick(normRow, HEADERS.desc),\n    categoryName: pick(normRow, HEADERS.category),\n    uomName: pick(normRow, HEADERS.uom),\n    properties: pick(normRow, HEADERS.properties),\n    itemType: pick(normRow, HEADERS.type),\n    stockControl: pick(normRow, HEADERS.stock),\n    active: pick(normRow, HEADERS.active),\n    barcode: pick(normRow, HEADERS.barcode),\n    groupName: pick(normRow, HEADERS.group)\n  };\n\n  // Trailing/blank spreadsheet rows are ignored, not reported.\n  const filled = Object.keys(row).some((k) => k !== 'seq' && row[k] !== '');\n  if (filled) rows.push(row);\n}\n\n// An empty array in an `equalAny` filter is unsafe; \"0\" matches nothing.\nconst blocked = (message) => ({\n  rows: [],\n  itemCodes: ['0'],\n  uomNames: ['0'],\n  categoryNames: ['0'],\n  groupNames: ['0'],\n  hasRows: 'N',\n  message: message\n});\n\nif (rows.length === 0) {\n  return blocked('No data found in the imported file.');\n}\n\nif (rows.length > MAX_ROWS) {\n  return blocked(\n    'The file has ' + rows.length + ' rows. Import at most ' + MAX_ROWS +\n      ' items per file.'\n  );\n}\n\nconst distinct = (list) => {\n  const out = [];\n  list.forEach((v) => {\n    if (v && out.indexOf(v) === -1) out.push(v);\n  });\n  return out.length > 0 ? out : ['0'];\n};\n\nreturn {\n  rows: rows,\n  itemCodes: distinct(rows.map((r) => r.itemCode)),\n  uomNames: distinct(rows.map((r) => r.uomName)),\n  categoryNames: distinct(rows.map((r) => r.categoryName)),\n  groupNames: distinct(rows.map((r) => r.groupName)),\n  hasRows: 'Y',\n  message: ''\n};"
+     "code": "const raw = {{workflowparams:import_file}};\n\n// Keeps one file well inside the search-node limits below, and gives a clean\n// error instead of a silent \"name not found\" from a truncated lookup.\nconst MAX_ROWS = 500;\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\n\n// Same normalised header lookup as ItemCustBindImport.js: \"Item Code\",\n// \"item_code\" and \"ITEMCODE\" all collapse to the same key. (GR's importers match\n// byte-for-byte and silently blank out on a case mismatch.)\nconst normKey = (k) =>\n  String(k || '')\n    .toLowerCase()\n    .replace(/[^a-z0-9]/g, '');\n\nconst HEADERS = {\n  code: ['itemcode'],\n  name: ['itemname'],\n  desc: ['description', 'itemdescription', 'desc'],\n  category: ['itemcategory', 'materialcategory', 'category'],\n  uom: ['baseuom', 'basedoum', 'uom'],\n  properties: ['itemproperties', 'itemproperty', 'properties'],\n  type: ['itemtype', 'type'],\n  stock: ['stockcontrol'],\n  active: ['active', 'isactive'],\n  barcode: ['barcode', 'barcodenumber'],\n  group: ['itemgroup', 'group'],\n  batch: ['batchmanagement', 'batch'],\n  batchRule: ['batchnumbergeneration', 'batchnumbergenerationrule', 'batchgeneration']\n};\n\nconst pick = (normRow, names) => {\n  for (const n of names) {\n    if (normRow[n] !== undefined) {\n      const v = str(normRow[n]);\n      if (v) return v;\n    }\n  }\n  return '';\n};\n\nlet excelData = raw;\nif (typeof excelData === 'string') {\n  try {\n    excelData = JSON.parse(excelData);\n  } catch (e) {\n    excelData = null;\n  }\n}\n\n// The parser emits an object keyed \"0\",\"1\",\"2\"... alongside name/size/type meta\n// keys; a plain array is accepted too. Line 1 is consumed as the header row, so\n// data index 0 is spreadsheet line 2.\nlet rawRows = [];\nif (Array.isArray(excelData)) {\n  rawRows = excelData.map((data, i) => ({ seq: i + 2, data: data || {} }));\n} else if (excelData && typeof excelData === 'object') {\n  rawRows = Object.keys(excelData)\n    .filter((k) => /^\\d+$/.test(k))\n    .map((k) => parseInt(k, 10))\n    .sort((a, b) => a - b)\n    .map((k) => ({ seq: k + 2, data: excelData[k] || {} }));\n}\n\nconst rows = [];\nfor (const r of rawRows) {\n  const normRow = {};\n  Object.keys(r.data).forEach((k) => {\n    normRow[normKey(k)] = r.data[k];\n  });\n\n  const row = {\n    seq: r.seq,\n    itemCode: pick(normRow, HEADERS.code),\n    itemName: pick(normRow, HEADERS.name),\n    itemDesc: pick(normRow, HEADERS.desc),\n    categoryName: pick(normRow, HEADERS.category),\n    uomName: pick(normRow, HEADERS.uom),\n    properties: pick(normRow, HEADERS.properties),\n    itemType: pick(normRow, HEADERS.type),\n    stockControl: pick(normRow, HEADERS.stock),\n    active: pick(normRow, HEADERS.active),\n    barcode: pick(normRow, HEADERS.barcode),\n    groupName: pick(normRow, HEADERS.group),\n    batch: pick(normRow, HEADERS.batch),\n    batchRule: pick(normRow, HEADERS.batchRule)\n  };\n\n  // Trailing/blank spreadsheet rows are ignored, not reported.\n  const filled = Object.keys(row).some((k) => k !== 'seq' && row[k] !== '');\n  if (filled) rows.push(row);\n}\n\n// An empty array in an `equalAny` filter is unsafe; \"0\" matches nothing.\nconst blocked = (message) => ({\n  rows: [],\n  itemCodes: ['0'],\n  uomNames: ['0'],\n  categoryNames: ['0'],\n  groupNames: ['0'],\n  hasRows: 'N',\n  message: message\n});\n\nif (rows.length === 0) {\n  return blocked('No data found in the imported file.');\n}\n\nif (rows.length > MAX_ROWS) {\n  return blocked(\n    'The file has ' + rows.length + ' rows. Import at most ' + MAX_ROWS +\n      ' items per file.'\n  );\n}\n\nconst distinct = (list) => {\n  const out = [];\n  list.forEach((v) => {\n    if (v && out.indexOf(v) === -1) out.push(v);\n  });\n  return out.length > 0 ? out : ['0'];\n};\n\nreturn {\n  rows: rows,\n  itemCodes: distinct(rows.map((r) => r.itemCode)),\n  uomNames: distinct(rows.map((r) => r.uomName)),\n  categoryNames: distinct(rows.map((r) => r.categoryName)),\n  groupNames: distinct(rows.map((r) => r.groupName)),\n  hasRows: 'Y',\n  message: ''\n};"
     },
     "response_json": [
      {
@@ -249,8 +249,8 @@
       "filter": {
        "list": [
         {
-         "id": 1800000000027,
-         "parentId": 1800000000028,
+         "id": 1800000000029,
+         "parentId": 1800000000030,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -344,8 +344,8 @@
       "filter": {
        "list": [
         {
-         "id": 1800000000029,
-         "parentId": 1800000000030,
+         "id": 1800000000031,
+         "parentId": 1800000000032,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -439,8 +439,8 @@
       "filter": {
        "list": [
         {
-         "id": 1800000000031,
-         "parentId": 1800000000032,
+         "id": 1800000000033,
+         "parentId": 1800000000034,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -534,8 +534,8 @@
       "filter": {
        "list": [
         {
-         "id": 1800000000033,
-         "parentId": 1800000000034,
+         "id": 1800000000035,
+         "parentId": 1800000000036,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -602,8 +602,8 @@
       "filter": {
        "list": [
         {
-         "id": 1800000000035,
-         "parentId": 1800000000036,
+         "id": 1800000000037,
+         "parentId": 1800000000038,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -690,6 +690,74 @@
      ]
     },
     {
+     "id": "cai_batchcfg",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Batch Number Config",
+      "filter": {
+       "list": [
+        {
+         "id": 1800000000039,
+         "parentId": 1800000000040,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Batch Number Config",
+      "name": "Batch Number Config",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "search_batch_config",
+       "type": "search-node",
+       "data": {
+        "table_id": {
+         "source": "batch_number_config:Table:2058765580973846530",
+         "rules": {
+          "collectionId": "2058765580973846530",
+          "list": [
+           {
+            "prop": "organization_id",
+            "operator": "equal",
+            "valueType": "field",
+            "value": "{{workflowparams:organization_id}}",
+            "propLabel": "organization_id",
+            "valueLabel": "",
+            "operatorLabel": "equal",
+            "id": 1800000000021,
+            "parentId": 1800000000022,
+            "isTop": true,
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get Batch Number Config",
+        "isValidator": true,
+        "nodeName": "Get Batch Number Config",
+        "name": "Get Batch Number Config"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
      "id": "cai_rule",
      "type": "condition-all-node-item",
      "data": {
@@ -697,8 +765,8 @@
       "filter": {
        "list": [
         {
-         "id": 1800000000037,
-         "parentId": 1800000000038,
+         "id": 1800000000041,
+         "parentId": 1800000000042,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -730,8 +798,8 @@
           "collectionId": "1994006139209117697",
           "list": [
            {
-            "id": 1800000000021,
-            "parentId": 1800000000022,
+            "id": 1800000000023,
+            "parentId": 1800000000024,
             "isTop": true,
             "type": "branch",
             "operator": "all",
@@ -748,8 +816,8 @@
               "propLabel": "department_id",
               "valueLabel": "",
               "operatorLabel": "numberEqual",
-              "id": 1800000000023,
-              "parentId": 1800000000021,
+              "id": 1800000000025,
+              "parentId": 1800000000023,
               "isTop": false,
               "type": "leaf",
               "level": 2
@@ -762,8 +830,8 @@
               "propLabel": "business_type",
               "valueLabel": "",
               "operatorLabel": "equal",
-              "id": 1800000000024,
-              "parentId": 1800000000021,
+              "id": 1800000000026,
+              "parentId": 1800000000023,
               "isTop": false,
               "type": "leaf",
               "level": 2
@@ -776,8 +844,8 @@
               "propLabel": "is_draft",
               "valueLabel": "",
               "operatorLabel": "numberEqual",
-              "id": 1800000000025,
-              "parentId": 1800000000021,
+              "id": 1800000000027,
+              "parentId": 1800000000023,
               "isTop": false,
               "type": "leaf",
               "level": 2
@@ -790,8 +858,8 @@
               "propLabel": "is_default",
               "valueLabel": "",
               "operatorLabel": "numberEqual",
-              "id": 1800000000026,
-              "parentId": 1800000000021,
+              "id": 1800000000028,
+              "parentId": 1800000000023,
               "isTop": false,
               "type": "leaf",
               "level": 2
@@ -859,8 +927,8 @@
         "propLabel": "id",
         "valueLabel": "",
         "operatorLabel": "equalAny",
-        "id": 1800000000039,
-        "parentId": 1800000000040,
+        "id": 1800000000043,
+        "parentId": 1800000000044,
         "isTop": true,
         "type": "leaf",
         "level": 1
@@ -890,7 +958,7 @@
     "name": "3. Validate & Build Payloads",
     "script": {
      "type": "javascript",
-     "code": "const rows = {{node:code_parse.data.rows}} || [];\nconst organizationId = {{workflowparams:organization_id}};\n\nconst uomData = {{node:search_uom.data.data}} || [];\nconst categoryData = {{node:search_category.data.data}} || [];\nconst groupData = {{node:search_group.data.data}} || [];\nconst propsData = {{node:search_props.data.data}} || [];\nconst costingData = {{node:search_costing.data.data}} || [];\nconst existingData = {{node:search_existing.data.data}} || [];\nconst ruleRaw = {{node:get_code_rule.data.data}};\n\n// A get-node's record is a single OBJECT when count === 1, an array otherwise.\nconst ruleRows = !ruleRaw ? [] : Array.isArray(ruleRaw) ? ruleRaw : [ruleRaw];\nconst codeRuleId = ruleRows.length > 0 ? ruleRows[0].id : '';\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\nconst lc = (v) => str(v).toLowerCase();\n\nconst escapeHtml = (s) =>\n  str(s).replace(\n    /[&<>\"']/g,\n    (c) =>\n      ({\n        '&': '&amp;',\n        '<': '&lt;',\n        '>': '&gt;',\n        '\"': '&quot;',\n        \"'\": '&#39;'\n      })[c]\n  );\n\n// The platform's equalAny matching is case-insensitive, so key the maps the same way.\nconst indexBy = (list, field) => {\n  const map = {};\n  list.forEach((r) => {\n    const k = lc(r[field]);\n    if (k) (map[k] = map[k] || []).push(r);\n  });\n  return map;\n};\n\nconst uomByName = indexBy(uomData, 'uom_name');\nconst catByName = indexBy(categoryData, 'mat_cat_name');\nconst groupByName = indexBy(groupData, 'group_code');\n\nconst costingById = {};\ncostingData.forEach((c) => {\n  costingById[String(c.id)] = str(c.method_name);\n});\n\nconst existingCodes = {};\nexistingData.forEach((i) => {\n  const k = lc(i.material_code);\n  if (k) existingCodes[k] = true;\n});\n\nconst allowedProps = [];\npropsData.forEach((p) => {\n  const v = str(p.dict_key);\n  if (v && allowedProps.indexOf(v) === -1) allowedProps.push(v);\n});\n\n// Mirrors the form's onItemPropertiesChange handler.\nconst SCOPE_BY_PROPERTY = {\n  'Packaging Material': ['2', '1'],\n  'Work in Progress': ['3'],\n  'Raw Material': ['2', '3'],\n  'Semi-Finished Goods': ['1', '3'],\n  Product: ['1'],\n  Default: ['1', '2', '3'],\n  'Auxiliary Material': ['2', '3']\n};\n\nconst YES = ['1', 'y', 'yes', 'true', 't'];\nconst NO = ['0', 'n', 'no', 'false', 'f'];\n// Returns -1 for an unparseable cell so the caller can report it.\nconst parseBool = (v, dflt) => {\n  const s = lc(v);\n  if (s === '') return dflt;\n  if (YES.indexOf(s) !== -1) return 1;\n  if (NO.indexOf(s) !== -1) return 0;\n  return -1;\n};\n\nconst resolveOne = (map, name) => {\n  const hits = map[lc(name)] || [];\n  return { count: hits.length, row: hits.length === 1 ? hits[0] : null };\n};\n\nconst errors = [];\nconst payloads = [];\nconst seenCodes = {};\n\nrows.forEach((row) => {\n  const label = 'Row ' + row.seq;\n  const rowErrors = [];\n\n  if (!row.itemName) rowErrors.push(label + ': Item Name is required.');\n\n  // --- Item Category -> id, and the Costing Method it carries ---------------\n  let categoryId = '';\n  let costingMethod = '';\n  if (!row.categoryName) {\n    rowErrors.push(label + ': Item Category is required.');\n  } else {\n    const hit = resolveOne(catByName, row.categoryName);\n    if (hit.count === 0) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" not found.'\n      );\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" matches ' +\n          hit.count + ' categories.'\n      );\n    } else {\n      categoryId = hit.row.id;\n      // Costing Method is not an Excel column: the form derives it from the\n      // category (onChange_item_category) and keeps the field read-only.\n      costingMethod = costingById[String(hit.row.mat_costing_method)] || '';\n      if (!costingMethod) {\n        rowErrors.push(\n          label + ': Item Category \"' + row.categoryName +\n            '\" has no Costing Method configured.'\n        );\n      }\n    }\n  }\n\n  // --- Base UOM -> id --------------------------------------------------------\n  let basedUom = '';\n  if (!row.uomName) {\n    rowErrors.push(label + ': Base UOM is required.');\n  } else {\n    const hit = resolveOne(uomByName, row.uomName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Base UOM \"' + row.uomName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Base UOM \"' + row.uomName + '\" matches ' + hit.count + ' UOMs.'\n      );\n    } else {\n      basedUom = hit.row.id;\n    }\n  }\n\n  // --- Item Group -> id (optional) ------------------------------------------\n  let groupId = '';\n  if (row.groupName) {\n    const hit = resolveOne(groupByName, row.groupName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Item Group \"' + row.groupName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Group \"' + row.groupName + '\" matches ' + hit.count +\n          ' groups.'\n      );\n    } else {\n      groupId = hit.row.id;\n    }\n  }\n\n  // --- Item Properties (blank -> \"Default\") ---------------------------------\n  let properties = 'Default';\n  if (row.properties) {\n    const match = allowedProps.filter((p) => lc(p) === lc(row.properties));\n    if (match.length === 0) {\n      rowErrors.push(\n        label + ': Item Properties \"' + row.properties +\n          '\" is not valid. Allowed: ' + allowedProps.join(', ') + '.'\n      );\n    } else {\n      properties = match[0];\n    }\n  }\n  const businessScope = SCOPE_BY_PROPERTY[properties] || [];\n\n  // --- Item Type -------------------------------------------------------------\n  let materialType = 'Goods';\n  if (row.itemType) {\n    const t = lc(row.itemType);\n    if (t === 'goods') materialType = 'Goods';\n    else if (t === 'services' || t === 'service') materialType = 'Services';\n    else rowErrors.push(label + ': Item Type must be Goods or Services.');\n  }\n\n  // --- switches --------------------------------------------------------------\n  const stockControl = parseBool(row.stockControl, 1);\n  if (stockControl === -1) {\n    rowErrors.push(label + ': Stock Control must be Yes or No.');\n  }\n  const isActive = parseBool(row.active, 1);\n  if (isActive === -1) {\n    rowErrors.push(label + ': Active must be Yes or No.');\n  }\n\n  // --- Item Code: filled = manual rule, blank = the serial rule assigns ------\n  let materialCode = row.itemCode;\n  let materialCodeType = codeRuleId;\n  if (materialCode) {\n    materialCodeType = -9999;\n    const dupKey = lc(materialCode);\n    if (seenCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" is also used on ' +\n          seenCodes[dupKey] + ' of this file.'\n      );\n    } else {\n      seenCodes[dupKey] = label;\n    }\n    if (existingCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" already exists.'\n      );\n    }\n  } else if (!codeRuleId) {\n    rowErrors.push(\n      label +\n        ': Item Code is required — no default numbering rule is configured for Items.'\n    );\n  }\n\n  if (rowErrors.length > 0) {\n    rowErrors.forEach((e) => errors.push(e));\n    return;\n  }\n\n  payloads.push({\n    seq: row.seq,\n    itemName: row.itemName,\n    allData: {\n      page_status: 'Add',\n      is_post: 0,\n      organization_id: organizationId,\n      material_code: materialCode,\n      material_code_type: materialCodeType,\n      material_name: row.itemName,\n      material_desc: row.itemDesc,\n      material_type: materialType,\n      item_category: categoryId,\n      item_group_id: groupId,\n      material_costing_method: costingMethod,\n      based_uom: basedUom,\n      item_properties: properties,\n      business_scope: businessScope,\n      barcode_number: row.barcode,\n      is_active: isActive,\n      stock_control: stockControl,\n      // The form forces both to 0 while Stock Control is on. With it off they\n      // go to 1: stock_control === 0 && show_delivery === 0 is the\n      // description-only marker, which no imported item should silently become.\n      show_delivery: stockControl === 1 ? 0 : 1,\n      show_receiving: stockControl === 1 ? 0 : 1,\n      item_batch_management: 0,\n      serial_number_management: 0,\n      auto_bom: 0,\n      // ITEM_SAVE demands exactly one default purchase UOM and exactly one\n      // default sales UOM, so generate the base row instead of asking a\n      // spreadsheet to model conversions.\n      table_uom_conversion: [\n        {\n          alt_uom_id: basedUom,\n          base_uom_id: basedUom,\n          alt_qty: 1,\n          base_qty: 1,\n          purchase_default_uom: 1,\n          sales_default_uom: 1\n        }\n      ],\n      table_packing_detail: [],\n      table_supplier_price: [],\n      table_customer_price: [],\n      table_sup_item_access: [],\n      table_cust_item_access: [],\n      table_sup_item_bind: [],\n      table_cust_item_bind: [],\n      table_reorder_supplier: [],\n      table_default_bin: []\n    }\n  });\n});\n\n// All-or-nothing: one bad row blocks the file so the user fixes it and re-uploads,\n// rather than half a spreadsheet landing in the Item master.\nconst MAX_LISTED = 15;\nif (errors.length > 0) {\n  const shown = errors.slice(0, MAX_LISTED).map((m) => '• ' + escapeHtml(m));\n  if (errors.length > MAX_LISTED) {\n    shown.push('… and ' + (errors.length - MAX_LISTED) + ' more.');\n  }\n  return {\n    status: 'Failed',\n    message:\n      'The file was not imported. Fix the following and upload again:<br><br>' +\n      shown.join('<br>'),\n    payloads: [],\n    count: 0\n  };\n}\n\nreturn { status: 'Passed', message: '', payloads: payloads, count: payloads.length };"
+     "code": "const rows = {{node:code_parse.data.rows}} || [];\nconst organizationId = {{workflowparams:organization_id}};\n\nconst uomData = {{node:search_uom.data.data}} || [];\nconst categoryData = {{node:search_category.data.data}} || [];\nconst groupData = {{node:search_group.data.data}} || [];\nconst propsData = {{node:search_props.data.data}} || [];\nconst costingData = {{node:search_costing.data.data}} || [];\nconst existingData = {{node:search_existing.data.data}} || [];\nconst batchCfgData = {{node:search_batch_config.data.data}} || [];\nconst ruleRaw = {{node:get_code_rule.data.data}};\n\n// ITEM_SAVE's own batch check reads rows[0] of exactly this query, so mirror\n// that rather than scanning for an Item Level row anywhere in the org.\nconst orgBatchCfg = batchCfgData.length > 0 ? batchCfgData[0] : null;\nconst batchIsItemLevel =\n  !!orgBatchCfg && orgBatchCfg.batch_level_selection === 'Item Level';\n\n// A get-node's record is a single OBJECT when count === 1, an array otherwise.\nconst ruleRows = !ruleRaw ? [] : Array.isArray(ruleRaw) ? ruleRaw : [ruleRaw];\nconst codeRuleId = ruleRows.length > 0 ? ruleRows[0].id : '';\n\nconst str = (v) => (v === undefined || v === null ? '' : String(v).trim());\nconst lc = (v) => str(v).toLowerCase();\n\nconst escapeHtml = (s) =>\n  str(s).replace(\n    /[&<>\"']/g,\n    (c) =>\n      ({\n        '&': '&amp;',\n        '<': '&lt;',\n        '>': '&gt;',\n        '\"': '&quot;',\n        \"'\": '&#39;'\n      })[c]\n  );\n\n// The platform's equalAny matching is case-insensitive, so key the maps the same way.\nconst indexBy = (list, field) => {\n  const map = {};\n  list.forEach((r) => {\n    const k = lc(r[field]);\n    if (k) (map[k] = map[k] || []).push(r);\n  });\n  return map;\n};\n\nconst uomByName = indexBy(uomData, 'uom_name');\nconst catByName = indexBy(categoryData, 'mat_cat_name');\nconst groupByName = indexBy(groupData, 'group_code');\n\nconst costingById = {};\ncostingData.forEach((c) => {\n  costingById[String(c.id)] = str(c.method_name);\n});\n\nconst existingCodes = {};\nexistingData.forEach((i) => {\n  const k = lc(i.material_code);\n  if (k) existingCodes[k] = true;\n});\n\nconst allowedProps = [];\npropsData.forEach((p) => {\n  const v = str(p.dict_key);\n  if (v && allowedProps.indexOf(v) === -1) allowedProps.push(v);\n});\n\n// Mirrors the form's onItemPropertiesChange handler.\nconst SCOPE_BY_PROPERTY = {\n  'Packaging Material': ['2', '1'],\n  'Work in Progress': ['3'],\n  'Raw Material': ['2', '3'],\n  'Semi-Finished Goods': ['1', '3'],\n  Product: ['1'],\n  Default: ['1', '2', '3'],\n  'Auxiliary Material': ['2', '3']\n};\n\nconst YES = ['1', 'y', 'yes', 'true', 't'];\nconst NO = ['0', 'n', 'no', 'false', 'f'];\n// Returns -1 for an unparseable cell so the caller can report it.\nconst parseBool = (v, dflt) => {\n  const s = lc(v);\n  if (s === '') return dflt;\n  if (YES.indexOf(s) !== -1) return 1;\n  if (NO.indexOf(s) !== -1) return 0;\n  return -1;\n};\n\nconst resolveOne = (map, name) => {\n  const hits = map[lc(name)] || [];\n  return { count: hits.length, row: hits.length === 1 ? hits[0] : null };\n};\n\nconst errors = [];\nconst payloads = [];\nconst seenCodes = {};\n\nrows.forEach((row) => {\n  const label = 'Row ' + row.seq;\n  const rowErrors = [];\n\n  if (!row.itemName) rowErrors.push(label + ': Item Name is required.');\n\n  // --- Item Category -> id, and the Costing Method it carries ---------------\n  let categoryId = '';\n  let costingMethod = '';\n  if (!row.categoryName) {\n    rowErrors.push(label + ': Item Category is required.');\n  } else {\n    const hit = resolveOne(catByName, row.categoryName);\n    if (hit.count === 0) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" not found.'\n      );\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Category \"' + row.categoryName + '\" matches ' +\n          hit.count + ' categories.'\n      );\n    } else {\n      categoryId = hit.row.id;\n      // Costing Method is not an Excel column: the form derives it from the\n      // category (onChange_item_category) and keeps the field read-only.\n      costingMethod = costingById[String(hit.row.mat_costing_method)] || '';\n      if (!costingMethod) {\n        rowErrors.push(\n          label + ': Item Category \"' + row.categoryName +\n            '\" has no Costing Method configured.'\n        );\n      }\n    }\n  }\n\n  // --- Base UOM -> id --------------------------------------------------------\n  let basedUom = '';\n  if (!row.uomName) {\n    rowErrors.push(label + ': Base UOM is required.');\n  } else {\n    const hit = resolveOne(uomByName, row.uomName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Base UOM \"' + row.uomName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Base UOM \"' + row.uomName + '\" matches ' + hit.count + ' UOMs.'\n      );\n    } else {\n      basedUom = hit.row.id;\n    }\n  }\n\n  // --- Item Group -> id (optional) ------------------------------------------\n  let groupId = '';\n  if (row.groupName) {\n    const hit = resolveOne(groupByName, row.groupName);\n    if (hit.count === 0) {\n      rowErrors.push(label + ': Item Group \"' + row.groupName + '\" not found.');\n    } else if (hit.count > 1) {\n      rowErrors.push(\n        label + ': Item Group \"' + row.groupName + '\" matches ' + hit.count +\n          ' groups.'\n      );\n    } else {\n      groupId = hit.row.id;\n    }\n  }\n\n  // --- Item Properties (blank -> \"Default\") ---------------------------------\n  let properties = 'Default';\n  if (row.properties) {\n    const match = allowedProps.filter((p) => lc(p) === lc(row.properties));\n    if (match.length === 0) {\n      rowErrors.push(\n        label + ': Item Properties \"' + row.properties +\n          '\" is not valid. Allowed: ' + allowedProps.join(', ') + '.'\n      );\n    } else {\n      properties = match[0];\n    }\n  }\n  const businessScope = SCOPE_BY_PROPERTY[properties] || [];\n\n  // --- Item Type -------------------------------------------------------------\n  let materialType = 'Goods';\n  if (row.itemType) {\n    const t = lc(row.itemType);\n    if (t === 'goods') materialType = 'Goods';\n    else if (t === 'services' || t === 'service') materialType = 'Services';\n    else rowErrors.push(label + ': Item Type must be Goods or Services.');\n  }\n\n  // --- switches --------------------------------------------------------------\n  const stockControl = parseBool(row.stockControl, 1);\n  if (stockControl === -1) {\n    rowErrors.push(label + ': Stock Control must be Yes or No.');\n  }\n  const isActive = parseBool(row.active, 1);\n  if (isActive === -1) {\n    rowErrors.push(label + ': Active must be Yes or No.');\n  }\n\n  // --- Batch Management ------------------------------------------------------\n  const batchFlag = parseBool(row.batch, 0);\n  if (batchFlag === -1) {\n    rowErrors.push(label + ': Batch Management must be Yes or No.');\n  }\n\n  // The form only offers these two, and the second one skips the config check\n  // entirely (ITEM_SAVE's needsBatchCheck).\n  const BATCH_RULES = ['According To System Settings', 'Manual Input'];\n  let batchRule = '';\n  if (batchFlag === 1) {\n    batchRule = BATCH_RULES[0];\n    if (row.batchRule) {\n      const hit = BATCH_RULES.filter((r) => lc(r) === lc(row.batchRule));\n      if (hit.length === 0) {\n        rowErrors.push(\n          label + ': Batch Number Generation must be ' + BATCH_RULES.join(' or ') + '.'\n        );\n      } else {\n        batchRule = hit[0];\n      }\n    }\n    // A brand-new item has no id yet, so ITEM_SAVE's item-level config lookup\n    // can never find a row and it would 403 mid-import. Block it here instead,\n    // while nothing has been created.\n    if (batchIsItemLevel && batchRule === BATCH_RULES[0]) {\n      rowErrors.push(\n        label +\n          ': this organization sets batch numbers at Item Level, which needs a ' +\n          'per-item batch configuration that cannot come from Excel. Use ' +\n          '\"Manual Input\", or create this item in the form.'\n      );\n    }\n  } else if (row.batchRule) {\n    rowErrors.push(\n      label + ': Batch Number Generation was filled but Batch Management is off.'\n    );\n  }\n\n  // --- Item Code: filled = manual rule, blank = the serial rule assigns ------\n  let materialCode = row.itemCode;\n  let materialCodeType = codeRuleId;\n  if (materialCode) {\n    materialCodeType = -9999;\n    const dupKey = lc(materialCode);\n    if (seenCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" is also used on ' +\n          seenCodes[dupKey] + ' of this file.'\n      );\n    } else {\n      seenCodes[dupKey] = label;\n    }\n    if (existingCodes[dupKey]) {\n      rowErrors.push(\n        label + ': Item Code \"' + materialCode + '\" already exists.'\n      );\n    }\n  } else if (!codeRuleId) {\n    rowErrors.push(\n      label +\n        ': Item Code is required — no default numbering rule is configured for Items.'\n    );\n  }\n\n  if (rowErrors.length > 0) {\n    rowErrors.forEach((e) => errors.push(e));\n    return;\n  }\n\n  payloads.push({\n    seq: row.seq,\n    itemName: row.itemName,\n    allData: {\n      page_status: 'Add',\n      is_post: 0,\n      organization_id: organizationId,\n      material_code: materialCode,\n      material_code_type: materialCodeType,\n      material_name: row.itemName,\n      material_desc: row.itemDesc,\n      material_type: materialType,\n      item_category: categoryId,\n      item_group_id: groupId,\n      material_costing_method: costingMethod,\n      based_uom: basedUom,\n      item_properties: properties,\n      business_scope: businessScope,\n      barcode_number: row.barcode,\n      is_active: isActive,\n      stock_control: stockControl,\n      // The form forces both to 0 while Stock Control is on. With it off they\n      // go to 1: stock_control === 0 && show_delivery === 0 is the\n      // description-only marker, which no imported item should silently become.\n      show_delivery: stockControl === 1 ? 0 : 1,\n      show_receiving: stockControl === 1 ? 0 : 1,\n      item_batch_management: batchFlag,\n      batch_number_genaration: batchRule,\n      // Deliberately no batch_config: ITEM_SAVE's post-save UPDATE_BATCH_CONFIG\n      // only runs when this object is non-empty.\n      serial_number_management: 0,\n      auto_bom: 0,\n      // ITEM_SAVE demands exactly one default purchase UOM and exactly one\n      // default sales UOM, so generate the base row instead of asking a\n      // spreadsheet to model conversions.\n      table_uom_conversion: [\n        {\n          alt_uom_id: basedUom,\n          base_uom_id: basedUom,\n          alt_qty: 1,\n          base_qty: 1,\n          purchase_default_uom: 1,\n          sales_default_uom: 1\n        }\n      ],\n      table_packing_detail: [],\n      table_supplier_price: [],\n      table_customer_price: [],\n      table_sup_item_access: [],\n      table_cust_item_access: [],\n      table_sup_item_bind: [],\n      table_cust_item_bind: [],\n      table_reorder_supplier: [],\n      table_default_bin: []\n    }\n  });\n});\n\n// All-or-nothing: one bad row blocks the file so the user fixes it and re-uploads,\n// rather than half a spreadsheet landing in the Item master.\nconst MAX_LISTED = 15;\nif (errors.length > 0) {\n  const shown = errors.slice(0, MAX_LISTED).map((m) => '• ' + escapeHtml(m));\n  if (errors.length > MAX_LISTED) {\n    shown.push('… and ' + (errors.length - MAX_LISTED) + ' more.');\n  }\n  return {\n    status: 'Failed',\n    message:\n      'The file was not imported. Fix the following and upload again:<br><br>' +\n      shown.join('<br>'),\n    payloads: [],\n    count: 0\n  };\n}\n\nreturn { status: 'Passed', message: '', payloads: payloads, count: payloads.length };"
     },
     "response_json": [
      {
@@ -945,8 +1013,8 @@
     "filter": {
      "list": [
       {
-       "id": 1800000000041,
-       "parentId": 1800000000042,
+       "id": 1800000000045,
+       "parentId": 1800000000046,
        "isTop": true,
        "prop": "",
        "operator": "",
@@ -1070,8 +1138,8 @@
        "collectionId": "",
        "list": [
         {
-         "id": 1800000000045,
-         "parentId": 1800000000046,
+         "id": 1800000000049,
+         "parentId": 1800000000050,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -1132,8 +1200,8 @@
         "collectionId": "2098251509145264130",
         "list": [
          {
-          "id": 1800000000043,
-          "parentId": 1800000000044,
+          "id": 1800000000047,
+          "parentId": 1800000000048,
           "isTop": true,
           "prop": "",
           "operator": "",

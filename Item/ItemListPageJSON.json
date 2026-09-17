@@ -3241,7 +3241,7 @@
           "enableScopes": ["Component", "Table", "Page"],
           "options": {
             "dataBind": false,
-            "defaultValue": "<b>Columns:</b> Item Code · <b>Item Name</b> · Description · <b>Item Category</b> · <b>Base UOM</b> · Item Properties · Item Type · Stock Control · Active · Barcode · Item Group<br>Bold = required. Blank Item Code → auto-numbered. One row = one item. Any invalid row blocks the whole file.",
+            "defaultValue": "<b>Columns:</b> Item Code · <b>Item Name</b> · Description · <b>Item Category</b> · <b>Base UOM</b> · Item Properties · Item Type · Stock Control · Active · Barcode · Item Group · Batch Management · Batch Number Generation<br>Bold = required. Blank Item Code → auto-numbered. One row = one item. Any invalid row blocks the whole file.",
             "customClass": "",
             "hidden": false,
             "isRich": true,

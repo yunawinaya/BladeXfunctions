@@ -83,7 +83,8 @@ def retag(node, key, model, name):
 HELP_HTML = (
     "<b>Columns:</b> Item Code · <b>Item Name</b> · Description · "
     "<b>Item Category</b> · <b>Base UOM</b> · Item Properties · Item Type · "
-    "Stock Control · Active · Barcode · Item Group<br>"
+    "Stock Control · Active · Barcode · Item Group · Batch Management · "
+    "Batch Number Generation<br>"
     "Bold = required. Blank Item Code → auto-numbered. One row = one item. "
     "Any invalid row blocks the whole file."
 )
