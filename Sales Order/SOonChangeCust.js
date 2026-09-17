@@ -70,6 +70,7 @@ const fetchCurrencyData = async (currencyID) => {
         "exchange_rate",
         "exchange_rate_myr",
         "exchange_rate_currency",
+        "button_refresh_rate",
         "myr_total_amount",
         "total_amount_myr",
       ]);
@@ -94,6 +95,7 @@ const fetchCurrencyData = async (currencyID) => {
           "exchange_rate",
           "exchange_rate_myr",
           "exchange_rate_currency",
+          "button_refresh_rate",
           "myr_total_amount",
           "total_amount_myr",
         ]);
@@ -107,6 +109,7 @@ const fetchCurrencyData = async (currencyID) => {
           "exchange_rate",
           "exchange_rate_myr",
           "exchange_rate_currency",
+          "button_refresh_rate",
           "myr_total_amount",
           "total_amount_myr",
         ]);
@@ -287,19 +290,23 @@ const fetchLatestPricing = async (
             document_type: "SO",
             supp_cust_id: customerId,
             plant_id: plantID,
-            item_data: tableSO.map((item, index) => {
-              return {
-                item_id: item.item_name,
-                unit_price: item.so_item_price,
-                line_index: index,
-                uom_id: item.so_item_uom,
-                tax_rate: item.so_tax_preference || null,
-                tax_percent: item.so_tax_percentage || null,
-                quantity: item.so_quantity,
-                discount: item.so_discount,
-                discount_uom: item.so_discount_uom,
-              };
-            }),
+            // Map first to keep the real row position, then skip the rows
+            // with no item -- a bundle parent has an empty item_name.
+            item_data: tableSO
+              .map((item, index) => {
+                return {
+                  item_id: item.item_name,
+                  unit_price: item.so_item_price,
+                  line_index: index,
+                  uom_id: item.so_item_uom,
+                  tax_rate: item.so_tax_preference || null,
+                  tax_percent: item.so_tax_percentage || null,
+                  quantity: item.so_quantity,
+                  discount: item.so_discount,
+                  discount_uom: item.so_discount_uom,
+                };
+              })
+              .filter((row) => row.item_id),
           },
           async (result) => {
             console.log("result", result);

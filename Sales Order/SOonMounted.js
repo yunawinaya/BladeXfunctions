@@ -33,6 +33,7 @@ const displayCurrency = async () => {
       "exchange_rate",
       "exchange_rate_myr",
       "exchange_rate_currency",
+      "button_refresh_rate",
       "myr_total_amount",
       "total_amount_myr",
     ]);
@@ -132,6 +133,7 @@ const disabledField = async (status, fromSource) => {
     this.hide([
       "button_save_as_draft",
       "button_save_as_issue",
+      "button_refresh_rate",
       "link_billing_address",
       "link_shipping_address",
     ]);
@@ -221,6 +223,7 @@ const disableLinkedSOFields = async () => {
       "shipping_postal_code",
       "exchange_rate",
       "myr_total_amount",
+      "button_refresh_rate",
       "tpt_vehicle_number",
       "tpt_transport_name",
       "tpt_ic_no",
@@ -605,6 +608,7 @@ const fetchUnrestrictedQty = async () => {
       "exchange_rate",
       "exchange_rate_myr",
       "exchange_rate_currency",
+      "button_refresh_rate",
       "myr_total_amount",
       "total_amount_myr",
     ]);

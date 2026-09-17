@@ -1,0 +1,534 @@
+{
+  "request_json": [
+    {
+      "key": "orgid001",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "k2kv0xvm",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "jr14spnh",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "i0soh9gh",
+      "name": "summary",
+      "title": "summary",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "i147wkm5",
+      "name": "updated",
+      "title": "updated",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "glcriyu2",
+      "name": "rate_date",
+      "title": "rate_date",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "a062am3v",
+      "name": "skipped",
+      "title": "skipped",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "1pausruo",
+      "name": "unmatched",
+      "title": "unmatched",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "sztkfq6b",
+      "name": "rates",
+      "title": "rates",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_all_fx",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Fetch",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_all_item_bnm",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 1",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790500000003,
+                  "parentId": 1790500000002,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "",
+                  "valueLabel": "",
+                  "operatorLabel": ""
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 1",
+            "name": "Branch 1",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "api_bnm",
+              "type": "api-node",
+              "data": {
+                "url": "",
+                "method": "GET",
+                "headers": {
+                  "list": [
+                    {
+                      "prop": "Accept",
+                      "propLabel": "Accept",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "application/vnd.BNM.API.v1+json",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "Authorization",
+                      "propLabel": "Authorization",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "None",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "params": {},
+                "body": "",
+                "title": "Call BNM",
+                "isValidator": true,
+                "nodeName": "Call BNM",
+                "name": "Call BNM",
+                "api": {
+                  "rules": {
+                    "collectionId": "2100437534892691457",
+                    "list": [
+                      {
+                        "id": 1790500000005,
+                        "parentId": 1790500000004,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "field",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "",
+                        "valueLabel": "",
+                        "operatorLabel": ""
+                      }
+                    ]
+                  },
+                  "source": "BNM Exchange Rate:Api:2100437534892691457"
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "url_params": {
+                  "list": [
+                    {
+                      "prop": "quote",
+                      "propLabel": "quote",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "rm",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "body_params": {
+                  "list": []
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_item_cur",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 2",
+            "filter": {
+              "list": [
+                {
+                  "id": 1790500000007,
+                  "parentId": 1790500000006,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "",
+                  "valueLabel": "",
+                  "operatorLabel": ""
+                }
+              ]
+            },
+            "expression": {
+              "code": "1 == 1",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 2",
+            "name": "Branch 2",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_currency",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Currency:Table:1902047936116805633",
+                  "rules": {
+                    "collectionId": "1902047936116805633",
+                    "list": [
+                      {
+                        "id": 1790500000009,
+                        "parentId": 1790500000008,
+                        "isTop": true,
+                        "prop": "organization_id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{workflowparams:organization_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "Organization ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 200,
+                "title": "Org Currencies",
+                "isValidator": true,
+                "nodeName": "Org Currencies",
+                "name": "Org Currencies"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_build",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Build Updates",
+        "isValidator": true,
+        "nodeName": "Build Updates",
+        "name": "Build Updates",
+        "script": {
+          "type": "javascript",
+          "code": "const bnmRows = {{node:api_bnm.data.data}} || [];\nconst orgRows = {{node:search_currency.data.data}} || [];\n\n// Base currency is encoded inconsistently across orgs: \"----\" in some, \"MYR\" in others.\nconst BASE_CODES = [\"----\", \"MYR\", \"RM\", \"\"];\n\nconst byCode = {};\nfor (let i = 0; i < bnmRows.length; i++) {\n  const r = bnmRows[i] || {};\n  const code = String(r.currency_code || \"\").trim().toUpperCase();\n  const unit = Number(r.unit) || 1;\n  const rate = r.rate || {};\n  const mid = rate.middle_rate;\n  if (!code || mid === null || mid === undefined) continue;\n  // BNM quotes weak currencies per 100 units (TWD 12.8643 = 100 TWD). Normalise to per-1.\n  byCode[code] = { rate: Number(mid) / unit, date: rate.date || \"\" };\n}\n\nconst updates = [];\nconst skipped = [];\nconst unmatched = [];\nconst rates = {};\nlet rateDate = \"\";\n\nfor (let i = 0; i < orgRows.length; i++) {\n  const row = orgRows[i] || {};\n  const code = String(row.currency_code || \"\").trim().toUpperCase();\n  if (BASE_CODES.indexOf(code) !== -1) {\n    skipped.push(code || \"(blank)\");\n    continue;\n  }\n  const hit = byCode[code];\n  if (!hit) {\n    unmatched.push(code);\n    continue;\n  }\n  const normalised = hit.rate.toFixed(6);\n  if (Number(normalised) <= 0) {\n    unmatched.push(code + \" (below 6dp)\");\n    continue;\n  }\n  if (!rateDate) rateDate = hit.date;\n  rates[code] = normalised;\n  updates.push({\n    // Keep the snowflake id as a string - it exceeds 2^53 and a bare\n    // JSON number would lose precision if the engine parsed it as a double.\n    id: String(row.id),\n    code: code,\n    buying_rate: normalised,\n    selling_rate: normalised\n  });\n}\n\nlet summary = \"Updated \" + updates.length + \" of \" + orgRows.length + \" currencies\";\nif (rateDate) summary = summary + \" (BNM \" + rateDate + \")\";\nif (unmatched.length) summary = summary + \". No BNM rate: \" + unmatched.join(\", \");\n\nreturn {\n  updates: updates,\n  skipped: skipped,\n  unmatched: unmatched,\n  rates: rates,\n  rate_date: rateDate,\n  summary: summary\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "bgt5d0l4",
+            "name": "updates",
+            "title": "updates",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "7iaj5ddo",
+            "name": "skipped",
+            "title": "skipped",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "e5cb96vd",
+            "name": "unmatched",
+            "title": "unmatched",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vp29cun5",
+            "name": "rate_date",
+            "title": "rate_date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "3s3tfn74",
+            "name": "summary",
+            "title": "summary",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "801rsw1u",
+            "name": "rates",
+            "title": "rates",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "loop_rates",
+      "type": "loop",
+      "data": {
+        "title": "Loop Rate Updates",
+        "isValidator": true,
+        "nodeName": "Loop Rate Updates",
+        "name": "Loop Rate Updates",
+        "loopType": "Var",
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{node:code_build.data.updates}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "update_currency",
+          "type": "update-node",
+          "data": {
+            "table_id": {
+              "source": "Currency:Table:1902047936116805633",
+              "rules": {
+                "collectionId": "1902047936116805633",
+                "list": [
+                  {
+                    "id": 1790500000011,
+                    "parentId": 1790500000010,
+                    "isTop": true,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:loop_rates.id}}",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  }
+                ]
+              }
+            },
+            "fields": [],
+            "condition": {},
+            "title": "Write Rate",
+            "isValidator": true,
+            "nodeName": "Write Rate",
+            "name": "Write Rate",
+            "props": {
+              "modelName": "",
+              "list": [
+                {
+                  "prop": "currency_buying_rate",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_rates.buying_rate}}",
+                  "valueLabel": "",
+                  "propLabel": "Currency Buying Rate"
+                },
+                {
+                  "prop": "currency_selling_rate",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_rates.selling_rate}}",
+                  "valueLabel": "",
+                  "propLabel": "Currency Selling Rate"
+                }
+              ]
+            }
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "return_ok",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Result",
+        "isValidator": true,
+        "nodeName": "Return Result",
+        "name": "Return Result",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "valueTypeLabel": "",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.summary}}",
+              "valueLabel": "",
+              "propLabel": "message"
+            },
+            {
+              "prop": "summary",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.summary}}",
+              "valueLabel": "",
+              "propLabel": "summary"
+            },
+            {
+              "prop": "rate_date",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.rate_date}}",
+              "valueLabel": "",
+              "propLabel": "rate_date"
+            },
+            {
+              "prop": "skipped",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.skipped}}",
+              "valueLabel": "",
+              "propLabel": "skipped"
+            },
+            {
+              "prop": "unmatched",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.unmatched}}",
+              "valueLabel": "",
+              "propLabel": "unmatched"
+            },
+            {
+              "prop": "rates",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_build.data.rates}}",
+              "valueLabel": "",
+              "propLabel": "rates"
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}
