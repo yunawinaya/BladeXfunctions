@@ -209,6 +209,23 @@ const buildTablePickingItems = (entries) => {
       const tierCodeField = `bin_code_tier_${tierNum}`;
       const tierActiveField = `tier_${tierNum}_active`;
 
+      // Group on the full bin path THROUGH the chosen tier, not the bare code
+      // at it. Codes below tier 1 are relative labels — "L", "GF", "Middle" —
+      // reused under many parents, so the bare code merged bins in different
+      // buildings into one picking task ("L" alone covers 4 different lots).
+      // Mirrors bin_location.onChange_tier_code_change, which builds
+      // bin_location_combine the same way: tier 1 always, deeper tiers when
+      // active, joined by "-". Verified to reproduce it for every bin.
+      const tierPathOf = (bin) => {
+        const parts = [];
+        for (let t = 1; t <= Number(tierNum); t++) {
+          if (t === 1 || bin[`tier_${t}_active`]) {
+            parts.push(bin[`bin_code_tier_${t}`] || "");
+          }
+        }
+        return parts.join("-");
+      };
+
       const locationIds = [
         ...new Set(
           entries.map((e) => e.tempItem.location_id).filter(Boolean),
@@ -243,15 +260,15 @@ const buildTablePickingItems = (entries) => {
       const binLabelOf = (bin, locationId) =>
         (bin && (bin.bin_location_combine || bin.bin_name)) || String(locationId);
 
-      // Kept apart from `grouped` so a bin label that happens to equal some
-      // other bin's tier code still gets its own picking task.
+      // Kept apart from `grouped` so a fallback bin label that happens to equal
+      // some zoned bin's path still gets its own picking task.
       const grouped = new Map();
       const byBin = new Map();
       const skipped = [];
       for (const entry of entries) {
         const locationId = entry.tempItem.location_id;
         const bin = binByLoc[locationId];
-        let tierCode = null;
+        let tierPath = null;
         if (!bin) {
           skipped.push({ entry, reason: "bin not found" });
         } else if (bin[tierActiveField] !== 1) {
@@ -259,10 +276,10 @@ const buildTablePickingItems = (entries) => {
         } else if (!bin[tierCodeField]) {
           skipped.push({ entry, reason: `${tierCodeField} is empty` });
         } else {
-          tierCode = bin[tierCodeField];
+          tierPath = tierPathOf(bin);
         }
 
-        if (!tierCode) {
+        if (!tierPath) {
           const binKey = String(locationId);
           if (!byBin.has(binKey)) {
             byBin.set(binKey, { label: binLabelOf(bin, locationId), entries: [] });
@@ -270,8 +287,8 @@ const buildTablePickingItems = (entries) => {
           byBin.get(binKey).entries.push(entry);
           continue;
         }
-        if (!grouped.has(tierCode)) grouped.set(tierCode, []);
-        grouped.get(tierCode).push(entry);
+        if (!grouped.has(tierPath)) grouped.set(tierPath, []);
+        grouped.get(tierPath).push(entry);
       }
 
       if (skipped.length > 0) {
@@ -281,8 +298,8 @@ const buildTablePickingItems = (entries) => {
         );
       }
 
-      for (const [tierCode, groupEntries] of grouped.entries()) {
-        groups.push({ key: tierCode, entries: groupEntries });
+      for (const [tierPath, groupEntries] of grouped.entries()) {
+        groups.push({ key: tierPath, entries: groupEntries });
       }
       // Last and name-ordered, so the user assigns the real zones first and
       // walks the per-bin leftovers in a predictable order.
