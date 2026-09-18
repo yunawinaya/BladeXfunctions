@@ -236,16 +236,21 @@ const buildTablePickingItems = (entries) => {
       }
 
       // An entry whose bin is missing, has the chosen tier inactive, or has a
-      // blank code on it still has to be picked — it goes into one trailing
-      // UNZONED_KEY group. Dropping it here strands the GD line at
-      // "Not Created" while Packing (built from the full GD allocation) still
-      // shows it, which is how GD-20260827-090 lost 2 of 3 lines.
-      const UNZONED_KEY = "Unzoned";
+      // blank code on it still has to be picked. Rather than dropping it —
+      // which strands the GD line at "Not Created" while Packing (built from
+      // the full GD allocation) still shows it, as GD-20260827-090 did with 2
+      // of 3 lines — it falls back to its own bin, one group per bin location.
+      const binLabelOf = (bin, locationId) =>
+        (bin && (bin.bin_location_combine || bin.bin_name)) || String(locationId);
+
+      // Kept apart from `grouped` so a bin label that happens to equal some
+      // other bin's tier code still gets its own picking task.
       const grouped = new Map();
-      const unzoned = [];
+      const byBin = new Map();
       const skipped = [];
       for (const entry of entries) {
-        const bin = binByLoc[entry.tempItem.location_id];
+        const locationId = entry.tempItem.location_id;
+        const bin = binByLoc[locationId];
         let tierCode = null;
         if (!bin) {
           skipped.push({ entry, reason: "bin not found" });
@@ -257,10 +262,12 @@ const buildTablePickingItems = (entries) => {
           tierCode = bin[tierCodeField];
         }
 
-        // A bin whose tier code literally reads "Unzoned" merges into the same
-        // group rather than colliding with it.
-        if (!tierCode || tierCode === UNZONED_KEY) {
-          unzoned.push(entry);
+        if (!tierCode) {
+          const binKey = String(locationId);
+          if (!byBin.has(binKey)) {
+            byBin.set(binKey, { label: binLabelOf(bin, locationId), entries: [] });
+          }
+          byBin.get(binKey).entries.push(entry);
           continue;
         }
         if (!grouped.has(tierCode)) grouped.set(tierCode, []);
@@ -269,7 +276,7 @@ const buildTablePickingItems = (entries) => {
 
       if (skipped.length > 0) {
         console.warn(
-          `Grouped ${skipped.length} item(s) as "${UNZONED_KEY}" — no valid ${tierCodeField}:`,
+          `Grouped ${skipped.length} item(s) by bin location — no valid ${tierCodeField}:`,
           skipped,
         );
       }
@@ -277,9 +284,13 @@ const buildTablePickingItems = (entries) => {
       for (const [tierCode, groupEntries] of grouped.entries()) {
         groups.push({ key: tierCode, entries: groupEntries });
       }
-      // Last, so the user assigns the real zones before the leftovers.
-      if (unzoned.length > 0) {
-        groups.push({ key: UNZONED_KEY, entries: unzoned });
+      // Last and name-ordered, so the user assigns the real zones first and
+      // walks the per-bin leftovers in a predictable order.
+      const binGroups = [...byBin.values()].sort((a, b) =>
+        a.label < b.label ? -1 : a.label > b.label ? 1 : 0,
+      );
+      for (const g of binGroups) {
+        groups.push({ key: g.label, entries: g.entries });
       }
     } else {
       // no_split (default)
