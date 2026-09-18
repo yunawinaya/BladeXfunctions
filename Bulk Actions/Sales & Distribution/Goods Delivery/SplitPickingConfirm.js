@@ -235,21 +235,32 @@ const buildTablePickingItems = (entries) => {
         binByLoc[bin.id] = bin;
       }
 
+      // An entry whose bin is missing, has the chosen tier inactive, or has a
+      // blank code on it still has to be picked — it goes into one trailing
+      // UNZONED_KEY group. Dropping it here strands the GD line at
+      // "Not Created" while Packing (built from the full GD allocation) still
+      // shows it, which is how GD-20260827-090 lost 2 of 3 lines.
+      const UNZONED_KEY = "Unzoned";
       const grouped = new Map();
+      const unzoned = [];
       const skipped = [];
       for (const entry of entries) {
         const bin = binByLoc[entry.tempItem.location_id];
+        let tierCode = null;
         if (!bin) {
           skipped.push({ entry, reason: "bin not found" });
-          continue;
-        }
-        if (bin[tierActiveField] !== 1) {
+        } else if (bin[tierActiveField] !== 1) {
           skipped.push({ entry, reason: `${tierActiveField} is not active` });
-          continue;
-        }
-        const tierCode = bin[tierCodeField];
-        if (!tierCode) {
+        } else if (!bin[tierCodeField]) {
           skipped.push({ entry, reason: `${tierCodeField} is empty` });
+        } else {
+          tierCode = bin[tierCodeField];
+        }
+
+        // A bin whose tier code literally reads "Unzoned" merges into the same
+        // group rather than colliding with it.
+        if (!tierCode || tierCode === UNZONED_KEY) {
+          unzoned.push(entry);
           continue;
         }
         if (!grouped.has(tierCode)) grouped.set(tierCode, []);
@@ -258,21 +269,17 @@ const buildTablePickingItems = (entries) => {
 
       if (skipped.length > 0) {
         console.warn(
-          `Skipped ${skipped.length} item(s) during by_area grouping:`,
+          `Grouped ${skipped.length} item(s) as "${UNZONED_KEY}" — no valid ${tierCodeField}:`,
           skipped,
         );
       }
 
-      if (grouped.size === 0) {
-        this.hideLoading();
-        this.$message.error(
-          `No items have a valid ${tierCodeField} on an active tier.`,
-        );
-        return;
-      }
-
       for (const [tierCode, groupEntries] of grouped.entries()) {
         groups.push({ key: tierCode, entries: groupEntries });
+      }
+      // Last, so the user assigns the real zones before the leftovers.
+      if (unzoned.length > 0) {
+        groups.push({ key: UNZONED_KEY, entries: unzoned });
       }
     } else {
       // no_split (default)
