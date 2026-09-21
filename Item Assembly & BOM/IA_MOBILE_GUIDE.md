@@ -58,10 +58,10 @@ The screen is two existing modules glued together:
 ```mermaid
 flowchart TD
     A[New Item Assembly] --> B[Plant: auto-set for plant login, picked for org login]
-    B --> C[Plant change: default Storage Location + Bin, clear components]
+    B --> C[Plant change: receiving Storage Location + Bin defaults, clear components]
     C --> D[Pick BOM Item Code + enter Quantity]
     D --> E[BOM explosion: one component line per consumable BOM sub-material]
-    E --> F[Auto-allocation: loose Unrestricted stock, oldest first]
+    E --> F[Auto-allocation: loose Unrestricted stock, item default bin first then oldest]
     F --> G{Every line fully allocated?}
     G -->|No: shortfall / serialized / HU stock| H[Transfer Stock dialog on that line]
     H --> G
@@ -173,8 +173,8 @@ flowchart TD
 | `item_assembly_date` | Date | date `YYYY-MM-DD` | | today (`new Date().toISOString().split("T")[0]`) | yes | — |
 | `issued_by` | Issued By | text | | `{{global:nickname}}` | no | — |
 | `project_id` | Project | select | | — | yes | Project (`2085600321692696577`) id / `project_code` |
-| `storage_location_id` | **Storage Location** (receiving) | select | ✓ | plant default (Part 5) | once item chosen | `storage_location`: `plant_id = plant`, `storage_status = 1` |
-| `location_id` | **Bin Location** (receiving) | select | ✓ | plant default (Part 5) | once storage location chosen | `bin_location` id / `bin_location_combine`: `plant_id`, `storage_location_id`, `bin_status = 1` |
+| `storage_location_id` | **Storage Location** (receiving) | select | ✓ | item default bin, else plant default ([Part 5](#part-5--header-field-behaviour)) | once item chosen | `storage_location`: `plant_id = plant`, `storage_status = 1` |
+| `location_id` | **Bin Location** (receiving) | select | ✓ | item default bin, else plant default ([Part 5](#part-5--header-field-behaviour)) | once storage location chosen | `bin_location` id / `bin_location_combine`: `plant_id`, `storage_location_id`, `bin_status = 1` |
 | `batch_no` | Batch No | text | | — | **hidden on desktop** — see [Part 14](#part-14--edge-cases-gotchas-and-known-gaps) | — |
 | `manufacturing_date` | Manufacturing Date | date | | — | hidden on desktop | — |
 | `expired_date` | Expired Date | date | | — | hidden on desktop | — |
@@ -328,18 +328,30 @@ Status badge colours on desktop: Draft = grey, Issued = teal, Completed = green,
 
 ## Part 5 — Header Field Behaviour
 
+### Receiving location chain
+
+`storage_location_id` and `location_id` are where the **assembled item** is received. They resolve in this order, and are **re-resolved on both plant change and item change**:
+
+1. **The assembled item's own default bin for this plant.** `item.table_default_bin` (subform; columns `plant_id`, `bin_location`, `storage_location`), first row where `plant_id` matches **and** `bin_location` is non-blank. A row with a blank bin counts as unconfigured and falls through — never stamp a blank bin.
+   - `location_id` = `bin_location`; `storage_location_id` = `storage_location` **or the plant default storage location** if that column is blank (not the bin's own parent).
+2. **Plant default.** `storage_location` where `{ plant_id, is_deleted: 0, is_default: 1, storage_status: 1, location_type: "Common" }`, first row; then `bin_location` where `{ plant_id, storage_location_id, is_deleted: 0, is_default: 1, bin_status: 1 }`, first row.
+3. **Neither configured:** both `""`.
+
+> **Always overwrite both fields, including with the empty pair.** If you only stamp when the item has a default bin, switching to an item **without** one silently leaves the previous item's bin on the header and the assembly is received into the wrong place.
+
+Query cost: when the item's bin wins, the `bin_location` lookup is skipped. On item change the whole chain runs inside the same parallel batch as the BOM fetch, so it adds no latency.
+
 ### Plant change (`ItemAssemblyOnChangePlant.js`)
 
 1. **Clear** `storage_location_id`, `location_id` **and all component lines** (`stock_movement: []`).
 2. No plant: disable the components table and stop.
-3. Default storage location: `storage_location` where `{ plant_id, is_deleted: 0, is_default: 1, storage_status: 1, location_type: "Common" }`, first row.
-4. If found, default bin: `bin_location` where `{ plant_id, storage_location_id, is_deleted: 0, is_default: 1, bin_status: 1 }`, first row.
+3. Run the **receiving location chain** above. If an assembled item is already selected, its `table_default_bin` is read (one extra query, issued in parallel with the storage-location lookup) and wins over the plant default.
 
 > Clearing the lines means the user must re-pick the BOM item after changing the plant. On mobile, confirm before changing the plant when lines exist. The desktop does not ask.
 
 ### BOM Item Code change
 
-Triggers the BOM explosion ([Part 6](#part-6--bom-explosion)). If the value is cleared, clear `item_name`, `item_desc`, `item_uom` and `stock_movement`.
+Triggers the BOM explosion ([Part 6](#part-6--bom-explosion)) and re-runs the **receiving location chain** for the newly chosen item. The chain is stamped **before** the explosion's early returns (no active BOM / no consumable sub-materials / BOM base quantity 0), so an aborted explosion still leaves a correct receiving bin. If the value is cleared, clear `item_name`, `item_desc`, `item_uom` and `stock_movement`.
 
 ### Quantity change (`ItemAssemblyOnChangeItemQty.js`)
 
@@ -357,7 +369,7 @@ If `item_id` is set, re-run the **whole** explosion plus auto-allocation. **Ever
 
 ## Part 6 — BOM Explosion
 
-Source: `ItemAssemblyOnChangeItem.js`. The whole explosion plus allocation costs **8 queries at most**, however many sub-materials the BOM has. Keep that budget on mobile: every lookup is one batched `in` query.
+Source: `ItemAssemblyOnChangeItem.js`. The whole explosion plus allocation costs a **fixed** number of queries, however many sub-materials the BOM has. Keep that budget on mobile: every lookup is one batched `in` query.
 
 ### Step 1 — assembled item
 
@@ -460,7 +472,7 @@ Do **not** subtract loose reservations again.
 
 ### Allocation order
 
-1. Sort each material's candidate balance rows by `create_time` ascending (oldest first).
+1. Sort each material's candidate balance rows: **that component's own default bin for this plant first** (same `table_default_bin` rule as [Part 5](#part-5--header-field-behaviour), keyed on the component, not the assembled item), then `create_time` ascending (oldest first) — including within the default bin. `table_default_bin` rides along on the component `item` projection, so this costs no extra query.
 2. For each line, in line order, take `min(available, remaining)` from candidates. **Deduct from the candidate in place** so a later line of the same material cannot claim the same stock.
 3. Write `total_quantity = Σ picks` (3 dp) and `temp_qty_data = JSON.stringify(picks)` (`""` if none).
 4. Build `stock_summary`, using the exact format below so a manual re-pick reads the same:
@@ -875,8 +887,8 @@ A Completed assembly with **no** live movements (its save failed before the issu
 - [ ] Status matrix (Part 4): only Draft is editable. Hide Post / Complete & Post.
 
 **Header**
-- [ ] Plant change clears storage location, bin and **all lines**, then applies the `Common` default storage location and default bin.
-- [ ] Item or quantity change re-runs explosion + auto-allocation (manual picks are discarded — warn the user).
+- [ ] Plant change clears storage location, bin and **all lines**, then re-runs the receiving location chain (assembled item's `table_default_bin` for the plant, else the `Common` plant default).
+- [ ] Item or quantity change re-runs explosion + auto-allocation (manual picks are discarded — warn the user) and re-stamps the receiving bin — **always overwritten**, so a previous item's bin cannot stick.
 - [ ] Project cascade with Overwrite / Keep; clearing the header never wipes lines.
 
 **BOM explosion**
@@ -886,7 +898,7 @@ A Completed assembly with **no** live movements (its save failed before the issu
 - [ ] Lines are not user-addable or deletable.
 
 **Allocation**
-- [ ] Auto: loose Unrestricted only, oldest `create_time` first, HU-held minus HU reservations deducted, in-place deduction across lines, serialized skipped.
+- [ ] Auto: loose Unrestricted only, **component's own default bin first** then oldest `create_time`, HU-held minus HU reservations deducted, in-place deduction across lines, serialized skipped.
 - [ ] Dialog: balance collection by serial / batch / loose; loose + HU (ALLOW_SPLIT); deduct other lines' HU picks; re-hydrate from `temp_qty_data` / `temp_hu_data`.
 - [ ] Confirm gate: **loose + HU total == `requested_qty` (±0.0005)**, bucket checks, HU ≤ available, no duplicate serials.
 - [ ] Write `total_quantity`, `temp_qty_data` (JSON string), `temp_hu_data` (JSON string), `stock_summary`.
@@ -1121,6 +1133,23 @@ setTimeout(async () => {
 Plant change — default storage location / bin, clear lines.
 
 ```js
+// Item master default bin for this plant. A row without a bin is treated as
+// unconfigured so we never stamp a blank bin over the plant default.
+const getItemDefaultBin = (tableDefaultBin, plantId) => {
+  if (!plantId || !Array.isArray(tableDefaultBin)) return null;
+
+  const matchingBin = tableDefaultBin.find(
+    (bin) => bin.plant_id === plantId && bin.bin_location
+  );
+
+  if (!matchingBin) return null;
+
+  return {
+    binLocation: matchingBin.bin_location,
+    storageLocation: matchingBin.storage_location || null,
+  };
+};
+
 (async () => {
   try {
     const plantID = arguments[0].value;
@@ -1139,18 +1168,46 @@ Plant change — default storage location / bin, clear lines.
 
     this.disabled(["stock_movement"], false);
 
-    const resStorageLocation = await db
-      .collection("storage_location")
-      .where({
-        plant_id: plantID,
-        is_deleted: 0,
-        is_default: 1,
-        storage_status: 1,
-        location_type: "Common",
-      })
-      .get();
+    const assembledItemID = this.getValue("item_id");
+
+    const [resStorageLocation, resItem] = await Promise.all([
+      db
+        .collection("storage_location")
+        .where({
+          plant_id: plantID,
+          is_deleted: 0,
+          is_default: 1,
+          storage_status: 1,
+          location_type: "Common",
+        })
+        .get(),
+      assembledItemID
+        ? db
+            .collection("item")
+            .field("table_default_bin")
+            .where({ id: assembledItemID })
+            .get()
+            .catch(() => ({ data: [] }))
+        : Promise.resolve({ data: [] }),
+    ]);
 
     const defaultStorageLocationID = resStorageLocation.data?.[0]?.id;
+
+    // The assembled item's own default bin for this plant wins over the plant default.
+    const itemDefaultBin = getItemDefaultBin(
+      resItem.data?.[0]?.table_default_bin,
+      plantID
+    );
+
+    if (itemDefaultBin) {
+      this.setData({
+        storage_location_id:
+          itemDefaultBin.storageLocation || defaultStorageLocationID || "",
+        location_id: itemDefaultBin.binLocation,
+      });
+      return;
+    }
+
     if (!defaultStorageLocationID) return;
 
     this.setData({ storage_location_id: defaultStorageLocationID });
@@ -1271,8 +1328,8 @@ BOM explosion + auto-allocation.
 // Explodes the assembled item's BOM into the BOM Components table, then
 // auto-allocates loose stock against each component line.
 //
-// Fetch budget is fixed at 8 queries regardless of how many sub-materials the
-// BOM has: every lookup is batched across the whole component set.
+// Fetch budget is fixed regardless of how many sub-materials the BOM has:
+// every lookup is batched across the whole component set.
 
 const getOrganizationId = () => {
   let organizationId = this.getVarGlobal("deptParentId");
@@ -1310,6 +1367,58 @@ const fetchByIds = (collection, ids, fields) => {
       console.error(`Error fetching ${collection}:`, error);
       return { data: [] };
     });
+};
+
+// Item master default bin for this plant. A row without a bin is treated as
+// unconfigured so we never stamp a blank bin over the plant default.
+const getItemDefaultBin = (tableDefaultBin, plantId) => {
+  if (!plantId || !Array.isArray(tableDefaultBin)) return null;
+
+  const matchingBin = tableDefaultBin.find(
+    (bin) => bin.plant_id === plantId && bin.bin_location
+  );
+
+  if (!matchingBin) return null;
+
+  return {
+    binLocation: matchingBin.bin_location,
+    storageLocation: matchingBin.storage_location || null,
+  };
+};
+
+// Plant-level fallback, mirroring onChange_Plant.
+const fetchPlantDefaults = async (plantId) => {
+  const empty = { storageLocation: null, binLocation: null };
+  if (!plantId) return empty;
+
+  const storageRes = await db
+    .collection("storage_location")
+    .where({
+      plant_id: plantId,
+      is_deleted: 0,
+      is_default: 1,
+      storage_status: 1,
+      location_type: "Common",
+    })
+    .get()
+    .catch(() => ({ data: [] }));
+
+  const storageLocation = storageRes.data?.[0]?.id;
+  if (!storageLocation) return empty;
+
+  const binRes = await db
+    .collection("bin_location")
+    .where({
+      plant_id: plantId,
+      storage_location_id: storageLocation,
+      is_deleted: 0,
+      is_default: 1,
+      bin_status: 1,
+    })
+    .get()
+    .catch(() => ({ data: [] }));
+
+  return { storageLocation, binLocation: binRes.data?.[0]?.id || null };
 };
 
 const fetchBalances = (collection, materialIds, plantId, organizationId) =>
@@ -1452,14 +1561,34 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     balancesByMaterial.set(String(balance.material_id), list);
   });
 
-  // Oldest stock first, matching the dialog's stated suggestion order.
-  balancesByMaterial.forEach((list) =>
-    list.sort((a, b) =>
-      String(a.balance.create_time || "").localeCompare(
-        String(b.balance.create_time || "")
-      )
-    )
-  );
+  // The component's own default bin for this plant leads; the rest stay oldest first.
+  const preferredBinByMaterial = new Map();
+  allocatable.forEach((row) => {
+    const defaultBin = getItemDefaultBin(
+      itemMap.get(row.item_selection)?.table_default_bin,
+      plantId
+    );
+    if (defaultBin?.binLocation) {
+      preferredBinByMaterial.set(
+        String(row.item_selection),
+        defaultBin.binLocation
+      );
+    }
+  });
+
+  balancesByMaterial.forEach((list, materialId) => {
+    const preferredBin = preferredBinByMaterial.get(materialId);
+    list.sort((a, b) => {
+      const byBin =
+        (b.balance.location_id === preferredBin ? 1 : 0) -
+        (a.balance.location_id === preferredBin ? 1 : 0);
+      return byBin !== 0
+        ? byBin
+        : String(a.balance.create_time || "").localeCompare(
+            String(b.balance.create_time || "")
+          );
+    });
+  });
 
   const updates = {};
   const shortfalls = [];
@@ -1483,7 +1612,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
       // Deduct in place so a second line for the same material cannot claim
       // stock this line just took.
       candidate.available -= take;
-      remaining = parseFloat((remaining - take).toFixed(3));
+      remaining = parseFloat((remaining - take));
 
       const balance = candidate.balance;
       picks.push({
@@ -1492,7 +1621,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
         storage_location_id: balance.storage_location_id || null,
         batch_id: balance.batch_id || null,
         balance_id: balance.id,
-        sm_quantity: parseFloat(take.toFixed(3)),
+        sm_quantity: parseFloat(take),
         category: "Unrestricted",
         plant_id: plantId,
         organization_id: organizationId,
@@ -1505,7 +1634,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     }
 
     const allocated = picks.reduce((sum, pick) => sum + pick.sm_quantity, 0);
-    const total = parseFloat(allocated.toFixed(3));
+    const total = parseFloat(allocated);
 
     updates[`stock_movement.${rowIndex}.total_quantity`] = total;
     updates[`stock_movement.${rowIndex}.temp_qty_data`] = picks.length
@@ -1610,15 +1739,33 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
       item_uom: parentItem?.based_uom || "",
     });
 
-    const bomRes = await db
-      .collection("bill_of_materials")
-      .where({
-        parent_material_code: value,
-        organization_id: organizationId,
-        is_deleted: 0,
-        is_active: 1,
-      })
-      .get();
+    const [bomRes, parentBinRes, plantDefaults] = await Promise.all([
+      db
+        .collection("bill_of_materials")
+        .where({
+          parent_material_code: value,
+          organization_id: organizationId,
+          is_deleted: 0,
+          is_active: 1,
+        })
+        .get(),
+      fetchByIds("item", [value], "table_default_bin"),
+      fetchPlantDefaults(plantId),
+    ]);
+
+    // Always overwritten, so a previous item's default bin cannot stick.
+    const parentDefaultBin = getItemDefaultBin(
+      (parentBinRes.data || [])[0]?.table_default_bin,
+      plantId
+    );
+    this.setData({
+      storage_location_id:
+        parentDefaultBin?.storageLocation ||
+        plantDefaults.storageLocation ||
+        "",
+      location_id:
+        parentDefaultBin?.binLocation || plantDefaults.binLocation || "",
+    });
 
     const boms = bomRes.data || [];
     if (boms.length === 0) {
@@ -1670,7 +1817,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     const itemsRes = await fetchByIds(
       "item",
       componentIds,
-      "material_name,material_desc,based_uom,serial_number_management,item_batch_management,table_uom_conversion"
+      "material_name,material_desc,based_uom,serial_number_management,item_batch_management,table_uom_conversion,table_default_bin"
     );
     const itemMap = new Map(
       (itemsRes.data || []).map((item) => [item.id, item])
@@ -1716,7 +1863,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
           (itemQty / bomBaseQty) *
           (parseFloat(sub.sub_material_qty) || 0) *
           (1 + wastage / 100)
-        ).toFixed(3)
+        )
       );
       // A serialized component cannot be issued in fractions.
       if (item?.serial_number_management === 1) {
