@@ -1,8 +1,8 @@
 // Explodes the assembled item's BOM into the BOM Components table, then
 // auto-allocates loose stock against each component line.
 //
-// Fetch budget is fixed at 8 queries regardless of how many sub-materials the
-// BOM has: every lookup is batched across the whole component set.
+// Fetch budget is fixed regardless of how many sub-materials the BOM has:
+// every lookup is batched across the whole component set.
 
 const getOrganizationId = () => {
   let organizationId = this.getVarGlobal("deptParentId");
@@ -40,6 +40,58 @@ const fetchByIds = (collection, ids, fields) => {
       console.error(`Error fetching ${collection}:`, error);
       return { data: [] };
     });
+};
+
+// Item master default bin for this plant. A row without a bin is treated as
+// unconfigured so we never stamp a blank bin over the plant default.
+const getItemDefaultBin = (tableDefaultBin, plantId) => {
+  if (!plantId || !Array.isArray(tableDefaultBin)) return null;
+
+  const matchingBin = tableDefaultBin.find(
+    (bin) => bin.plant_id === plantId && bin.bin_location
+  );
+
+  if (!matchingBin) return null;
+
+  return {
+    binLocation: matchingBin.bin_location,
+    storageLocation: matchingBin.storage_location || null,
+  };
+};
+
+// Plant-level fallback, mirroring onChange_Plant.
+const fetchPlantDefaults = async (plantId) => {
+  const empty = { storageLocation: null, binLocation: null };
+  if (!plantId) return empty;
+
+  const storageRes = await db
+    .collection("storage_location")
+    .where({
+      plant_id: plantId,
+      is_deleted: 0,
+      is_default: 1,
+      storage_status: 1,
+      location_type: "Common",
+    })
+    .get()
+    .catch(() => ({ data: [] }));
+
+  const storageLocation = storageRes.data?.[0]?.id;
+  if (!storageLocation) return empty;
+
+  const binRes = await db
+    .collection("bin_location")
+    .where({
+      plant_id: plantId,
+      storage_location_id: storageLocation,
+      is_deleted: 0,
+      is_default: 1,
+      bin_status: 1,
+    })
+    .get()
+    .catch(() => ({ data: [] }));
+
+  return { storageLocation, binLocation: binRes.data?.[0]?.id || null };
 };
 
 const fetchBalances = (collection, materialIds, plantId, organizationId) =>
@@ -182,14 +234,34 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     balancesByMaterial.set(String(balance.material_id), list);
   });
 
-  // Oldest stock first, matching the dialog's stated suggestion order.
-  balancesByMaterial.forEach((list) =>
-    list.sort((a, b) =>
-      String(a.balance.create_time || "").localeCompare(
-        String(b.balance.create_time || "")
-      )
-    )
-  );
+  // The component's own default bin for this plant leads; the rest stay oldest first.
+  const preferredBinByMaterial = new Map();
+  allocatable.forEach((row) => {
+    const defaultBin = getItemDefaultBin(
+      itemMap.get(row.item_selection)?.table_default_bin,
+      plantId
+    );
+    if (defaultBin?.binLocation) {
+      preferredBinByMaterial.set(
+        String(row.item_selection),
+        defaultBin.binLocation
+      );
+    }
+  });
+
+  balancesByMaterial.forEach((list, materialId) => {
+    const preferredBin = preferredBinByMaterial.get(materialId);
+    list.sort((a, b) => {
+      const byBin =
+        (b.balance.location_id === preferredBin ? 1 : 0) -
+        (a.balance.location_id === preferredBin ? 1 : 0);
+      return byBin !== 0
+        ? byBin
+        : String(a.balance.create_time || "").localeCompare(
+            String(b.balance.create_time || "")
+          );
+    });
+  });
 
   const updates = {};
   const shortfalls = [];
@@ -213,7 +285,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
       // Deduct in place so a second line for the same material cannot claim
       // stock this line just took.
       candidate.available -= take;
-      remaining = parseFloat((remaining - take).toFixed(3));
+      remaining = parseFloat((remaining - take));
 
       const balance = candidate.balance;
       picks.push({
@@ -222,7 +294,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
         storage_location_id: balance.storage_location_id || null,
         batch_id: balance.batch_id || null,
         balance_id: balance.id,
-        sm_quantity: parseFloat(take.toFixed(3)),
+        sm_quantity: parseFloat(take),
         category: "Unrestricted",
         plant_id: plantId,
         organization_id: organizationId,
@@ -235,7 +307,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     }
 
     const allocated = picks.reduce((sum, pick) => sum + pick.sm_quantity, 0);
-    const total = parseFloat(allocated.toFixed(3));
+    const total = parseFloat(allocated);
 
     updates[`stock_movement.${rowIndex}.total_quantity`] = total;
     updates[`stock_movement.${rowIndex}.temp_qty_data`] = picks.length
@@ -340,15 +412,33 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
       item_uom: parentItem?.based_uom || "",
     });
 
-    const bomRes = await db
-      .collection("bill_of_materials")
-      .where({
-        parent_material_code: value,
-        organization_id: organizationId,
-        is_deleted: 0,
-        is_active: 1,
-      })
-      .get();
+    const [bomRes, parentBinRes, plantDefaults] = await Promise.all([
+      db
+        .collection("bill_of_materials")
+        .where({
+          parent_material_code: value,
+          organization_id: organizationId,
+          is_deleted: 0,
+          is_active: 1,
+        })
+        .get(),
+      fetchByIds("item", [value], "table_default_bin"),
+      fetchPlantDefaults(plantId),
+    ]);
+
+    // Always overwritten, so a previous item's default bin cannot stick.
+    const parentDefaultBin = getItemDefaultBin(
+      (parentBinRes.data || [])[0]?.table_default_bin,
+      plantId
+    );
+    this.setData({
+      storage_location_id:
+        parentDefaultBin?.storageLocation ||
+        plantDefaults.storageLocation ||
+        "",
+      location_id:
+        parentDefaultBin?.binLocation || plantDefaults.binLocation || "",
+    });
 
     const boms = bomRes.data || [];
     if (boms.length === 0) {
@@ -400,7 +490,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     const itemsRes = await fetchByIds(
       "item",
       componentIds,
-      "material_name,material_desc,based_uom,serial_number_management,item_batch_management,table_uom_conversion"
+      "material_name,material_desc,based_uom,serial_number_management,item_batch_management,table_uom_conversion,table_default_bin"
     );
     const itemMap = new Map(
       (itemsRes.data || []).map((item) => [item.id, item])
@@ -446,7 +536,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
           (itemQty / bomBaseQty) *
           (parseFloat(sub.sub_material_qty) || 0) *
           (1 + wastage / 100)
-        ).toFixed(3)
+        )
       );
       // A serialized component cannot be issued in fractions.
       if (item?.serial_number_management === 1) {
