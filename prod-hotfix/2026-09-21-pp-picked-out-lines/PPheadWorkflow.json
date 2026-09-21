@@ -99,7 +99,10 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
@@ -176,7 +179,10 @@
         "nodeName": "IF Zero Qty",
         "name": "IF Zero Qty",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -254,7 +260,9 @@
         {
           "id": "ifBlock_mWDryC7K",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_RoFefaqO",
@@ -297,7 +305,9 @@
         {
           "id": "ifBlock_H27uhR8E",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -372,7 +382,10 @@
         "nodeName": "IF Auto PickingMode",
         "name": "IF Auto PickingMode",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -450,7 +463,9 @@
         {
           "id": "ifBlock_pt9hyShU",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_C58lS8pM",
@@ -535,7 +550,10 @@
                 "nodeName": "IF has Row to Allocate",
                 "name": "IF has Row to Allocate",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -559,7 +577,9 @@
                 {
                   "id": "ifBlock_CT1tbzRu",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_za2qhizA",
@@ -931,7 +951,10 @@
                             "nodeName": "IF Batch",
                             "name": "IF Batch",
                             "condition_type": "ConditionRule",
-                            "expression": { "type": "javascript", "code": "" },
+                            "expression": {
+                              "type": "javascript",
+                              "code": ""
+                            },
                             "filter": {
                               "list": [
                                 {
@@ -955,7 +978,9 @@
                             {
                               "id": "ifBlock_jJ1DSd8A",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "search_node_dg4nIIRM",
@@ -1114,7 +1139,9 @@
                             {
                               "id": "ifBlock_f7mu6g03",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": [
                                 {
                                   "id": "search_node_54hizGno",
@@ -1475,7 +1502,9 @@
                 {
                   "id": "ifBlock_Lz2cut3L",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1525,7 +1554,9 @@
         {
           "id": "ifBlock_7EqGYXJL",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1565,7 +1596,9 @@
         {
           "id": "ifBlock_Wn7GTqEv",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_node_zG6KDDEF",
@@ -1969,7 +2002,7 @@
                 "name": "Plan PP Edit Gate",
                 "script": {
                   "type": "javascript",
-                  "code": "// Can this plan be edited now that picking has started?\n//\n// Ownership and mutex only. Reductions, removals and item swaps used to be refused\n// here; code_pp_pick_reconcile now unwinds them instead, and owns the line statuses\n// this node used to compute. What stays is what a reversal must never touch: a\n// Picking mid-confirm, and a line a Goods Delivery has already taken over.\nconst saveAs = {{workflowparams:saveAs}};\nconst isPicking = {{workflowparams:isPicking}};\nconst allData = {{workflowparams:allData}};\n\nconst rawBefore = {{node:get_node_zG6KDDEF.data.data}};\nconst before = Array.isArray(rawBefore)\n  ? rawBefore[0] || null\n  : rawBefore || null;\n\nconst rawRes = {{node:search_node_pp_reserved.data.data}};\nconst reservations = Array.isArray(rawRes) ? rawRes : rawRes ? [rawRes] : [];\n\nconst rawPick = {{node:search_node_pp_pickings.data.data}};\nconst pickings = Array.isArray(rawPick) ? rawPick : rawPick ? [rawPick] : [];\n\nconst rawGd = {{node:search_node_pp_gd_claims.data.data}};\nconst gdClaims = Array.isArray(rawGd) ? rawGd : rawGd ? [rawGd] : [];\n\nconst OFF = { blockEdit: 0, blockMessage: \"\" };\n\n// The Picking re-invokes this workflow with isPicking set; it must pass straight\n// through, exactly as the old guard allowed.\nif (saveAs !== \"Created\" || isPicking || !before || !allData) {\n  return OFF;\n}\n\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// Tolerance for the picked tests below, matching what q8(3) used to swallow.\nconst EPS = 0.0005;\nconst ppId = String(before.id || \"\");\n\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\n\n// Read the STORED plan, not the submitted one. A page opened before the picker\n// started carries a stale picking_status.\nconst beforeLines = flattenRows(before.table_to).filter((r) => r && r.material_id);\n\nconst anyPicked = beforeLines.some((r) => q8(r.picked_qty) > EPS);\nconst priorStatus = String(before.picking_status || \"\");\nconst started =\n  priorStatus === \"In Progress\" || priorStatus === \"Completed\" || anyPicked;\nconst openPicking = pickings.some(\n  (p) => String(p.to_status || \"\") === \"Created\"\n);\n\nif (!started && !openPicking) {\n  return OFF;\n}\n\nconst block = (message) => ({ blockEdit: 1, blockMessage: message });\n\n// A Picking mid-confirm is writing these very lines from the other side. Only an\n// open Picking can be mid-confirm; the flag leaks on terminal ones (8 stale rows in\n// production, all Completed or Cancelled) and honouring those would lock a plan for\n// good with no way to clear it.\nfor (const p of pickings) {\n  if (String(p.to_status || \"\") === \"Created\" && Number(p.is_processing || 0) !== 0) {\n    return block(\n      \"Picking \" +\n        String(p.to_id || p.id) +\n        \" is being processed on a device right now. Try again in a moment.\"\n    );\n  }\n}\n\n// A delivery built from this plan takes the reservation over: doc_type stays\n// \"Picking Plan\" but target_gd_id is restamped to the delivery. Once that has\n// happened the delivery also holds picking_record_id references into the pick\n// records, so unwinding a pick underneath it would leave the delivery describing\n// stock that no longer adds up. This is the one thing the reconcile must never do.\nconst claimedByLine = {};\nfor (const res of reservations) {\n  const line = String(res.doc_line_id || \"\");\n  if (!line) continue;\n  const status = String(res.status || \"\");\n  const target = String(res.target_gd_id || \"\");\n  if (status === \"Delivered\" || (target && target !== ppId)) {\n    claimedByLine[line] = 1;\n  }\n}\n\n// Reservations alone are not enough. A delivery built from this plan and saved as\n// Created is a deliberate no-inventory middle state -- code_node_b71wypDJ returns\n// early and writes no reservation row at all -- so its claim is invisible above\n// while it holds picking_record_id references into the pick records. The delivery\n// line itself is the only evidence.\nfor (const g of gdClaims) {\n  const line = String(g.pp_line_item_id || \"\");\n  if (line) claimedByLine[line] = 1;\n}\n\nfor (const line of beforeLines) {\n  const id = String(line.id || \"\");\n  if (!id) continue;\n  if (q8(line.picked_qty) > EPS && claimedByLine[id]) {\n    return block(\n      \"Item \" +\n        (line.material_name || line.to_material_desc || id) +\n        \" has already been taken by a Goods Delivery, so this plan can no longer be changed. Revert and cancel that delivery first.\"\n    );\n  }\n}\n\nreturn { blockEdit: 0, blockMessage: \"\" };\n"
+                  "code": "// Can this plan be edited now that picking has started?\n//\n// Ownership and mutex only. Reductions, removals and item swaps used to be refused\n// here; code_pp_pick_reconcile now unwinds them instead, and owns the line statuses\n// this node used to compute. What stays is what a reversal must never touch: a\n// Picking mid-confirm, and a line a Goods Delivery has already taken over.\nconst saveAs = {{workflowparams:saveAs}};\nconst isPicking = {{workflowparams:isPicking}};\nconst allData = {{workflowparams:allData}};\n\nconst rawBefore = {{node:get_node_zG6KDDEF.data.data}};\nconst before = Array.isArray(rawBefore)\n  ? rawBefore[0] || null\n  : rawBefore || null;\n\nconst rawRes = {{node:search_node_pp_reserved.data.data}};\nconst reservations = Array.isArray(rawRes) ? rawRes : rawRes ? [rawRes] : [];\n\nconst rawPick = {{node:search_node_pp_pickings.data.data}};\nconst pickings = Array.isArray(rawPick) ? rawPick : rawPick ? [rawPick] : [];\n\nconst rawGd = {{node:search_node_pp_gd_claims.data.data}};\nconst gdClaims = Array.isArray(rawGd) ? rawGd : rawGd ? [rawGd] : [];\n\nconst OFF = { blockEdit: 0, blockMessage: \"\" };\n\n// The Picking re-invokes this workflow with isPicking set; it must pass straight\n// through, exactly as the old guard allowed.\nif (saveAs !== \"Created\" || isPicking || !before || !allData) {\n  return OFF;\n}\n\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst ppId = String(before.id || \"\");\n\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\n\n// Read the STORED plan, not the submitted one. A page opened before the picker\n// started carries a stale picking_status.\nconst beforeLines = flattenRows(before.table_to).filter((r) => r && r.material_id);\n\nconst anyPicked = beforeLines.some((r) => roundQty(r.picked_qty) > 0);\nconst priorStatus = String(before.picking_status || \"\");\nconst started =\n  priorStatus === \"In Progress\" || priorStatus === \"Completed\" || anyPicked;\nconst openPicking = pickings.some(\n  (p) => String(p.to_status || \"\") === \"Created\"\n);\n\nif (!started && !openPicking) {\n  return OFF;\n}\n\nconst block = (message) => ({ blockEdit: 1, blockMessage: message });\n\n// A Picking mid-confirm is writing these very lines from the other side. Only an\n// open Picking can be mid-confirm; the flag leaks on terminal ones (8 stale rows in\n// production, all Completed or Cancelled) and honouring those would lock a plan for\n// good with no way to clear it.\nfor (const p of pickings) {\n  if (String(p.to_status || \"\") === \"Created\" && Number(p.is_processing || 0) !== 0) {\n    return block(\n      \"Picking \" +\n        String(p.to_id || p.id) +\n        \" is being processed on a device right now. Try again in a moment.\"\n    );\n  }\n}\n\n// A delivery built from this plan takes the reservation over: doc_type stays\n// \"Picking Plan\" but target_gd_id is restamped to the delivery. Once that has\n// happened the delivery also holds picking_record_id references into the pick\n// records, so unwinding a pick underneath it would leave the delivery describing\n// stock that no longer adds up. This is the one thing the reconcile must never do.\nconst claimedByLine = {};\nfor (const res of reservations) {\n  const line = String(res.doc_line_id || \"\");\n  if (!line) continue;\n  const status = String(res.status || \"\");\n  const target = String(res.target_gd_id || \"\");\n  if (status === \"Delivered\" || (target && target !== ppId)) {\n    claimedByLine[line] = 1;\n  }\n}\n\n// Reservations alone are not enough. A delivery built from this plan and saved as\n// Created is a deliberate no-inventory middle state -- code_node_b71wypDJ returns\n// early and writes no reservation row at all -- so its claim is invisible above\n// while it holds picking_record_id references into the pick records. The delivery\n// line itself is the only evidence.\nfor (const g of gdClaims) {\n  const line = String(g.pp_line_item_id || \"\");\n  if (line) claimedByLine[line] = 1;\n}\n\nfor (const line of beforeLines) {\n  const id = String(line.id || \"\");\n  if (!id) continue;\n  if (roundQty(line.picked_qty) > 0 && claimedByLine[id]) {\n    return block(\n      \"Item \" +\n        (line.material_name || line.to_material_desc || id) +\n        \" has already been taken by a Goods Delivery, so this plan can no longer be changed. Revert and cancel that delivery first.\"\n    );\n  }\n}\n\nreturn { blockEdit: 0, blockMessage: \"\" };\n"
                 },
                 "response_json": [
                   {
@@ -2093,7 +2126,7 @@
                 "name": "Plan Pick Reconcile",
                 "script": {
                   "type": "javascript",
-                  "code": "// Picking reconcile for a Picking Plan -- planning pass.\n//\n// A delivery reconciles its Picking in place; a plan used to refuse instead. This\n// classifies each plan line against the Picking as it stands so the producer can\n// merge rather than rebuild, and unwinds what was over-picked. Nothing is written\n// here: the confirm returns before the first update node.\n//\n// Ported from GDheadWorkflow's code_pick_reconcile, with three PP differences:\n//   - keys are to_id / to_line_id, never gd_id / gd_line_id\n//   - handling_unit_id is NOT part of any key: PP pick records always carry null\n//     (code_node_Q3hWck9R writes item.handling_unit_id and PP picking rows never\n//     set it), so a key including it would match nothing\n//   - qty_to_pick on a PP picking row means \"remaining at conversion\", not the whole\n//     line, so the producer keeps qty_to_pick - pending_process_qty === picked\nconst saveAs = {{workflowparams:saveAs}};\nconst isPicking = {{workflowparams:isPicking}};\nconst confirmReversal = {{workflowparams:confirmPickReversal}};\nconst allData = {{workflowparams:allData}};\n\nconst rawBefore = {{node:get_node_zG6KDDEF.data.data}};\nconst before = Array.isArray(rawBefore) ? rawBefore[0] || null : rawBefore || null;\n\nconst rawPick = {{node:search_node_pp_pickings.data.data}};\nconst pickings = Array.isArray(rawPick) ? rawPick : rawPick ? [rawPick] : [];\n\nconst OFF = {\n  reconcileNeeded: 0,\n  blockEdit: 0,\n  blockMessage: \"\",\n  pickingId: \"\",\n  pickingNo: \"\",\n  targetPickingToStatus: \"\",\n  linePlans: [],\n  lineStatusOverrides: {},\n  lineFieldOverrides: {},\n  headerPickingStatus: \"\",\n  hasReversals: 0,\n  needsReversalConfirm: 0,\n  reversals: [],\n  binIdsToName: [\"0\"],\n  batchIdsToName: [\"0\"],\n  recordAdjustments: [],\n  reversalNote: \"\"\n};\n\n// The Picking re-invokes this workflow with isPicking set; it must pass straight\n// through, exactly as code_node_pp_gate allows.\nif (saveAs !== \"Created\" || isPicking || !before || !allData) {\n  return OFF;\n}\n\n// 8dp is the maximum configurable column precision; every Picking Plan / Transfer Order\n// Picking quantity column is precision 8.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// Tolerance for the classification tests below, matching what q8(3) used to\n// swallow. Tolerance only; nothing written is rounded to it.\nconst EPS = 0.0005;\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\nconst ppId = sid(before.id);\n\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\nconst parseAlloc = (raw) => {\n  if (Array.isArray(raw)) return raw;\n  if (!raw) return [];\n  try {\n    const parsed = JSON.parse(raw);\n    return Array.isArray(parsed) ? parsed : [];\n  } catch (e) {\n    return [];\n  }\n};\n// picked_temp_qty_data is keyed on where the stock ENDED UP, which is what\n// code_node_AGoxWP7x writes and what PPconvertToPicking subtracts against.\nconst allocKey = (e) =>\n  sid(e.location_id) + \"|\" + sid(e.batch_id) + \"|\" + sid(e.handling_unit_id);\n\nconst beforeLines = flattenRows(before.table_to).filter((r) => r && r.material_id);\nconst afterLines = flattenRows(allData.table_to).filter((r) => r && r.material_id);\nconst afterById = {};\nfor (const row of afterLines) {\n  if (row.id) afterById[sid(row.id)] = row;\n}\nconst beforeById = {};\nfor (const row of beforeLines) {\n  if (row.id) beforeById[sid(row.id)] = row;\n}\n\nconst anyPicked = beforeLines.some((r) => q8(r.picked_qty) > EPS);\nconst priorStatus = sid(before.picking_status);\nconst started =\n  priorStatus === \"In Progress\" || priorStatus === \"Completed\" || anyPicked;\nconst openPicking = pickings.some((p) => sid(p.to_status) === \"Created\");\nif (!started && !openPicking) {\n  return OFF;\n}\n\nconst blockWith = (message) =>\n  Object.assign({}, OFF, { blockEdit: 1, blockMessage: message });\n\n// --- which lines this edit actually touches --------------------------------\n// Only these decide which Picking is in scope, so an unrelated line on a second\n// Picking never drags the whole plan into a refusal.\nconst affected = {};\nfor (const line of beforeLines) {\n  const id = sid(line.id);\n  if (!id) continue;\n  const after = afterById[id];\n  if (!after) {\n    affected[id] = 1;\n    continue;\n  }\n  if (sid(after.material_id) !== sid(line.material_id)) {\n    affected[id] = 1;\n    continue;\n  }\n  if (Math.abs(q8(after.to_qty) - q8(line.to_qty)) > 0.0005) {\n    affected[id] = 1;\n    continue;\n  }\n  // A re-allocation at the SAME quantity still matters. PPconvertToPicking works\n  // out what is left to pick by subtracting picked_temp_qty_data from\n  // temp_qty_data key by key, so a picked bin the plan no longer allocates comes\n  // back as quantity to pick a second time. The gate this replaces checked every\n  // picked line for that; testing quantity and material alone would have let it\n  // through. Only broken COVERAGE counts -- a reshuffle that still covers what\n  // was picked changes nothing anyone downstream reads.\n  const pickedHere = {};\n  for (const entry of parseAlloc(line.picked_temp_qty_data)) {\n    const q = q8(entry.to_quantity);\n    if (q > 0) {\n      const k = allocKey(entry);\n      pickedHere[k] = q8((pickedHere[k] || 0) + q);\n    }\n  }\n  const pickedKeys = Object.keys(pickedHere);\n  if (!pickedKeys.length) continue;\n  const plannedHere = {};\n  for (const entry of parseAlloc(after.temp_qty_data)) {\n    const q = q8(entry.to_quantity);\n    if (q > 0) {\n      const k = allocKey(entry);\n      plannedHere[k] = q8((plannedHere[k] || 0) + q);\n    }\n  }\n  if (pickedKeys.some((k) => pickedHere[k] - q8(plannedHere[k]) > EPS)) {\n    affected[id] = 1;\n  }\n}\nconst affectedIds = Object.keys(affected);\nif (affectedIds.length === 0) {\n  return OFF;\n}\n\n// --- pick the Picking ------------------------------------------------------\n// A plan legitimately owns several Pickings: each closes wholesale and the\n// remainder converts again. Reconciling across them would hand one Picking the\n// quantity another still plans to pick, so more than one holding an affected line\n// is refused. Rows, not just records -- an unpicked-but-planned row is just as\n// much a claim.\nconst rowsOf = (p) =>\n  flattenRows(p.table_picking_items).filter((r) => r && r.row_type !== \"header\");\nconst holders = pickings.filter((p) =>\n  rowsOf(p).some((r) => affected[sid(r.to_line_id)])\n);\nif (holders.length === 0) {\n  return OFF;\n}\nif (holders.length > 1) {\n  return blockWith(\n    \"This change affects lines that are split across \" +\n      holders.length +\n      \" Pickings (\" +\n      holders.map((p) => sid(p.to_id || p.id)).join(\", \") +\n      \"). Cancel or revert all but one before changing the plan.\"\n  );\n}\nconst picking = holders[0];\nconst pickingNo = sid(picking.to_id || picking.id);\n\n// A Picking mid-confirm is writing these very rows from the other side.\nif (sid(picking.to_status) === \"Created\" && Number(picking.is_processing || 0) !== 0) {\n  return blockWith(\n    \"Picking \" + pickingNo + \" is being processed on a device right now. Try again in a moment.\"\n  );\n}\n\n// --- the Picking as it stands ----------------------------------------------\nconst allPlanRows = rowsOf(picking);\nconst planRows = allPlanRows.filter((r) => sid(r.to_id) === ppId);\nconst otherRows = allPlanRows.filter((r) => sid(r.to_id) !== ppId);\nconst records = (picking.table_picking_records || []).filter(\n  (r) => r && sid(r.to_id) === ppId\n);\n\nconst slotKey = (line, item) => sid(line) + \"|\" + sid(item);\nconst slots = {};\nconst slotFor = (line, item) => {\n  const k = slotKey(line, item);\n  if (!slots[k]) {\n    slots[k] = { key: k, line: sid(line), item: sid(item), picked: 0, planned: 0, pending: 0, desired: 0 };\n  }\n  return slots[k];\n};\n\n// Records are the authority on what was physically picked.\nconst pickedSeen = {};\nfor (const rec of records) {\n  const q = parseFloat(rec.store_out_qty) || 0;\n  if (!rec.to_line_id || q <= 0) continue;\n  const s = slotFor(rec.to_line_id, rec.item_code);\n  s.picked = q8(s.picked + q);\n  pickedSeen[s.key] = 1;\n}\n// A force-completed Picking writes no records; fall back to the plan's arithmetic.\nfor (const row of planRows) {\n  if (!row.to_line_id) continue;\n  const s = slotFor(row.to_line_id, row.item_code);\n  if (pickedSeen[s.key]) continue;\n  const done = q8(\n    (parseFloat(row.qty_to_pick) || 0) - (parseFloat(row.pending_process_qty) || 0)\n  );\n  if (done > 0) s.picked = q8(s.picked + done);\n}\nfor (const row of planRows) {\n  if (!row.to_line_id || row.line_status === \"Cancelled\") continue;\n  const s = slotFor(row.to_line_id, row.item_code);\n  s.planned = q8(s.planned + (parseFloat(row.qty_to_pick) || 0));\n  s.pending = q8(s.pending + (parseFloat(row.pending_process_qty) || 0));\n}\n\n// --- what the plan now wants -----------------------------------------------\n// Keyed by the row's CURRENT material, so an item swap decomposes into a full\n// reversal of the old item plus a fresh Open row for the new one. to_qty is the\n// authority: code_node_Nj60Z2XF already refuses a temp_qty_data that disagrees.\nfor (const row of afterLines) {\n  const line = sid(row.id);\n  if (!line) continue;\n  const s = slotFor(line, row.material_id);\n  s.desired = q8(s.desired + q8(row.to_qty));\n}\n\n// --- classify ---------------------------------------------------------------\nconst linePlans = [];\nconst shortfalls = [];\nconst survivingByLine = {};\nfor (const k of Object.keys(slots)) {\n  const s = slots[k];\n  if (s.desired < s.picked) {\n    shortfalls.push(s);\n    continue;\n  }\n  const rawPending = s.desired - s.picked;\n  const newPending = rawPending > EPS ? q8(rawPending) : 0;\n  linePlans.push({\n    to_line_id: s.line,\n    item_code: s.item,\n    mode: s.picked === 0 ? \"rebuild\" : s.desired > s.planned ? \"extend\" : s.desired < s.planned ? \"shrink\" : \"hold\",\n    picked: s.picked, planned: s.planned, pending: s.pending, desired: s.desired,\n    newPending: newPending\n  });\n  if (s.desired > 0) {\n    if (!survivingByLine[s.line]) survivingByLine[s.line] = { done: true, progress: false };\n    if (newPending > 0) survivingByLine[s.line].done = false;\n    if (s.picked > 0) survivingByLine[s.line].progress = true;\n  }\n}\n\n// --- unwind what was over-picked -------------------------------------------\nconst recordsBySlot = {};\nfor (const rec of records) {\n  if (!rec.to_line_id) continue;\n  const k = slotKey(rec.to_line_id, rec.item_code);\n  if (!recordsBySlot[k]) recordsBySlot[k] = [];\n  recordsBySlot[k].push(rec);\n}\n\n// Serialised lines cannot be unwound: the records do not say WHICH serial was taken.\nconst serialisedSlots = {};\nfor (const row of planRows) {\n  const isSerial =\n    Number(row.is_serialized_item || 0) === 1 ||\n    (row.serial_numbers !== undefined && row.serial_numbers !== null && sid(row.serial_numbers) !== \"\");\n  if (isSerial) serialisedSlots[slotKey(row.to_line_id, row.item_code)] = 1;\n}\nconst serialShortfall = shortfalls.filter((s) => serialisedSlots[s.key]);\nif (serialShortfall.length > 0) {\n  return blockWith(\n    \"Reducing \" + serialShortfall.length + \" serialised line(s) on \" + pickingNo +\n      \" cannot be reversed automatically, because the pick records do not record which serial numbers were taken. Cancel the Picking first.\"\n  );\n}\n\nconst reversals = [];\nconst recordAdjustments = [];\nconst binIdSet = {};\nconst batchIdSet = {};\n// take-back per (line, picked_temp_qty_data key), so picked_temp_qty_data can be\n// reduced in exactly the places the records came from.\nconst takenByLineKey = {};\n\nfor (const s of shortfalls) {\n  let left = q8(s.picked - s.desired);\n  const newestFirst = (recordsBySlot[s.key] || []).slice().sort((a, b) => {\n    const ta = sid(a.confirmed_at);\n    const tb = sid(b.confirmed_at);\n    if (ta !== tb) return ta < tb ? 1 : -1;\n    return sid(a.id) < sid(b.id) ? 1 : -1;\n  });\n\n  for (const rec of newestFirst) {\n    if (left <= 0) break;\n    const have = q8(rec.store_out_qty);\n    if (have <= 0) continue;\n\n    // A delivery has already consumed this pick; unwinding it would leave the\n    // delivery describing stock that no longer adds up.\n    if (q8(rec.delivered_qty) > EPS) {\n      return blockWith(\n        \"Item \" + sid(rec.item_name || rec.item_code) + \" on \" + pickingNo +\n          \" has already been delivered, so the picked quantity cannot be reversed. Revert that delivery first.\"\n      );\n    }\n\n    const take = q8(Math.min(left, have));\n    const remain = q8(have - take);\n    const alt = q8(rec.picked_qty_alt);\n    const newAlt = have > 0 ? q8(alt * (remain / have)) : 0;\n\n    recordAdjustments.push({\n      id: sid(rec.id),\n      store_out_qty: remain,\n      picked_qty_alt: newAlt,\n      drop: remain <= 0 ? 1 : 0,\n      qty: take\n    });\n    reversals.push({\n      to_line_id: s.line,\n      item_code: sid(rec.item_code),\n      item_name: sid(rec.item_name),\n      qty: take,\n      return_to: sid(rec.source_bin),\n      currently_at: sid(rec.target_location || rec.source_bin)\n    });\n\n    // The key picked_temp_qty_data used when this record was written.\n    const k = s.line + \"||\" + allocKey({\n      location_id: rec.target_location || rec.source_bin,\n      batch_id: rec.target_batch || rec.batch_no,\n      handling_unit_id: rec.handling_unit_id\n    });\n    takenByLineKey[k] = q8((takenByLineKey[k] || 0) + take);\n\n    if (rec.source_bin) binIdSet[sid(rec.source_bin)] = 1;\n    if (rec.target_location) binIdSet[sid(rec.target_location)] = 1;\n    if (rec.batch_no) batchIdSet[sid(rec.batch_no)] = 1;\n    if (rec.target_batch) batchIdSet[sid(rec.target_batch)] = 1;\n    left = q8(left - take);\n  }\n\n  if (left > 0) {\n    return blockWith(\n      \"Line \" + s.line + \" on \" + pickingNo + \" shows \" + s.picked +\n        \" picked but has no pick records covering \" + left +\n        \" of it (a force-completed Picking records none), so it cannot be reversed automatically. Cancel the Picking first.\"\n    );\n  }\n\n  linePlans.push({\n    to_line_id: s.line, item_code: s.item, mode: \"reverse\",\n    picked: s.desired, planned: s.planned, pending: s.pending,\n    desired: s.desired, newPending: 0\n  });\n  if (s.desired > 0) {\n    if (!survivingByLine[s.line]) survivingByLine[s.line] = { done: true, progress: true };\n    survivingByLine[s.line].progress = true;\n  }\n}\n\n// --- rebuild each touched line's picked state -------------------------------\nconst lineFieldOverrides = {};\nconst pickedAfterByLine = {};\nfor (const k of Object.keys(slots)) {\n  const line = slots[k].line;\n  if (!line || pickedAfterByLine[line] !== undefined) continue;\n  const stored = beforeById[line];\n  if (!stored) continue;\n\n  const entries = parseAlloc(stored.picked_temp_qty_data)\n    .map((e) => Object.assign({}, e))\n    .filter((e) => q8(e.to_quantity) > EPS);\n  for (const e of entries) {\n    const take = takenByLineKey[line + \"||\" + allocKey(e)] || 0;\n    if (take > 0) e.to_quantity = q8(Math.max(0, q8(e.to_quantity) - take));\n  }\n  const kept = entries.filter((e) => q8(e.to_quantity) > EPS);\n  const pickedNow = q8(kept.reduce((sum, e) => sum + q8(e.to_quantity), 0));\n  pickedAfterByLine[line] = pickedNow;\n\n  // picked_view_stock needs display names, which a code-node cannot fetch --\n  // code_pp_reversal_msg renders it once the name lookups have run.\n  lineFieldOverrides[line] = {\n    picked_qty: pickedNow,\n    picked_temp_qty_data: JSON.stringify(kept)\n  };\n  for (const e of kept) {\n    if (e.location_id) binIdSet[sid(e.location_id)] = 1;\n    if (e.batch_id) batchIdSet[sid(e.batch_id)] = 1;\n  }\n}\n\n// --- the old refusal 6, now evaluated AFTER the unwind ----------------------\n// A key dropped from temp_qty_data comes back as quantity to pick a second time\n// (PPconvertToPicking subtracts key by key). Checking post-unwind means reducing\n// and re-allocating in one edit is no longer refused.\nfor (const line of Object.keys(lineFieldOverrides)) {\n  const after = afterById[line];\n  if (!after) continue;\n  const pickedBy = {};\n  for (const e of parseAlloc(lineFieldOverrides[line].picked_temp_qty_data)) {\n    const q = q8(e.to_quantity);\n    if (q > 0) pickedBy[allocKey(e)] = q8((pickedBy[allocKey(e)] || 0) + q);\n  }\n  const keys = Object.keys(pickedBy);\n  if (!keys.length) continue;\n  const plannedBy = {};\n  for (const e of parseAlloc(after.temp_qty_data)) {\n    const q = q8(e.to_quantity);\n    if (q > 0) plannedBy[allocKey(e)] = q8((plannedBy[allocKey(e)] || 0) + q);\n  }\n  const stored = beforeById[line] || {};\n  const label = stored.material_name || stored.to_material_desc || line;\n  for (const key of keys) {\n    if (pickedBy[key] - q8(plannedBy[key]) > EPS) {\n      return blockWith(\n        \"Item \" + label + \" has \" + pickedBy[key] +\n          \" already picked from a bin and batch the plan no longer allocates. Allocate that quantity back to the same bin, or cancel or revert Picking \" +\n          pickingNo + \" first.\"\n      );\n    }\n  }\n}\n\n// --- statuses ---------------------------------------------------------------\nconst lineStatusOverrides = {};\nconst touchedLines = {};\nfor (const k of Object.keys(slots)) touchedLines[slots[k].line] = 1;\nfor (const line of Object.keys(touchedLines)) {\n  const stored = beforeById[line];\n  // A line delivered straight to a Goods Delivery without ever being picked reads\n  // Completed with nothing picked; recomputing would re-offer it for picking.\n  if (stored && q8(stored.picked_qty) <= EPS && sid(stored.picking_status) === \"Completed\") {\n    continue;\n  }\n  const surv = survivingByLine[line];\n  if (!surv) lineStatusOverrides[line] = \"Cancelled\";\n  else if (surv.done) lineStatusOverrides[line] = \"Completed\";\n  else if (surv.progress) lineStatusOverrides[line] = \"In Progress\";\n  else lineStatusOverrides[line] = \"Created\";\n  if (lineFieldOverrides[line]) {\n    lineFieldOverrides[line].picking_status = lineStatusOverrides[line];\n  }\n}\n\nconst binIdsToName = Object.keys(binIdSet);\nif (binIdsToName.length === 0) binIdsToName.push(\"0\");\nconst batchIdsToName = Object.keys(batchIdSet);\nif (batchIdsToName.length === 0) batchIdsToName.push(\"0\");\n\nconst reversalNote = reversals\n  .map((r) => (r.item_name || r.item_code) + \": return \" + r.qty +\n    (r.currently_at && r.currently_at !== r.return_to ? \" (currently staged away from its source bin)\" : \"\"))\n  .join(\"; \");\n\n// --- roll the statuses up ---------------------------------------------------\nlet allDone = true, anyProgress = false, anyLive = false;\nlet ppAllDone = true, ppAnyProgress = false, ppAnyLive = false;\nfor (const p of linePlans) {\n  if (p.desired === 0) continue;\n  anyLive = true; ppAnyLive = true;\n  if (p.newPending > 0) { allDone = false; ppAllDone = false; }\n  if (p.picked > 0) { anyProgress = true; ppAnyProgress = true; }\n}\nfor (const row of otherRows) {\n  if (row.line_status === \"Cancelled\") continue;\n  anyLive = true;\n  if ((parseFloat(row.pending_process_qty) || 0) > 0) allDone = false;\n  if (row.line_status === \"Completed\" || row.line_status === \"In Progress\") anyProgress = true;\n}\nconst rollup = (live, done, progress) =>\n  !live ? \"Created\" : done ? \"Completed\" : progress ? \"In Progress\" : \"Created\";\n\nreturn {\n  reconcileNeeded: 1,\n  blockEdit: 0,\n  blockMessage: \"\",\n  pickingId: sid(picking.id),\n  pickingNo: pickingNo,\n  // Closing a Picking is fine; REOPENING one is not. Completed is written by a\n  // human finishing it (PickingProcessWorkflow's completion path sets to_status\n  // unconditionally), and a reduction that leaves quantity outstanding is picked by\n  // converting a SECOND Picking -- PP's model, unlike GD's. Reopening would\n  // resurrect a closed document and show the same quantity outstanding twice: once\n  // here and once in the next convert, which filters on the PLAN line's status.\n  targetPickingToStatus:\n    sid(picking.to_status) === \"Completed\"\n      ? \"Completed\"\n      : rollup(anyLive, allDone, anyProgress),\n  linePlans: linePlans,\n  lineStatusOverrides: lineStatusOverrides,\n  lineFieldOverrides: lineFieldOverrides,\n  headerPickingStatus: rollup(ppAnyLive, ppAllDone, ppAnyProgress),\n  hasReversals: reversals.length > 0 ? 1 : 0,\n  needsReversalConfirm: reversals.length > 0 && confirmReversal !== \"Yes\" ? 1 : 0,\n  reversals: reversals,\n  binIdsToName: binIdsToName,\n  batchIdsToName: batchIdsToName,\n  recordAdjustments: recordAdjustments,\n  reversalNote: reversalNote\n};\n"
+                  "code": "// Picking reconcile for a Picking Plan -- planning pass.\n//\n// A delivery reconciles its Picking in place; a plan used to refuse instead. This\n// classifies each plan line against the Picking as it stands so the producer can\n// merge rather than rebuild, and unwinds what was over-picked. Nothing is written\n// here: the confirm returns before the first update node.\n//\n// Ported from GDheadWorkflow's code_pick_reconcile, with three PP differences:\n//   - keys are to_id / to_line_id, never gd_id / gd_line_id\n//   - handling_unit_id is NOT part of any key: PP pick records always carry null\n//     (code_node_Q3hWck9R writes item.handling_unit_id and PP picking rows never\n//     set it), so a key including it would match nothing\n//   - qty_to_pick on a PP picking row means \"remaining at conversion\", not the whole\n//     line, so the producer keeps qty_to_pick - pending_process_qty === picked\nconst saveAs = {{workflowparams:saveAs}};\nconst isPicking = {{workflowparams:isPicking}};\nconst confirmReversal = {{workflowparams:confirmPickReversal}};\nconst allData = {{workflowparams:allData}};\n\nconst rawBefore = {{node:get_node_zG6KDDEF.data.data}};\nconst before = Array.isArray(rawBefore) ? rawBefore[0] || null : rawBefore || null;\n\nconst rawPick = {{node:search_node_pp_pickings.data.data}};\nconst pickings = Array.isArray(rawPick) ? rawPick : rawPick ? [rawPick] : [];\n\nconst OFF = {\n  reconcileNeeded: 0,\n  blockEdit: 0,\n  blockMessage: \"\",\n  pickingId: \"\",\n  pickingNo: \"\",\n  targetPickingToStatus: \"\",\n  linePlans: [],\n  lineStatusOverrides: {},\n  lineFieldOverrides: {},\n  headerPickingStatus: \"\",\n  hasReversals: 0,\n  needsReversalConfirm: 0,\n  reversals: [],\n  binIdsToName: [\"0\"],\n  batchIdsToName: [\"0\"],\n  recordAdjustments: [],\n  reversalNote: \"\"\n};\n\n// The Picking re-invokes this workflow with isPicking set; it must pass straight\n// through, exactly as code_node_pp_gate allows.\nif (saveAs !== \"Created\" || isPicking || !before || !allData) {\n  return OFF;\n}\n\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst sid = (v) => String(v === null || v === undefined ? \"\" : v);\nconst ppId = sid(before.id);\n\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : [])\n  ]);\nconst parseAlloc = (raw) => {\n  if (Array.isArray(raw)) return raw;\n  if (!raw) return [];\n  try {\n    const parsed = JSON.parse(raw);\n    return Array.isArray(parsed) ? parsed : [];\n  } catch (e) {\n    return [];\n  }\n};\n// picked_temp_qty_data is keyed on where the stock ENDED UP, which is what\n// code_node_AGoxWP7x writes and what PPconvertToPicking subtracts against.\nconst allocKey = (e) =>\n  sid(e.location_id) + \"|\" + sid(e.batch_id) + \"|\" + sid(e.handling_unit_id);\n\nconst beforeLines = flattenRows(before.table_to).filter((r) => r && r.material_id);\nconst afterLines = flattenRows(allData.table_to).filter((r) => r && r.material_id);\nconst afterById = {};\nfor (const row of afterLines) {\n  if (row.id) afterById[sid(row.id)] = row;\n}\nconst beforeById = {};\nfor (const row of beforeLines) {\n  if (row.id) beforeById[sid(row.id)] = row;\n}\n\nconst anyPicked = beforeLines.some((r) => roundQty(r.picked_qty) > 0);\nconst priorStatus = sid(before.picking_status);\nconst started =\n  priorStatus === \"In Progress\" || priorStatus === \"Completed\" || anyPicked;\nconst openPicking = pickings.some((p) => sid(p.to_status) === \"Created\");\nif (!started && !openPicking) {\n  return OFF;\n}\n\nconst blockWith = (message) =>\n  Object.assign({}, OFF, { blockEdit: 1, blockMessage: message });\n\n// --- which lines this edit actually touches --------------------------------\n// Only these decide which Picking is in scope, so an unrelated line on a second\n// Picking never drags the whole plan into a refusal.\nconst affected = {};\nfor (const line of beforeLines) {\n  const id = sid(line.id);\n  if (!id) continue;\n  const after = afterById[id];\n  if (!after) {\n    affected[id] = 1;\n    continue;\n  }\n  if (sid(after.material_id) !== sid(line.material_id)) {\n    affected[id] = 1;\n    continue;\n  }\n  if (Math.abs(roundQty(after.to_qty) - roundQty(line.to_qty)) > 0.0005) {\n    affected[id] = 1;\n    continue;\n  }\n  // A re-allocation at the SAME quantity still matters. PPconvertToPicking works\n  // out what is left to pick by subtracting picked_temp_qty_data from\n  // temp_qty_data key by key, so a picked bin the plan no longer allocates comes\n  // back as quantity to pick a second time. The gate this replaces checked every\n  // picked line for that; testing quantity and material alone would have let it\n  // through. Only broken COVERAGE counts -- a reshuffle that still covers what\n  // was picked changes nothing anyone downstream reads.\n  const pickedHere = {};\n  for (const entry of parseAlloc(line.picked_temp_qty_data)) {\n    const q = roundQty(entry.to_quantity);\n    if (q > 0) {\n      const k = allocKey(entry);\n      pickedHere[k] = roundQty((pickedHere[k] || 0) + q);\n    }\n  }\n  const pickedKeys = Object.keys(pickedHere);\n  if (!pickedKeys.length) continue;\n  const plannedHere = {};\n  for (const entry of parseAlloc(after.temp_qty_data)) {\n    const q = roundQty(entry.to_quantity);\n    if (q > 0) {\n      const k = allocKey(entry);\n      plannedHere[k] = roundQty((plannedHere[k] || 0) + q);\n    }\n  }\n  if (pickedKeys.some((k) => roundQty(plannedHere[k]) < pickedHere[k])) {\n    affected[id] = 1;\n  }\n}\nconst affectedIds = Object.keys(affected);\nif (affectedIds.length === 0) {\n  return OFF;\n}\n\n// --- pick the Picking ------------------------------------------------------\n// A plan legitimately owns several Pickings: each closes wholesale and the\n// remainder converts again. Reconciling across them would hand one Picking the\n// quantity another still plans to pick, so more than one holding an affected line\n// is refused. Rows, not just records -- an unpicked-but-planned row is just as\n// much a claim.\nconst rowsOf = (p) =>\n  flattenRows(p.table_picking_items).filter((r) => r && r.row_type !== \"header\");\nconst holders = pickings.filter((p) =>\n  rowsOf(p).some((r) => affected[sid(r.to_line_id)])\n);\nif (holders.length === 0) {\n  return OFF;\n}\nif (holders.length > 1) {\n  return blockWith(\n    \"This change affects lines that are split across \" +\n      holders.length +\n      \" Pickings (\" +\n      holders.map((p) => sid(p.to_id || p.id)).join(\", \") +\n      \"). Cancel or revert all but one before changing the plan.\"\n  );\n}\nconst picking = holders[0];\nconst pickingNo = sid(picking.to_id || picking.id);\n\n// A Picking mid-confirm is writing these very rows from the other side.\nif (sid(picking.to_status) === \"Created\" && Number(picking.is_processing || 0) !== 0) {\n  return blockWith(\n    \"Picking \" + pickingNo + \" is being processed on a device right now. Try again in a moment.\"\n  );\n}\n\n// --- the Picking as it stands ----------------------------------------------\nconst allPlanRows = rowsOf(picking);\nconst planRows = allPlanRows.filter((r) => sid(r.to_id) === ppId);\nconst otherRows = allPlanRows.filter((r) => sid(r.to_id) !== ppId);\nconst records = (picking.table_picking_records || []).filter(\n  (r) => r && sid(r.to_id) === ppId\n);\n\nconst slotKey = (line, item) => sid(line) + \"|\" + sid(item);\nconst slots = {};\nconst slotFor = (line, item) => {\n  const k = slotKey(line, item);\n  if (!slots[k]) {\n    slots[k] = { key: k, line: sid(line), item: sid(item), picked: 0, planned: 0, pending: 0, desired: 0 };\n  }\n  return slots[k];\n};\n\n// Records are the authority on what was physically picked.\nconst pickedSeen = {};\nfor (const rec of records) {\n  const q = parseFloat(rec.store_out_qty) || 0;\n  if (!rec.to_line_id || q <= 0) continue;\n  const s = slotFor(rec.to_line_id, rec.item_code);\n  s.picked = roundQty(s.picked + q);\n  pickedSeen[s.key] = 1;\n}\n// A force-completed Picking writes no records; fall back to the plan's arithmetic.\nfor (const row of planRows) {\n  if (!row.to_line_id) continue;\n  const s = slotFor(row.to_line_id, row.item_code);\n  if (pickedSeen[s.key]) continue;\n  const done = roundQty(\n    (parseFloat(row.qty_to_pick) || 0) - (parseFloat(row.pending_process_qty) || 0)\n  );\n  if (done > 0) s.picked = roundQty(s.picked + done);\n}\nfor (const row of planRows) {\n  if (!row.to_line_id || row.line_status === \"Cancelled\") continue;\n  const s = slotFor(row.to_line_id, row.item_code);\n  s.planned = roundQty(s.planned + (parseFloat(row.qty_to_pick) || 0));\n  s.pending = roundQty(s.pending + (parseFloat(row.pending_process_qty) || 0));\n}\n\n// --- what the plan now wants -----------------------------------------------\n// Keyed by the row's CURRENT material, so an item swap decomposes into a full\n// reversal of the old item plus a fresh Open row for the new one. to_qty is the\n// authority: code_node_Nj60Z2XF already refuses a temp_qty_data that disagrees.\nfor (const row of afterLines) {\n  const line = sid(row.id);\n  if (!line) continue;\n  const s = slotFor(line, row.material_id);\n  s.desired = roundQty(s.desired + roundQty(row.to_qty));\n}\n\n// --- classify ---------------------------------------------------------------\nconst linePlans = [];\nconst shortfalls = [];\nconst survivingByLine = {};\nfor (const k of Object.keys(slots)) {\n  const s = slots[k];\n  if (s.desired < s.picked) {\n    shortfalls.push(s);\n    continue;\n  }\n  const newPending = roundQty(Math.max(0, s.desired - s.picked));\n  linePlans.push({\n    to_line_id: s.line,\n    item_code: s.item,\n    mode: s.picked === 0 ? \"rebuild\" : s.desired > s.planned ? \"extend\" : s.desired < s.planned ? \"shrink\" : \"hold\",\n    picked: s.picked, planned: s.planned, pending: s.pending, desired: s.desired,\n    newPending: newPending\n  });\n  if (s.desired > 0) {\n    if (!survivingByLine[s.line]) survivingByLine[s.line] = { done: true, progress: false };\n    if (newPending > 0) survivingByLine[s.line].done = false;\n    if (s.picked > 0) survivingByLine[s.line].progress = true;\n  }\n}\n\n// --- unwind what was over-picked -------------------------------------------\nconst recordsBySlot = {};\nfor (const rec of records) {\n  if (!rec.to_line_id) continue;\n  const k = slotKey(rec.to_line_id, rec.item_code);\n  if (!recordsBySlot[k]) recordsBySlot[k] = [];\n  recordsBySlot[k].push(rec);\n}\n\n// Serialised lines cannot be unwound: the records do not say WHICH serial was taken.\nconst serialisedSlots = {};\nfor (const row of planRows) {\n  const isSerial =\n    Number(row.is_serialized_item || 0) === 1 ||\n    (row.serial_numbers !== undefined && row.serial_numbers !== null && sid(row.serial_numbers) !== \"\");\n  if (isSerial) serialisedSlots[slotKey(row.to_line_id, row.item_code)] = 1;\n}\nconst serialShortfall = shortfalls.filter((s) => serialisedSlots[s.key]);\nif (serialShortfall.length > 0) {\n  return blockWith(\n    \"Reducing \" + serialShortfall.length + \" serialised line(s) on \" + pickingNo +\n      \" cannot be reversed automatically, because the pick records do not record which serial numbers were taken. Cancel the Picking first.\"\n  );\n}\n\nconst reversals = [];\nconst recordAdjustments = [];\nconst binIdSet = {};\nconst batchIdSet = {};\n// take-back per (line, picked_temp_qty_data key), so picked_temp_qty_data can be\n// reduced in exactly the places the records came from.\nconst takenByLineKey = {};\n\nfor (const s of shortfalls) {\n  let left = roundQty(s.picked - s.desired);\n  const newestFirst = (recordsBySlot[s.key] || []).slice().sort((a, b) => {\n    const ta = sid(a.confirmed_at);\n    const tb = sid(b.confirmed_at);\n    if (ta !== tb) return ta < tb ? 1 : -1;\n    return sid(a.id) < sid(b.id) ? 1 : -1;\n  });\n\n  for (const rec of newestFirst) {\n    if (left <= 0) break;\n    const have = roundQty(rec.store_out_qty);\n    if (have <= 0) continue;\n\n    // A delivery has already consumed this pick; unwinding it would leave the\n    // delivery describing stock that no longer adds up.\n    if (roundQty(rec.delivered_qty) > 0) {\n      return blockWith(\n        \"Item \" + sid(rec.item_name || rec.item_code) + \" on \" + pickingNo +\n          \" has already been delivered, so the picked quantity cannot be reversed. Revert that delivery first.\"\n      );\n    }\n\n    const take = roundQty(Math.min(left, have));\n    const remain = roundQty(have - take);\n    const alt = roundQty(rec.picked_qty_alt);\n    const newAlt = have > 0 ? roundQty(alt * (remain / have)) : 0;\n\n    recordAdjustments.push({\n      id: sid(rec.id),\n      store_out_qty: remain,\n      picked_qty_alt: newAlt,\n      drop: remain <= 0 ? 1 : 0,\n      qty: take\n    });\n    reversals.push({\n      to_line_id: s.line,\n      item_code: sid(rec.item_code),\n      item_name: sid(rec.item_name),\n      qty: take,\n      return_to: sid(rec.source_bin),\n      currently_at: sid(rec.target_location || rec.source_bin)\n    });\n\n    // The key picked_temp_qty_data used when this record was written.\n    const k = s.line + \"||\" + allocKey({\n      location_id: rec.target_location || rec.source_bin,\n      batch_id: rec.target_batch || rec.batch_no,\n      handling_unit_id: rec.handling_unit_id\n    });\n    takenByLineKey[k] = roundQty((takenByLineKey[k] || 0) + take);\n\n    if (rec.source_bin) binIdSet[sid(rec.source_bin)] = 1;\n    if (rec.target_location) binIdSet[sid(rec.target_location)] = 1;\n    if (rec.batch_no) batchIdSet[sid(rec.batch_no)] = 1;\n    if (rec.target_batch) batchIdSet[sid(rec.target_batch)] = 1;\n    left = roundQty(left - take);\n  }\n\n  if (left > 0) {\n    return blockWith(\n      \"Line \" + s.line + \" on \" + pickingNo + \" shows \" + s.picked +\n        \" picked but has no pick records covering \" + left +\n        \" of it (a force-completed Picking records none), so it cannot be reversed automatically. Cancel the Picking first.\"\n    );\n  }\n\n  linePlans.push({\n    to_line_id: s.line, item_code: s.item, mode: \"reverse\",\n    picked: s.desired, planned: s.planned, pending: s.pending,\n    desired: s.desired, newPending: 0\n  });\n  if (s.desired > 0) {\n    if (!survivingByLine[s.line]) survivingByLine[s.line] = { done: true, progress: true };\n    survivingByLine[s.line].progress = true;\n  }\n}\n\n// --- rebuild each touched line's picked state -------------------------------\nconst lineFieldOverrides = {};\nconst pickedAfterByLine = {};\nfor (const k of Object.keys(slots)) {\n  const line = slots[k].line;\n  if (!line || pickedAfterByLine[line] !== undefined) continue;\n  const stored = beforeById[line];\n  if (!stored) continue;\n\n  const entries = parseAlloc(stored.picked_temp_qty_data)\n    .map((e) => Object.assign({}, e))\n    .filter((e) => roundQty(e.to_quantity) > 0);\n  for (const e of entries) {\n    const take = takenByLineKey[line + \"||\" + allocKey(e)] || 0;\n    if (take > 0) e.to_quantity = roundQty(Math.max(0, roundQty(e.to_quantity) - take));\n  }\n  const kept = entries.filter((e) => roundQty(e.to_quantity) > 0);\n  const pickedNow = roundQty(kept.reduce((sum, e) => sum + roundQty(e.to_quantity), 0));\n  pickedAfterByLine[line] = pickedNow;\n\n  // picked_view_stock needs display names, which a code-node cannot fetch --\n  // code_pp_reversal_msg renders it once the name lookups have run.\n  lineFieldOverrides[line] = {\n    picked_qty: pickedNow,\n    picked_temp_qty_data: JSON.stringify(kept)\n  };\n  for (const e of kept) {\n    if (e.location_id) binIdSet[sid(e.location_id)] = 1;\n    if (e.batch_id) batchIdSet[sid(e.batch_id)] = 1;\n  }\n}\n\n// --- the old refusal 6, now evaluated AFTER the unwind ----------------------\n// A key dropped from temp_qty_data comes back as quantity to pick a second time\n// (PPconvertToPicking subtracts key by key). Checking post-unwind means reducing\n// and re-allocating in one edit is no longer refused.\nfor (const line of Object.keys(lineFieldOverrides)) {\n  const after = afterById[line];\n  if (!after) continue;\n  const pickedBy = {};\n  for (const e of parseAlloc(lineFieldOverrides[line].picked_temp_qty_data)) {\n    const q = roundQty(e.to_quantity);\n    if (q > 0) pickedBy[allocKey(e)] = roundQty((pickedBy[allocKey(e)] || 0) + q);\n  }\n  const keys = Object.keys(pickedBy);\n  if (!keys.length) continue;\n  const plannedBy = {};\n  for (const e of parseAlloc(after.temp_qty_data)) {\n    const q = roundQty(e.to_quantity);\n    if (q > 0) plannedBy[allocKey(e)] = roundQty((plannedBy[allocKey(e)] || 0) + q);\n  }\n  const stored = beforeById[line] || {};\n  const label = stored.material_name || stored.to_material_desc || line;\n  for (const key of keys) {\n    if (roundQty(plannedBy[key]) < pickedBy[key]) {\n      return blockWith(\n        \"Item \" + label + \" has \" + pickedBy[key] +\n          \" already picked from a bin and batch the plan no longer allocates. Allocate that quantity back to the same bin, or cancel or revert Picking \" +\n          pickingNo + \" first.\"\n      );\n    }\n  }\n}\n\n// --- statuses ---------------------------------------------------------------\nconst lineStatusOverrides = {};\nconst touchedLines = {};\nfor (const k of Object.keys(slots)) touchedLines[slots[k].line] = 1;\nfor (const line of Object.keys(touchedLines)) {\n  const stored = beforeById[line];\n  // A line delivered straight to a Goods Delivery without ever being picked reads\n  // Completed with nothing picked; recomputing would re-offer it for picking.\n  if (stored && roundQty(stored.picked_qty) === 0 && sid(stored.picking_status) === \"Completed\") {\n    continue;\n  }\n  const surv = survivingByLine[line];\n  if (!surv) lineStatusOverrides[line] = \"Cancelled\";\n  else if (surv.done) lineStatusOverrides[line] = \"Completed\";\n  else if (surv.progress) lineStatusOverrides[line] = \"In Progress\";\n  else lineStatusOverrides[line] = \"Created\";\n  if (lineFieldOverrides[line]) {\n    lineFieldOverrides[line].picking_status = lineStatusOverrides[line];\n  }\n}\n\nconst binIdsToName = Object.keys(binIdSet);\nif (binIdsToName.length === 0) binIdsToName.push(\"0\");\nconst batchIdsToName = Object.keys(batchIdSet);\nif (batchIdsToName.length === 0) batchIdsToName.push(\"0\");\n\nconst reversalNote = reversals\n  .map((r) => (r.item_name || r.item_code) + \": return \" + r.qty +\n    (r.currently_at && r.currently_at !== r.return_to ? \" (currently staged away from its source bin)\" : \"\"))\n  .join(\"; \");\n\n// --- roll the statuses up ---------------------------------------------------\nlet allDone = true, anyProgress = false, anyLive = false;\nlet ppAllDone = true, ppAnyProgress = false, ppAnyLive = false;\nfor (const p of linePlans) {\n  if (p.desired === 0) continue;\n  anyLive = true; ppAnyLive = true;\n  if (p.newPending > 0) { allDone = false; ppAllDone = false; }\n  if (p.picked > 0) { anyProgress = true; ppAnyProgress = true; }\n}\nfor (const row of otherRows) {\n  if (row.line_status === \"Cancelled\") continue;\n  anyLive = true;\n  if ((parseFloat(row.pending_process_qty) || 0) > 0) allDone = false;\n  if (row.line_status === \"Completed\" || row.line_status === \"In Progress\") anyProgress = true;\n}\nconst rollup = (live, done, progress) =>\n  !live ? \"Created\" : done ? \"Completed\" : progress ? \"In Progress\" : \"Created\";\n\nreturn {\n  reconcileNeeded: 1,\n  blockEdit: 0,\n  blockMessage: \"\",\n  pickingId: sid(picking.id),\n  pickingNo: pickingNo,\n  // Closing a Picking is fine; REOPENING one is not. Completed is written by a\n  // human finishing it (PickingProcessWorkflow's completion path sets to_status\n  // unconditionally), and a reduction that leaves quantity outstanding is picked by\n  // converting a SECOND Picking -- PP's model, unlike GD's. Reopening would\n  // resurrect a closed document and show the same quantity outstanding twice: once\n  // here and once in the next convert, which filters on the PLAN line's status.\n  targetPickingToStatus:\n    sid(picking.to_status) === \"Completed\"\n      ? \"Completed\"\n      : rollup(anyLive, allDone, anyProgress),\n  linePlans: linePlans,\n  lineStatusOverrides: lineStatusOverrides,\n  lineFieldOverrides: lineFieldOverrides,\n  headerPickingStatus: rollup(ppAnyLive, ppAllDone, ppAnyProgress),\n  hasReversals: reversals.length > 0 ? 1 : 0,\n  needsReversalConfirm: reversals.length > 0 && confirmReversal !== \"Yes\" ? 1 : 0,\n  reversals: reversals,\n  binIdsToName: binIdsToName,\n  batchIdsToName: batchIdsToName,\n  recordAdjustments: recordAdjustments,\n  reversalNote: reversalNote\n};\n"
                 },
                 "response_json": [
                   {
@@ -2669,7 +2702,9 @@
         {
           "id": "ifBlock_gLUrjW71",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -2687,7 +2722,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}};\nconst updatedTO = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst pickingSetup = {{node:get_node_MX4rxQLm.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\n// The Picking re-invokes this workflow to stamp status back onto a plan it has\n// finished, the same passthrough the reversal guards already make for it.\nconst isPicking = {{workflowparams:isPicking}};\n\nconst skippedRows = [];\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableTO = {{node:code_node_fsjJarKT.data.tableTO}}\n  if (tableTO?.length > 0) {\n    allData.table_to = tableTO\n  }\n}\n\n// ============================================================================\n// ITEM BUNDLES\n// ----------------------------------------------------------------------------\n// A bundle is ONE row of table_to with the bundle's items under `children`, the\n// same shape the sales order carries. The bundle row is not an item -- it holds\n// no material, owns no stock and nothing is ever allocated against it, so it can\n// never carry temp_qty_data and must not be judged by it. Its items are ordinary\n// lines in every other respect: they are stamped, quantity-checked and planned\n// exactly like a top-level row.\n// ============================================================================\nconst isBundleParent = (row) => Boolean(row.item_bundle_id) && !row.material_id;\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\n// A line the Picking has finished holds nothing back: to_qty is 0 and temp_qty_data\n// is \"[]\", so both drops below discard it -- and once every line is picked that\n// empties table_to and the required-field check rejects the whole save.\nconst keepForPicking = (row) =>\n  Boolean(isPicking) &&\n  (parseFloat(row.to_qty) || 0) === 0 &&\n  (parseFloat(row.picked_qty) || 0) > 0;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\n// A bundle is planned as a whole: every item under it is the bundle's own\n// quantity times the number of bundles planned. Planning 2 of item A against 1\n// of item B, when the bundle holds one of each, is not a bundle -- and the form\n// is the only thing stopping it, so anything reaching this workflow by another\n// route (a headless save, an API call, a stale page) would persist it.\n//\n// The rate comes off the plan rather than out of the bundle: a child ordered N\n// times the bundle's own order quantity is N per bundle. That is the same ratio\n// the bundle defines, already carried on every row, so no lookup is needed.\nconst bundleRatioProblem = (parent, child) => {\n  const bundlesOrdered = parseFloat(parent.to_order_quantity) || 0;\n\n  // Nothing to derive a rate from -- leave the line alone rather than guess.\n  if (bundlesOrdered <= 0) return null;\n\n  const perBundleQty =\n    (parseFloat(child.to_order_quantity) || 0) / bundlesOrdered;\n  const expected = q8(perBundleQty * (parseFloat(parent.to_qty) || 0));\n  const actual = q8(child.to_qty);\n\n  return Math.abs(actual - expected) > 0.001 ? { expected, actual } : null;\n};\n\n// Every row of the document -- top-level rows and the items under a bundle.\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n// The allocation a line must carry to be planned. Returns null when the line is\n// good, otherwise the reason it cannot be saved. A bundle row never reaches this.\nconst allocationProblem = (row) => {\n  const tempQtyData = row.temp_qty_data;\n  const isEmpty =\n    !tempQtyData ||\n    tempQtyData === \"\" ||\n    tempQtyData === \"[]\" ||\n    tempQtyData === null;\n\n  if (isEmpty) {\n    return { reason: \"temp_qty_data is empty\" };\n  }\n\n  try {\n    const parsedTempQty = JSON.parse(tempQtyData);\n    const totalAllocated = parsedTempQty.reduce(\n      (sum, item) => sum + (parseFloat(item.to_quantity) || 0),\n      0\n    );\n    const toQty = parseFloat(row.to_qty) || 0;\n\n    if (Math.abs(totalAllocated - toQty) > 0.001) {\n      return {\n        allocated_qty: totalAllocated,\n        reason: `temp_qty_data total (${totalAllocated}) != to_qty (${toQty})`,\n      };\n    }\n  } catch (e) {\n    return { reason: \"temp_qty_data parse error\" };\n  }\n\n  return null;\n};\n\n// The header fields every line carries, parent and child alike. `lineIndex`\n// mirrors the sales order: a plain number on a top-level row, `parent/child` on\n// an item under a bundle.\nconst stampLine = (row, lineIndex, isBundle) => {\n  row.customer_id = allData.customer_name || null;\n  row.organization_id = allData.organization_id;\n  row.plant_id = allData.plant_id || null;\n  row.billing_state_id = allData.billing_address_state || null;\n  row.billing_country_id = allData.billing_address_country || null;\n  row.shipping_state_id = allData.shipping_address_state || null;\n  row.shipping_country_id = allData.shipping_address_country || null;\n  row.assigned_to = allData.assigned_to || null;\n  row.line_index = lineIndex;\n\n  if (saveAs === \"Cancelled\") {\n    row.picking_status = row.picking_status ? \"Cancelled\" : null;\n  }\n\n  // Nothing is picked against a bundle row, so it takes no picking status --\n  // it would otherwise sit at \"Created\" for ever while its items complete.\n  if (\n    !isBundle &&\n    pickingSetup &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      row.picking_status = \"Created\";\n    } else {\n      row.picking_status = \"Not Created\";\n    }\n  }\n\n  if (isForceComplete === 1) {\n    row.temp_qty_data = row.picked_temp_qty_data;\n    row.view_stock = row.picked_view_stock;\n    row.to_qty = row.picked_qty;\n  }\n};\n\nfor (const [index, toLineItem] of allData.table_to.entries()) {\n  if (isBundleParent(toLineItem)) {\n    // The bundle row is kept for whichever of its items still have something to\n    // plan; if none do, the whole bundle drops out together.\n    const keptChildren = [];\n\n    for (const [childIndex, child] of childrenOf(toLineItem).entries()) {\n      const ratio = bundleRatioProblem(toLineItem, child);\n\n      if (ratio) {\n        skippedRows.push({\n          index: index,\n          kind: \"bundle\",\n          line_label: `${index + 1}/${childIndex + 1}`,\n          material_name: child.material_name || \"Unknown\",\n          to_qty: child.to_qty,\n          so_no: child.so_no || \"\",\n          reason: `item bundle quantities must stay in proportion - expected ${ratio.expected}, got ${ratio.actual}`,\n        });\n        continue;\n      }\n\n      if (!keepForPicking(child)) {\n        if (!child.to_qty || parseFloat(child.to_qty) === 0) {\n          continue;\n        }\n\n        const problem = allocationProblem(child);\n\n        if (problem) {\n          skippedRows.push({\n            index: index,\n            line_label: `${index + 1}/${childIndex + 1}`,\n            material_name: child.material_name || \"Unknown\",\n            to_qty: child.to_qty,\n            allocated_qty: problem.allocated_qty,\n            so_no: child.so_no || \"\",\n            reason: problem.reason,\n          });\n          continue;\n        }\n      }\n\n      stampLine(child, `${index + 1}/${keptChildren.length + 1}`, false);\n      keptChildren.push(child);\n    }\n\n    if (keptChildren.length === 0) {\n      continue;\n    }\n\n    toLineItem.children = keptChildren;\n    stampLine(toLineItem, index + 1, true);\n    updatedTO.push(toLineItem);\n    continue;\n  }\n\n  if (!keepForPicking(toLineItem)) {\n    if (!toLineItem.to_qty || parseFloat(toLineItem.to_qty) === 0) {\n      continue;\n    }\n\n    const problem = allocationProblem(toLineItem);\n\n    if (problem) {\n      skippedRows.push({\n        index: index,\n        line_label: `${index + 1}`,\n        material_name: toLineItem.material_name || \"Unknown\",\n        to_qty: toLineItem.to_qty,\n        allocated_qty: problem.allocated_qty,\n        so_no: toLineItem.so_no || \"\",\n        reason: problem.reason,\n      });\n      continue;\n    }\n  }\n\n  stampLine(toLineItem, index + 1, false);\n  updatedTO.push(toLineItem);\n}\n\nallData.table_to = updatedTO;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.to_status = \"Draft\";\n}\n\nif (\n  pickingSetup &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.to_no_type !== -9999 &&\n      (!allData.to_no ||\n        allData.to_no === null ||\n        allData.to_no === \"\")\n    ) {\n      allData.to_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.to_no_type !== -9999 &&\n      (!allData.to_no ||\n        allData.to_no === null ||\n        allData.to_no === \"\" ||\n        allData.to_status === \"Draft\")\n    ) {\n      allData.to_no = \"issued\";\n    }\n  }\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n  allData.to_no = allData.to_no + \"-Cancelled\";\n}\n\nlet needSOCleanUp = 0\n\nif (allData.to_status === \"Created\") {\n  const originalTO = {{node:get_node_zG6KDDEF.data.data}};\n\n  // Matched across the whole tree: a bundle's items are lines in their own\n  // right and carry their own allocation, they are just not top-level rows.\n  const originalRows = flattenRows(originalTO.table_to);\n\n  flattenRows(allData.table_to).forEach((item) => {\n    const originalItem = originalRows.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (flattenRows(allData.table_to).length !== originalRows.length) {\n    needSOCleanUp = 1\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.line_label}: ${row.material_name} - qty: ${row.to_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  const hasAllocationProblem = skippedRows.some((row) => row.kind !== \"bundle\");\n\n  const hint = hasAllocationProblem\n    ? \"These rows may need manual allocation or the allocation workflow may have failed.\"\n    : \"Plan an item bundle by its bundle line - its items follow from it and cannot be planned on their own.\";\n\n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid data:\\n\\n${rowDetails}\\n\\n${hint}`;\n}\n\nreturn {\n  allData: allData,\n  to_status: allData.to_status,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage,\n  isForceComplete: isForceComplete || 0,\n};\n"
+          "code": "let allData = {{workflowparams:allData}};\nconst updatedTO = [];\nconst saveAs = {{workflowparams:saveAs}};\nconst pickingSetup = {{node:get_node_MX4rxQLm.data.data}};\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\n// The Picking re-invokes this workflow to stamp status back onto a plan it has\n// finished, the same passthrough the reversal guards already make for it.\nconst isPicking = {{workflowparams:isPicking}};\n\nconst skippedRows = [];\n\nif (pickingSetup?.picking_mode === \"Auto\" && saveAs !== \"Cancelled\") {\n  const tableTO = {{node:code_node_fsjJarKT.data.tableTO}}\n  if (tableTO?.length > 0) {\n    allData.table_to = tableTO\n  }\n}\n\n// ============================================================================\n// ITEM BUNDLES\n// ----------------------------------------------------------------------------\n// A bundle is ONE row of table_to with the bundle's items under `children`, the\n// same shape the sales order carries. The bundle row is not an item -- it holds\n// no material, owns no stock and nothing is ever allocated against it, so it can\n// never carry temp_qty_data and must not be judged by it. Its items are ordinary\n// lines in every other respect: they are stamped, quantity-checked and planned\n// exactly like a top-level row.\n// ============================================================================\nconst isBundleParent = (row) => Boolean(row.item_bundle_id) && !row.material_id;\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\n// A line the Picking has finished holds nothing back: to_qty is 0 and temp_qty_data\n// is \"[]\", so both drops below discard it -- and once every line is picked that\n// empties table_to and the required-field check rejects the whole save.\nconst keepForPicking = (row) =>\n  Boolean(isPicking) &&\n  (parseFloat(row.to_qty) || 0) === 0 &&\n  (parseFloat(row.picked_qty) || 0) > 0;\nconst roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;\n\n// A bundle is planned as a whole: every item under it is the bundle's own\n// quantity times the number of bundles planned. Planning 2 of item A against 1\n// of item B, when the bundle holds one of each, is not a bundle -- and the form\n// is the only thing stopping it, so anything reaching this workflow by another\n// route (a headless save, an API call, a stale page) would persist it.\n//\n// The rate comes off the plan rather than out of the bundle: a child ordered N\n// times the bundle's own order quantity is N per bundle. That is the same ratio\n// the bundle defines, already carried on every row, so no lookup is needed.\nconst bundleRatioProblem = (parent, child) => {\n  const bundlesOrdered = parseFloat(parent.to_order_quantity) || 0;\n\n  // Nothing to derive a rate from -- leave the line alone rather than guess.\n  if (bundlesOrdered <= 0) return null;\n\n  const perBundleQty =\n    (parseFloat(child.to_order_quantity) || 0) / bundlesOrdered;\n  const expected = roundQty(perBundleQty * (parseFloat(parent.to_qty) || 0));\n  const actual = roundQty(child.to_qty);\n\n  return Math.abs(actual - expected) > 0.001 ? { expected, actual } : null;\n};\n\n// Every row of the document -- top-level rows and the items under a bundle.\nconst flattenRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n// The allocation a line must carry to be planned. Returns null when the line is\n// good, otherwise the reason it cannot be saved. A bundle row never reaches this.\nconst allocationProblem = (row) => {\n  const tempQtyData = row.temp_qty_data;\n  const isEmpty =\n    !tempQtyData ||\n    tempQtyData === \"\" ||\n    tempQtyData === \"[]\" ||\n    tempQtyData === null;\n\n  if (isEmpty) {\n    return { reason: \"temp_qty_data is empty\" };\n  }\n\n  try {\n    const parsedTempQty = JSON.parse(tempQtyData);\n    const totalAllocated = parsedTempQty.reduce(\n      (sum, item) => sum + (parseFloat(item.to_quantity) || 0),\n      0\n    );\n    const toQty = parseFloat(row.to_qty) || 0;\n\n    if (Math.abs(totalAllocated - toQty) > 0.001) {\n      return {\n        allocated_qty: totalAllocated,\n        reason: `temp_qty_data total (${totalAllocated}) != to_qty (${toQty})`,\n      };\n    }\n  } catch (e) {\n    return { reason: \"temp_qty_data parse error\" };\n  }\n\n  return null;\n};\n\n// The header fields every line carries, parent and child alike. `lineIndex`\n// mirrors the sales order: a plain number on a top-level row, `parent/child` on\n// an item under a bundle.\nconst stampLine = (row, lineIndex, isBundle) => {\n  row.customer_id = allData.customer_name || null;\n  row.organization_id = allData.organization_id;\n  row.plant_id = allData.plant_id || null;\n  row.billing_state_id = allData.billing_address_state || null;\n  row.billing_country_id = allData.billing_address_country || null;\n  row.shipping_state_id = allData.shipping_address_state || null;\n  row.shipping_country_id = allData.shipping_address_country || null;\n  row.assigned_to = allData.assigned_to || null;\n  row.line_index = lineIndex;\n\n  if (saveAs === \"Cancelled\") {\n    row.picking_status = row.picking_status ? \"Cancelled\" : null;\n  }\n\n  // Nothing is picked against a bundle row, so it takes no picking status --\n  // it would otherwise sit at \"Created\" for ever while its items complete.\n  if (\n    !isBundle &&\n    pickingSetup &&\n    (!allData.picking_status || allData.picking_status === \"\") &&\n    saveAs === \"Created\" &&\n    pickingSetup.picking_required === 1\n  ) {\n    if (pickingSetup.auto_trigger_to === 1) {\n      row.picking_status = \"Created\";\n    } else {\n      row.picking_status = \"Not Created\";\n    }\n  }\n\n  if (isForceComplete === 1) {\n    row.temp_qty_data = row.picked_temp_qty_data;\n    row.view_stock = row.picked_view_stock;\n    row.to_qty = row.picked_qty;\n  }\n};\n\nfor (const [index, toLineItem] of allData.table_to.entries()) {\n  if (isBundleParent(toLineItem)) {\n    // The bundle row is kept for whichever of its items still have something to\n    // plan; if none do, the whole bundle drops out together.\n    const keptChildren = [];\n\n    for (const [childIndex, child] of childrenOf(toLineItem).entries()) {\n      const ratio = bundleRatioProblem(toLineItem, child);\n\n      if (ratio) {\n        skippedRows.push({\n          index: index,\n          kind: \"bundle\",\n          line_label: `${index + 1}/${childIndex + 1}`,\n          material_name: child.material_name || \"Unknown\",\n          to_qty: child.to_qty,\n          so_no: child.so_no || \"\",\n          reason: `item bundle quantities must stay in proportion - expected ${ratio.expected}, got ${ratio.actual}`,\n        });\n        continue;\n      }\n\n      if (!keepForPicking(child)) {\n        if (!child.to_qty || parseFloat(child.to_qty) === 0) {\n          continue;\n        }\n\n        const problem = allocationProblem(child);\n\n        if (problem) {\n          skippedRows.push({\n            index: index,\n            line_label: `${index + 1}/${childIndex + 1}`,\n            material_name: child.material_name || \"Unknown\",\n            to_qty: child.to_qty,\n            allocated_qty: problem.allocated_qty,\n            so_no: child.so_no || \"\",\n            reason: problem.reason,\n          });\n          continue;\n        }\n      }\n\n      stampLine(child, `${index + 1}/${keptChildren.length + 1}`, false);\n      keptChildren.push(child);\n    }\n\n    if (keptChildren.length === 0) {\n      continue;\n    }\n\n    toLineItem.children = keptChildren;\n    stampLine(toLineItem, index + 1, true);\n    updatedTO.push(toLineItem);\n    continue;\n  }\n\n  if (!keepForPicking(toLineItem)) {\n    if (!toLineItem.to_qty || parseFloat(toLineItem.to_qty) === 0) {\n      continue;\n    }\n\n    const problem = allocationProblem(toLineItem);\n\n    if (problem) {\n      skippedRows.push({\n        index: index,\n        line_label: `${index + 1}`,\n        material_name: toLineItem.material_name || \"Unknown\",\n        to_qty: toLineItem.to_qty,\n        allocated_qty: problem.allocated_qty,\n        so_no: toLineItem.so_no || \"\",\n        reason: problem.reason,\n      });\n      continue;\n    }\n  }\n\n  stampLine(toLineItem, index + 1, false);\n  updatedTO.push(toLineItem);\n}\n\nallData.table_to = updatedTO;\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.to_status = \"Draft\";\n}\n\nif (\n  pickingSetup &&\n  (!allData.picking_status || allData.picking_status === \"\") &&\n  saveAs === \"Created\" &&\n  pickingSetup.picking_required === 1\n) {\n  if (pickingSetup.auto_trigger_to === 1) {\n    allData.picking_status = \"Created\";\n  } else {\n    allData.picking_status = \"Not Created\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      allData.to_no_type !== -9999 &&\n      (!allData.to_no ||\n        allData.to_no === null ||\n        allData.to_no === \"\")\n    ) {\n      allData.to_no = \"draft\";\n    }\n  } else {\n    if (\n      allData.to_no_type !== -9999 &&\n      (!allData.to_no ||\n        allData.to_no === null ||\n        allData.to_no === \"\" ||\n        allData.to_status === \"Draft\")\n    ) {\n      allData.to_no = \"issued\";\n    }\n  }\n}\n\nif (saveAs === \"Cancelled\") {\n  allData.picking_status = allData.picking_status ? \"Cancelled\" : null;\n  allData.to_no = allData.to_no + \"-Cancelled\";\n}\n\nlet needSOCleanUp = 0\n\nif (allData.to_status === \"Created\") {\n  const originalTO = {{node:get_node_zG6KDDEF.data.data}};\n\n  // Matched across the whole tree: a bundle's items are lines in their own\n  // right and carry their own allocation, they are just not top-level rows.\n  const originalRows = flattenRows(originalTO.table_to);\n\n  flattenRows(allData.table_to).forEach((item) => {\n    const originalItem = originalRows.find(\n      orig => orig.so_line_item_id === item.so_line_item_id\n    );\n    if (originalItem) {\n      item.prev_temp_qty_data = originalItem.temp_qty_data;\n    }\n  });\n\n  if (flattenRows(allData.table_to).length !== originalRows.length) {\n    needSOCleanUp = 1\n  }\n}\n\nlet invalidData = 0;\nlet invalidDataMessage = \"\";\n\nif (skippedRows.length > 0) {\n  invalidData = 1;\n  \n  const rowDetails = skippedRows.map(row => \n    `Row ${row.line_label}: ${row.material_name} - qty: ${row.to_qty}${row.allocated_qty !== undefined ? `, allocated: ${row.allocated_qty}` : \"\"}${row.so_no ? ` [SO: ${row.so_no}]` : \"\"} — ${row.reason}`\n  ).join(\"\\n\");\n  \n  const hasAllocationProblem = skippedRows.some((row) => row.kind !== \"bundle\");\n\n  const hint = hasAllocationProblem\n    ? \"These rows may need manual allocation or the allocation workflow may have failed.\"\n    : \"Plan an item bundle by its bundle line - its items follow from it and cannot be planned on their own.\";\n\n  invalidDataMessage = `Warning: ${skippedRows.length} row(s) skipped due to invalid data:\\n\\n${rowDetails}\\n\\n${hint}`;\n}\n\nreturn {\n  allData: allData,\n  to_status: allData.to_status,\n  picking_status: allData.picking_status === \"\" ? null : allData.picking_status,\n  packing_status: allData.packing_status,\n  needSOCleanUp: needSOCleanUp,\n  invalidData: invalidData,\n  invalidDataMessage: invalidDataMessage,\n  isForceComplete: isForceComplete || 0,\n};\n"
         },
         "response_json": [
           {
@@ -2771,7 +2806,10 @@
         "nodeName": "IF invalidData",
         "name": "IF invalidData",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -2795,7 +2833,9 @@
         {
           "id": "ifBlock_UfGh3nim",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_4uyCYngA",
@@ -2838,7 +2878,9 @@
         {
           "id": "ifBlock_h80rsXsR",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -2969,7 +3011,9 @@
         {
           "id": "ifBlock_vOkqKobs",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_vamyC6hL",
@@ -3012,7 +3056,9 @@
         {
           "id": "ifBlock_BKo9dhRS",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -3063,7 +3109,10 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -3087,7 +3136,9 @@
         {
           "id": "ifBlock_eSaWZpKx",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_XBdTDPyC",
@@ -3140,7 +3191,10 @@
                 "isValidator": true,
                 "nodeName": "Set initial quantityCheckIndex",
                 "name": "Set initial quantityCheckIndex",
-                "custom_wkbocgni": { "type": "javascript", "code": "0" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "0"
+                },
                 "redis_key": "quantityCheckIndex_{{node:code_node_3VeUMvQ4.data.unique}}"
               },
               "blocks": []
@@ -3156,7 +3210,10 @@
                 "isValidator": true,
                 "nodeName": "Set updatedSOTable",
                 "name": "Set updatedSOTable",
-                "custom_wkbocgni": { "type": "javascript", "code": "[]" },
+                "custom_wkbocgni": {
+                  "type": "javascript",
+                  "code": "[]"
+                },
                 "redis_key": "updatedSOTable_{{node:code_node_3VeUMvQ4.data.unique}}"
               },
               "blocks": []
@@ -3378,7 +3435,10 @@
                     "nodeName": "IF Item not found",
                     "name": "IF Item not found",
                     "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
                     "filter": {
                       "list": [
                         {
@@ -3402,7 +3462,9 @@
                     {
                       "id": "if_block_JmB-SsPt",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "return_node_JUKKhelc",
@@ -3422,7 +3484,9 @@
                     {
                       "id": "if_block_6HJ4VeJJ",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -3474,7 +3538,7 @@
                     "name": "Validate Quantity & Update SO Table",
                     "script": {
                       "type": "javascript",
-                      "code": "const toItem = {{node:code_node_HTffa1le.data.toItem}}\nconst originalToItem = {{node:code_node_HTffa1le.data.originalToItem}}\nconst itemData = {{node:get_node_O9yrpVRh.data.data}}\nconst soItem = {{node:get_node_ZZ6RV7vD.data.data}}\nconst rowIndex = {{node:code_node_HTffa1le.data.nextIndex}}\nconst to_status = {{node:code_node_Nj60Z2XF.data.to_status}}\nconst saveAs = {{workflowparams:saveAs}}\n\nconst orderLimit = (toItem.to_order_quantity * (100 + (((itemData.table_uom_conversion || []).find((c) => c.alt_uom_id === toItem.to_order_uom_id) || {}).over_delivery_tolerance || 0))) / 100;\nconst deliveredQty = parseFloat(soItem.delivered_qty) || 0;\nconst plannedQty = parseFloat(soItem.planned_qty) || 0;\n\n// 8dp is the maximum configurable column precision and sales_order_axszx8cj_sub is\n// precision 8, so rounding COMPUTED values there keeps the client's scale while killing\n// float residue (0.7 + 0.1 -> 0.8, which the write layer would otherwise truncate).\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// Tolerance for the threshold/status tests below, matching what q8(3) used to\n// swallow. Tolerance only; nothing written is rounded to it.\nconst EPS = 0.0005;\n\n// FIX: Parse to_qty as number to avoid string concatenation\nconst currentToQty = parseFloat(toItem.to_qty) || 0;\nconst origQty = parseFloat(originalToItem?.to_qty) || 0;\n\nlet toQtyChange = currentToQty;\nif (originalToItem) {\n  toQtyChange = q8(currentToQty - origQty);\n}\n\nconst totalCommitted = q8(deliveredQty + plannedQty + toQtyChange);\n\nlet validationMessage = null\nif (totalCommitted - orderLimit > EPS && saveAs !== \"Cancelled\") {\n  validationMessage = `Row ${rowIndex} with Item ${itemData.material_code} validation failed: quantity is exceeding the maximum deliverable quantity.`\n}\n\nlet updatedSOTable = {{node:get_cache_node_Hoq75ul3.data}}\nif (typeof updatedSOTable === 'string') {\n  try {\n    updatedSOTable = JSON.parse(updatedSOTable)\n  } catch (e) {\n    updatedSOTable = []\n  }\n}\nif (!Array.isArray(updatedSOTable)) {\n  updatedSOTable = []\n}\nlet updatedSOItem = {{node:get_node_ZZ6RV7vD.data.data}}\n\nif (to_status === \"Draft\" && saveAs === \"Completed\") {\n  updatedSOItem.delivered_qty = q8(deliveredQty + currentToQty)\n  updatedSOItem.outstanding_quantity = q8(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty))\n  \n} else if (to_status === \"Draft\" && saveAs === \"Created\") {\n  updatedSOItem.planned_qty = q8(plannedQty + currentToQty)\n  \n} else if (to_status === \"Created\" && saveAs === \"Completed\") {\n  updatedSOItem.planned_qty = Math.max(0, q8(plannedQty - origQty))\n  updatedSOItem.delivered_qty = q8(deliveredQty + currentToQty)\n  updatedSOItem.outstanding_quantity = q8(Math.max(0, updatedSOItem.so_quantity - updatedSOItem.delivered_qty))\n  \n} else if (to_status === \"Created\" && saveAs === \"Created\") {\n  updatedSOItem.planned_qty = Math.max(0, q8(plannedQty - origQty + currentToQty))\n\n} else if (saveAs === \"Cancelled\" && to_status === \"Created\") {\n  updatedSOItem.planned_qty = Math.max(0, q8(plannedQty - currentToQty))\n}\n\nif (saveAs === \"Completed\") {\n  if (updatedSOItem.outstanding_quantity > EPS) {\n    updatedSOItem.line_status = \"Processing\"\n  } else {\n    updatedSOItem.line_status = \"Completed\"\n  }\n}\n\nupdatedSOTable.push(updatedSOItem)\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable\n}\n"
+                      "code": "const toItem = {{node:code_node_HTffa1le.data.toItem}}\nconst originalToItem = {{node:code_node_HTffa1le.data.originalToItem}}\nconst itemData = {{node:get_node_O9yrpVRh.data.data}}\nconst soItem = {{node:get_node_ZZ6RV7vD.data.data}}\nconst rowIndex = {{node:code_node_HTffa1le.data.nextIndex}}\nconst to_status = {{node:code_node_Nj60Z2XF.data.to_status}}\nconst saveAs = {{workflowparams:saveAs}}\n\nconst orderLimit = (toItem.to_order_quantity * (100 + (((itemData.table_uom_conversion || []).find((c) => c.alt_uom_id === toItem.to_order_uom_id) || {}).over_delivery_tolerance || 0))) / 100;\nconst deliveredQty = soItem.delivered_qty || 0;\nconst plannedQty = soItem.planned_qty || 0;\n\n// Returns number for calculations/validation\nconst roundQty = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  const num = parseFloat(value);\n  return Math.round(num * 1000) / 1000;\n};\n\n// Returns string for database updates\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// FIX: Parse to_qty as number to avoid string concatenation\nconst currentToQty = parseFloat(toItem.to_qty) || 0;\nconst origQty = parseFloat(originalToItem?.to_qty) || 0;\n\nlet toQtyChange = currentToQty;\nif (originalToItem) {\n  toQtyChange = roundQty(currentToQty - origQty);\n}\n\nconst totalCommitted = roundQty(deliveredQty + plannedQty + toQtyChange);\n\nlet validationMessage = null\nif (totalCommitted > orderLimit && saveAs !== \"Cancelled\") {\n  validationMessage = `Row ${rowIndex} with Item ${itemData.material_code} validation failed: quantity is exceeding the maximum deliverable quantity.`\n}\n\nlet updatedSOTable = {{node:get_cache_node_Hoq75ul3.data}}\nif (typeof updatedSOTable === 'string') {\n  try {\n    updatedSOTable = JSON.parse(updatedSOTable)\n  } catch (e) {\n    updatedSOTable = []\n  }\n}\nif (!Array.isArray(updatedSOTable)) {\n  updatedSOTable = []\n}\nlet updatedSOItem = {{node:get_node_ZZ6RV7vD.data.data}}\n\nif (to_status === \"Draft\" && saveAs === \"Completed\") {\n  updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentToQty)\n  updatedSOItem.outstanding_quantity = formatNumber(updatedSOItem.so_quantity - updatedSOItem.delivered_qty)\n  \n} else if (to_status === \"Draft\" && saveAs === \"Created\") {\n  updatedSOItem.planned_qty = formatNumber(plannedQty + currentToQty)\n  \n} else if (to_status === \"Created\" && saveAs === \"Completed\") {\n  updatedSOItem.planned_qty = formatNumber(plannedQty - origQty)\n  updatedSOItem.delivered_qty = formatNumber(deliveredQty + currentToQty)\n  updatedSOItem.outstanding_quantity = formatNumber(updatedSOItem.so_quantity - updatedSOItem.delivered_qty)\n  \n} else if (to_status === \"Created\" && saveAs === \"Created\") {\n  updatedSOItem.planned_qty = formatNumber(plannedQty - origQty + currentToQty)\n\n} else if (saveAs === \"Cancelled\" && to_status === \"Created\") {\n  updatedSOItem.planned_qty = formatNumber(plannedQty - currentToQty)\n}\n\nif (saveAs === \"Completed\") {\n  if (updatedSOItem.outstanding_quantity > 0) {\n    updatedSOItem.line_status = \"Processing\"\n  } else {\n    updatedSOItem.line_status = \"Completed\"\n  }\n}\n\nupdatedSOTable.push(updatedSOItem)\n\nreturn {\n  validationMessage: validationMessage,\n  updatedSOTable: updatedSOTable\n}\n"
                     },
                     "response_json": [
                       {
@@ -3518,7 +3582,10 @@
                     "nodeName": "IF !Cancelled",
                     "name": "IF !Cancelled",
                     "condition_type": "ConditionRule",
-                    "expression": { "type": "javascript", "code": "" },
+                    "expression": {
+                      "type": "javascript",
+                      "code": ""
+                    },
                     "filter": {
                       "list": [
                         {
@@ -3542,7 +3609,9 @@
                     {
                       "id": "ifBlock_TKVfaFx3",
                       "type": "ifBlock",
-                      "data": { "title": "true" },
+                      "data": {
+                        "title": "true"
+                      },
                       "blocks": [
                         {
                           "id": "if_r4olnxCc",
@@ -3575,7 +3644,9 @@
                             {
                               "id": "ifBlock_HNfuRMIj",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_A9wk7lwY",
@@ -3618,7 +3689,9 @@
                             {
                               "id": "ifBlock_jmqFzrjA",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -3715,7 +3788,7 @@
                                 "name": "validateInventoryAvailability",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const tempData = {{node:code_node_HTffa1le.data.tempData}};\nconst itemData = {{node:get_node_O9yrpVRh.data.data}};\nconst toItem = {{node:code_node_HTffa1le.data.toItem}};\nconst currentIndexRaw = {{node:get_cache_node_JXLovQw0.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst rowIndex = {{node:code_node_HTffa1le.data.nextIndex}};\n\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\nif (itemData.stock_control === 0) {\n  return { skipValidation: 1, nextIndex: index + 1 };\n}\n\nconst isBatchManagedItem = itemData.item_batch_management === 1 ? 1 : 0;\nconst tempItem = tempData[index];\nconst batch_id = isBatchManagedItem === 1 ? tempItem.batch_id : null;\nconst location_id = tempItem.location_id;\nlet to_quantity = q8(tempItem.to_quantity);\n\nif (Array.isArray(itemData.table_uom_conversion) && itemData.table_uom_conversion.length > 0) {\n  const uomConversion = itemData.table_uom_conversion.find(\n    (conv) => conv.alt_uom_id === toItem.to_order_uom_id\n  );\n  if (uomConversion && uomConversion.base_qty) {\n    to_quantity = q8(to_quantity * uomConversion.base_qty);\n  }\n}\n\nreturn {\n  skipValidation: 0,\n  isBatchManagedItem: isBatchManagedItem,\n  batch_id: batch_id,\n  location_id: location_id,\n  to_quantity: to_quantity,\n  material_id: toItem.material_id,\n  material_code: itemData.material_code,\n  rowIndex: rowIndex,\n  nextIndex: index + 1\n};"
+                                  "code": "const tempData = {{node:code_node_HTffa1le.data.tempData}};\nconst itemData = {{node:get_node_O9yrpVRh.data.data}};\nconst toItem = {{node:code_node_HTffa1le.data.toItem}};\nconst currentIndexRaw = {{node:get_cache_node_JXLovQw0.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst rowIndex = {{node:code_node_HTffa1le.data.nextIndex}};\n\nconst roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\n\nif (itemData.stock_control === 0) {\n  return { skipValidation: 1, nextIndex: index + 1 };\n}\n\nconst isBatchManagedItem = itemData.item_batch_management === 1 ? 1 : 0;\nconst tempItem = tempData[index];\nconst batch_id = isBatchManagedItem === 1 ? tempItem.batch_id : null;\nconst location_id = tempItem.location_id;\nlet to_quantity = roundQty(tempItem.to_quantity);\n\nif (Array.isArray(itemData.table_uom_conversion) && itemData.table_uom_conversion.length > 0) {\n  const uomConversion = itemData.table_uom_conversion.find(\n    (conv) => conv.alt_uom_id === toItem.to_order_uom_id\n  );\n  if (uomConversion && uomConversion.base_qty) {\n    to_quantity = roundQty(to_quantity * uomConversion.base_qty);\n  }\n}\n\nreturn {\n  skipValidation: 0,\n  isBatchManagedItem: isBatchManagedItem,\n  batch_id: batch_id,\n  location_id: location_id,\n  to_quantity: to_quantity,\n  material_id: toItem.material_id,\n  material_code: itemData.material_code,\n  rowIndex: rowIndex,\n  nextIndex: index + 1\n};"
                                 },
                                 "response_json": [
                                   {
@@ -3835,7 +3908,9 @@
                                 {
                                   "id": "ifBlock_AM5K11Rr",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "if_fGvfoIzE",
@@ -3873,7 +3948,9 @@
                                         {
                                           "id": "ifBlock_MFD8vOM1",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "get_node_ZTsGYd6D",
@@ -3983,7 +4060,9 @@
                                         {
                                           "id": "ifBlock_ovqfY9zQ",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "get_node_a8uhcT5i",
@@ -4181,7 +4260,7 @@
                                         "name": "Check Inventory Availability",
                                         "script": {
                                           "type": "javascript",
-                                          "code": "const prepData = {{node:code_node_COzFDs2u.data}};\nconst isBatchManaged = prepData.isBatchManagedItem;\nconst to_status = {{node:code_node_Nj60Z2XF.data.to_status}};\n\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\nlet balanceData;\nif (isBatchManaged === 1) {\n  balanceData = {{node:get_node_ZTsGYd6D.data.data}};\n} else {\n  balanceData = {{node:get_node_a8uhcT5i.data.data}};\n}\n\n// Get pending reserved data for this SO line\nconst pendingReservedData = {{node:search_node_zPtR6Y0k.data.data}} || [];\n\nlet pendingReservedQty = 0;\npendingReservedData.forEach((reserved) => {\n  // Match bin_location (on_reserved_gd field) with location_id (from prepData)\n  if (reserved.bin_location === prepData.location_id) {\n    if (isBatchManaged === 1) {\n      if (reserved.batch_id === prepData.batch_id) {\n        pendingReservedQty += parseFloat(reserved.open_qty || 0);\n      }\n    } else {\n      pendingReservedQty += parseFloat(reserved.open_qty || 0);\n    }\n  }\n});\n\nlet totalAvailableQty = 0;\nif (balanceData) {\n  const unrestrictedQty = q8(parseFloat(balanceData.unrestricted_qty || 0));\n  \n  if (to_status === \"Created\") {\n    const reservedQty = q8(parseFloat(balanceData.reserved_qty || 0));\n    totalAvailableQty = q8(unrestrictedQty + reservedQty);\n  } else {\n    totalAvailableQty = q8(unrestrictedQty + pendingReservedQty);\n  }\n}\n\nlet validationMessage = null;\nif (totalAvailableQty < prepData.to_quantity) {\n  validationMessage = `Row ${prepData.rowIndex} with Item ${prepData.material_code} has insufficient inventory. Required: ${prepData.to_quantity}, Available: ${totalAvailableQty}`;\n}\n\nreturn { validationMessage: validationMessage };\n"
+                                          "code": "const prepData = {{node:code_node_COzFDs2u.data}};\nconst isBatchManaged = prepData.isBatchManagedItem;\nconst to_status = {{node:code_node_Nj60Z2XF.data.to_status}};\n\nconst roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));\n\nlet balanceData;\nif (isBatchManaged === 1) {\n  balanceData = {{node:get_node_ZTsGYd6D.data.data}};\n} else {\n  balanceData = {{node:get_node_a8uhcT5i.data.data}};\n}\n\n// Get pending reserved data for this SO line\nconst pendingReservedData = {{node:search_node_zPtR6Y0k.data.data}} || [];\n\nlet pendingReservedQty = 0;\npendingReservedData.forEach((reserved) => {\n  // Match bin_location (on_reserved_gd field) with location_id (from prepData)\n  if (reserved.bin_location === prepData.location_id) {\n    if (isBatchManaged === 1) {\n      if (reserved.batch_id === prepData.batch_id) {\n        pendingReservedQty += parseFloat(reserved.open_qty || 0);\n      }\n    } else {\n      pendingReservedQty += parseFloat(reserved.open_qty || 0);\n    }\n  }\n});\n\nlet totalAvailableQty = 0;\nif (balanceData) {\n  const unrestrictedQty = roundQty(parseFloat(balanceData.unrestricted_qty || 0));\n  \n  if (to_status === \"Created\") {\n    const reservedQty = roundQty(parseFloat(balanceData.reserved_qty || 0));\n    totalAvailableQty = roundQty(unrestrictedQty + reservedQty);\n  } else {\n    totalAvailableQty = roundQty(unrestrictedQty + pendingReservedQty);\n  }\n}\n\nlet validationMessage = null;\nif (totalAvailableQty < prepData.to_quantity) {\n  validationMessage = `Row ${prepData.rowIndex} with Item ${prepData.material_code} has insufficient inventory. Required: ${prepData.to_quantity}, Available: ${totalAvailableQty}`;\n}\n\nreturn { validationMessage: validationMessage };\n"
                                         },
                                         "response_json": [
                                           {
@@ -4231,7 +4310,9 @@
                                         {
                                           "id": "ifBlock_YlXtkjtT",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "return_node_qOfnUnqt",
@@ -4272,7 +4353,9 @@
                                         {
                                           "id": "ifBlock_AEVMBcxo",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -4282,7 +4365,9 @@
                                 {
                                   "id": "ifBlock_vOJzmWvC",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -4313,7 +4398,9 @@
                     {
                       "id": "ifBlock_p2HodgTJ",
                       "type": "ifBlock",
-                      "data": { "title": "false" },
+                      "data": {
+                        "title": "false"
+                      },
                       "blocks": []
                     }
                   ]
@@ -4363,7 +4450,9 @@
         {
           "id": "ifBlock_icKLkXne",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -4381,7 +4470,7 @@
         "name": "Table TO",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{node:code_node_Nj60Z2XF.data.allData}};\n\n// A line that was fully picked reads picking_status \"Completed\". Raise its quantity\n// and it still reads Completed from when the quantity was lower -- and\n// PPconvertToPicking skips Completed lines, so the outstanding balance could never\n// be converted into a second Picking. The gate works out the real status per line\n// against the new quantity; this is the only node that writes table_to, so it is\n// where the correction has to land. Empty whenever nothing was gated.\nconst ppOverrides = {{node:code_pp_pick_reconcile.data.lineStatusOverrides}} || {};\nconst ppHeaderStatus = {{node:code_pp_pick_reconcile.data.headerPickingStatus}} || \"\";\n\n// The reversal branch owns the enriched copy -- it is the only node that has the\n// bin and batch NAMES picked_view_stock has to be rendered from. Null when no\n// pick was unwound, and then nothing here changed anyway.\nconst ppFieldOverrides =\n  {{node:code_pp_reversal_msg.data.lineFieldOverrides}} ||\n  {{node:code_pp_pick_reconcile.data.lineFieldOverrides}} ||\n  {};\n\n// Every quantity and price column on picking_plan / its line subform is precision 8,\n// so rounding there keeps the client's configured scale and kills float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// freight_charges / delivery_cost are precision 2 and keep their existing money\n// formatting -- this pass changes no money behaviour.\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// Every decimal column on a line. A bundle keeps its items under `children` and\n// they are stored as lines in their own right, so they need the same treatment\n// -- a decimal left as a raw float is rejected on write.\nconst formatLine = (item) => {\n  // Merge the reconcile's rewritten picked state in BEFORE formatting, or the\n  // toFixed below runs over the pre-reversal picked_qty and writes it back.\n  const src = { ...item, ...(ppFieldOverrides[String(item.id || \"\")] || {}) };\n  return {\n    ...src,\n    picking_status:\n      ppOverrides[String(item.id || \"\")] || src.picking_status,\n    to_order_quantity: q8(src.to_order_quantity),\n    to_delivered_qty: q8(src.to_delivered_qty),\n    to_undelivered_qty: q8(src.to_undelivered_qty),\n    to_qty: q8(src.to_qty),\n    to_initial_delivered_qty: q8(src.to_initial_delivered_qty),\n    picked_qty: q8(src.picked_qty),\n    gd_delivered_qty: q8(src.gd_delivered_qty),\n    gd_undelivered_qty: q8(src.gd_undelivered_qty),\n    unit_price: q8(src.unit_price),\n    total_price: q8(src.total_price),\n  };\n};\n\n// Format table_to fields\nif (allData.table_to && allData.table_to.length > 0) {\n  allData.table_to = allData.table_to.map(item => ({\n    ...formatLine(item),\n    ...(Array.isArray(item.children) && {\n      children: item.children.map(formatLine),\n    }),\n  }));\n}\n\n// The header mirrors its own lines: a plan with an outstanding balance must stop\n// reading Completed, or nothing downstream treats it as still owing stock.\nif (ppHeaderStatus) allData.picking_status = ppHeaderStatus;\n\n// Format top-level fields\nallData.to_total = q8(allData.to_total);\nif (allData.freight_charges) allData.freight_charges = formatNumber(allData.freight_charges);\nif (allData.delivery_cost) allData.delivery_cost = formatNumber(allData.delivery_cost);\n\nreturn {\n  allData: allData\n};\n"
+          "code": "let allData = {{node:code_node_Nj60Z2XF.data.allData}};\n\n// A line that was fully picked reads picking_status \"Completed\". Raise its quantity\n// and it still reads Completed from when the quantity was lower -- and\n// PPconvertToPicking skips Completed lines, so the outstanding balance could never\n// be converted into a second Picking. The gate works out the real status per line\n// against the new quantity; this is the only node that writes table_to, so it is\n// where the correction has to land. Empty whenever nothing was gated.\nconst ppOverrides = {{node:code_pp_pick_reconcile.data.lineStatusOverrides}} || {};\nconst ppHeaderStatus = {{node:code_pp_pick_reconcile.data.headerPickingStatus}} || \"\";\n\n// The reversal branch owns the enriched copy -- it is the only node that has the\n// bin and batch NAMES picked_view_stock has to be rendered from. Null when no\n// pick was unwound, and then nothing here changed anyway.\nconst ppFieldOverrides =\n  {{node:code_pp_reversal_msg.data.lineFieldOverrides}} ||\n  {{node:code_pp_pick_reconcile.data.lineFieldOverrides}} ||\n  {};\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.000\";\n  return parseFloat(value).toFixed(3);\n};\n\n// Every decimal column on a line. A bundle keeps its items under `children` and\n// they are stored as lines in their own right, so they need the same treatment\n// -- a decimal left as a raw float is rejected on write.\nconst formatLine = (item) => {\n  // Merge the reconcile's rewritten picked state in BEFORE formatting, or the\n  // toFixed below runs over the pre-reversal picked_qty and writes it back.\n  const src = { ...item, ...(ppFieldOverrides[String(item.id || \"\")] || {}) };\n  return {\n    ...src,\n    picking_status:\n      ppOverrides[String(item.id || \"\")] || src.picking_status,\n    to_order_quantity: formatNumber(src.to_order_quantity),\n    to_delivered_qty: formatNumber(src.to_delivered_qty),\n    to_undelivered_qty: formatNumber(src.to_undelivered_qty),\n    to_qty: formatNumber(src.to_qty),\n    to_initial_delivered_qty: formatNumber(src.to_initial_delivered_qty),\n    picked_qty: formatNumber(src.picked_qty),\n    gd_delivered_qty: formatNumber(src.gd_delivered_qty),\n    gd_undelivered_qty: formatNumber(src.gd_undelivered_qty),\n    unit_price: formatNumber(src.unit_price),\n    total_price: formatNumber(src.total_price),\n  };\n};\n\n// Format table_to fields\nif (allData.table_to && allData.table_to.length > 0) {\n  allData.table_to = allData.table_to.map(item => ({\n    ...formatLine(item),\n    ...(Array.isArray(item.children) && {\n      children: item.children.map(formatLine),\n    }),\n  }));\n}\n\n// The header mirrors its own lines: a plan with an outstanding balance must stop\n// reading Completed, or nothing downstream treats it as still owing stock.\nif (ppHeaderStatus) allData.picking_status = ppHeaderStatus;\n\n// Format top-level fields\nallData.to_total = formatNumber(allData.to_total);\nif (allData.freight_charges) allData.freight_charges = formatNumber(allData.freight_charges);\nif (allData.delivery_cost) allData.delivery_cost = formatNumber(allData.delivery_cost);\n\nreturn {\n  allData: allData\n};\n"
         },
         "response_json": [
           {
@@ -4406,7 +4495,10 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -4430,7 +4522,9 @@
         {
           "id": "ifBlock_hoWTRsTe",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "if_ubbRT5Am",
@@ -4441,7 +4535,10 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -4465,7 +4562,9 @@
                 {
                   "id": "ifBlock_HWBO4oNl",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "if_NpX8EmpD",
@@ -4476,7 +4575,10 @@
                         "nodeName": "IF !Draft",
                         "name": "IF !Draft",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -4500,7 +4602,9 @@
                         {
                           "id": "ifBlock_Hns7vS8K",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_tAcAOGma",
@@ -5021,7 +5125,9 @@
                         {
                           "id": "ifBlock_6jTkaV7H",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_t5agKmTu",
@@ -5546,7 +5652,9 @@
                 {
                   "id": "ifBlock_sFthpyci",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "add_node_hafE02oF",
@@ -6298,7 +6406,9 @@
                 {
                   "id": "ifBlock_9eKidXuU",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_PvaVwVG7",
@@ -6341,7 +6451,9 @@
                 {
                   "id": "ifBlock_Cq2FfL3q",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -6355,7 +6467,10 @@
                 "nodeName": "IF needSOCleanUp",
                 "name": "IF needSOCleanUp",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -6379,7 +6494,9 @@
                 {
                   "id": "ifBlock_0bQP8z1R",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_node_Gvt1RIdr",
@@ -6501,7 +6618,9 @@
                 {
                   "id": "ifBlock_bp2a3Qlh",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -6577,7 +6696,10 @@
                 "nodeName": "IF finalSOTable",
                 "name": "IF finalSOTable",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -6601,7 +6723,9 @@
                 {
                   "id": "ifBlock_6ANjrnns",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_EOJUpDTL",
@@ -6688,7 +6812,9 @@
                 {
                   "id": "ifBlock_pAEHBw81",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -6857,7 +6983,10 @@
                 "nodeName": "IF Auto Create Picking",
                 "name": "IF Auto Create Picking",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -6976,7 +7105,9 @@
                 {
                   "id": "ifBlock_2Be3bvdP",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_QQZAg4u9",
@@ -7170,7 +7301,7 @@
                         "name": "Picking Create or Update",
                         "script": {
                           "type": "javascript",
-                          "code": "const preparedData = {{node:code_node_cDgPpyos.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// This write path never carried a decimal allow-list. It got away with it because\n// every quantity was an addition of parseFloat'd values; the reconcile subtracts,\n// which is exactly the operation that yields 1.5999999999999999 and a BigDecimal\n// rejection on a decimal(65,3) column. Clamped at zero too -- a negative pending\n// quantity is rejected the same way.\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst PICKING_DECIMAL_COLS = [\n  \"qty_to_pick\",\n  \"pending_process_qty\",\n  \"picked_qty\",\n  \"packing_qty\",\n  \"packing_conversion\",\n  \"net_weight\",\n  \"weight_conversion\",\n  \"to_pick_alt\",\n  \"pending_alt\",\n  \"order_base_qty\",\n  \"picking_base_qty\",\n  \"delivered_qty_d_wsrys\",\n  \"undelivered_qty_d_xbozi\"\n];\nconst RECORD_DECIMAL_COLS = [\n  \"store_out_qty\",\n  \"picked_qty_alt\",\n  \"delivered_qty\",\n  \"reserved_qty\"\n];\nconst normalizeRow = (row, cols) => {\n  if (!row) return;\n  for (const col of cols) {\n    if (row[col] !== undefined && row[col] !== null && row[col] !== \"\") {\n      row[col] = Math.max(0, q8(row[col]));\n    }\n  }\n  if (Array.isArray(row.children)) row.children.forEach((c) => normalizeRow(c, cols));\n};\n(transferOrderData.table_picking_items || []).forEach((r) =>\n  normalizeRow(r, PICKING_DECIMAL_COLS)\n);\n(transferOrderData.table_picking_records || []).forEach((r) =>\n  normalizeRow(r, RECORD_DECIMAL_COLS)\n);\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  to_status: transferOrderData.to_status,\n  table_picking_records: transferOrderData.table_picking_records,\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n  project_id: transferOrderData.project_id,\n};\n\n// For CREATE operation - use full transferOrderData\n\n// For TO status update\nconst toUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  ppId: preparedData.ppId,\n  ppUpdateData: toUpdateFields,\n  ppNo: preparedData.ppNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
+                          "code": "const preparedData = {{node:code_node_cDgPpyos.data}}\nconst isUpdate = preparedData.isUpdate;\nconst transferOrderData = preparedData.transferOrderData;\n\n// This write path never carried a decimal allow-list. It got away with it because\n// every quantity was an addition of parseFloat'd values; the reconcile subtracts,\n// which is exactly the operation that yields 1.5999999999999999 and a BigDecimal\n// rejection on a decimal(65,3) column. Clamped at zero too -- a negative pending\n// quantity is rejected the same way.\nconst roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst PICKING_DECIMAL_COLS = [\n  \"qty_to_pick\",\n  \"pending_process_qty\",\n  \"picked_qty\",\n  \"packing_qty\",\n  \"packing_conversion\",\n  \"net_weight\",\n  \"weight_conversion\",\n  \"to_pick_alt\",\n  \"pending_alt\",\n  \"order_base_qty\",\n  \"picking_base_qty\",\n  \"delivered_qty_d_wsrys\",\n  \"undelivered_qty_d_xbozi\"\n];\nconst RECORD_DECIMAL_COLS = [\n  \"store_out_qty\",\n  \"picked_qty_alt\",\n  \"delivered_qty\",\n  \"reserved_qty\"\n];\nconst normalizeRow = (row, cols) => {\n  if (!row) return;\n  for (const col of cols) {\n    if (row[col] !== undefined && row[col] !== null && row[col] !== \"\") {\n      row[col] = Math.max(0, roundQty(row[col]));\n    }\n  }\n  if (Array.isArray(row.children)) row.children.forEach((c) => normalizeRow(c, cols));\n};\n(transferOrderData.table_picking_items || []).forEach((r) =>\n  normalizeRow(r, PICKING_DECIMAL_COLS)\n);\n(transferOrderData.table_picking_records || []).forEach((r) =>\n  normalizeRow(r, RECORD_DECIMAL_COLS)\n);\n\n// For UPDATE operation - prepare update fields\nconst updateFields = {\n  to_status: transferOrderData.to_status,\n  table_picking_records: transferOrderData.table_picking_records,\n  assigned_to: transferOrderData.assigned_to,\n  table_picking_items: transferOrderData.table_picking_items,\n  updated_by: transferOrderData.updated_by,\n  updated_at: transferOrderData.updated_at,\n  ref_doc: transferOrderData.ref_doc,\n  so_no: transferOrderData.so_no,\n  customer_id: transferOrderData.customer_id,\n  project_id: transferOrderData.project_id,\n};\n\n// For CREATE operation - use full transferOrderData\n\n// For TO status update\nconst toUpdateFields = {\n  picking_status: preparedData.pickingStatus,\n};\n\nreturn {\n  isUpdate,\n  existingTOId: preparedData.existingTOId,\n  existingTONo: preparedData.existingTONo,\n  createData: transferOrderData,\n  updateData: updateFields,\n  ppId: preparedData.ppId,\n  ppUpdateData: toUpdateFields,\n  ppNo: preparedData.ppNo,\n  removedUsers: preparedData.removedUsers,\n  addedUsers: preparedData.addedUsers,\n};\n"
                         },
                         "response_json": [
                           {
@@ -7294,7 +7425,10 @@
                         "nodeName": "IF is Update",
                         "name": "IF is Update",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -7318,7 +7452,9 @@
                         {
                           "id": "ifBlock_hISW9V5C",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "update_node_sLiANU7B",
@@ -7413,7 +7549,9 @@
                         {
                           "id": "ifBlock_HOJp4iap",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "add_node_tM3ye9Ml",
@@ -7818,7 +7956,10 @@
                         "nodeName": "IF hasCancellations",
                         "name": "IF hasCancellations",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -7869,7 +8010,9 @@
                         {
                           "id": "ifBlock_F0Rn7mLD",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "set_cache_node_c2J9vba4",
@@ -8087,7 +8230,9 @@
                         {
                           "id": "ifBlock_t0kEQwog",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -8101,7 +8246,10 @@
                         "nodeName": "IF hasAssignments",
                         "name": "IF hasAssignments",
                         "condition_type": "ConditionRule",
-                        "expression": { "type": "javascript", "code": "" },
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        },
                         "filter": {
                           "list": [
                             {
@@ -8152,7 +8300,9 @@
                         {
                           "id": "ifBlock_ZTRhTxm4",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "set_cache_node_oKHtki6O",
@@ -8370,7 +8520,9 @@
                         {
                           "id": "ifBlock_bVEjIbtX",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -8380,7 +8532,9 @@
                 {
                   "id": "ifBlock_QtoFzAbW",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -8403,7 +8557,9 @@
                 {
                   "id": "if_block_PpReorderCreatedTrue",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "workflow_node_PpReorderCreated",
@@ -8475,7 +8631,9 @@
                 {
                   "id": "if_block_PpReorderCreatedFalse",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -8498,7 +8656,9 @@
                 {
                   "id": "if_block_PpReorderCancelledTrue",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "workflow_node_PpReorderCancelled",
@@ -8562,7 +8722,9 @@
                 {
                   "id": "if_block_PpReorderCancelledFalse",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -8576,7 +8738,10 @@
                 "nodeName": "IF isForceComplete",
                 "name": "IF isForceComplete",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -8600,7 +8765,9 @@
                 {
                   "id": "if_block_-s6Txqkv",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_POu3aOPx",
@@ -8671,7 +8838,9 @@
                 {
                   "id": "if_block_yFsWnfDf",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -8681,7 +8850,9 @@
         {
           "id": "ifBlock_2wXpl6sc",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "if_mVuF0JZb",
@@ -8692,7 +8863,10 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -8716,7 +8890,9 @@
                 {
                   "id": "ifBlock_UJRnod9v",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_xlKOU7K6",
@@ -9187,7 +9363,9 @@
                 {
                   "id": "ifBlock_89H7InPP",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "add_node_XdkCKta4",
@@ -9860,7 +10038,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
