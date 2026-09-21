@@ -506,6 +506,95 @@
               "rules": []
             },
             {
+              "version": "1.0.0",
+              "type": "radio",
+              "mainIcon": "单选",
+              "typeIcon": "单选项",
+              "icon": "icon-radio-active",
+              "group": "Select",
+              "groupSort": 0,
+              "enableScopes": ["Component", "Table", "Page"],
+              "options": {
+                "inline": true,
+                "defaultValue": "Credit Note",
+                "options": [
+                  {
+                    "value": "Credit Note",
+                    "label": "Credit Note",
+                    "explain": ""
+                  },
+                  {
+                    "value": "Deduct from Invoice",
+                    "label": "Deduct from Invoice",
+                    "explain": ""
+                  }
+                ],
+                "required": false,
+                "requiredMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "width": "",
+                "remote": false,
+                "remoteType": "datasource",
+                "remoteOption": "option_k7rqb3mw",
+                "remoteOptions": [],
+                "props": {
+                  "value": "",
+                  "label": "",
+                  "image": "",
+                  "icon": "",
+                  "explain": ""
+                },
+                "remoteFunc": "func_k7rqb3mw",
+                "customClass": "",
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": false,
+                "dataBind": true,
+                "disabled": "",
+                "customProps": {},
+                "tip": "",
+                "tableColumn": false,
+                "subform": false,
+                "datasource": {
+                  "rules": {
+                    "collectionId": "",
+                    "list": [
+                      {
+                        "id": 1723795236686,
+                        "parentId": 1723795236685,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "static"
+                },
+                "auto_refresh": 0,
+                "auto_refresh_debounce": 100,
+                "limit_count": null,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": ""
+              },
+              "events": {
+                "onChange": ""
+              },
+              "name": "Return Billing Method",
+              "novalid": {},
+              "key": "k7rqb3mw",
+              "model": "return_billing_method",
+              "rules": []
+            },
+            {
               "type": "switch",
               "mainIcon": "开关",
               "typeIcon": "开关",

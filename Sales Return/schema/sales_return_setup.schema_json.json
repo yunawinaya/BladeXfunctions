@@ -1,0 +1,496 @@
+{
+ "bsonType": "object",
+ "indexes": [],
+ "isRequired": false,
+ "multiple": false,
+ "name": "sales_return_setup",
+ "persistField": true,
+ "physicalDelete": false,
+ "primaryKey": false,
+ "properties": {
+  "id": {
+   "bsonType": "bigint",
+   "description": "主键ID",
+   "idRule": {
+    "autoIncrementStart": 0,
+    "dataType": "long",
+    "generator": "snowflake"
+   },
+   "isRequired": true,
+   "key": "7y37biq3",
+   "multiple": false,
+   "name": "id",
+   "persistField": true,
+   "primaryKey": true,
+   "title": "主键ID"
+  },
+  "plant_id": {
+   "bsonType": "bigint",
+   "component": {
+    "name": "treeselect",
+    "rules": [
+     {
+      "id": 1751876705609,
+      "parentId": 1751876705610,
+      "isTop": true,
+      "type": "branch",
+      "operator": "any",
+      "prop": "",
+      "valueType": "",
+      "value": "",
+      "level": 1,
+      "children": [
+       {
+        "id": 1751876705612,
+        "isTop": false,
+        "parentId": 1751876705609,
+        "type": "branch",
+        "operator": "all",
+        "level": 2,
+        "children": [
+         {
+          "id": 1751876707899,
+          "parentId": 1751876705612,
+          "isTop": false,
+          "prop": "parent_id",
+          "operator": "numberEqual",
+          "valueType": "field",
+          "value": "{{global:deptParentId}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "父主键",
+          "valueLabel": "",
+          "operatorLabel": "Equal",
+          "valueTypeLabel": "字段"
+         },
+         {
+          "id": 1751876705613,
+          "parentId": 1751876705612,
+          "isTop": false,
+          "prop": "id",
+          "operator": "numberEqual",
+          "valueType": "field",
+          "value": "{{system:deptIds}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "主键ID",
+          "valueLabel": "",
+          "operatorLabel": "Equal",
+          "valueTypeLabel": "字段"
+         }
+        ]
+       },
+       {
+        "id": 1751876705614,
+        "isTop": false,
+        "parentId": 1751876705609,
+        "type": "branch",
+        "operator": "all",
+        "level": 2,
+        "children": [
+         {
+          "id": 1751876705611,
+          "parentId": 1751876705614,
+          "isTop": false,
+          "prop": "id",
+          "operator": "in",
+          "valueType": "formula",
+          "value": "{{global:deptIdList}}.split(',')",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "主键ID",
+          "valueLabel": "",
+          "operatorLabel": "In",
+          "valueTypeLabel": "公式"
+         },
+         {
+          "id": 1751876705615,
+          "parentId": 1751876705614,
+          "isTop": false,
+          "prop": "parent_id",
+          "operator": "numberEqual",
+          "valueType": "field",
+          "value": "{{system:deptIds}}",
+          "type": "leaf",
+          "level": 3,
+          "propLabel": "父主键",
+          "valueLabel": "",
+          "operatorLabel": "Equal",
+          "valueTypeLabel": "字段"
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Plant ID:关联blade_dept.id字段",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": {
+    "cascade": "",
+    "collection": "blade_dept",
+    "dataSourceName": "master",
+    "field": "id as value, dept_name as text",
+    "junctionTableName": "sales_return_setup_blade_dept",
+    "pagingEnabled": 0
+   },
+   "enumType": "tree",
+   "errorMessage": {},
+   "foreignKey": "blade_dept.id",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "tzsmbfkj",
+   "multiple": false,
+   "name": "plant_id",
+   "parentKey": "id",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Plant ID"
+  },
+  "auto_cn": {
+   "bsonType": "int",
+   "component": {
+    "name": "switch"
+   },
+   "dataIdentifier": false,
+   "defaultValue": 0,
+   "description": "Auto CN?",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "hlf04ldp",
+   "maximum": 1,
+   "minimum": 0,
+   "multiple": false,
+   "name": "auto_cn",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Auto CN?"
+  },
+  "trigger_by": {
+   "bsonType": "string",
+   "component": {
+    "name": "radio"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Trigger By:Sales Return-Sales Return Sales Return Receiving-Sales Return Receiving ",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": [
+    {
+     "text": "Sales Return",
+     "value": "Sales Return"
+    },
+    {
+     "text": "Sales Return Receiving",
+     "value": "Sales Return Receiving"
+    }
+   ],
+   "errorMessage": {
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "1snzy1k5",
+   "multiple": false,
+   "name": "trigger_by",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Trigger By"
+  },
+  "return_billing_method": {
+   "bsonType": "string",
+   "component": {
+    "name": "radio"
+   },
+   "dataIdentifier": false,
+   "defaultValue": "Credit Note",
+   "description": "Return Billing Method:Credit Note-Credit Note Deduct from Invoice-Deduct from Invoice ",
+   "desensitization": false,
+   "encryptedKey": false,
+   "enum": [
+    {
+     "text": "Credit Note",
+     "value": "Credit Note"
+    },
+    {
+     "text": "Deduct from Invoice",
+     "value": "Deduct from Invoice"
+    }
+   ],
+   "errorMessage": {
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "k7rqb3mw",
+   "multiple": false,
+   "name": "return_billing_method",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Return Billing Method"
+  },
+  "generate_new_batch": {
+   "bsonType": "int",
+   "component": {
+    "name": "switch"
+   },
+   "dataIdentifier": false,
+   "defaultValue": 0,
+   "description": "Generate New Batch",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "required": ""
+   },
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "sp1l9x3z",
+   "maximum": 1,
+   "minimum": 0,
+   "multiple": false,
+   "name": "generate_new_batch",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Generate New Batch"
+  },
+  "organization_id": {
+   "bsonType": "string",
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "Organization ID",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "ihgbmc24",
+   "multiple": false,
+   "name": "organization_id",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "Organization ID"
+  },
+  "sales_return_setup_id": {
+   "bsonType": "string",
+   "dataIdentifier": false,
+   "defaultValue": "",
+   "description": "SR Setup ID",
+   "desensitization": false,
+   "encryptedKey": false,
+   "errorMessage": {
+    "format": "",
+    "pattern": "",
+    "required": ""
+   },
+   "format": "",
+   "historyKey": false,
+   "immutableKey": false,
+   "isRequired": false,
+   "key": "xruf3bql",
+   "multiple": false,
+   "name": "sales_return_setup_id",
+   "pattern": "",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "SR Setup ID"
+  },
+  "create_user": {
+   "baseFieldKey": "create_user",
+   "bsonType": "bigint",
+   "description": "创建人",
+   "enum": {
+    "collection": "blade_user",
+    "dataSourceName": "master",
+    "field": "id as value, real_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "uid",
+    "update": false
+   },
+   "foreignKey": "blade_user.id",
+   "isRequired": false,
+   "key": "56jzmrh5",
+   "multiple": false,
+   "name": "create_user",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "创建人"
+  },
+  "create_dept": {
+   "baseFieldKey": "create_dept",
+   "bsonType": "bigint",
+   "description": "创建部门",
+   "enum": {
+    "collection": "blade_dept",
+    "dataSourceName": "master",
+    "field": "id as value, dept_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "did",
+    "update": false
+   },
+   "foreignKey": "blade_dept.id",
+   "isRequired": false,
+   "key": "0sgbkln8",
+   "multiple": false,
+   "name": "create_dept",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "创建部门"
+  },
+  "create_time": {
+   "baseFieldKey": "create_time",
+   "bsonType": "datetime",
+   "description": "创建时间",
+   "forceDefaultValue": {
+    "$env": "now",
+    "update": false
+   },
+   "format": "yyyy-MM-dd HH:mm:ss",
+   "isRequired": false,
+   "key": "pxjduric",
+   "multiple": false,
+   "name": "create_time",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "datetime",
+   "title": "创建时间"
+  },
+  "update_user": {
+   "baseFieldKey": "update_user",
+   "bsonType": "bigint",
+   "description": "修改人",
+   "enum": {
+    "collection": "blade_user",
+    "dataSourceName": "master",
+    "field": "id as value, real_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "uid"
+   },
+   "foreignKey": "blade_user.id",
+   "isRequired": false,
+   "key": "fpjyd6kb",
+   "multiple": false,
+   "name": "update_user",
+   "persistField": true,
+   "primaryKey": false,
+   "title": "修改人"
+  },
+  "update_time": {
+   "baseFieldKey": "update_time",
+   "bsonType": "datetime",
+   "description": "修改时间",
+   "forceDefaultValue": {
+    "$env": "now",
+    "update": true
+   },
+   "format": "yyyy-MM-dd HH:mm:ss",
+   "isRequired": false,
+   "key": "t11huk7x",
+   "multiple": false,
+   "name": "update_time",
+   "persistField": true,
+   "primaryKey": false,
+   "showType": "datetime",
+   "title": "修改时间"
+  },
+  "is_deleted": {
+   "baseFieldKey": "is_deleted",
+   "bsonType": "int",
+   "defaultValue": 0,
+   "description": "删除状态",
+   "enum": [
+    {
+     "text": "0",
+     "value": "未删除"
+    },
+    {
+     "text": "1",
+     "value": "已删除"
+    }
+   ],
+   "forceDefaultValue": 0,
+   "isRequired": false,
+   "key": "jnfrlvv8",
+   "multiple": false,
+   "name": "is_deleted",
+   "persistField": true,
+   "primaryKey": false,
+   "systemKey": true,
+   "title": "删除状态"
+  },
+  "tenant_id": {
+   "bsonType": "string",
+   "description": "租户Id",
+   "enum": {
+    "collection": "blade_tenant",
+    "dataSourceName": "master",
+    "field": "tenant_id as value, tenant_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "tid",
+    "update": false
+   },
+   "foreignKey": "blade_tenant.tenant_id",
+   "isRequired": false,
+   "key": "qjguwboi",
+   "multiple": false,
+   "name": "tenant_id",
+   "persistField": true,
+   "primaryKey": false,
+   "systemKey": true,
+   "title": "租户Id"
+  },
+  "sub_tenant_id": {
+   "bsonType": "bigint",
+   "description": "子租户Id",
+   "enum": {
+    "collection": "su_code_sub_tenant",
+    "dataSourceName": "master",
+    "field": "id as value, sub_tenant_full_name as text",
+    "pagingEnabled": 0
+   },
+   "forceDefaultValue": {
+    "$env": "stid",
+    "update": false
+   },
+   "foreignKey": "su_code_sub_tenant.id",
+   "isRequired": false,
+   "key": "3asda89a",
+   "multiple": false,
+   "name": "sub_tenant_id",
+   "persistField": true,
+   "primaryKey": false,
+   "systemKey": true,
+   "title": "子租户Id"
+  }
+ },
+ "title": "Sales Return Setup",
+ "uniqueGroup": []
+}
