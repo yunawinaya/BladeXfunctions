@@ -60,7 +60,17 @@
       "isExpand": false
     }
   ],
-  "response_json": [],
+  "response_json": [
+    {
+      "key": "socsi_res_silist",
+      "name": "si_list",
+      "title": "SI List",
+      "description": "Every Sales Invoice this run created, in the order they were created.",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
   "config": {},
   "nodes": [
     {
@@ -561,6 +571,40 @@
                       "blocks": []
                     },
                     {
+                      "id": "get_node_srSetup1",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Sales Return Setup:Table:2046120455801585665",
+                          "rules": {
+                            "collectionId": "2046120455801585665",
+                            "list": [
+                              {
+                                "id": 1777400000001,
+                                "parentId": 1777400000000,
+                                "isTop": true,
+                                "prop": "plant_id.id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:search_node_bOF3TVA2.data.data.plant_name}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "4b. Get SR Setup",
+                        "isValidator": true,
+                        "nodeName": "4b. Get SR Setup",
+                        "name": "4b. Get SR Setup"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "code_node_sQX9tldw",
                       "type": "code-node",
                       "data": {
@@ -573,7 +617,7 @@
                         "name": "5. Map SI Data",
                         "script": {
                           "type": "javascript",
-                          "code": "const soList = {{node:search_node_bOF3TVA2.data.data}};\nconst isMultiple = {{workflowparams:is_multiple}};\nconst convertTo = {{workflowparams:convert_to}};\nconst autoPi = {{workflowparams:auto_pi}};\nconst docFormat = {{node:get_node_yDMG0Sab.data.data}};\nlet plant_id = {{workflowparams:plant_id}} || '';\nlet siList = [];\n\nif (plant_id == \"\" && isMultiple === \"single\") {\n  let plants = new Set(soList.map((so) => so.plant_name));\n\n  if (plants.size > 1) {\n    plant_id = soList[0].organization_id;\n  } else {\n    plant_id = Array.from(plants)[0];\n  }\n}\n\nconst mapLineItem = (item, record, index) => {\n  const lineItemPromise = {\n    tax_amount: parseFloat(item.so_tax_amount).toFixed(8),\n    so_order_quantity: parseFloat(item.so_quantity).toFixed(8),\n    plant_id: plant_id || record.plant_name,\n    si_discount: parseFloat(item.so_discount).toFixed(8),\n    available_inv_qty: parseFloat(item.so_quantity).toFixed(8),\n    agent_id: item.sales_person_id,\n    discount_amount: parseFloat(item.so_discount_amount).toFixed(8),\n    invoice_qty: parseFloat(item.so_quantity).toFixed(8),\n    invoice_qty_uom_id: item.so_item_uom,\n    so_order_uom_id: item.so_item_uom,\n    material_desc: item.so_desc,\n    more_desc: item.more_desc,\n    si_discount_uom_id: item.so_discount_uom,\n    item_category_id: item.item_category_id,\n    payment_term_id: item.payment_term_id,\n    line_so_id: record.id,\n    material_name: item.item_id,\n    si_amount: parseFloat(item.so_amount).toFixed(8),\n    gross: parseFloat(item.so_gross).toFixed(8),\n    so_line_id: item.id,\n    si_tax_inclusive: item.so_tax_inclusive,\n    si_tax_rate_id: item.so_tax_preference,\n    tax_percent: item.so_tax_percentage,\n    unit_price: item.so_item_price,\n    good_delivery_quantity: 0,\n    line_so_no: record.so_no,\n    material_id: item.item_name,\n    customer_id: item.customer_id,\n    line_index: index + 1,\n    area_id: item.area_id,\n    line_remark_3: item.line_remark_3,\n    line_remark_2: item.line_remark_2,\n    line_remark_1: item.line_remark_1,\n    tariff_id: item.tariff_id,\n    custom_fields: item.custom_fields,\n    further_description: item.further_description,\n    project_id: item.project_id ?? null,\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (record, lineItemPromise, soNoDisplay, soID, totals) => {\n  const data = {\n    page_status: \"Convert\", // 'Convert' if from convert\n    si_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    invoice_type: record.so_type,\n    plant_id: plant_id || record.plant_name,\n    so_no_display: soNoDisplay,\n    gd_no_display: \"\",\n    so_id: soID,\n    gd_id: [],\n    customer_id: record.customer_name,\n    currency_code: record.so_currency,\n    si_billing_address: record.cust_billing_address,\n    si_shipping_address: record.cust_shipping_address,\n    sales_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    sales_invoice_no_type: docFormat.id,\n    sales_invoice_date: new Date().toISOString().split(\"T\")[0],\n    sales_person_id: record.so_sales_person,\n    si_payment_term_id: record.so_payment_term,\n    exchange_rate_currency: record.exchange_rate_currency,\n    exchange_rate: record.exchange_rate,\n    exchange_rate_myr: \"MYR\",\n    si_description: \"Sales\",\n    posted_date: \"\",\n    si_area_id: record.so_area_id || \"\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    organization_id: record.organization_id,\n    acc_integration_type: record.acc_integration_type,\n    previous_status: \"\",\n    customer_credit_limit: record.customer_credit_limit,\n    overdue_limit: record.overdue_limit,\n    outstanding_balance: record.outstanding_balance,\n    overdue_inv_total_amount: record.overdue_inv_total_amount,\n    is_accurate: record.is_accurate,\n    is_posted: 0,\n    table_si: lineItemPromise,\n    total_gross_currency: record.total_gross_currency,\n    total_discount_currency: record.total_discount_currency,\n    total_tax_currency: record.total_tax_currency,\n    total_amount_currency: record.total_amount_currency,\n    total_amount_myr: \"MYR\",\n    // Use calculated totals\n    invoice_subtotal: totals.invoice_subtotal,\n    invoice_total_discount: totals.invoice_total_discount,\n    invoice_taxes_amount: totals.invoice_taxes_amount,\n    invoice_total: totals.invoice_total,\n    myr_total_amount: totals.myr_total_amount,\n    tnc: record.so_tnc,\n    payment_term: record.so_payment_details,\n    delivery_term: record.so_delivery_term,\n    remarks: record.so_remarks,\n    remarks2: record.so_remarks2,\n    remarks3: record.so_remarks3,\n    remarks4: record.so_remarks4,\n    remarks5: record.so_remarks5,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n  };\n\n  // SI_SAVE pre-gates internal-trading SIs with pi_confirm 411 and saves NOTHING until the caller\n  // answers it. Nobody here answered it before, so completing an internal-trading SO produced no\n  // invoice at all while still reporting success. handleConvertSOtoSI now asks the user and passes\n  // the answer down as auto_pi.\n  // Harmless when nothing is internally linked -- the gate never arms and both flags are ignored.\n  // Draft never arms it either (the gate requires si_status \"Completed\").\n  if (autoPi === \"confirmed\") {\n    data.auto_pi_confirmed = true;\n  } else if (autoPi === \"skip\") {\n    data.auto_pi_skip = true;\n  }\n\n  data.project_id = record.project_id ?? null;\n\n  return data;\n};\n\n// Helper function to calculate totals from SO data\nconst calculateTotals = (soDataList) => {\n  let totals = {\n    invoice_subtotal: 0,\n    invoice_total_discount: 0,\n    invoice_taxes_amount: 0,\n    invoice_total: 0,\n    myr_total_amount: 0,\n  };\n\n  for (const so of soDataList) {\n    totals.invoice_subtotal += parseFloat(so.so_total_gross) || 0;\n    totals.invoice_total_discount += parseFloat(so.so_total_discount) || 0;\n    totals.invoice_taxes_amount += parseFloat(so.so_total_tax) || 0;\n    totals.invoice_total += parseFloat(so.so_total) || 0;\n    totals.myr_total_amount += parseFloat(so.myr_total_amount) || 0;\n  }\n\n  // Round to 4 decimal places\n  totals.invoice_subtotal = totals.invoice_subtotal.toFixed(8);\n  totals.invoice_total_discount = totals.invoice_total_discount.toFixed(8);\n  totals.invoice_taxes_amount = totals.invoice_taxes_amount.toFixed(8);\n  totals.invoice_total = totals.invoice_total.toFixed(8);\n  totals.myr_total_amount = totals.myr_total_amount.toFixed(8);\n\n  return totals;\n};\n\nif (isMultiple === \"multiple\") {\n  for (const soData of soList) {\n    // Calculate totals for this single SO\n    const totals = calculateTotals([soData]);\n    let siLineItem = [];\n\n    for (const [index, item] of soData.table_so.entries()) {\n      const lineItemPromise = mapLineItem(item, soData, index);\n      siLineItem.push(lineItemPromise);\n    }\n\n    const soNoDisplay = soData.so_no;\n    const soID = [soData.id];\n    const mappedData = mapHeaderData(\n      soData,\n      siLineItem,\n      soNoDisplay,\n      soID,\n      totals,\n    );\n    siList.push(mappedData);\n  }\n} else if (isMultiple === \"single\") {\n  const soData = soList[0];\n  const soNoDisplay = soList.map((item) => item.so_no).join(\", \");\n  const soID = soList.map((item) => item.id);\n\n  // Calculate totals for all SOs combined\n  const totals = calculateTotals(soList);\n\n  let siLineItem = [];\n  let lineCounter = 0;\n  for (const so of soList) {\n    for (const item of so.table_so) {\n      const lineItemPromise = mapLineItem(item, so, lineCounter);\n      siLineItem.push(lineItemPromise);\n      lineCounter++;\n    }\n  }\n  const mappedData = mapHeaderData(\n    soData,\n    siLineItem,\n    soNoDisplay,\n    soID,\n    totals,\n  );\n  siList.push(mappedData);\n}\n\nreturn { siList };\n"
+                          "code": "const soList = {{node:search_node_bOF3TVA2.data.data}};\nconst isMultiple = {{workflowparams:is_multiple}};\nconst convertTo = {{workflowparams:convert_to}};\nconst autoPi = {{workflowparams:auto_pi}};\nconst docFormat = {{node:get_node_yDMG0Sab.data.data}};\nlet plant_id = {{workflowparams:plant_id}} || '';\nlet siList = [];\n\nif (plant_id == \"\" && isMultiple === \"single\") {\n  let plants = new Set(soList.map((so) => so.plant_name));\n\n  if (plants.size > 1) {\n    plant_id = soList[0].organization_id;\n  } else {\n    plant_id = Array.from(plants)[0];\n  }\n}\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// An item bundle is ONE line on the order with the bundle's items beneath it,\n// and it is invoiced as a whole. The order hands that tree over in one of two\n// shapes -- the items nested under the bundle line's `children`, or flat rows\n// of table_so pointing back through parent_id -- so both are read here and\n// turned into one list with each bundle's items directly after their bundle.\n//\n// table_si is then built with the same shape: the bundle is one row carrying\n// its items under `children`, which is exactly what the form hands SI_SAVE\n// when a bundle is added there. Without it the items land beside the bundle as\n// loose lines, the invoice shows no bundle at all, and SI_SAVE has nothing to\n// hang them under.\n//\n// A bundle line carries no item of its own, so it has no material, no item\n// category, no UOM and no tax rate. Those are id-typed columns on the invoice\n// and a null reaching one comes back as a BigInt conversion failure, so they\n// are blanked rather than stringified into \"null\" / \"undefined\". so_discount is\n// never written on a bundle line either, and parseFloat(undefined) would put\n// the string \"NaN\" into a numeric column.\n// ==========================================================================\nconst referenceId = (value) => {\n  if (value && typeof value === \"object\") return value.id || null;\n  return value || null;\n};\n\n// The order's lines as one list: each bundle's items directly after their\n// bundle line, linked back to it by parentId. A row that sits under a bundle is\n// not repeated as a line of its own.\nconst flattenSoLines = (lines) => {\n  const rows = lines || [];\n\n  const childrenOf = (line) => {\n    const nested = Array.isArray(line.children) ? line.children : [];\n    if (nested.length > 0) return nested;\n\n    return rows.filter(\n      (row) =>\n        row.parent_id !== undefined &&\n        row.parent_id !== null &&\n        row.parent_id !== \"\" &&\n        String(row.parent_id) === String(line.id),\n    );\n  };\n\n  const claimed = new Set();\n\n  rows.forEach((line) => {\n    childrenOf(line).forEach((child) => {\n      if (child && child.id !== undefined && child.id !== null) {\n        claimed.add(String(child.id));\n      }\n    });\n  });\n\n  const flat = [];\n\n  rows.forEach((line) => {\n    if (claimed.has(String(line.id))) return;\n\n    flat.push({ line: line, parentId: null });\n\n    childrenOf(line).forEach((child) => {\n      flat.push({ line: child, parentId: String(line.id) });\n    });\n  });\n\n  return flat;\n};\n\n\n// How a sales return is billed is a per-plant setting: a credit note raised\n// after the fact (the default, and what every setup row does today), or netting\n// the returned quantity off what is invoiced in the first place. The two are\n// alternatives -- applying both credits the customer twice.\n//\n// Only the \"Sales Return\" timing is honoured: the line carries the EXPECTED\n// return quantity, written when the return is issued, and there is no received\n// figure for the \"Sales Return Receiving\" timing to read.\nconst srSetupRaw = {{node:get_node_srSetup1.data.data}};\nconst srSetup = Array.isArray(srSetupRaw) ? srSetupRaw[0] : srSetupRaw;\n// Unset until the column is configured, and unset means the credit note.\nconst deductReturnQty = Boolean(\n  srSetup &&\n    srSetup.return_billing_method === \"Deduct from Invoice\" &&\n    srSetup.trigger_by === \"Sales Return\",\n);\n\n// Clamped: a line can be returned in full, and over-delivery tolerance can push\n// the subtraction below zero, which is not a quantity anyone can bill.\nconst billableQty = (item) =>\n  Math.max(\n    0,\n    (parseFloat(item.so_quantity) || 0) -\n      (deductReturnQty ? parseFloat(item.return_qty) || 0 : 0),\n  );\n\nconst mapLineItem = (item, record, lineIndex) => {\n  const lineItemPromise = {\n    tax_amount: parseFloat(item.so_tax_amount).toFixed(8),\n    so_order_quantity: parseFloat(item.so_quantity).toFixed(8),\n    plant_id: plant_id || record.plant_name,\n    si_discount: parseFloat(item.so_discount || 0).toFixed(8),\n    available_inv_qty: billableQty(item).toFixed(8),\n    agent_id: item.sales_person_id,\n    discount_amount: parseFloat(item.so_discount_amount).toFixed(8),\n    invoice_qty: billableQty(item).toFixed(8),\n    invoice_qty_uom_id: referenceId(item.so_item_uom) || \"\",\n    so_order_uom_id: referenceId(item.so_item_uom) || \"\",\n    material_desc: item.so_desc,\n    more_desc: item.more_desc,\n    si_discount_uom_id: item.so_discount_uom,\n    item_category_id: referenceId(item.item_category_id) || \"\",\n    payment_term_id: item.payment_term_id,\n    line_so_id: record.id,\n    material_name: item.item_id,\n    si_amount: parseFloat(item.so_amount).toFixed(8),\n    gross: parseFloat(item.so_gross).toFixed(8),\n    so_line_id: item.id,\n    si_tax_inclusive: item.so_tax_inclusive,\n    si_tax_rate_id: referenceId(item.so_tax_preference) || \"\",\n    tax_percent: item.so_tax_percentage,\n    unit_price: item.so_item_price,\n    good_delivery_quantity: 0,\n    line_so_no: record.so_no,\n    material_id: referenceId(item.item_name) || \"\",\n    item_bundle_id: referenceId(item.item_bundle_id) || \"\",\n    customer_id: item.customer_id,\n    line_index: lineIndex,\n    area_id: item.area_id,\n    line_remark_3: item.line_remark_3,\n    line_remark_2: item.line_remark_2,\n    line_remark_1: item.line_remark_1,\n    tariff_id: item.tariff_id,\n    custom_fields: item.custom_fields,\n    further_description: item.further_description,\n    project_id: item.project_id ?? null,\n    \n  };\n\n  return lineItemPromise;\n};\n\n// The invoice date and time on the engine's own clock, \"YYYY-MM-DD HH:mm:ss\".\n// toISOString() would shift it to UTC -- an hour that reads wrong and, before\n// 08:00 local, a calendar day early -- and toLocaleString() hands back\n// \"Wed Aug 26 2026 10:41:38 GMT+0800 (...)\", which Add Data cannot parse into\n// a TimeStamp at all. The local getters read the same clock the user sees.\nconst localDateTimeString = (date) => {\n  const pad = (n) => String(n).padStart(2, \"0\");\n\n  const day = [\n    date.getFullYear(),\n    pad(date.getMonth() + 1),\n    pad(date.getDate()),\n  ].join(\"-\");\n\n  const time = [\n    pad(date.getHours()),\n    pad(date.getMinutes()),\n    pad(date.getSeconds()),\n  ].join(\":\");\n\n  return `${day} ${time}`;\n};\n\nconst mapHeaderData = (record, lineItemPromise, soNoDisplay, soID, totals) => {\n  const data = {\n    page_status: \"Convert\", // 'Convert' if from convert\n    si_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    invoice_type: record.so_type,\n    plant_id: plant_id || record.plant_name,\n    so_no_display: soNoDisplay,\n    gd_no_display: \"\",\n    so_id: soID,\n    gd_id: [],\n    customer_id: record.customer_name,\n    currency_code: record.so_currency,\n    si_billing_address: record.cust_billing_address,\n    si_shipping_address: record.cust_shipping_address,\n    sales_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    sales_invoice_no_type: docFormat.id,\n    sales_invoice_date: localDateTimeString(new Date()),\n    sales_person_id: record.so_sales_person,\n    si_payment_term_id: record.so_payment_term,\n    exchange_rate_currency: record.exchange_rate_currency,\n    exchange_rate: record.exchange_rate,\n    exchange_rate_myr: \"MYR\",\n    si_description: record.so_description || \"Sales\",\n    posted_date: \"\",\n    si_area_id: record.so_area_id || \"\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    organization_id: record.organization_id,\n    acc_integration_type: record.acc_integration_type,\n    previous_status: \"\",\n    customer_credit_limit: record.customer_credit_limit,\n    overdue_limit: record.overdue_limit,\n    outstanding_balance: record.outstanding_balance,\n    overdue_inv_total_amount: record.overdue_inv_total_amount,\n    is_accurate: record.is_accurate,\n    is_posted: 0,\n    table_si: lineItemPromise,\n    total_gross_currency: record.total_gross_currency,\n    total_discount_currency: record.total_discount_currency,\n    total_tax_currency: record.total_tax_currency,\n    total_amount_currency: record.total_amount_currency,\n    total_amount_myr: \"MYR\",\n    // Use calculated totals\n    invoice_subtotal: totals.invoice_subtotal,\n    invoice_total_discount: totals.invoice_total_discount,\n    invoice_taxes_amount: totals.invoice_taxes_amount,\n    invoice_total: totals.invoice_total,\n    myr_total_amount: totals.myr_total_amount,\n    tnc: record.so_tnc,\n    payment_term: record.so_payment_details,\n    delivery_term: record.so_delivery_term,\n    remarks: record.so_remarks,\n    remarks2: record.so_remarks2,\n    remarks3: record.so_remarks3,\n    remarks4: record.so_remarks4,\n    remarks5: record.so_remarks5,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n  };\n\n  // SI_SAVE pre-gates internal-trading SIs with pi_confirm 411 and saves NOTHING until the caller\n  // answers it. Nobody here answered it before, so completing an internal-trading SO produced no\n  // invoice at all while still reporting success. handleConvertSOtoSI now asks the user and passes\n  // the answer down as auto_pi.\n  // Harmless when nothing is internally linked -- the gate never arms and both flags are ignored.\n  // Draft never arms it either (the gate requires si_status \"Completed\").\n  if (autoPi === \"confirmed\") {\n    data.auto_pi_confirmed = true;\n  } else if (autoPi === \"skip\") {\n    data.auto_pi_skip = true;\n  }\n\n  data.project_id = record.project_id ?? null;\n\n  return data;\n};\n\n// Helper function to calculate totals from SO data\nconst calculateTotals = (soDataList) => {\n  let totals = {\n    invoice_subtotal: 0,\n    invoice_total_discount: 0,\n    invoice_taxes_amount: 0,\n    invoice_total: 0,\n    myr_total_amount: 0,\n  };\n\n  for (const so of soDataList) {\n    totals.invoice_subtotal += parseFloat(so.so_total_gross) || 0;\n    totals.invoice_total_discount += parseFloat(so.so_total_discount) || 0;\n    totals.invoice_taxes_amount += parseFloat(so.so_total_tax) || 0;\n    totals.invoice_total += parseFloat(so.so_total) || 0;\n    totals.myr_total_amount += parseFloat(so.myr_total_amount) || 0;\n  }\n\n  // Round to 4 decimal places\n  totals.invoice_subtotal = totals.invoice_subtotal.toFixed(8);\n  totals.invoice_total_discount = totals.invoice_total_discount.toFixed(8);\n  totals.invoice_taxes_amount = totals.invoice_taxes_amount.toFixed(8);\n  totals.invoice_total = totals.invoice_total.toFixed(8);\n  totals.myr_total_amount = totals.myr_total_amount.toFixed(8);\n\n  return totals;\n};\n\nif (isMultiple === \"multiple\") {\n  for (const soData of soList) {\n    // Calculate totals for this single SO\n    const totals = calculateTotals([soData]);\n    let siLineItem = [];\n\n    // The invoice is built with the same shape the order has: a bundle is one\n    // row with the bundle's items under its `children`. flattenSoLines has\n    // already put each bundle's items directly after their bundle line, so the\n    // row an item hangs under has always been built by the time it is reached.\n    const siRowBySoLine = {};\n    let lineNumber = 0;\n\n    for (const entry of flattenSoLines(soData.table_so)) {\n      const parentRow = entry.parentId ? siRowBySoLine[entry.parentId] : null;\n\n      // An item under a bundle that was not billed is not billed either: a\n      // bundle is invoiced whole or not at all, and without this the item would\n      // fall through and be added as a loose top-level line.\n      if (entry.parentId && !parentRow) continue;\n\n      // A fully returned line has nothing left to bill, and a zero-quantity line\n      // is what SI_SAVE rejects with 407.\n      if (deductReturnQty && billableQty(entry.line) <= 0) continue;\n\n      if (parentRow) {\n        if (!Array.isArray(parentRow.children)) parentRow.children = [];\n\n        const childItem = mapLineItem(\n          entry.line,\n          soData,\n          `${parentRow.line_index}-${parentRow.children.length + 1}`,\n        );\n\n        parentRow.children.push(childItem);\n        siRowBySoLine[String(entry.line.id)] = childItem;\n        continue;\n      }\n\n      lineNumber++;\n\n      const lineItemPromise = mapLineItem(entry.line, soData, lineNumber);\n      siLineItem.push(lineItemPromise);\n      siRowBySoLine[String(entry.line.id)] = lineItemPromise;\n    }\n\n    const soNoDisplay = soData.so_no;\n    const soID = [soData.id];\n    const mappedData = mapHeaderData(\n      soData,\n      siLineItem,\n      soNoDisplay,\n      soID,\n      totals,\n    );\n    siList.push(mappedData);\n  }\n} else if (isMultiple === \"single\") {\n  const soData = soList[0];\n  const soNoDisplay = soList.map((item) => item.so_no).join(\", \");\n  const soID = soList.map((item) => item.id);\n\n  // Calculate totals for all SOs combined\n  const totals = calculateTotals(soList);\n\n  let siLineItem = [];\n  let lineCounter = 0;\n  // The same tree as above, carried across every order this one invoice covers.\n  const siRowBySoLine = {};\n\n  for (const so of soList) {\n    for (const entry of flattenSoLines(so.table_so)) {\n      const parentRow = entry.parentId ? siRowBySoLine[entry.parentId] : null;\n\n      // An item under a bundle that was not billed is not billed either: a\n      // bundle is invoiced whole or not at all, and without this the item would\n      // fall through and be added as a loose top-level line.\n      if (entry.parentId && !parentRow) continue;\n\n      // A fully returned line has nothing left to bill, and a zero-quantity line\n      // is what SI_SAVE rejects with 407.\n      if (deductReturnQty && billableQty(entry.line) <= 0) continue;\n\n      if (parentRow) {\n        if (!Array.isArray(parentRow.children)) parentRow.children = [];\n\n        const childItem = mapLineItem(\n          entry.line,\n          so,\n          `${parentRow.line_index}-${parentRow.children.length + 1}`,\n        );\n\n        parentRow.children.push(childItem);\n        siRowBySoLine[String(entry.line.id)] = childItem;\n        continue;\n      }\n\n      lineCounter++;\n\n      const lineItemPromise = mapLineItem(entry.line, so, lineCounter);\n      siLineItem.push(lineItemPromise);\n      siRowBySoLine[String(entry.line.id)] = lineItemPromise;\n    }\n  }\n  const mappedData = mapHeaderData(\n    soData,\n    siLineItem,\n    soNoDisplay,\n    soID,\n    totals,\n  );\n  siList.push(mappedData);\n}\n\nreturn { siList };\n"
                         },
                         "response_json": [
                           {
@@ -14111,12 +14155,20 @@
                         "name": "6-1. Set Redis Name",
                         "script": {
                           "type": "javascript",
-                          "code": "const userID = {{system:uid}};\nconst now = new Date();\nconst date = now.toISOString().split('T')[0]; // YYYY-MM-DD\nconst time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS\n\nreturn {\n  redis_name: `CONVERT_SI:${userID}:${date}:${time}`\n  // Example: \"CONVERT_SI:12345:2024-02-24:143022\"\n};"
+                          "code": "const userID = {{system:uid}};\nconst now = new Date();\nconst date = now.toISOString().split('T')[0]; // YYYY-MM-DD\nconst time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS\n\n// One key carries the whole run. It held the loop's cursor alone while nothing\n// came back out of the loop; the caller now wants the invoices that were\n// created, and a code node cannot reach Redis by itself -- only 6-3 reads the\n// key and 9 writes it -- so the created invoices ride along with the cursor in\n// the same value, as JSON.\nreturn {\n  redis_name: `CONVERT_SI:${userID}:${date}:${time}`,\n  // Example: \"CONVERT_SI:12345:2024-02-24:143022\"\n  initial_state: JSON.stringify({ index: 0, si_list: [] })\n};"
                         },
                         "response_json": [
                           {
                             "key": "21x9xe5u",
                             "name": "redis_name",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "socsi_initstate",
+                            "name": "initial_state",
                             "title": "",
                             "description": "",
                             "bsonType": "string",
@@ -14139,7 +14191,7 @@
                         "name": "6-2. Set Redis Cache",
                         "custom_wkbocgni": {
                           "type": "javascript",
-                          "code": "0"
+                          "code": "{{node:code_node_YRozjK8Z.data.initial_state}}"
                         },
                         "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
                       },
@@ -14186,7 +14238,7 @@
                             "name": "7. Current SI",
                             "script": {
                               "type": "javascript",
-                              "code": "const currentIndexRaw = {{node:get_cache_node_l03kAFq7.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst siList = {{node:code_node_sQX9tldw.data.siList}}\nconst siData = siList[index];\n\nreturn {\n  siData,\n  nextIndex: index + 1\n}"
+                              "code": "const stateRaw = {{node:get_cache_node_l03kAFq7.data}};\nconst siList = {{node:code_node_sQX9tldw.data.siList}};\n\n// The key carries `{ index, si_list }` as JSON. A key that expired or was never\n// written reads back empty, and a run that started before the invoices were\n// collected stored a bare index -- both mean \"nothing done yet\" rather than a\n// broken run, so neither is allowed to throw here and strand the loop.\nconst readState = (raw) => {\n  const empty = { index: 0, si_list: [] };\n\n  if (raw === null || raw === undefined || raw === \"\") return empty;\n\n  let state = raw;\n\n  if (typeof state === \"string\") {\n    try {\n      state = JSON.parse(state);\n    } catch (error) {\n      // A bare index written by an older run.\n      return { index: parseInt(raw, 10) || 0, si_list: [] };\n    }\n  }\n\n  if (!state || typeof state !== \"object\") return empty;\n\n  return {\n    index: parseInt(state.index, 10) || 0,\n    si_list: Array.isArray(state.si_list) ? state.si_list : [],\n  };\n};\n\nconst state = readState(stateRaw);\nconst siData = siList[state.index];\n\nconsole.log(\"Convert SI - invoice\", state.index + 1, \"of\", siList.length);\n\nreturn {\n  siData,\n  nextIndex: state.index + 1,\n  // Handed to 8-1 so it can append this iteration's invoice without a second\n  // read of the key.\n  collected: state.si_list,\n};"
                             },
                             "response_json": [
                               {
@@ -14204,6 +14256,15 @@
                                 "title": "",
                                 "description": "",
                                 "bsonType": "int",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "socsi_collected",
+                                "name": "collected",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "array",
                                 "isExpand": false,
                                 "children": []
                               }
@@ -14261,6 +14322,44 @@
                           "blocks": []
                         },
                         {
+                          "id": "code_node_CollectSI01",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "8-1. Collect SI Result",
+                            "isValidator": true,
+                            "nodeName": "8-1. Collect SI Result",
+                            "name": "8-1. Collect SI Result",
+                            "script": {
+                              "type": "javascript",
+                              "code": "const siResult = {{node:workflow_node_gz6u8DqY.data}} || {};\nconst collected = {{node:code_node_9PRotptG.data.collected}} || [];\nconst nextIndex = {{node:code_node_9PRotptG.data.nextIndex}};\n\n// SI_SAVE ends with `id` and `si_no` for the invoice it saved. Every other way\n// out of it is an error end carrying a code and a message, which stops this\n// workflow before this node runs, so anything arriving here without an id saved\n// nothing and is left out of the list rather than added as a blank row.\nconst siId =\n  siResult.id === undefined || siResult.id === null ? \"\" : String(siResult.id);\nconst siNo =\n  siResult.si_no === undefined || siResult.si_no === null\n    ? \"\"\n    : String(siResult.si_no);\n\nconst si_list = collected.slice();\n\nif (siId) {\n  si_list.push({ si_id: siId, si_no: siNo });\n  console.log(\"Convert SI - created\", siNo, siId);\n} else {\n  console.error(\"Convert SI - Create SI returned no id\", siResult);\n}\n\nreturn {\n  si_list,\n  // Written straight back to the same key by node 9: the cursor the loop reads\n  // on its next pass and everything created so far, in one value.\n  state: JSON.stringify({ index: nextIndex, si_list }),\n};"
+                            },
+                            "response_json": [
+                              {
+                                "key": "socsi_c_silist",
+                                "name": "si_list",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "array",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "socsi_c_state",
+                                "name": "state",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
                           "id": "set_cache_node_FdcwMlCb",
                           "type": "set-cache-node",
                           "data": {
@@ -14273,13 +14372,83 @@
                             "name": "9. Set Redis Cache",
                             "custom_wkbocgni": {
                               "type": "javascript",
-                              "code": "{{node:code_node_9PRotptG.data.nextIndex}}"
+                              "code": "{{node:code_node_CollectSI01.data.state}}"
                             },
                             "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
                           },
                           "blocks": []
                         }
                       ]
+                    },
+                    {
+                      "id": "get_cache_node_ConvertSI10",
+                      "type": "get-cache-node",
+                      "data": {
+                        "cache_key": "",
+                        "title": "10. Get Redis Cache",
+                        "isValidator": true,
+                        "nodeName": "10. Get Redis Cache",
+                        "name": "10. Get Redis Cache",
+                        "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_MapSIOut11",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "11. Map SI Output",
+                        "isValidator": true,
+                        "nodeName": "11. Map SI Output",
+                        "name": "11. Map SI Output",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const stateRaw = {{node:get_cache_node_ConvertSI10.data}};\n\n// The same `{ index, si_list }` the loop has been writing, read once now that\n// the loop is done. Nodes share no code, so this repeats node 7's reader.\n// An empty read means the key expired mid-run or the loop created nothing --\n// an empty list is returned rather than failing a run whose invoices were\n// already saved.\nconst readState = (raw) => {\n  const empty = { index: 0, si_list: [] };\n\n  if (raw === null || raw === undefined || raw === \"\") return empty;\n\n  let state = raw;\n\n  if (typeof state === \"string\") {\n    try {\n      state = JSON.parse(state);\n    } catch (error) {\n      return empty;\n    }\n  }\n\n  if (!state || typeof state !== \"object\") return empty;\n\n  return {\n    index: parseInt(state.index, 10) || 0,\n    si_list: Array.isArray(state.si_list) ? state.si_list : [],\n  };\n};\n\nconst si_list = readState(stateRaw).si_list;\n\nconsole.log(\"Convert SI - invoices created\", si_list);\n\nreturn { si_list };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "socsi_o_silist",
+                            "name": "si_list",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "end_convert_si_ok",
+                      "type": "end-node",
+                      "data": {
+                        "isValidator": true,
+                        "title": "12. Return SI List",
+                        "nodeName": "12. Return SI List",
+                        "name": "12. Return SI List",
+                        "back_data_type": "OutputParams",
+                        "msg": { "type": "javascript", "code": "" },
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "si_list",
+                              "propLabel": "si_list",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "valueLabel": "",
+                              "value": "{{node:code_node_MapSIOut11.data.si_list}}",
+                              "is_negative_number": false
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
                     }
                   ]
                 }

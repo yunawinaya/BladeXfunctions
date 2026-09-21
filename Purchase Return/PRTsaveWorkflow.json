@@ -78,7 +78,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}}\nconst saveAs = {{workflowparams:saveAs}}\nconst updatedPRT = []\n\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\nconst lines = allData.table_prt || [];\nfor (const prtLineItem of lines) {\n  // For a completed return, drop zero-return-qty lines (the client already\n  // confirmed their removal). Drafts keep every line.\n  if (saveAs !== \"Draft\" && !(parseFloat(prtLineItem.return_quantity) > 0)) continue;\n\n  prtLineItem.return_quantity = q8(prtLineItem.return_quantity);\n  prtLineItem.received_qty = q8(prtLineItem.received_qty);\n  prtLineItem.unit_price = q8(prtLineItem.unit_price);\n\n  prtLineItem.supplier_id = allData.supplier_id || null;\n  prtLineItem.plant_id = allData.plant || null;\n  prtLineItem.billing_state_id = allData.billing_address_state || null;\n  prtLineItem.billing_country_id = allData.billing_address_country || null;\n  prtLineItem.shipping_state_id = allData.shipping_address_state || null;\n  prtLineItem.shipping_country_id = allData.shipping_address_country || null;\n  prtLineItem.organization_id = allData.organization_id;\n\n  updatedPRT.push(prtLineItem);\n}\n\nupdatedPRT.forEach((line, index) => { line.line_index = index + 1; });\nallData.table_prt = updatedPRT;\n\nallData.po_id = [...new Set(updatedPRT.map((r) => r.po_id).filter((x) => x))];\nallData.gr_id = [...new Set(updatedPRT.map((r) => r.gr_id).filter((x) => x))];\nallData.po_no_display = [...new Set(updatedPRT.map((r) => r.po_number).filter((x) => x))].join(\", \");\nallData.gr_no_display = [...new Set(updatedPRT.map((r) => r.gr_number).filter((x) => x))].join(\", \");\n\nif (saveAs === \"Draft\") {\n  if (allData.purchase_return_no_type !== -9999 && (!allData.purchase_return_no || allData.purchase_return_no === null || allData.purchase_return_no === \"\")) {\n    allData.purchase_return_no = \"draft\";\n  }\n} else {\n  if (allData.purchase_return_no_type !== -9999 && (!allData.purchase_return_no || allData.purchase_return_no === null || allData.purchase_return_no === \"\" || allData.previous_status === \"Draft\")) {\n    allData.purchase_return_no = \"issued\";\n  }\n}\n\nallData.purchase_return_status = saveAs === \"Draft\" ? \"Draft\" : saveAs === \"Created\" ? \"Created\" : \"Completed\";\n\nif (allData.acc_integration_type && allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n}\n\nreturn {\n  allData: allData,\n  purchase_return_status: allData.purchase_return_status,\n}"
+          "code": "let allData = {{workflowparams:allData}}\nconst saveAs = {{workflowparams:saveAs}}\n\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n};\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_prt is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. The bundle row carries no material and holds no stock -- its\n// quantity is the number of bundles being returned -- while its items are\n// ordinary return lines that simply are not rows of table_prt.\n//\n// Every per-line step in this workflow has to see those items, and none of them\n// should have to know about bundles to do it. So the tree is walked flat here\n// and handed on as two views:\n//\n//   loopRows       every line, bundle rows included -- what the goods receiving\n//                  and purchase order sync is aggregated from, since the GR's\n//                  own bundle line is booked against too\n//   inventoryRows  the same list without the bundle rows -- what the two\n//                  inventory loops iterate, because nothing is picked, checked\n//                  or subtracted against a bundle\n//\n// allData.table_prt stays a tree: that is the shape the document is stored in.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\nconst flattenPrtRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n// Everything stamped onto a line regardless of where it sits in the tree. A\n// bundle's items are lines in their own right and carry the same header fields\n// as a top-level line.\nconst stampLine = (prtLineItem, lineLabel) => {\n  prtLineItem.return_quantity = formatNumber(prtLineItem.return_quantity);\n  prtLineItem.received_qty = formatNumber(prtLineItem.received_qty);\n  prtLineItem.unit_price = formatNumber(prtLineItem.unit_price);\n\n  prtLineItem.supplier_id = allData.supplier_id || null;\n  prtLineItem.plant_id = allData.plant || null;\n  prtLineItem.billing_state_id = allData.billing_address_state || null;\n  prtLineItem.billing_country_id = allData.billing_address_country || null;\n  prtLineItem.shipping_state_id = allData.shipping_address_state || null;\n  prtLineItem.shipping_country_id = allData.shipping_address_country || null;\n  prtLineItem.organization_id = allData.organization_id;\n  prtLineItem.line_index = lineLabel;\n};\n\n// For a completed return, drop zero-return-qty lines (the client already\n// confirmed their removal). Drafts keep every line.\nconst keepsLine = (row) =>\n  saveAs === \"Draft\" || parseFloat(row.return_quantity) > 0;\n\nconst updatedPRT = [];\n\nfor (const prtLineItem of allData.table_prt || []) {\n  if (!keepsLine(prtLineItem)) continue;\n\n  const kids = childrenOf(prtLineItem);\n\n  if (kids.length > 0) {\n    const keptKids = kids.filter(keepsLine);\n\n    // A bundle with nothing left to return is not a line.\n    if (isBundleParentRow(prtLineItem) && keptKids.length === 0) continue;\n\n    prtLineItem.children = keptKids;\n  }\n\n  updatedPRT.push(prtLineItem);\n}\n\nupdatedPRT.forEach((line, index) => {\n  stampLine(line, index + 1);\n\n  // A bundle's items are numbered under the line they belong to -- 2/1, 2/2 for\n  // the items of line 2. line_index is a text column, so the label is safe to\n  // store.\n  childrenOf(line).forEach((child, childIndex) => {\n    stampLine(child, `${index + 1}/${childIndex + 1}`);\n  });\n});\n\nallData.table_prt = updatedPRT;\n\nconst loopRows = flattenPrtRows(updatedPRT);\nconst inventoryRows = loopRows.filter((row) => !isBundleParentRow(row));\n\nallData.po_id = [...new Set(loopRows.map((r) => r.po_id).filter((x) => x))];\nallData.gr_id = [...new Set(loopRows.map((r) => r.gr_id).filter((x) => x))];\nallData.po_no_display = [...new Set(loopRows.map((r) => r.po_number).filter((x) => x))].join(\", \");\nallData.gr_no_display = [...new Set(loopRows.map((r) => r.gr_number).filter((x) => x))].join(\", \");\n\nif (saveAs === \"Draft\") {\n  if (allData.purchase_return_no_type !== -9999 && (!allData.purchase_return_no || allData.purchase_return_no === null || allData.purchase_return_no === \"\")) {\n    allData.purchase_return_no = \"draft\";\n  }\n} else {\n  if (allData.purchase_return_no_type !== -9999 && (!allData.purchase_return_no || allData.purchase_return_no === null || allData.purchase_return_no === \"\" || allData.previous_status === \"Draft\")) {\n    allData.purchase_return_no = \"issued\";\n  }\n}\n\nallData.purchase_return_status = saveAs === \"Draft\" ? \"Draft\" : saveAs === \"Created\" ? \"Created\" : \"Completed\";\n\nif (allData.acc_integration_type && allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n}\n\nreturn {\n  allData: allData,\n  purchase_return_status: allData.purchase_return_status,\n  loopRows: loopRows,\n  inventoryRows: inventoryRows,\n}"
         },
         "response_json": [
           {
@@ -97,6 +97,24 @@
             "description": "",
             "bsonType": "string",
             "isExpand": false
+          },
+          {
+            "key": "lprw1t4k",
+            "name": "loopRows",
+            "title": "loopRows",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "invr7q2m",
+            "name": "inventoryRows",
+            "title": "inventoryRows",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
@@ -228,7 +246,9 @@
         {
           "id": "ifBlock_qd7BzOTN",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "return_node_kgW57gdG",
@@ -271,7 +291,9 @@
         {
           "id": "ifBlock_T6HP4qKq",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -285,7 +307,10 @@
         "nodeName": "IF Completed",
         "name": "IF Completed",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -309,7 +334,9 @@
         {
           "id": "ifBlock_00XgkI6z",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_VXxweMiJ",
@@ -324,7 +351,7 @@
                 "name": "Validate Location & Quantity",
                 "script": {
                   "type": "javascript",
-                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}}\nconst subformData = allData.table_prt || []\n\nlet quantityFailed = 0\nlet quantityMessage\n\nconst hasQuantity = subformData.some((line) => {\n  if (!line.temp_qty_data) return false;\n  try {\n    const parsed = JSON.parse(line.temp_qty_data);\n    return Array.isArray(parsed) && parsed.some(\n      (entry) => entry.return_quantity && parseFloat(entry.return_quantity) > 0\n    );\n  } catch (e) {\n    return false;\n  }\n});\n\nif (!hasQuantity) {\n  quantityFailed = 1\n  quantityMessage = 'No quantity selected to return'\n}\n\nreturn { quantityFailed: quantityFailed, quantityMessage: quantityMessage };"
+                  "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}}\n\n// table_prt is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Nothing is picked against the bundle row itself, so its\n// temp_qty_data is always empty -- a return holding only a bundle would look\n// like a return with no quantity at all if the walk stopped at the top level.\nconst subformData = {{node:code_node_ISWz5KGY.data.loopRows}} || []\n\nlet quantityFailed = 0\nlet quantityMessage\n\nconst hasQuantity = subformData.some((line) => {\n  if (!line.temp_qty_data) return false;\n  try {\n    const parsed = JSON.parse(line.temp_qty_data);\n    return Array.isArray(parsed) && parsed.some(\n      (entry) => entry.return_quantity && parseFloat(entry.return_quantity) > 0\n    );\n  } catch (e) {\n    return false;\n  }\n});\n\nif (!hasQuantity) {\n  quantityFailed = 1\n  quantityMessage = 'No quantity selected to return'\n}\n\nreturn { quantityFailed: quantityFailed, quantityMessage: quantityMessage };"
                 },
                 "response_json": [
                   {
@@ -380,7 +407,9 @@
                 {
                   "id": "ifBlock_Ffg36Mwg",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_mIiCS5xi",
@@ -423,7 +452,9 @@
                 {
                   "id": "ifBlock_jMnPji2K",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -433,7 +464,9 @@
         {
           "id": "ifBlock_G4xNTWIB",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -447,7 +480,10 @@
         "nodeName": "IF Completed",
         "name": "IF Completed",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -471,7 +507,9 @@
         {
           "id": "ifBlock_DNEJ0kWM",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "loop_C4YuLV2v",
@@ -517,7 +555,7 @@
                 },
                 "loopSeletVar": {
                   "type": "markdown",
-                  "code": "{{node:code_node_ISWz5KGY.data.allData.table_prt}}"
+                  "code": "{{node:code_node_ISWz5KGY.data.inventoryRows}}"
                 }
               },
               "blocks": [
@@ -935,13 +973,18 @@
                             }
                           ]
                         },
-                        "expression": { "type": "javascript", "code": "" }
+                        "expression": {
+                          "type": "javascript",
+                          "code": ""
+                        }
                       },
                       "blocks": [
                         {
                           "id": "ifBlock_zHEPbzix",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "return_node_ljfQ70jk",
@@ -984,7 +1027,9 @@
                         {
                           "id": "ifBlock_LoWlIKEq",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -998,7 +1043,9 @@
         {
           "id": "ifBlock_bI0SzYgD",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -1012,7 +1059,10 @@
         "nodeName": "IF !Draft",
         "name": "IF !Draft",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -1036,7 +1086,9 @@
         {
           "id": "ifBlock_n0sNVTQ5",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "if_PRTorigEdit",
@@ -1047,7 +1099,10 @@
                 "nodeName": "IF Edit (Original PRT)",
                 "name": "IF Edit (Original PRT)",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -1071,7 +1126,9 @@
                 {
                   "id": "ifBlock_PRTorigEdit_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "search_origPRT",
@@ -1113,7 +1170,9 @@
                 {
                   "id": "ifBlock_PRTorigEdit_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1131,7 +1190,7 @@
                 "name": "Sync Target Ids",
                 "script": {
                   "type": "javascript",
-                  "code": "const newLines = {{node:code_node_ISWz5KGY.data.allData.table_prt}} || [];\n\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\nconst origLines = origPRT && Array.isArray(origPRT.table_prt) ? origPRT.table_prt : [];\n\n// Union of the new and the pre-edit lines. A line that was deleted — or zeroed, and\n// so dropped by fillback — still holds a created_return_qty on its GR/PO, and those\n// rows have to be fetched or the reservation is stranded forever.\nconst all = newLines.concat(origLines);\nconst uniq = (key) => [...new Set(all.map((l) => l[key]).filter((x) => x))];\n\n// Sentinel keeps the equalAny filter well-formed when nothing is linked; it matches nothing.\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"__none__\"]);\n\nreturn {\n  grIds: orNone(uniq(\"gr_id\")),\n  poLineIds: orNone(uniq(\"po_line_id\")),\n  // Item ids for the batched Item fetch that rides cond_all_PRTsync\n  // (replaces a per-line get-node inside loop_BBZNjfzE).\n  itemIds: orNone(uniq(\"material_id\")),\n};"
+                  "code": "// table_prt is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Those items carry their own purchase order line and their own\n// material, so a walk that stops at the top level fetches neither -- and the\n// sync and the inventory subtraction downstream both come up empty for them.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenPrtRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst newLines = {{node:code_node_ISWz5KGY.data.loopRows}} || [];\n\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\nconst origLines = origPRT && Array.isArray(origPRT.table_prt) ? flattenPrtRows(origPRT.table_prt) : [];\n\n// Union of the new and the pre-edit lines. A line that was deleted — or zeroed, and\n// so dropped by fillback — still holds a created_return_qty on its GR/PO, and those\n// rows have to be fetched or the reservation is stranded forever.\nconst all = newLines.concat(origLines);\nconst uniq = (key) => [...new Set(all.map((l) => l[key]).filter((x) => x))];\n\n// Sentinel keeps the equalAny filter well-formed when nothing is linked; it matches nothing.\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"__none__\"]);\n\nreturn {\n  grIds: orNone(uniq(\"gr_id\")),\n  poLineIds: orNone(uniq(\"po_line_id\")),\n  // Item ids for the batched Item fetch that rides cond_all_PRTsync\n  // (replaces a per-line get-node inside loop_BBZNjfzE).\n  itemIds: orNone(uniq(\"material_id\")),\n};"
                 },
                 "response_json": [
                   {
@@ -1168,8 +1227,12 @@
               "type": "condition-all-node",
               "data": {
                 "title": "Fetch Sync Targets",
-                "filter": { "list": [] },
-                "expression": { "code": "" },
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
                 "displayContent": "sdk.form.setCondition"
               },
               "blocks": [
@@ -1193,7 +1256,10 @@
                         }
                       ]
                     },
-                    "expression": { "code": "true", "type": "javascript" },
+                    "expression": {
+                      "code": "true",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Branch 1",
@@ -1258,7 +1324,10 @@
                         }
                       ]
                     },
-                    "expression": { "code": "true", "type": "javascript" },
+                    "expression": {
+                      "code": "true",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Branch 2",
@@ -1323,7 +1392,10 @@
                         }
                       ]
                     },
-                    "expression": { "code": "true", "type": "javascript" },
+                    "expression": {
+                      "code": "true",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Get Items",
@@ -1387,7 +1459,7 @@
                 "name": "Validate Returnable Qty",
                 "script": {
                   "type": "javascript",
-                  "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\nconst allData = {{node:code_node_ISWz5KGY.data.allData}} || {};\nconst pageStatus = {{workflowparams:pageStatus}};\n\nlet grHeads = {{node:search_grHeads.data.data}} || [];\nif (!Array.isArray(grHeads)) grHeads = [grHeads];\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\n\n// Only a previously-Created document already holds a reservation on these GR lines.\nconst hadReservation =\n  pageStatus === \"Edit\" && origPRT && origPRT.purchase_return_status === \"Created\";\nconst origLines = hadReservation && Array.isArray(origPRT.table_prt) ? origPRT.table_prt : [];\n\nconst aggregate = (rows) => {\n  const m = {};\n  for (const r of rows || []) {\n    const k = r.gr_line_id;\n    if (!k) continue;\n    m[k] = q8((m[k] || 0) + parseFloat(r.return_quantity || 0));\n  }\n  return m;\n};\n\nconst requested = aggregate(allData.table_prt);\nconst ownOld = aggregate(origLines);\n\nconst grLineById = {};\nfor (const gr of grHeads) {\n  for (const it of gr.table_gr || []) grLineById[it.id] = it;\n}\n\n// received_qty is taken from the PRT row, not the GR line. For a serialized item the row\n// is converted to base UOM, and so are the quantities booked back onto the GR line, while\n// the GR line's own received_qty stays in the receiving UOM. Reading the row keeps both\n// sides of the subtraction in the same unit.\nconst receivedById = {};\nfor (const line of allData.table_prt || []) {\n  if (line.gr_line_id) receivedById[line.gr_line_id] = q8(line.received_qty);\n}\n\nconst offenders = [];\nfor (const grLineId of Object.keys(requested)) {\n  const grLine = grLineById[grLineId];\n  if (!grLine) continue; // line no longer on the goods receiving; nothing to check against\n\n  const received = receivedById[grLineId] || 0;\n  const returned = q8(grLine.return_quantity);\n  const reserved = q8(grLine.created_return_qty);\n\n  // This document's own reservation is about to be replaced, so it is still available to\n  // it. What any other document returned or reserved is not. The client-side dialog cap\n  // uses a returned_quantity snapshotted when the row was added, so it goes stale as soon\n  // as a sibling purchase return touches the same line — this is the authoritative check.\n  const available = q8(received - returned - reserved + (ownOld[grLineId] || 0));\n  const want = requested[grLineId];\n\n  if (want > available + 0.0005) {\n    const label = grLine.item_name || grLine.item_desc || grLineId;\n    offenders.push(\n      label + \": returning \" + want + \", only \" + Math.max(0, available) + \" still returnable\",\n    );\n  }\n}\n\nlet returnableFailed = 0;\nlet returnableMessage = \"\";\nif (offenders.length > 0) {\n  returnableFailed = 1;\n  returnableMessage =\n    \"Return quantity exceeds what is still returnable on the goods receiving:\\n\" +\n    offenders.join(\"\\n\");\n}\n\nreturn { returnableFailed: returnableFailed, returnableMessage: returnableMessage };"
+                  "code": "const roundQty = (v) => Math.round((parseFloat(v) || 0) * 100000000) / 100000000;\n\nconst allData = {{node:code_node_ISWz5KGY.data.allData}} || {};\nconst pageStatus = {{workflowparams:pageStatus}};\n\nlet grHeads = {{node:search_grHeads.data.data}} || [];\nif (!Array.isArray(grHeads)) grHeads = [grHeads];\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_prt is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Those items are the rows stock is returned from and each is\n// booked back onto its own goods receiving line, so every aggregate below is\n// taken over the flat view. The bundle row is in it too: the receiving has a\n// bundle line of its own and it is returned against in bundles.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.material_id;\nconst flattenPrtRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst newLines = {{node:code_node_ISWz5KGY.data.loopRows}} || [];\n\n// Only a previously-Created document already holds a reservation on these GR lines.\nconst hadReservation =\n  pageStatus === \"Edit\" && origPRT && origPRT.purchase_return_status === \"Created\";\nconst origLines = hadReservation && Array.isArray(origPRT.table_prt) ? flattenPrtRows(origPRT.table_prt) : [];\n\nconst aggregate = (rows) => {\n  const m = {};\n  for (const r of rows || []) {\n    const k = r.gr_line_id;\n    if (!k) continue;\n    m[k] = roundQty((m[k] || 0) + parseFloat(r.return_quantity || 0));\n  }\n  return m;\n};\n\nconst requested = aggregate(newLines);\nconst ownOld = aggregate(origLines);\n\nconst grLineById = {};\nfor (const gr of grHeads) {\n  for (const it of gr.table_gr || []) grLineById[it.id] = it;\n}\n\n// received_qty is taken from the PRT row, not the GR line. For a serialized item the row\n// is converted to base UOM, and so are the quantities booked back onto the GR line, while\n// the GR line's own received_qty stays in the receiving UOM. Reading the row keeps both\n// sides of the subtraction in the same unit.\nconst receivedById = {};\nfor (const line of newLines) {\n  if (line.gr_line_id) receivedById[line.gr_line_id] = roundQty(line.received_qty);\n}\n\nconst offenders = [];\nfor (const grLineId of Object.keys(requested)) {\n  const grLine = grLineById[grLineId];\n  if (!grLine) continue; // line no longer on the goods receiving; nothing to check against\n\n  const received = receivedById[grLineId] || 0;\n  const returned = roundQty(grLine.return_quantity);\n  const reserved = roundQty(grLine.created_return_qty);\n\n  // This document's own reservation is about to be replaced, so it is still available to\n  // it. What any other document returned or reserved is not. The client-side dialog cap\n  // uses a returned_quantity snapshotted when the row was added, so it goes stale as soon\n  // as a sibling purchase return touches the same line — this is the authoritative check.\n  const available = roundQty(received - returned - reserved + (ownOld[grLineId] || 0));\n  const want = requested[grLineId];\n\n  if (want > available + 0.0005) {\n    const label = grLine.item_name || grLine.item_desc || grLineId;\n    offenders.push(\n      label + \": returning \" + want + \", only \" + Math.max(0, available) + \" still returnable\",\n    );\n  }\n}\n\n// A bundle is returned whole or not at all. Every item under it carries the\n// quantity the bundle row fixed for it -- returning 2 of item A against 1 of\n// item B, when the bundle holds one of each, is not a bundle. The form is the\n// only thing enforcing that, so anything reaching this workflow by another\n// route (an API call, a stale page) would otherwise persist it and move the\n// wrong stock.\n//\n// The rate is worked out the same way the form works it out: what is still\n// returnable on the item, over what is still returnable on the bundle. An item\n// can never be returned past its own outstanding quantity, whatever the ratio\n// comes to, which is the cap on the expected figure.\nconst outstanding = (row) =>\n  roundQty(\n    (parseFloat(row.received_qty) || 0) - (parseFloat(row.returned_quantity) || 0),\n  );\n\nconst bundleRatioProblem = (parent, child) => {\n  const bundlesOutstanding = outstanding(parent);\n\n  // Nothing to derive a rate from -- leave the line alone rather than guess.\n  if (bundlesOutstanding <= 0) return null;\n\n  const childOutstanding = outstanding(child);\n  const ratio = (parseFloat(parent.return_quantity) || 0) / bundlesOutstanding;\n  const scaled = roundQty(childOutstanding * ratio);\n  const expected = scaled > childOutstanding ? childOutstanding : scaled;\n  const actual = roundQty(child.return_quantity);\n\n  return Math.abs(actual - expected) > 0.001 ? { expected: expected, actual: actual } : null;\n};\n\nconst bundleOffenders = [];\n(allData.table_prt || []).forEach((row, index) => {\n  if (!isBundleParentRow(row)) return;\n\n  childrenOf(row).forEach((child, childIndex) => {\n    const ratio = bundleRatioProblem(row, child);\n    if (!ratio) return;\n\n    const label = child.material_name || child.material_desc || child.material_id || \"Unknown\";\n    bundleOffenders.push(\n      \"Row \" + (index + 1) + \"/\" + (childIndex + 1) + \" \" + label +\n        \": expected \" + ratio.expected + \", got \" + ratio.actual,\n    );\n  });\n});\n\nlet returnableFailed = 0;\nlet returnableMessage = \"\";\nconst parts = [];\n\nif (offenders.length > 0) {\n  parts.push(\n    \"Return quantity exceeds what is still returnable on the goods receiving:\\n\" +\n      offenders.join(\"\\n\"),\n  );\n}\n\nif (bundleOffenders.length > 0) {\n  parts.push(\n    \"Item bundle quantities must stay in proportion to the number of bundles:\\n\" +\n      bundleOffenders.join(\"\\n\") +\n      \"\\nReturn an item bundle by its bundle line - its items follow from it and cannot be returned on their own.\",\n  );\n}\n\nif (parts.length > 0) {\n  returnableFailed = 1;\n  returnableMessage = parts.join(\"\\n\\n\");\n}\n\nreturn { returnableFailed: returnableFailed, returnableMessage: returnableMessage };"
                 },
                 "response_json": [
                   {
@@ -1419,7 +1491,10 @@
                 "nodeName": "IF Returnable Exceeded",
                 "name": "IF Returnable Exceeded",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -1443,7 +1518,9 @@
                 {
                   "id": "ifBlock_PRTreturnable_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "return_node_PRTreturnable",
@@ -1486,7 +1563,9 @@
                 {
                   "id": "ifBlock_PRTreturnable_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1500,7 +1579,10 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -1524,7 +1606,9 @@
                 {
                   "id": "ifBlock_u4YMhvkT",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_SPHzcj8Y",
@@ -2338,14 +2422,6 @@
                               "propLabel": "acc_integration_type"
                             },
                             {
-                              "prop": "project_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
-                              "valueLabel": "",
-                              "propLabel": "Project"
-                            },
-                            {
                               "prop": "posted_status",
                               "operator": "",
                               "valueType": "field",
@@ -2387,7 +2463,9 @@
                 {
                   "id": "ifBlock_IrKHTJYF",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "add_node_1p1Kdkhz",
@@ -3189,14 +3267,6 @@
                               "propLabel": "acc_integration_type"
                             },
                             {
-                              "prop": "project_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
-                              "valueLabel": "",
-                              "propLabel": "Project"
-                            },
-                            {
                               "prop": "posted_status",
                               "operator": "",
                               "valueType": "field",
@@ -3246,7 +3316,10 @@
                 "nodeName": "IF Completed (Inventory)",
                 "name": "IF Completed (Inventory)",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -3270,7 +3343,9 @@
                 {
                   "id": "ifBlock_PRTcompletedInv_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "if_PRTgetUpdatedEdit",
@@ -3290,7 +3365,9 @@
                         {
                           "id": "if_block_PRTgetUpdatedTrue",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "get_node_7CFMbGI0",
@@ -3331,7 +3408,9 @@
                         {
                           "id": "if_block_PRTgetUpdatedFalse",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -3380,7 +3459,7 @@
                         },
                         "loopSeletVar": {
                           "type": "markdown",
-                          "code": "{{node:code_node_ISWz5KGY.data.allData.table_prt}}"
+                          "code": "{{node:code_node_ISWz5KGY.data.inventoryRows}}"
                         }
                       },
                       "blocks": [
@@ -3857,7 +3936,9 @@
                                 {
                                   "id": "ifBlock_uG4Tvq0t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "return_node_uzDMH1yp",
@@ -3898,7 +3979,9 @@
                                     {
                                       "id": "breakLoop_Fj3EyGF5",
                                       "type": "breakLoop",
-                                      "data": { "title": "退出循环" },
+                                      "data": {
+                                        "title": "退出循环"
+                                      },
                                       "blocks": []
                                     }
                                   ]
@@ -3906,7 +3989,9 @@
                                 {
                                   "id": "ifBlock_zEqGosek",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -3928,7 +4013,7 @@
                         "name": "Aggregate HU Unloads",
                         "script": {
                           "type": "javascript",
-                          "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}};\nconst subformData = allData.table_prt || [];\nconst plantId = allData.plant;\nconst organizationId = allData.organization_id;\n\nconst huUpdatesMap = new Map();\nfor (const line of subformData) {\n  if (!line.temp_qty_data) continue;\n  let entries;\n  try {\n    entries = JSON.parse(line.temp_qty_data);\n  } catch (e) {\n    continue;\n  }\n  if (!Array.isArray(entries)) continue;\n\n  for (const entry of entries) {\n    const huId = entry.handling_unit_id;\n    if (!huId) continue;\n    const qty = parseFloat(entry.return_quantity || 0);\n    if (qty <= 0) continue;\n\n    if (!huUpdatesMap.has(huId)) {\n      huUpdatesMap.set(huId, {\n        handling_unit_id: huId,\n        plant_id: plantId,\n        organization_id: organizationId,\n        location_id: entry.location_id || null,\n        storage_location_id: entry.storage_location_id || null,\n        items: [],\n      });\n    }\n    const update = huUpdatesMap.get(huId);\n\n    const key = `${entry.material_id}__${entry.balance_id || \"\"}__${entry.batch_id || \"\"}`;\n    const existing = update.items.find(\n      (i) => `${i.material_id}__${i.balance_id || \"\"}__${i.batch_id || \"\"}` === key\n    );\n    if (existing) {\n      existing.quantity += qty;\n    } else {\n      update.items.push({\n        material_id: entry.material_id,\n        balance_id: entry.balance_id || \"\",\n        batch_id: entry.batch_id || null,\n        quantity: qty,\n      });\n    }\n  }\n}\n\nreturn {\n  huUpdates: Array.from(huUpdatesMap.values()),\n  huUpdatesLength: huUpdatesMap.size,\n};"
+                          "code": "const allData = {{node:code_node_ISWz5KGY.data.allData}};\n\n// table_prt is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Nothing is picked against the bundle row, so every handling unit\n// a bundle unloads from is recorded on an item -- a walk that stops at the top\n// level unloads none of them.\nconst subformData = {{node:code_node_ISWz5KGY.data.inventoryRows}} || [];\nconst plantId = allData.plant;\nconst organizationId = allData.organization_id;\n\nconst huUpdatesMap = new Map();\nfor (const line of subformData) {\n  if (!line.temp_qty_data) continue;\n  let entries;\n  try {\n    entries = JSON.parse(line.temp_qty_data);\n  } catch (e) {\n    continue;\n  }\n  if (!Array.isArray(entries)) continue;\n\n  for (const entry of entries) {\n    const huId = entry.handling_unit_id;\n    if (!huId) continue;\n    const qty = parseFloat(entry.return_quantity || 0);\n    if (qty <= 0) continue;\n\n    if (!huUpdatesMap.has(huId)) {\n      huUpdatesMap.set(huId, {\n        handling_unit_id: huId,\n        plant_id: plantId,\n        organization_id: organizationId,\n        location_id: entry.location_id || null,\n        storage_location_id: entry.storage_location_id || null,\n        items: [],\n      });\n    }\n    const update = huUpdatesMap.get(huId);\n\n    const key = `${entry.material_id}__${entry.balance_id || \"\"}__${entry.batch_id || \"\"}`;\n    const existing = update.items.find(\n      (i) => `${i.material_id}__${i.balance_id || \"\"}__${i.batch_id || \"\"}` === key\n    );\n    if (existing) {\n      existing.quantity += qty;\n    } else {\n      update.items.push({\n        material_id: entry.material_id,\n        balance_id: entry.balance_id || \"\",\n        batch_id: entry.batch_id || null,\n        quantity: qty,\n      });\n    }\n  }\n}\n\nreturn {\n  huUpdates: Array.from(huUpdatesMap.values()),\n  huUpdatesLength: huUpdatesMap.size,\n};"
                         },
                         "response_json": [
                           {
@@ -4188,7 +4273,10 @@
                             "nodeName": "IF Error",
                             "name": "IF Error",
                             "condition_type": "ConditionRule",
-                            "expression": { "type": "javascript", "code": "" },
+                            "expression": {
+                              "type": "javascript",
+                              "code": ""
+                            },
                             "filter": {
                               "list": [
                                 {
@@ -4212,7 +4300,9 @@
                             {
                               "id": "if_block_AZbIrDpl",
                               "type": "ifBlock",
-                              "data": { "title": "true" },
+                              "data": {
+                                "title": "true"
+                              },
                               "blocks": [
                                 {
                                   "id": "return_node_f3qT9zy5",
@@ -4255,7 +4345,9 @@
                             {
                               "id": "if_block_hkGUcsoO",
                               "type": "ifBlock",
-                              "data": { "title": "false" },
+                              "data": {
+                                "title": "false"
+                              },
                               "blocks": []
                             }
                           ]
@@ -4324,7 +4416,9 @@
                 {
                   "id": "ifBlock_PRTcompletedInv_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -4342,7 +4436,7 @@
                 "name": "PO/GR Sync Calc",
                 "script": {
                   "type": "javascript",
-                  "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst asStr = (v) => Math.max(0, q8(v)).toFixed(8);\n\nconst allData = {{node:code_node_ISWz5KGY.data.allData}} || {};\nconst saveAs = {{workflowparams:saveAs}};\nconst pageStatus = {{workflowparams:pageStatus}};\n\nlet poLines = {{node:search_poLines.data.data}} || [];\nif (!Array.isArray(poLines)) poLines = [poLines];\nlet grHeads = {{node:search_grHeads.data.data}} || [];\nif (!Array.isArray(grHeads)) grHeads = [grHeads];\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\n\n// Only a PRT that was already \"Created\" holds a reservation. Editing a Draft (or\n// adding) has nothing to diff against, so oldAgg stays empty and the Completed\n// path degrades to a plain \"return_quantity += new\".\nconst hadReservation =\n  pageStatus === \"Edit\" && origPRT && origPRT.purchase_return_status === \"Created\";\nconst origLines = hadReservation && Array.isArray(origPRT.table_prt) ? origPRT.table_prt : [];\n\nconst aggregate = (rows, key) => {\n  const m = {};\n  for (const r of rows || []) {\n    const k = r[key];\n    if (!k) continue;\n    m[k] = q8((m[k] || 0) + parseFloat(r.return_quantity || 0));\n  }\n  return m;\n};\n\nconst newByPoLine = aggregate(allData.table_prt, \"po_line_id\");\nconst oldByPoLine = aggregate(origLines, \"po_line_id\");\nconst newByGrLine = aggregate(allData.table_prt, \"gr_line_id\");\nconst oldByGrLine = aggregate(origLines, \"gr_line_id\");\n\nconst isCreated = saveAs === \"Created\";\n\n// Created  : created_return_qty += (new - old)          return_quantity untouched\n// Completed: created_return_qty -= old  AND  return_quantity += new  (one write)\nconst apply = (curCreated, curReturn, nq, oq) =>\n  isCreated\n    ? { created: Math.max(0, q8(curCreated + nq - oq)), returned: curReturn }\n    : {\n        created: Math.max(0, q8(curCreated - oq)),\n        returned: Math.max(0, q8(curReturn + nq)),\n      };\n\nconst poLineUpdates = [];\nfor (const line of poLines) {\n  const curCreated = q8(line.created_return_qty);\n  const curReturn = q8(line.return_quantity);\n  const next = apply(curCreated, curReturn, newByPoLine[line.id] || 0, oldByPoLine[line.id] || 0);\n  if (next.created === curCreated && next.returned === curReturn) continue;\n  poLineUpdates.push({\n    id: line.id,\n    created_return_qty: asStr(next.created),\n    return_quantity: asStr(next.returned),\n  });\n}\n\nconst grUpdates = [];\nfor (const gr of grHeads) {\n  const items = (gr.table_gr || []).map((it) => ({ ...it }));\n  let changed = false;\n  for (const it of items) {\n    const curCreated = q8(it.created_return_qty);\n    const curReturn = q8(it.return_quantity);\n    const next = apply(curCreated, curReturn, newByGrLine[it.id] || 0, oldByGrLine[it.id] || 0);\n    if (next.created !== curCreated || next.returned !== curReturn) changed = true;\n    it.created_return_qty = asStr(next.created);\n    it.return_quantity = asStr(next.returned);\n  }\n\n  // Split children are per-bin detail; only parent/regular rows are returnable, and\n  // PRT lines only ever target those. Counting children would make \"Fully Returned\"\n  // unreachable for any split goods receiving.\n  const returnable = items.filter((it) => it.parent_or_child !== \"Child\");\n\n  let fully = 0;\n  let partially = 0;\n  let reserved = 0;\n  for (const it of returnable) {\n    const rq = parseFloat(it.return_quantity || 0);\n    const cq = parseFloat(it.created_return_qty || 0);\n    if (rq > 0) {\n      partially++;\n      if (rq >= parseFloat(it.received_qty || 0)) fully++;\n    }\n    if (cq > 0) reserved++;\n  }\n  let status = \"\";\n  if (returnable.length > 0 && fully === returnable.length) status = \"Fully Returned\";\n  else if (partially > 0) status = \"Partially Returned\";\n  else if (reserved > 0) status = \"Created\";\n\n  if (!changed && status === (gr.return_status || \"\")) continue;\n  grUpdates.push({ id: gr.id, table_gr: items, return_status: status });\n}\n\nreturn {\n  poLineUpdates: poLineUpdates,\n  grUpdates: grUpdates,\n  hasPoUpdates: poLineUpdates.length > 0 ? 1 : 0,\n  hasGrUpdates: grUpdates.length > 0 ? 1 : 0,\n};"
+                  "code": "const roundQty = (v) => Math.round((parseFloat(v) || 0) * 100000000) / 100000000;\nconst asStr = (v) => Math.max(0, roundQty(v)).toFixed(8);\n\n// table_prt is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Those items are return lines in their own right -- each is booked\n// back onto its own purchase order and goods receiving line -- so the walk has\n// to reach them.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenPrtRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\nconst allData = {{node:code_node_ISWz5KGY.data.allData}} || {};\nconst saveAs = {{workflowparams:saveAs}};\nconst pageStatus = {{workflowparams:pageStatus}};\n\nlet poLines = {{node:search_poLines.data.data}} || [];\nif (!Array.isArray(poLines)) poLines = [poLines];\nlet grHeads = {{node:search_grHeads.data.data}} || [];\nif (!Array.isArray(grHeads)) grHeads = [grHeads];\nlet origRaw = {{node:search_origPRT.data.data}} || [];\nif (!Array.isArray(origRaw)) origRaw = [origRaw];\nconst origPRT = origRaw[0] || null;\n\n// Only a PRT that was already \"Created\" holds a reservation. Editing a Draft (or\n// adding) has nothing to diff against, so oldAgg stays empty and the Completed\n// path degrades to a plain \"return_quantity += new\".\nconst hadReservation =\n  pageStatus === \"Edit\" && origPRT && origPRT.purchase_return_status === \"Created\";\nconst origLines = hadReservation && Array.isArray(origPRT.table_prt) ? flattenPrtRows(origPRT.table_prt) : [];\n\nconst aggregate = (rows, key) => {\n  const m = {};\n  for (const r of rows || []) {\n    const k = r[key];\n    if (!k) continue;\n    m[k] = roundQty((m[k] || 0) + parseFloat(r.return_quantity || 0));\n  }\n  return m;\n};\n\nconst newLines = {{node:code_node_ISWz5KGY.data.loopRows}} || [];\n\nconst newByPoLine = aggregate(newLines, \"po_line_id\");\nconst oldByPoLine = aggregate(origLines, \"po_line_id\");\nconst newByGrLine = aggregate(newLines, \"gr_line_id\");\nconst oldByGrLine = aggregate(origLines, \"gr_line_id\");\n\nconst isCreated = saveAs === \"Created\";\n\n// Created  : created_return_qty += (new - old)          return_quantity untouched\n// Completed: created_return_qty -= old  AND  return_quantity += new  (one write)\nconst apply = (curCreated, curReturn, nq, oq) =>\n  isCreated\n    ? { created: Math.max(0, roundQty(curCreated + nq - oq)), returned: curReturn }\n    : {\n        created: Math.max(0, roundQty(curCreated - oq)),\n        returned: Math.max(0, roundQty(curReturn + nq)),\n      };\n\nconst poLineUpdates = [];\nfor (const line of poLines) {\n  const curCreated = roundQty(line.created_return_qty);\n  const curReturn = roundQty(line.return_quantity);\n  const next = apply(curCreated, curReturn, newByPoLine[line.id] || 0, oldByPoLine[line.id] || 0);\n  if (next.created === curCreated && next.returned === curReturn) continue;\n  poLineUpdates.push({\n    id: line.id,\n    created_return_qty: asStr(next.created),\n    return_quantity: asStr(next.returned),\n  });\n}\n\nconst grUpdates = [];\nfor (const gr of grHeads) {\n  const items = (gr.table_gr || []).map((it) => ({ ...it }));\n  let changed = false;\n  for (const it of items) {\n    const curCreated = roundQty(it.created_return_qty);\n    const curReturn = roundQty(it.return_quantity);\n    const next = apply(curCreated, curReturn, newByGrLine[it.id] || 0, oldByGrLine[it.id] || 0);\n    if (next.created !== curCreated || next.returned !== curReturn) changed = true;\n    it.created_return_qty = asStr(next.created);\n    it.return_quantity = asStr(next.returned);\n  }\n\n  // Split children are per-bin detail; only parent/regular rows are returnable, and\n  // PRT lines only ever target those. Counting children would make \"Fully Returned\"\n  // unreachable for any split goods receiving.\n  const returnable = items.filter((it) => it.parent_or_child !== \"Child\");\n\n  let fully = 0;\n  let partially = 0;\n  let reserved = 0;\n  for (const it of returnable) {\n    const rq = parseFloat(it.return_quantity || 0);\n    const cq = parseFloat(it.created_return_qty || 0);\n    if (rq > 0) {\n      partially++;\n      if (rq >= parseFloat(it.received_qty || 0)) fully++;\n    }\n    if (cq > 0) reserved++;\n  }\n  let status = \"\";\n  if (returnable.length > 0 && fully === returnable.length) status = \"Fully Returned\";\n  else if (partially > 0) status = \"Partially Returned\";\n  else if (reserved > 0) status = \"Created\";\n\n  if (!changed && status === (gr.return_status || \"\")) continue;\n  grUpdates.push({ id: gr.id, table_gr: items, return_status: status });\n}\n\nreturn {\n  poLineUpdates: poLineUpdates,\n  grUpdates: grUpdates,\n  hasPoUpdates: poLineUpdates.length > 0 ? 1 : 0,\n  hasGrUpdates: grUpdates.length > 0 ? 1 : 0,\n};"
                 },
                 "response_json": [
                   {
@@ -4390,7 +4484,10 @@
                 "nodeName": "IF PO hasUpdates",
                 "name": "IF PO hasUpdates",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -4414,7 +4511,9 @@
                 {
                   "id": "if_PRThasPoUpdates_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_poLines",
@@ -4485,7 +4584,9 @@
                 {
                   "id": "if_PRThasPoUpdates_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -4499,7 +4600,10 @@
                 "nodeName": "IF GR hasUpdates",
                 "name": "IF GR hasUpdates",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -4523,7 +4627,9 @@
                 {
                   "id": "if_PRThasGrUpdates_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_grHeads",
@@ -4594,7 +4700,9 @@
                 {
                   "id": "if_PRThasGrUpdates_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -4604,7 +4712,9 @@
         {
           "id": "ifBlock_vL8tB4Ar",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "if_ylcfy6U6",
@@ -4615,7 +4725,10 @@
                 "nodeName": "IF Edit Mode",
                 "name": "IF Edit Mode",
                 "condition_type": "ConditionRule",
-                "expression": { "type": "javascript", "code": "" },
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
                 "filter": {
                   "list": [
                     {
@@ -4639,7 +4752,9 @@
                 {
                   "id": "ifBlock_hdIm5HUv",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "update_node_v5trWrpH",
@@ -5453,14 +5568,6 @@
                               "propLabel": "acc_integration_type"
                             },
                             {
-                              "prop": "project_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
-                              "valueLabel": "",
-                              "propLabel": "Project"
-                            },
-                            {
                               "prop": "posted_status",
                               "operator": "",
                               "valueType": "field",
@@ -5502,7 +5609,9 @@
                 {
                   "id": "ifBlock_zJhcREOu",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "add_node_4Ui4zxnU",
@@ -6304,14 +6413,6 @@
                               "propLabel": "acc_integration_type"
                             },
                             {
-                              "prop": "project_id",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.project_id}}",
-                              "valueLabel": "",
-                              "propLabel": "Project"
-                            },
-                            {
                               "prop": "posted_status",
                               "operator": "",
                               "valueType": "field",
@@ -6365,7 +6466,10 @@
         "nodeName": "IF Completed (Txn Date)",
         "name": "IF Completed (Txn Date)",
         "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
         "filter": {
           "list": [
             {
@@ -6389,7 +6493,9 @@
         {
           "id": "ifBlock_PRTcompletedTxnDate_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_PoHldB2U",
@@ -6404,7 +6510,7 @@
                 "name": "updateItemTransactionDate",
                 "script": {
                   "type": "javascript",
-                  "code": "const tablePRT = {{node:code_node_ISWz5KGY.data.allData.table_prt}}\n\nconst uniqueItemIds = [\n  ...new Set(\n    tablePRT\n      .filter((item) => item.material_id)\n      .map((item) => item.material_id),\n  ),\n];\n\nconst date = new Date().toISOString();\nconst updates = [];\nfor (const itemId of uniqueItemIds) {\n  updates.push({ id: itemId, last_transaction_date: date });\n}\n\nreturn { updates: updates };"
+                  "code": "// The flat view of table_prt: an item bundle is ONE row with the bundle's items\n// under `children`, and it is those items that carry the materials whose stock\n// just moved. The bundle row has no material of its own and is filtered out\n// below anyway.\nconst tablePRT = {{node:code_node_ISWz5KGY.data.inventoryRows}}\n\nconst uniqueItemIds = [\n  ...new Set(\n    tablePRT\n      .filter((item) => item.material_id)\n      .map((item) => item.material_id),\n  ),\n];\n\nconst date = new Date().toISOString();\nconst updates = [];\nfor (const itemId of uniqueItemIds) {\n  updates.push({ id: itemId, last_transaction_date: date });\n}\n\nreturn { updates: updates };"
                 },
                 "response_json": [
                   {
@@ -6492,7 +6598,9 @@
         {
           "id": "ifBlock_PRTcompletedTxnDate_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -6544,7 +6652,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
