@@ -2871,6 +2871,306 @@
               "blocks": []
             },
             {
+              "id": "code_node_srSOIds1",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "11a. Map SO Ids",
+                "isValidator": true,
+                "nodeName": "11a. Map SO Ids",
+                "name": "11a. Map SO Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Every return line carries the order line it came off, so the orders to restamp\n// are read straight from the flat view -- bundle children included, since each of\n// those is a line on the order in its own right.\nconst srLines = {{node:code_node_qYJ8wTWS.data.srLines}} || [];\n\nconst soIds = [];\n\nfor (const line of srLines) {\n  const soId = line.so_id;\n  if (soId === null || soId === undefined || soId === \"\") continue;\n\n  const key = String(soId);\n  if (soIds.indexOf(key) === -1) soIds.push(key);\n}\n\n// Typed flag rather than a filter on the list itself: an empty `in` list on the\n// fetch below would scope it to every order there is, and the header restamp\n// would then walk orders this return never touched.\nconst hasSO = soIds.length > 0 ? \"Yes\" : \"No\";\n\nreturn { soIds, hasSO };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "srsoid01",
+                    "name": "soIds",
+                    "title": "soIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srsoid02",
+                    "name": "hasSO",
+                    "title": "hasSO",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_srSOGate1",
+              "type": "if",
+              "data": {
+                "title": "11b. IF return has SO?",
+                "isValidator": true,
+                "nodeName": "11b. IF return has SO?",
+                "name": "11b. IF return has SO?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_srSOIds1.data.hasSO}}' == 'Yes'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_srSOGateT1",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "search_node_srSOLine1",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+                          "rules": {
+                            "collectionId": "1939903359943024642",
+                            "list": [
+                              {
+                                "id": 1777100000001,
+                                "parentId": 1777100000000,
+                                "isTop": true,
+                                "prop": "sales_order_id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_srSOIds1.data.soIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "Sales Order",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1000,
+                        "title": "11b. Fetch SO Lines",
+                        "isValidator": true,
+                        "nodeName": "11b. Fetch SO Lines",
+                        "name": "11b. Fetch SO Lines"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_srSOMap1",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "11c. Map Latest SO",
+                        "isValidator": true,
+                        "nodeName": "11c. Map Latest SO",
+                        "name": "11c. Map Latest SO",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const srLines = {{node:code_node_qYJ8wTWS.data.srLines}} || [];\nconst soLines = {{node:search_node_srSOLine1.data.data}} || [];\n\n// 8dp is the platform's maximum configurable column precision, so rounding a\n// COMPUTED value there keeps every real scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst EPS = 0.0005;\n\n// Summed, not assigned: two lines of this return can come off different delivery\n// lines that both trace back to one and the same order line.\nconst returnedByLine = {};\n\nfor (const line of srLines) {\n  const key = line.so_line_id ? String(line.so_line_id) : \"\";\n  if (!key) continue;\n\n  returnedByLine[key] =\n    (returnedByLine[key] || 0) + (parseFloat(line.expected_return_qty) || 0);\n}\n\n// Keyed by order, holding the order's OWN id as the search node returned it --\n// String() is exact for these but the raw value is what the update filters on.\nconst byOrder = {};\nconst latestSOLineList = [];\n\nfor (const soLine of soLines) {\n  const orderKey = String(soLine.sales_order_id);\n  if (!byOrder[orderKey]) byOrder[orderKey] = { id: soLine.sales_order_id, rows: [] };\n\n  const added = returnedByLine[String(soLine.id)] || 0;\n  const latest = Math.max(0, q8((parseFloat(soLine.return_qty) || 0) + added));\n\n  // Every line of every affected order, with this return already applied, so the\n  // header status below is judged on the same numbers about to be written.\n  byOrder[orderKey].rows.push({\n    delivered_qty: parseFloat(soLine.delivered_qty) || 0,\n    return_qty: latest,\n  });\n\n  if (added === 0) continue;\n\n  latestSOLineList.push({\n    id: soLine.id,\n    // toFixed STRING: the column is decimal(65,8) and a raw float trips multipleOf.\n    return_qty: latest.toFixed(8),\n  });\n}\n\nconst latestSOList = Object.keys(byOrder).map((orderKey) => {\n  // A line nothing was ever delivered against cannot be returned, so it is not\n  // allowed to hold the order open at Partially Returned.\n  const delivered = byOrder[orderKey].rows.filter((row) => row.delivered_qty > 0);\n\n  const fully =\n    delivered.length > 0 &&\n    delivered.every((row) => row.return_qty - row.delivered_qty >= -EPS);\n\n  return {\n    id: byOrder[orderKey].id,\n    sr_status: fully ? \"Fully Returned\" : \"Partially Returned\",\n    has_sr: 1,\n  };\n});\n\n// Nothing matched means the return points at order lines that are no longer\n// there. An empty `in` list is not a safe thing to hand an update node, and\n// there is nothing to restamp anyway.\nconst hasSOLines = latestSOLineList.length > 0 ? \"Yes\" : \"No\";\n\nreturn { latestSOLineList, latestSOList, hasSOLines };\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "srsomap1",
+                            "name": "latestSOLineList",
+                            "title": "latestSOLineList",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "srsomap2",
+                            "name": "latestSOList",
+                            "title": "latestSOList",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "srsomap3",
+                            "name": "hasSOLines",
+                            "title": "hasSOLines",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_srSOWrite1",
+                      "type": "if",
+                      "data": {
+                        "title": "11d&11e. IF SO lines matched?",
+                        "isValidator": true,
+                        "nodeName": "11d&11e. IF SO lines matched?",
+                        "name": "11d&11e. IF SO lines matched?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_srSOMap1.data.hasSOLines}}' == 'Yes'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_srSOWriteT1",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_srSOLine1",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+                                  "rules": {
+                                    "collectionId": "1939903359943024642",
+                                    "list": [
+                                      {
+                                        "id": 1777100000002,
+                                        "parentId": 1777100000001,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_srSOMap1.data.latestSOLineList.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "11d. Update SO Line Item",
+                                "isValidator": true,
+                                "nodeName": "11d. Update SO Line Item",
+                                "name": "11d. Update SO Line Item",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_srSOMap1.data.latestSOLineList.id}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "return_qty",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_srSOMap1.data.latestSOLineList.return_qty}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Return Quantity"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "update_node_srSOHead1",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Sales Order:Table:1902773735979597826",
+                                  "rules": {
+                                    "collectionId": "1902773735979597826",
+                                    "list": [
+                                      {
+                                        "id": 1777100000003,
+                                        "parentId": 1777100000002,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_srSOMap1.data.latestSOList.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "11e. Update SO",
+                                "isValidator": true,
+                                "nodeName": "11e. Update SO",
+                                "name": "11e. Update SO",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_srSOMap1.data.latestSOList.id}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "sr_status",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_srSOMap1.data.latestSOList.sr_status}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "SR Status"
+                                    },
+                                    {
+                                      "prop": "has_sr",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_srSOMap1.data.latestSOList.has_sr}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Has SR"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_srSOWriteF1",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_srSOGateF1",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "get_node_rx6bgxbr",
               "type": "get-node",
               "data": {

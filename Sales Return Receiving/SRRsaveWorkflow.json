@@ -3096,6 +3096,233 @@
               "blocks": []
             },
             {
+              "id": "code_node_srrSOIds1",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "19a. Map SO Ids",
+                "isValidator": true,
+                "nodeName": "19a. Map SO Ids",
+                "name": "19a. Map SO Ids",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Every receiving line carries the order line it traces back to, so the orders to\n// restamp are read straight off the flat view -- bundle children included, since\n// each of those is a line on the order in its own right.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}} || [];\n\nconst soIds = [];\n\nfor (const line of srrLines) {\n  const soId = line.so_id;\n  if (soId === null || soId === undefined || soId === \"\") continue;\n\n  const key = String(soId);\n  if (soIds.indexOf(key) === -1) soIds.push(key);\n}\n\n// Typed flag rather than a filter on the list itself: an empty list would scope\n// the fetch below to every sales return there is.\nconst hasSO = soIds.length > 0 ? \"Yes\" : \"No\";\n\nreturn { soIds, hasSO };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "srrsoid1",
+                    "name": "soIds",
+                    "title": "soIds",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srrsoid2",
+                    "name": "hasSO",
+                    "title": "hasSO",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_srrSOGate1",
+              "type": "if",
+              "data": {
+                "title": "19b. IF receiving has SO?",
+                "isValidator": true,
+                "nodeName": "19b. IF receiving has SO?",
+                "name": "19b. IF receiving has SO?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_srrSOIds1.data.hasSO}}' == 'Yes'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_srrSOGateT1",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "search_node_srrSRforSO1",
+                      "type": "search-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Sales Return:Table:1901839709978611713",
+                          "rules": {
+                            "collectionId": "1901839709978611713",
+                            "list": [
+                              {
+                                "id": 1777200000001,
+                                "parentId": 1777200000000,
+                                "isTop": true,
+                                "prop": "so_id",
+                                "operator": "equalAny",
+                                "valueType": "field",
+                                "value": "{{node:code_node_srrSOIds1.data.soIds}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "SO Number",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal Any"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "limit": 1000,
+                        "title": "19b. Fetch SRs for SO",
+                        "isValidator": true,
+                        "nodeName": "19b. Fetch SRs for SO",
+                        "name": "19b. Fetch SRs for SO"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_srrSOMap1",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "19c. Map Latest SO",
+                        "isValidator": true,
+                        "nodeName": "19c. Map Latest SO",
+                        "name": "19c. Map Latest SO",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const srList = {{node:search_node_srrSRforSO1.data.data}} || [];\n\nconst EPS = 0.0005;\n\n// The sales return stores its bundles as ONE row with the bundle's items under\n// `children`, and each of those items carries its own expected and received\n// quantity. A walk that stops at the top level judges the order on the bundle\n// rows alone.\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\n\n// Keyed by order, holding the order's own id as the return carried it.\nconst byOrder = {};\n\nfor (const sr of srList) {\n  // A cancelled return keeps its expected quantities but will never receive\n  // them, so counting it would pin the order at Partially Received forever.\n  if (sr.sr_status === \"Cancelled\") continue;\n\n  const outstanding = flattenSRRows(sr.table_sr).some(\n    (srItem) =>\n      (parseFloat(srItem.expected_return_qty) || 0) -\n        (parseFloat(srItem.received_qty) || 0) >\n      EPS,\n  );\n\n  // so_id is an array column: one return can be raised against several orders.\n  const orderIds = Array.isArray(sr.so_id) ? sr.so_id : [sr.so_id];\n\n  for (const orderId of orderIds) {\n    if (orderId === null || orderId === undefined || orderId === \"\") continue;\n\n    const key = String(orderId);\n    if (!byOrder[key]) byOrder[key] = { id: orderId, outstanding: false };\n    if (outstanding) byOrder[key].outstanding = true;\n  }\n}\n\nconst latestSOList = Object.keys(byOrder).map((key) => ({\n  id: byOrder[key].id,\n  srr_status: byOrder[key].outstanding ? \"Partially Received\" : \"Fully Received\",\n}));\n\n// An empty `in` list is not a safe thing to hand an update node.\nconst hasSOList = latestSOList.length > 0 ? \"Yes\" : \"No\";\n\nreturn { latestSOList, hasSOList };\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "srrsomp1",
+                            "name": "latestSOList",
+                            "title": "latestSOList",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "srrsomp2",
+                            "name": "hasSOList",
+                            "title": "hasSOList",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_srrSOWrite1",
+                      "type": "if",
+                      "data": {
+                        "title": "19d. IF SO matched?",
+                        "isValidator": true,
+                        "nodeName": "19d. IF SO matched?",
+                        "name": "19d. IF SO matched?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_srrSOMap1.data.hasSOList}}' == 'Yes'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_srrSOWriteT1",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_srrSOHead1",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Sales Order:Table:1902773735979597826",
+                                  "rules": {
+                                    "collectionId": "1902773735979597826",
+                                    "list": [
+                                      {
+                                        "id": 1777200000002,
+                                        "parentId": 1777200000001,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_srrSOMap1.data.latestSOList.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "19d. Update SO",
+                                "isValidator": true,
+                                "nodeName": "19d. Update SO",
+                                "name": "19d. Update SO",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_srrSOMap1.data.latestSOList.id}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "srr_status",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_srrSOMap1.data.latestSOList.srr_status}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "SRR Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_srrSOWriteF1",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_srrSOGateF1",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "get_node_wuqT9kxg",
               "type": "get-node",
               "data": {
