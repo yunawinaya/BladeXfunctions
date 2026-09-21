@@ -50,8 +50,14 @@ const fetchSOLineItemData = async (soLineItemIDs) => {
 // Only the "Sales Return" timing is honoured: the delivery line carries the
 // EXPECTED return quantity, written when the return is issued, and there is no
 // received figure on it for the "Sales Return Receiving" timing to read.
-const fetchDeductReturnQty = async (plantId) => {
-  if (!plantId) return false;
+// Scoped by ORGANISATION, not plant. plant_id on a sales invoice can hold an
+// organisation rather than a plant -- the same as on a sales order, and that is
+// what a document spanning several plants stores -- so a plant-keyed lookup finds
+// nothing and the setting silently reads as off. Every plant row in an org is
+// written with the same values by the setup page's save, so any row for the
+// organisation answers the question.
+const fetchDeductReturnQty = async (organizationId) => {
+  if (!organizationId) return false;
 
   const res = await db
     .collection("sales_return_setup")
@@ -60,7 +66,7 @@ const fetchDeductReturnQty = async (plantId) => {
         type: "branch",
         operator: "all",
         children: [
-          { prop: "plant_id", operator: "in", value: plantId },
+          { prop: "organization_id", operator: "equal", value: organizationId },
           { prop: "is_deleted", operator: "equal", value: 0 },
         ],
       },
@@ -431,7 +437,7 @@ const processData = async (referenceType, latesttableSI) => {
     this.showLoading();
 
     const deductReturnQty = await fetchDeductReturnQty(
-      this.getValue("plant_id"),
+      this.getValue("organization_id"),
     );
 
     // Only the item-first modes need these; a selected document's lines are
