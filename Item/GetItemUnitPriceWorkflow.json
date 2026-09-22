@@ -1,0 +1,1486 @@
+{
+  "request_json": [
+    {
+      "key": "y2scjqom",
+      "name": "document_type",
+      "title": "Document Type",
+      "description": "PREQ/PO/SQT/SO",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "rnusmf2s",
+      "name": "supp_cust_id",
+      "title": "Supplier / Customer ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "lc2m7q82",
+      "name": "plant_id",
+      "title": "Plant ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "m1s0ifyh",
+      "name": "item_data",
+      "title": "Item Data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "4neav81h",
+      "name": "data",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "8zianfqj",
+      "name": "needOverwrite",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_Q1zqehTx",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Check workflow input",
+        "isValidator": true,
+        "nodeName": "Check workflow input",
+        "name": "Check workflow input",
+        "script": {
+          "type": "javascript",
+          "code": "const documentType = {{workflowparams:document_type}};\nconst suppCustId = {{workflowparams:supp_cust_id}};\nconst plantId = {{workflowparams:plant_id}};\nconst itemData = {{workflowparams:item_data}};\nconst errors = [];\n\n// 1. Check if document type is missing\nif (!documentType || documentType.trim() === \"\") {\n  errors.push(\"Document type is required.\");\n}\n\n// 2. Check if supplier/customer ID is missing for SO/PO\nif (documentType === \"SO\" || documentType === \"PO\") {\n  if (!suppCustId) {\n    errors.push(\n      `${documentType === \"PO\" ? \"Supplier\" : \"Customer\"} ID is required for document type \"${documentType}\".`,\n    );\n  }\n}\n\n// 3. Check if plant ID is missing\nif (!plantId || plantId.trim() === \"\") {\n  errors.push(\"Plant ID is required.\");\n}\n\n// 4. Check if item data is missing or empty\nif (!itemData || itemData.length === 0) {\n  errors.push(\"Item data is required.\");\n} else {\n  // 5. Check if any item is missing item ID\n  const missingItemIds = itemData.filter(\n    (item) => !item.item_id || item.item_id.trim() === \"\",\n  );\n  if (missingItemIds.length > 0) {\n    errors.push(`Item ID is required.`);\n  }\n}\n\n// Return error if any validation fails\nif (errors.length > 0) {\n  return {\n    status: \"Failed\",\n    message: \"Validation Error:<br><br>\" + errors.join(\"<br>\"),\n  };\n}\n\n// If all validations pass\nreturn {\n  status: \"Success\",\n  message: \"All input validation passed.\",\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "znkz8b3l",
+            "name": "status",
+            "title": "Status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "vve7koxn",
+            "name": "message",
+            "title": "Message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_kaS0Zdzg",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Process input",
+        "isValidator": true,
+        "nodeName": "Process input",
+        "name": "Process input",
+        "script": {
+          "type": "javascript",
+          "code": "const documentType = {{workflowparams:document_type}};\nconst itemData = {{workflowparams:item_data}};\n\nlet document_type = \"\";\n\nswitch (documentType) {\n  case \"SO\":\n    document_type = \"sd\";\n    break;\n  case \"SQT\":\n    document_type = \"sd\";\n    break;\n  case \"PO\":\n    document_type = \"procurement\";\n    break;\n  case \"PREQ\":\n    document_type = \"procurement\";\n    break;\n}\n\nconst itemIDs = itemData.map((item) => item.item_id);\n\n// Digits only: these ids are interpolated into Get Item List's SQL.\nconst itemIdCsv = [...new Set(itemIDs.map((v) => String(v == null ? \"\" : v).trim()))]\n  .filter((id) => /^[0-9]+$/.test(id))\n  .join(',');\n\nreturn { document_type: document_type, item_id_csv: itemIdCsv };\n"
+        },
+        "response_json": [
+          {
+            "key": "0iufqnnn",
+            "name": "document_type",
+            "title": "Document Type",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "33ljr98u",
+            "name": "item_id_csv",
+            "title": "Item ID CSV",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_e1RcHZem",
+      "type": "if",
+      "data": {
+        "title": "validation failed",
+        "isValidator": true,
+        "nodeName": "validation failed",
+        "name": "validation failed",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_Q1zqehTx.data.status}}' == 'Failed'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_JB3G7De_",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "end_4MOLOLnM",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_Q1zqehTx.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_ylXAgkL3",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "get_node_eYdZ327G",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Price History Config:Table:2067798806676570114",
+          "rules": {
+            "collectionId": "2067798806676570114",
+            "list": [
+              {
+                "id": 1781848249306,
+                "parentId": 1781848249307,
+                "isTop": true,
+                "prop": "",
+                "operator": "all",
+                "valueType": "",
+                "value": "",
+                "type": "branch",
+                "level": 1,
+                "children": [
+                  {
+                    "id": 1781848249309,
+                    "parentId": 1781848249306,
+                    "isTop": false,
+                    "prop": "organization_id",
+                    "operator": "numberEqual",
+                    "valueType": "field",
+                    "value": "{{global:firstLvDeptId}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Organization",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  },
+                  {
+                    "id": 1781848249308,
+                    "parentId": 1781848249306,
+                    "isTop": false,
+                    "prop": "document_type",
+                    "operator": "equal",
+                    "valueType": "field",
+                    "value": "{{node:code_node_kaS0Zdzg.data.document_type}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Document Type",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Price History Config",
+        "isValidator": true,
+        "nodeName": "Get Price History Config",
+        "name": "Get Price History Config"
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_ItemUomPrices",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Get Item List",
+        "isValidator": true,
+        "nodeName": "Get Item List",
+        "name": "Get Item List",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(i.id AS CHAR) AS id,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'sales_unit_price', u.sales_unit_price,\n                      'sales_min_price', u.sales_min_price,\n                      'sales_max_price', u.sales_max_price,\n                      'min_sales_qty', u.min_sales_qty,\n                      'max_sales_qty', u.max_sales_qty,\n                      'mat_sales_tax_id', CAST(u.mat_sales_tax_id AS CHAR),\n                      'sales_tax_percent', u.sales_tax_percent,\n                      'purchase_unit_price', u.purchase_unit_price,\n                      'purchase_min_price', u.purchase_min_price,\n                      'purchase_max_price', u.purchase_max_price,\n                      'min_purchase_qty', u.min_purchase_qty,\n                      'max_purchase_qty', u.max_purchase_qty,\n                      'mat_purchase_tax_id', CAST(u.mat_purchase_tax_id AS CHAR),\n                      'purchase_tax_percent', u.purchase_tax_percent))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_kaS0Zdzg.data.item_id_csv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "up1id000",
+            "name": "id",
+            "title": "Item ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "up2ucjs0",
+            "name": "uom_conversion_json",
+            "title": "UOM Conversion JSON",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_e5oyh1dY",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Define number iterations",
+        "isValidator": true,
+        "nodeName": "Define number iterations",
+        "name": "Define number iterations",
+        "script": {
+          "type": "javascript",
+          "code": "const documentType = {{workflowparams:document_type}};\nconst configDataCount = {{node:get_node_eYdZ327G.data.count}};\nlet configSequence = [];\n\nif (configDataCount === 0) {\n  switch (documentType) {\n    case \"SQT\":\n      configSequence = [\n        {\n          rules: \"Last Quotation Price\",\n          line_index: 1,\n        },\n        {\n          rules: \"Last Sales Order Price\",\n          line_index: 2,\n        },\n        {\n          rules: \"Last Sales Invoice Price\",\n          line_index: 3,\n        },\n        {\n          rules: \"Customer Price Tag\",\n          line_index: 4,\n        },\n        {\n          rules: \"Default Sales Unit Price\",\n          line_index: 5,\n        },\n        {\n          rules: \"Multi Pricing\",\n          line_index: 6,\n        },\n      ];\n      break;\n\n    case \"SO\":\n      configSequence = [\n        {\n          rules: \"Last Sales Order Price\",\n          line_index: 1,\n        },\n        {\n          rules: \"Last Sales Invoice Price\",\n          line_index: 2,\n        },\n        {\n          rules: \"Last Quotation Price\",\n          line_index: 3,\n        },\n        {\n          rules: \"Customer Price Tag\",\n          line_index: 4,\n        },\n        {\n          rules: \"Default Sales Unit Price\",\n          line_index: 5,\n        },\n        {\n          rules: \"Multi Pricing\",\n          line_index: 6,\n        },\n      ];\n      break;\n\n    case \"PREQ\":\n      configSequence = [\n        {\n          rules: \"Last Purchase Requisition Price\",\n          line_index: 1,\n        },\n        {\n          rules: \"Last Purchase Order Price\",\n          line_index: 2,\n        },\n        {\n          rules: \"Last Purchase Invoice Price\",\n          line_index: 3,\n        },\n        {\n          rules: \"Supplier Price Tag\",\n          line_index: 4,\n        },\n        {\n          rules: \"Default Purchase Unit Price\",\n          line_index: 5,\n        },\n      ];\n      break;\n\n    case \"PO\":\n      configSequence = [\n        {\n          rules: \"Last Purchase Order Price\",\n          line_index: 1,\n        },\n        {\n          rules: \"Last Purchase Invoice Price\",\n          line_index: 2,\n        },\n        {\n          rules: \"Last Purchase Requisition Price\",\n          line_index: 3,\n        },\n        {\n          rules: \"Supplier Price Tag\",\n          line_index: 4,\n        },\n        {\n          rules: \"Default Purchase Unit Price\",\n          line_index: 5,\n        },\n      ];\n      break;\n  }\n} else {\n  configSequence = {{node:get_node_eYdZ327G.data.data.config_sequence}};\n}\n\nreturn {\n  configSequence,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "w9cnljpl",
+            "name": "configSequence",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_BMyh49Gb",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Define redis name",
+        "isValidator": true,
+        "nodeName": "Define redis name",
+        "name": "Define redis name",
+        "script": {
+          "type": "javascript",
+          "code": "const userID = {{system:uid}};\nconst currentTime = {{system:now}};\nconst tenantID = {{system:tenantId}};\nconst orgID = {{global:firstLvDeptId}};\n\nreturn {\n  redis_name: `UNIT_PRICE:${tenantID}:${orgID}:${userID}:${currentTime}`\n}"
+        },
+        "response_json": [
+          {
+            "key": "rg484kdf",
+            "name": "redis_name",
+            "title": "Redis Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "set_cache_node_4yEIO70d",
+      "type": "set-cache-node",
+      "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Set Redis Cache",
+        "isValidator": true,
+        "nodeName": "Set Redis Cache",
+        "name": "Set Redis Cache",
+        "custom_wkbocgni": {
+          "type": "javascript",
+          "code": "[]"
+        },
+        "redis_key": "{{node:code_node_BMyh49Gb.data.redis_name}}",
+        "limit_time": 86400000
+      },
+      "blocks": []
+    },
+    {
+      "id": "loop_K5yRwowj",
+      "type": "loop",
+      "data": {
+        "title": "Loop Item Data",
+        "isValidator": true,
+        "nodeName": "Loop Item Data",
+        "name": "Loop Item Data",
+        "loopType": "Var",
+        "loopSeletSource": {
+          "datasource": {
+            "rules": {
+              "collectionId": "",
+              "list": [
+                {
+                  "id": 1723795236686,
+                  "parentId": 1723795236685,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            }
+          },
+          "auto_refresh": 1,
+          "auto_refresh_debounce": 100,
+          "options": [],
+          "props": {
+            "value": "",
+            "label": "",
+            "image": "",
+            "icon": "",
+            "explain": ""
+          },
+          "remote": false,
+          "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{workflowparams:item_data}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "get_cache_node_tdVHbRri",
+          "type": "get-cache-node",
+          "data": {
+            "cache_key": "",
+            "title": "Get Redis Cache",
+            "isValidator": true,
+            "nodeName": "Get Redis Cache",
+            "name": "Get Redis Cache",
+            "redis_key": "{{node:code_node_BMyh49Gb.data.redis_name}}"
+          },
+          "blocks": []
+        },
+        {
+          "id": "loop_vc4Z4iEX",
+          "type": "loop",
+          "data": {
+            "title": "Loop Config Sequence",
+            "isValidator": true,
+            "nodeName": "Loop Config Sequence",
+            "name": "Loop Config Sequence",
+            "loopType": "Var",
+            "loopSeletVar": {
+              "type": "markdown",
+              "code": "{{node:code_node_e5oyh1dY.data.configSequence}}"
+            }
+          },
+          "blocks": [
+            {
+              "id": "condition_or_ff21fFiX",
+              "type": "condition-or-node",
+              "data": {
+                "title": "Condition",
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "condition_or_node_item_wre165cl",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Historical Price",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1784254636051,
+                          "parentId": 1784254636050,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "'{{node:loop_vc4Z4iEX.rules}}' == 'Last Quotation Price' || '{{node:loop_vc4Z4iEX.rules}}' == 'Last Sales Order Price' || '{{node:loop_vc4Z4iEX.rules}}' == 'Last Sales Invoice Price' || '{{node:loop_vc4Z4iEX.rules}}' == 'Last Purchase Requisition Price' || '{{node:loop_vc4Z4iEX.rules}}' == 'Last Purchase Order Price' || '{{node:loop_vc4Z4iEX.rules}}' == 'Last Purchase Invoice Price'",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Historical Price",
+                    "name": "Historical Price",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_node_CyHkGZto",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Map Document Type",
+                        "isValidator": true,
+                        "nodeName": "Map Document Type",
+                        "name": "Map Document Type",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const documentType = {{node:loop_vc4Z4iEX.rules}};\nlet source = '';\n\nswitch (documentType) {\n  case 'Last Quotation Price':\n    source = 'SQT';\n    break;\n  case 'Last Sales Order Price':\n    source = 'SO';\n    break;\n  case 'Last Sales Invoice Price':\n    source = 'SI';\n    break;\n  case 'Last Purchase Requisition Price':\n    source = 'PREQ';\n    break;\n  case 'Last Purchase Order Price':\n    source = 'PO';\n    break;\n  case 'Last Purchase Invoice Price':\n    source = 'PI';\n    break;\n}\n\nreturn { source }"
+                        },
+                        "response_json": [
+                          {
+                            "key": "0f97s5zw",
+                            "name": "source",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "sql_node_AFi9JgU7",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "Fetch latest record",
+                        "isValidator": true,
+                        "nodeName": "Fetch latest record",
+                        "name": "Fetch latest record",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT \n  CASE \n    WHEN '{{node:code_node_CyHkGZto.data.source}}' = 'SO' THEN 'SO'\n    WHEN '{{node:code_node_CyHkGZto.data.source}}' = 'SQT' THEN 'SQT'\n    WHEN '{{node:code_node_CyHkGZto.data.source}}' = 'PREQ' THEN 'PREQ'\n    WHEN '{{node:code_node_CyHkGZto.data.source}}' = 'PO' THEN 'PO'\n    WHEN '{{node:code_node_CyHkGZto.data.source}}' = 'SI' THEN 'SI'\n    WHEN '{{node:code_node_CyHkGZto.data.source}}' = 'PI' THEN 'PI'\n  END AS document_type,\n  id,\n  material_id,\n  quantity,\n  party_id,\n  plant_id,\n  unit_price,\n  organization_id,\n  create_time\nFROM (\n  -- SO\n  SELECT \n    sos.id,\n    sos.item_name AS material_id,\n    sos.so_quantity AS quantity,\n    sos.customer_id AS party_id,\n    sos.plant_id,\n    sos.so_item_price AS unit_price,\n    sos.organization_id,\n    sos.create_time,\n    'SO' AS doc_type\n  FROM sales_order_axszx8cj_sub sos\n  WHERE sos.item_name IN ('{{node:loop_K5yRwowj.item_id}}')\n    AND sos.plant_id = '{{workflowparams:plant_id}}'\n    AND sos.customer_id = '{{workflowparams:supp_cust_id}}'\n    AND sos.so_item_uom = '{{node:loop_K5yRwowj.uom_id}}'\n    AND sos.is_deleted = 0\n    AND sos.line_status NOT IN ('Cancelled', 'Draft')\n  \n  UNION ALL\n  \n  -- SQT\n  SELECT \n    sqt.id,\n    sqt.material_id,\n    sqt.quantity,\n    sqt.customer_id AS party_id,\n    sqt.plant_id,\n    sqt.unit_price,\n    sqt.organization_id,\n    sqt.create_time,\n    'SQT' AS doc_type\n  FROM quotation_rdywe1rx_sub sqt\n  JOIN quotation q ON sqt.quotation_id = q.id\n  WHERE sqt.material_id IN ('{{node:loop_K5yRwowj.item_id}}')\n    AND sqt.plant_id = '{{workflowparams:plant_id}}'\n    AND sqt.customer_id = '{{workflowparams:supp_cust_id}}'\n    AND sqt.sqt_order_uom_id = '{{node:loop_K5yRwowj.uom_id}}'\n    AND sqt.is_deleted = 0\n    AND q.sqt_status NOT IN ('Cancelled', 'Draft')\n  \n  UNION ALL\n  \n  -- PREQ\n  SELECT \n    preq.id,\n    preq.pr_line_material_id AS material_id,\n    preq.pr_line_qty AS quantity,\n    preq.supplier_id AS party_id,\n    preq.plant_id,\n    preq.pr_line_unit_price AS unit_price,\n    preq.organization_id,\n    preq.create_time,\n    'PREQ' AS doc_type\n  FROM purchase_requisition_9wptilyh_sub preq\n  WHERE preq.pr_line_material_id IN ('{{node:loop_K5yRwowj.item_id}}')\n    AND preq.pr_line_uom_id = '{{node:loop_K5yRwowj.uom_id}}'\n    AND preq.plant_id = '{{workflowparams:plant_id}}'\n    AND preq.supplier_id = '{{workflowparams:supp_cust_id}}'\n    AND preq.is_deleted = 0\n    AND preq.line_status NOT IN ('Cancelled', 'Draft')\n  \n  UNION ALL\n  \n  -- PO\n  SELECT \n    po.id,\n    po.item_id AS material_id,\n    po.quantity,\n    po.supplier_id AS party_id,\n    po.plant_id,\n    po.unit_price,\n    po.organization_id,\n    po.create_time,\n    'PO' AS doc_type\n  FROM purchase_order_2ukyuanr_sub po\n  WHERE po.item_id IN ('{{node:loop_K5yRwowj.item_id}}')\n    AND po.plant_id = '{{workflowparams:plant_id}}'\n    AND po.supplier_id = '{{workflowparams:supp_cust_id}}'\n    AND po.quantity_uom = '{{node:loop_K5yRwowj.uom_id}}'\n    AND po.is_deleted = 0\n    AND po.line_status NOT IN ('Cancelled', 'Draft')\n  \n  UNION ALL\n  \n  -- SI (Sales Invoice)\n  SELECT \n    si.id,\n    si.material_id,\n    si.invoice_qty AS quantity,\n    si.customer_id AS party_id,\n    si.plant_id,\n    si.unit_price,\n    si_header.organization_id,\n    si.create_time,\n    'SI' AS doc_type\n  FROM sales_invoice_zt0c3x55_sub si\n  JOIN sales_invoice si_header ON si.sales_invoice_id = si_header.id\n  WHERE si.material_id IN ('{{node:loop_K5yRwowj.item_id}}')\n    AND si.plant_id = '{{workflowparams:plant_id}}'\n    AND si.customer_id = '{{workflowparams:supp_cust_id}}'\n    AND si.invoice_qty_uom_id = '{{node:loop_K5yRwowj.uom_id}}'\n    AND si.is_deleted = 0\n    AND si_header.si_status NOT IN ('Cancelled', 'Draft')\n\n  UNION ALL\n\n  -- PI (Purchase Invoice)\n  SELECT \n    pi.id,\n    pi.material_id,\n    pi.invoice_qty AS quantity,\n    pi.supplier_id AS party_id,\n    pi.plant_id,\n    pi.order_unit_price AS unit_price,\n    pi_header.organization_id,\n    pi.create_time,\n    'PI' AS doc_type\n  FROM purchase_invoice_xpuy7o4q_sub pi\n  JOIN purchase_invoice pi_header ON pi.purchase_invoice_id = pi_header.id\n  WHERE pi.material_id IN ('{{node:loop_K5yRwowj.item_id}}')\n    AND pi.plant_id = '{{workflowparams:plant_id}}'\n    AND pi.supplier_id = '{{workflowparams:supp_cust_id}}'\n    AND pi.quantity_uom = '{{node:loop_K5yRwowj.uom_id}}'\n    AND pi.is_deleted = 0\n    AND pi_header.pi_status NOT IN ('Cancelled', 'Draft')\n) combined\nWHERE doc_type = '{{node:code_node_CyHkGZto.data.source}}'\nORDER BY create_time DESC\nLIMIT 1;"
+                        },
+                        "response_json": [
+                          {
+                            "key": "eietfbwr",
+                            "name": "document_type",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "311lv6n9",
+                            "name": "id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "fmyx2tmd",
+                            "name": "material_id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "jx6s5whb",
+                            "name": "quantity",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "decimal",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "xjdwuht5",
+                            "name": "party_id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "m5dbr187",
+                            "name": "plant_id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "idfzi1ua",
+                            "name": "organization_id",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "ddjzbt8q",
+                            "name": "create_time",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "m93tmr4f",
+                            "name": "unit_price",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "decimal",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_fPrpOiEI",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Map History Data",
+                        "isValidator": true,
+                        "nodeName": "Map History Data",
+                        "name": "Map History Data",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const redisDataRaw = {{node:get_cache_node_tdVHbRri.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\n\nconst currentLineItem = {{node:loop_K5yRwowj}};\nconst itemListRaw = {{node:sql_node_ItemUomPrices.data}};\nconst itemList = Array.isArray(itemListRaw) ? itemListRaw : (itemListRaw ? [itemListRaw] : []);\n// Get Item List returns table_uom_conversion as a JSON_ARRAYAGG string.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\n\nconst latestRecord = {{node:sql_node_AFi9JgU7.data}};\nconst rules = {{node:loop_vc4Z4iEX.rules}};\nconst documentType = {{node:code_node_kaS0Zdzg.data.document_type}};\nconst itemRow = itemList.find((item) => String(item.id) === String(currentLineItem.item_id));\nconst itemData = itemRow\n  ? { ...itemRow, table_uom_conversion: parseConv(itemRow.uom_conversion_json) }\n  : itemRow;\nconst itemUOM = itemData.table_uom_conversion.find(\n  (uom) => String(uom.alt_uom_id) === String(currentLineItem.uom_id),\n);\n\nif (latestRecord.length === 0) {\n  return {\n    status: \"Continue Loop\",\n    data: null,\n  };\n}\n\nlet data = {};\n// Check if there is a latest record then return the item details with the latest record\nif (latestRecord && latestRecord.length > 0) {\n  const sdOrProcurement = documentType === \"sd\" ? \"sales\" : \"purchase\";\n  \n  data = {\n    ...currentLineItem,\n    from: rules,\n    unit_price: latestRecord[0].unit_price || currentLineItem.unit_price || 0,\n    from_historical: 1,\n    max_price: parseFloat(itemUOM[`${sdOrProcurement}_max_price`] || 0),\n    min_price: parseFloat(itemUOM[`${sdOrProcurement}_min_price`] || 0),\n    max_qty: parseFloat(itemUOM[`max_${sdOrProcurement}_qty`] || 0),\n    min_qty: parseFloat(itemUOM[`min_${sdOrProcurement}_qty`] || 0),\n  };\n}\n\nreturn {\n  status: \"End Loop\",\n  data: [...redisData, data],\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "e4bi4dt9",
+                            "name": "data",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "s82dosf9",
+                            "name": "status",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_sx2E2CT9",
+                      "type": "if",
+                      "data": {
+                        "title": "IF end loop?",
+                        "isValidator": true,
+                        "nodeName": "IF end loop?",
+                        "name": "IF end loop?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_fPrpOiEI.data.status}}' == 'End Loop'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_EW3HVbwo",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "set_cache_node_F1ErSYAQ",
+                              "type": "set-cache-node",
+                              "data": {
+                                "cache_key": "",
+                                "cache_value": "",
+                                "expire_time": 3600,
+                                "title": "Set Redis Cache",
+                                "isValidator": true,
+                                "nodeName": "Set Redis Cache",
+                                "name": "Set Redis Cache",
+                                "custom_wkbocgni": {
+                                  "type": "javascript",
+                                  "code": "{{node:code_node_fPrpOiEI.data.data}}"
+                                },
+                                "redis_key": "{{node:code_node_BMyh49Gb.data.redis_name}}",
+                                "limit_time": 86400000
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "break_PX06Yu9q",
+                              "type": "breakLoop",
+                              "data": {
+                                "title": "退出循环"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_OTUZu80X",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_item_B1EfjN3W",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Price Tag",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1784254605874,
+                          "parentId": 1784254605873,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "'{{node:loop_vc4Z4iEX.rules}}' == 'Customer Price Tag' || '{{node:loop_vc4Z4iEX.rules}}' == 'Supplier Price Tag'",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 2,
+                    "isDefault": false,
+                    "isValidator": true,
+                    "nodeName": "Price Tag",
+                    "name": "Price Tag",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_node_T4JW4d6p",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Define fetch customer / supplier data",
+                        "isValidator": true,
+                        "nodeName": "Define fetch customer / supplier data",
+                        "name": "Define fetch customer / supplier data",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const suppCustID = {{workflowparams:supp_cust_id}};\nconst documentType = {{node:code_node_kaS0Zdzg.data.document_type}};\n\nconst needFetch = (suppCustID && suppCustID !== '') ? 'Yes' : 'No';\n\nconst fetchDataFrom = (documentType === 'sd') ? 'Customer' : 'Supplier' \n\nreturn {\n  need_fetch: needFetch,\n  fetch_data_from: fetchDataFrom\n}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "ny5yvt8a",
+                            "name": "need_fetch",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "7e2g3e2g",
+                            "name": "fetch_data_from",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_-3cOfKU5",
+                      "type": "if",
+                      "data": {
+                        "title": "IF need fetch data?",
+                        "isValidator": true,
+                        "nodeName": "IF need fetch data?",
+                        "name": "IF need fetch data?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_T4JW4d6p.data.need_fetch}}' == 'Yes'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_MXSEs5jW",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "if_TJqKoCGe",
+                              "type": "if",
+                              "data": {
+                                "title": "IF fetch from customer?",
+                                "isValidator": true,
+                                "nodeName": "IF fetch from customer?",
+                                "name": "IF fetch from customer?",
+                                "condition_type": "Expression",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{node:code_node_T4JW4d6p.data.fetch_data_from}}' == 'Customer'"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "if_block_erVX-ZiW",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "true"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "get_node_CDjClJqM",
+                                      "type": "get-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Customer:Table:1902779099617804290",
+                                          "rules": {
+                                            "collectionId": "1902779099617804290",
+                                            "list": [
+                                              {
+                                                "id": 1781855233179,
+                                                "parentId": 1781855233178,
+                                                "isTop": true,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{workflowparams:supp_cust_id}}",
+                                                "type": "leaf",
+                                                "level": 1,
+                                                "propLabel": "Primary Key ID",
+                                                "valueLabel": "",
+                                                "operatorLabel": "In"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "title": "Get Customer",
+                                        "isValidator": true,
+                                        "nodeName": "Get Customer",
+                                        "name": "Get Customer"
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "if_block_J0F0MopH",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "false"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "get_node_fXehyHHH",
+                                      "type": "get-node",
+                                      "data": {
+                                        "table_id": {
+                                          "source": "Supplier:Table:1901541078662762497",
+                                          "rules": {
+                                            "collectionId": "1901541078662762497",
+                                            "list": [
+                                              {
+                                                "id": 1781855255236,
+                                                "parentId": 1781855255235,
+                                                "isTop": true,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{workflowparams:supp_cust_id}}",
+                                                "type": "leaf",
+                                                "level": 1,
+                                                "propLabel": "Primary Key ID",
+                                                "valueLabel": "",
+                                                "operatorLabel": "In"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "condition": {},
+                                        "title": "Get Supplier",
+                                        "isValidator": true,
+                                        "nodeName": "Get Supplier",
+                                        "name": "Get Supplier"
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "code_node_aw4JItTz",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Map price tag ID",
+                                "isValidator": true,
+                                "nodeName": "Map price tag ID",
+                                "name": "Map price tag ID",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const fetchFrom = {{node:code_node_T4JW4d6p.data.fetch_data_from}};\n\nif(fetchFrom === 'Customer') {\n  return {\n    price_tag_id: {{node:get_node_CDjClJqM.data.data.price_tag_id}}\n  }\n} else if (fetchFrom === 'Supplier') {\n  return {\n    price_tag_id: {{node:get_node_fXehyHHH.data.data.price_tag_id}}\n  }\n} else {\n  return {\n    price_tag_id: null\n  }\n}"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "a6gbb8bg",
+                                    "name": "price_tag_id",
+                                    "title": "Price Tag ID",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "sql_node_IS2go2ob",
+                              "type": "sql-node",
+                              "data": {
+                                "database_id": "",
+                                "sql": "",
+                                "params": {},
+                                "title": "Fetch price tag",
+                                "isValidator": true,
+                                "nodeName": "Fetch price tag",
+                                "name": "Fetch price tag",
+                                "script": {
+                                  "type": "sql",
+                                  "code": "-- Supplier prices\nSELECT \n  'Supplier' AS price_type,\n  sq.id,\n  sq.supplier_id AS party_id,\n  sq.Item_id,\n  sq.sup_price_uom AS uom_id,\n  sq.sup_min_order_qty AS min_order_qty,\n  sq.sup_max_order_qty AS max_order_qty,\n  sq.sup_price_date_from AS price_date_from,\n  sq.sup_price_date_to AS price_date_to,\n  sq.sup_price_tag_id AS price_tag_id,\n  sq.sup_price_discount AS discount,\n  sq.sup_price_discount_type AS discount_type,\n  sq.sup_price_tax AS tax,\n  sq.sup_price_tax_percent AS tax_percent,  \n  sq.sup_price_unit_price AS unit_price,\n  sq.sup_price_min_price AS min_price,\n  sq.sup_price_max_price AS max_price\nFROM item_qd8nxw32_sub sq\nJOIN item i ON sq.Item_id = i.id\nWHERE sq.is_deleted = 0\n  AND (\n    sq.sup_price_tag_id = '{{node:code_node_aw4JItTz.data.price_tag_id}}'\n    OR (\n      '{{workflowparams:supp_cust_id}}' IS NOT NULL \n      AND '{{workflowparams:supp_cust_id}}' != ''\n      AND sq.supplier_id = '{{workflowparams:supp_cust_id}}'\n    )\n  )\n  AND (\n    (sq.sup_price_date_from IS NULL AND sq.sup_price_date_to IS NULL)\n    OR (sq.sup_price_date_from < CURDATE() AND sq.sup_price_date_to IS NULL)\n    OR (sq.sup_price_date_from IS NULL AND sq.sup_price_date_to > CURDATE())\n    OR (sq.sup_price_date_from < CURDATE() AND sq.sup_price_date_to > CURDATE())\n  )\n  AND sq.Item_id = {{node:loop_K5yRwowj.item_id}}\n  AND sq.sup_price_uom = {{node:loop_K5yRwowj.uom_id}}\n  AND (\n    ((sq.sup_min_order_qty <= {{node:loop_K5yRwowj.quantity}} OR sq.sup_min_order_qty = 0)\n     AND (sq.sup_max_order_qty >= {{node:loop_K5yRwowj.quantity}} OR sq.sup_max_order_qty = 0))\n  )\n  AND '{{node:code_node_T4JW4d6p.data.fetch_data_from}}' = 'Supplier'\n\nUNION ALL\n\n-- Customer prices\nSELECT \n  'Customer' AS price_type,\n  sc.id,\n  sc.customer_id AS party_id,\n  sc.Item_id,\n  sc.cust_price_uom AS uom_id,\n  sc.cust_min_order_qty AS min_order_qty,\n  sc.cust_max_order_qty AS max_order_qty,\n  sc.cust_price_date_from AS price_date_from,\n  sc.cust_price_date_to AS price_date_to,\n  sc.cust_price_tag_id AS price_tag_id,\n  sc.cust_price_discount AS discount,\n  sc.cust_price_discount_type AS discount_type,\n  sc.cust_price_tax AS tax,\n  sc.cust_price_tax_percent AS tax_percent,  \n  sc.cust_price_unit_price AS unit_price,\n  sc.cust_price_min_price AS min_price,\n  sc.cust_price_max_price AS max_price\nFROM item_i9q0d8uj_sub sc\nJOIN item i ON sc.Item_id = i.id\nWHERE sc.is_deleted = 0\n  AND (\n    sc.cust_price_tag_id = '{{node:code_node_aw4JItTz.data.price_tag_id}}'\n    OR (\n      '{{workflowparams:supp_cust_id}}' IS NOT NULL \n      AND '{{workflowparams:supp_cust_id}}' != ''\n      AND sc.customer_id = '{{workflowparams:supp_cust_id}}'\n    )\n  )\n  AND (\n    (sc.cust_price_date_from IS NULL AND sc.cust_price_date_to IS NULL)\n    OR (sc.cust_price_date_from < CURDATE() AND sc.cust_price_date_to IS NULL)\n    OR (sc.cust_price_date_from IS NULL AND sc.cust_price_date_to > CURDATE())\n    OR (sc.cust_price_date_from < CURDATE() AND sc.cust_price_date_to > CURDATE())\n  )\n  AND sc.Item_id = {{node:loop_K5yRwowj.item_id}}\n  AND sc.cust_price_uom = {{node:loop_K5yRwowj.uom_id}}\n  AND (\n    ((sc.cust_min_order_qty <= {{node:loop_K5yRwowj.quantity}} OR sc.cust_min_order_qty = 0)\n     AND (sc.cust_max_order_qty >= {{node:loop_K5yRwowj.quantity}} OR sc.cust_max_order_qty = 0))\n  )\n  AND '{{node:code_node_T4JW4d6p.data.fetch_data_from}}' = 'Customer';"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "yqemm8yo",
+                                    "name": "price_type",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "efhfhhxg",
+                                    "name": "id",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "uk2rcb39",
+                                    "name": "Item_id",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "9acq6xgl",
+                                    "name": "uom_id",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "uw1szdg3",
+                                    "name": "min_order_qty",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "nb9bwkos",
+                                    "name": "max_order_qty",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "h0ix7gm6",
+                                    "name": "price_date_from",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "15rfkrgk",
+                                    "name": "price_date_to",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "tzex8t6s",
+                                    "name": "price_tag_id",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "vnmity4n",
+                                    "name": "discount",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "1jam44sh",
+                                    "name": "discount_type",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "uxic18r7",
+                                    "name": "tax",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "oc65pf2g",
+                                    "name": "tax_percent",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "830gxxy9",
+                                    "name": "unit_price",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "j0icy15q",
+                                    "name": "min_price",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "gjuh7m6k",
+                                    "name": "max_price",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  },
+                                  {
+                                    "key": "cmner87k",
+                                    "name": "party_id",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_52olNmSl",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "Map Price Tag Data",
+                                "isValidator": true,
+                                "nodeName": "Map Price Tag Data",
+                                "name": "Map Price Tag Data",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const redisDataRaw = {{node:get_cache_node_tdVHbRri.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\n\nconst currentLineItem = {{node:loop_K5yRwowj}};\nconst itemListRaw = {{node:sql_node_ItemUomPrices.data}};\nconst itemList = Array.isArray(itemListRaw) ? itemListRaw : (itemListRaw ? [itemListRaw] : []);\n// Get Item List returns table_uom_conversion as a JSON_ARRAYAGG string.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst documentType = {{node:code_node_kaS0Zdzg.data.document_type}};\n\nconst priceTagData = {{node:sql_node_IS2go2ob.data}};\nconst rules = {{node:loop_vc4Z4iEX.rules}};\nconst itemRow = itemList.find((item) => String(item.id) === String(currentLineItem.item_id));\nconst itemData = itemRow\n  ? { ...itemRow, table_uom_conversion: parseConv(itemRow.uom_conversion_json) }\n  : itemRow;\nconst itemUOM = itemData.table_uom_conversion.find(\n  (uom) => String(uom.alt_uom_id) === String(currentLineItem.uom_id),\n);\n\nif (priceTagData.length === 0) {\n  return {\n    status: \"Continue Loop\",\n    data: null,\n  };\n}\n\nlet data = {};\nif (priceTagData && priceTagData.length > 0) {\n  const sdOrProcurement = documentType === \"sd\" ? \"sales\" : \"purchase\";\n\n  data = {\n    ...currentLineItem,\n    from: rules,\n    use_price_tag: true,\n    unit_price: priceTagData[0].unit_price || currentLineItem.unit_price || 0,\n    from_historical: 0,\n    max_price: priceTagData[0].max_price || 0,\n    min_price: priceTagData[0].min_price || 0,\n    min_qty: parseFloat(itemUOM[`min_${sdOrProcurement}_qty`] || 0),\n    max_qty: parseFloat(itemUOM[`max_${sdOrProcurement}_qty`] || 0),\n    quantity: parseFloat(currentLineItem.quantity || 0),\n    discount: priceTagData[0].discount || currentLineItem.discount || 0,\n    discount_uom: priceTagData[0].discount_type || currentLineItem.discount_uom,\n    tax_rate: priceTagData[0].tax || currentLineItem.tax_rate,\n    tax_percent: priceTagData[0].tax_percent || currentLineItem.tax_percent,\n  };\n}\n\nreturn {\n  status: \"End Loop\",\n  data: [...redisData, data],\n};\n"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "e4bi4dt9",
+                                    "name": "data",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "s82dosf9",
+                                    "name": "status",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "if_uSeYfZwn",
+                              "type": "if",
+                              "data": {
+                                "title": "IF end loop?",
+                                "isValidator": true,
+                                "nodeName": "IF end loop?",
+                                "name": "IF end loop?",
+                                "condition_type": "Expression",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{node:code_node_52olNmSl.data.status}}' == 'End Loop'"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_T7riYcBH",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "true"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "set_cache_node_ho8eeT9P",
+                                      "type": "set-cache-node",
+                                      "data": {
+                                        "cache_key": "",
+                                        "cache_value": "",
+                                        "expire_time": 3600,
+                                        "title": "Set Redis Cache",
+                                        "isValidator": true,
+                                        "nodeName": "Set Redis Cache",
+                                        "name": "Set Redis Cache",
+                                        "custom_wkbocgni": {
+                                          "type": "javascript",
+                                          "code": "{{node:code_node_52olNmSl.data.data}}"
+                                        },
+                                        "redis_key": "{{node:code_node_BMyh49Gb.data.redis_name}}",
+                                        "limit_time": 86400000
+                                      },
+                                      "blocks": []
+                                    },
+                                    {
+                                      "id": "breakLoop_ZY06ok3W",
+                                      "type": "breakLoop",
+                                      "data": {
+                                        "title": "退出循环"
+                                      },
+                                      "blocks": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_SXd8V9wN",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "false"
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_NWR--LQS",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_item_FeNCuZVP",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Multi Pricing",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1784254608571,
+                          "parentId": 1784254608570,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "'{{node:loop_vc4Z4iEX.rules}}' == 'Multi Pricing'",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 3,
+                    "isDefault": false,
+                    "isValidator": true,
+                    "nodeName": "Multi Pricing",
+                    "name": "Multi Pricing",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "condition_or_item_jLpmeUGE",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Default Unit Price",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1784254618947,
+                          "parentId": 1784254618946,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": "'{{node:loop_vc4Z4iEX.rules}}' == 'Default Sales Unit Price' || '{{node:loop_vc4Z4iEX.rules}}' == 'Default Purchase Unit Price'",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 4,
+                    "isDefault": false,
+                    "isValidator": true,
+                    "nodeName": "Default Unit Price",
+                    "name": "Default Unit Price",
+                    "condition_type": "Expression"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_node_qMnpwS8z",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Map Default Data",
+                        "isValidator": true,
+                        "nodeName": "Map Default Data",
+                        "name": "Map Default Data",
+                        "script": {
+                          "type": "javascript",
+                          "code": "const redisDataRaw = {{node:get_cache_node_tdVHbRri.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\n\nconst currentLineItem = {{node:loop_K5yRwowj}};\nconst itemListRaw = {{node:sql_node_ItemUomPrices.data}};\nconst itemList = Array.isArray(itemListRaw) ? itemListRaw : (itemListRaw ? [itemListRaw] : []);\n// Get Item List returns table_uom_conversion as a JSON_ARRAYAGG string.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst documentType = {{node:code_node_kaS0Zdzg.data.document_type}};\nconst rules = {{node:loop_vc4Z4iEX.rules}};\n\nconst suppCustID = {{workflowparams:supp_cust_id}};\n\nconst itemRow = itemList.find((item) => String(item.id) === String(currentLineItem.item_id));\nconst itemData = itemRow\n  ? { ...itemRow, table_uom_conversion: parseConv(itemRow.uom_conversion_json) }\n  : itemRow;\nconst itemUOM =\n  itemData.table_uom_conversion.find(\n    (uom) => String(uom.alt_uom_id) === String(currentLineItem.uom_id),\n  ) || null;\n\nif (!itemUOM) {\n  return {\n    status: \"Continue Loop\",\n    data: null,\n  };\n}\n\nlet data = {};\nconst sdOrProcurement = documentType === \"sd\" ? \"sales\" : \"purchase\";\n\ndata = {\n  ...currentLineItem,\n  from: rules,\n  use_price_tag: false,\n  unit_price:\n    itemUOM[`${sdOrProcurement}_unit_price`] || currentLineItem.unit_price || 0,\n  from_historical: 0,\n  max_price: itemUOM[`${sdOrProcurement}_max_price`] || 0,\n  min_price: itemUOM[`${sdOrProcurement}_min_price`] || 0,\n  //moq: moq || 0,\n  min_qty: itemUOM[`min_${sdOrProcurement}_qty`] || 0,\n  max_qty: itemUOM[`max_${sdOrProcurement}_qty`] || 0,\n  quantity: parseFloat(currentLineItem.quantity || 0),\n  discount: currentLineItem.discount || 0,\n  discount_uom: currentLineItem.discount_uom,\n  tax_rate:\n    itemUOM[`mat_${sdOrProcurement}_tax_id`] || currentLineItem.tax_rate,\n  tax_percent:\n    itemUOM[`${sdOrProcurement}_tax_percent`] || currentLineItem.tax_percent,\n};\n\nreturn {\n  status: \"End Loop\",\n  data: [...redisData, data],\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "e4bi4dt9",
+                            "name": "data",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "s82dosf9",
+                            "name": "status",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_idH37Yre",
+                      "type": "if",
+                      "data": {
+                        "title": "IF end loop?",
+                        "isValidator": true,
+                        "nodeName": "IF end loop?",
+                        "name": "IF end loop?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_qMnpwS8z.data.status}}' == 'End Loop'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_sDvajEil",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "set_cache_node_ijvTh6k7",
+                              "type": "set-cache-node",
+                              "data": {
+                                "cache_key": "",
+                                "cache_value": "",
+                                "expire_time": 3600,
+                                "title": "Set Redis Cache",
+                                "isValidator": true,
+                                "nodeName": "Set Redis Cache",
+                                "name": "Set Redis Cache",
+                                "custom_wkbocgni": {
+                                  "type": "javascript",
+                                  "code": "{{node:code_node_qMnpwS8z.data.data}}"
+                                },
+                                "redis_key": "{{node:code_node_BMyh49Gb.data.redis_name}}",
+                                "limit_time": 86400000
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "breakLoop_unxPN2a5",
+                              "type": "breakLoop",
+                              "data": {
+                                "title": "退出循环"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_9IvkeLmz",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "condition_or_node_item_adcZwnY7",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "Other",
+                    "isDefault": true,
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": ""
+                    },
+                    "displayContent": "sdk.form.otherCondition"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "get_cache_node_ZqgOlvfi",
+      "type": "get-cache-node",
+      "data": {
+        "cache_key": "",
+        "title": "Get Redis Cache",
+        "isValidator": true,
+        "nodeName": "Get Redis Cache",
+        "name": "Get Redis Cache",
+        "redis_key": "{{node:code_node_BMyh49Gb.data.redis_name}}"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_Dc1KkM8t",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map return data",
+        "isValidator": true,
+        "nodeName": "Map return data",
+        "name": "Map return data",
+        "script": {
+          "type": "javascript",
+          "code": "const redisDataRaw = {{node:get_cache_node_ZqgOlvfi.data}};\nconst redisData = JSON.parse(redisDataRaw) || [];\n\n// Get the workflow parameter data (which is an array)\nconst workflowItemData = {{workflowparams:item_data}} || [];\n\n// Check if any item in redisData has use_price_tag = true\nconst hasUsePriceTag = redisData.some((item) => item.use_price_tag === true);\n\n// Normalize numeric values to 4 decimal places before comparing, otherwise\n// values like 5 vs 5.0 (or float noise like 5.00000001) read as different\nconst roundTo4 = (val) => {\n  if (val === undefined || val === null || val === \"\") return null;\n  const num = parseFloat(val);\n  return isNaN(num) ? null : Math.round(num * 10000) / 10000;\n};\n\n// Check if unit_price is different between redisData and workflowItemData\nlet isPriceDifferent = false;\nlet isDiscountDifferent = false;\nlet isDiscountUomDifferent = false;\nlet isTaxRateDifferent = false;\nlet isTaxPercentDifferent = false;\n\nif (redisData.length > 0 && workflowItemData.length > 0) {\n  // For each item in redisData that has use_price_tag = true\n  for (const redisItem of redisData) {\n    const workflowItem = workflowItemData.find(\n      (item) =>\n        item.item_id === redisItem.item_id &&\n        item.line_index === redisItem.line_index,\n    );\n\n    if (workflowItem) {\n      // Check unit_price\n      const redisPrice = roundTo4(redisItem?.unit_price);\n      const workflowPrice = roundTo4(workflowItem?.unit_price);\n      if (redisPrice !== workflowPrice && redisPrice !== 0) {\n        isPriceDifferent = true;\n      }\n\n      // Check discount\n      const redisDiscount = roundTo4(redisItem?.discount);\n      const workflowDiscount = roundTo4(workflowItem?.discount);\n      if (redisDiscount !== workflowDiscount) {\n        isDiscountDifferent = true;\n      }\n\n      // Check discount_uom\n      const redisDiscountUom = redisItem?.discount_uom || null;\n      const workflowDiscountUom = workflowItem?.discount_uom || null;\n      if (redisDiscountUom !== workflowDiscountUom) {\n        isDiscountUomDifferent = true;\n      }\n\n      // Check tax_rate\n      const redisTaxRate = roundTo4(redisItem?.tax_rate);\n      const workflowTaxRate = roundTo4(workflowItem?.tax_rate);\n      if (redisTaxRate !== workflowTaxRate) {\n        isTaxRateDifferent = true;\n      }\n\n      // Check tax_percent\n      const redisTaxPercent = roundTo4(redisItem?.tax_percent);\n      const workflowTaxPercent = roundTo4(workflowItem?.tax_percent);\n      if (redisTaxPercent !== workflowTaxPercent) {\n        isTaxPercentDifferent = true;\n      }\n    }\n  }\n}\n\n// Determine if overwrite is needed\nlet needOverwrite = \"No\";\nif (\n  hasUsePriceTag ||\n  (isPriceDifferent ||\n    isDiscountDifferent ||\n    isDiscountUomDifferent ||\n    isTaxRateDifferent ||\n    isTaxPercentDifferent)\n) {\n  needOverwrite = \"Yes\";\n}\n\nreturn {\n  data: redisData,\n  needOverwrite: needOverwrite,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "rlqg1ldr",
+            "name": "data",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "y1puk2nx",
+            "name": "needOverwrite",
+            "title": "",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node",
+        "nodeName": "End Node",
+        "name": "End Node",
+        "back_data_type": "OutputParams",
+        "response_value": {
+          "list": [
+            {
+              "prop": "data",
+              "propLabel": "data",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "valueLabel": "",
+              "value": "{{node:code_node_Dc1KkM8t.data.data}}"
+            },
+            {
+              "prop": "needOverwrite",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_Dc1KkM8t.data.needOverwrite}}",
+              "valueLabel": "",
+              "propLabel": "needOverwrite"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

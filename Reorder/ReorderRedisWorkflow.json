@@ -33,7 +33,10 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
@@ -69,8 +72,12 @@
       "type": "condition-or-node",
       "data": {
         "title": "Condition",
-        "filter": { "list": [] },
-        "expression": { "code": "" },
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
         "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
@@ -118,15 +125,15 @@
                 "name": "Collect SO Item IDs",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// Distinct item ids across previous + latest SO lines\nconst idSet = new Set();\n[...previousData, ...latestData].forEach(item => {\n  if (item && item.item_name && String(item.item_name).trim() !== \"\") {\n    idSet.add(item.item_name);\n  }\n});\n\nreturn { itemIDs: Array.from(idSet) };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// Distinct item ids across previous + latest SO lines\nconst idSet = new Set();\n[...previousData, ...latestData].forEach(item => {\n  if (item && item.item_name && String(item.item_name).trim() !== \"\") {\n    idSet.add(item.item_name);\n  }\n});\n\n// Digits only: these ids are interpolated into the conversion fetch's SQL.\nconst itemIDs = Array.from(idSet).map(String).filter((id) => /^[0-9]+$/.test(id));\n\nreturn { itemIdCsv: itemIDs.join(',') };"
                 },
                 "response_json": [
                   {
                     "key": "soitemids1",
-                    "name": "itemIDs",
-                    "title": "Item IDs",
+                    "name": "itemIdCsv",
+                    "title": "Item ID CSV",
                     "description": "",
-                    "bsonType": "any",
+                    "bsonType": "string",
                     "isExpand": false,
                     "children": []
                   }
@@ -135,41 +142,49 @@
               "blocks": []
             },
             {
-              "id": "search_node_SoReorderItems",
-              "type": "search-node",
+              "id": "sql_node_SoReorderItems",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "level": 1,
-                        "children": [
-                          {
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_SoReorderItemIDs.data.itemIDs}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Primary Key ID",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 200,
+                "database_id": "",
+                "sql": "",
+                "params": {},
                 "title": "Get SO Item Conversion",
                 "isValidator": true,
                 "nodeName": "Get SO Item Conversion",
-                "name": "Get SO Item Conversion"
+                "name": "Get SO Item Conversion",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(i.id AS CHAR) AS id,\n       CAST(i.based_uom AS CHAR) AS based_uom,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'base_qty', u.base_qty))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_SoReorderItemIDs.data.itemIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "sorid00",
+                    "name": "id",
+                    "title": "Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sorbu00",
+                    "name": "based_uom",
+                    "title": "Based UOM",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sorucj0",
+                    "name": "uom_conversion_json",
+                    "title": "UOM Conversion JSON",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
               },
               "blocks": []
             },
@@ -186,7 +201,7 @@
                 "name": "Compare SO Data",
                 "script": {
                   "type": "javascript",
-                  "code": "const soPreviousData = {{workflowparams:previous_data}} || []; // array of item\nconst soLatestData = {{workflowparams:latest_data}} || []; // array of item (null/omitted on cancel -> [] -> negatives)\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched, only in this SO branch)\nconst itemMasterRaw = {{node:search_node_SoReorderItems.data.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => { if (it && it.id) itemMasterMap.set(String(it.id), it); });\n\n// Convert an SO line qty (in so_item_uom) to the item's base UOM qty\nconst convertToBaseQty = (itemId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(itemId));\n  if (!itemData || !uomId || uomId === itemData.based_uom) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => c.alt_uom_id === uomId)\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// Helper function to create composite key for maps\nconst getCompositeKey = (item) => {\n  return `${item.item_name}|${item.plant_id}`;\n};\n\n// Helper function to aggregate items by composite key\nconst aggregateItems = (items) => {\n  if (!items || items.length === 0) return [];\n  \n  const aggregatedMap = new Map();\n  \n  items.forEach(item => {\n    // Skip items without item_name (item_id)\n    if (!item.item_name || item.item_name.trim() === \"\") {\n      return; // Skip this item\n    }\n    \n    const key = getCompositeKey(item);\n    \n    // Convert so_quantity (in so_item_uom) to base UOM qty\n    const quantity = convertToBaseQty(item.item_name, item.so_item_uom, item.so_quantity);\n    \n    if (aggregatedMap.has(key)) {\n      // Sum up the quantity for existing key\n      const existingItem = aggregatedMap.get(key);\n      existingItem.so_quantity += quantity;\n    } else {\n      // Create new entry with a copy of the item\n      aggregatedMap.set(key, {\n        ...item,\n        so_quantity: quantity\n      });\n    }\n  });\n  \n  return Array.from(aggregatedMap.values());\n};\n\n// Helper to format quantity to 3 decimal places\nconst formatQuantity = (value) => {\n  return parseFloat(value.toFixed(3));\n};\n\n// Aggregate previous and latest data\nconst aggregatedPrevious = aggregateItems(soPreviousData);\nconst aggregatedLatest = aggregateItems(soLatestData);\n\nif (aggregatedPrevious.length > 0) {\n  const previousItems = aggregatedPrevious;\n  const latestItems = aggregatedLatest;\n  \n  // Create maps using composite key (item_name + plant_id)\n  const previousMap = new Map(previousItems.map(item => [getCompositeKey(item), item]));\n  const latestMap = new Map(latestItems.map(item => [getCompositeKey(item), item]));\n  \n  // Check for deleted and modified items\n  previousItems.forEach(prevItem => {\n    const compositeKey = getCompositeKey(prevItem);\n    const latestItem = latestMap.get(compositeKey);\n    \n    if (!latestItem) {\n      // Item deleted from that specific plant - quantity is negative (removing stock)\n      data.push({\n        item_id: prevItem.item_name,\n        quantity: formatQuantity(-prevItem.so_quantity),\n        tenant_id: {{system:tenantId}},\n        organization_id: prevItem.organization_id,\n        plant_id: prevItem.plant_id,\n        trigger_source: documentType\n      });\n    } else {\n      // Item exists in same plant, check for quantity changes\n      const quantityDifference = formatQuantity(latestItem.so_quantity - prevItem.so_quantity);\n      \n      if (quantityDifference !== 0) {\n        // Quantity changed - positive for addition, negative for removal\n        data.push({\n          item_id: prevItem.item_name,\n          quantity: quantityDifference,\n          tenant_id: {{system:tenantId}},\n          organization_id: latestItem.organization_id,\n          plant_id: latestItem.plant_id,\n          trigger_source: documentType\n        });\n      }\n    }\n  });\n  \n  // Check for added items (new item or same item in different plant)\n  latestItems.forEach(latestItem => {\n    const compositeKey = getCompositeKey(latestItem);\n    if (!previousMap.has(compositeKey)) {\n      // New item added OR existing item moved to new plant\n      data.push({\n        item_id: latestItem.item_name,\n        quantity: formatQuantity(latestItem.so_quantity),\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        trigger_source: documentType\n      });\n    }\n  });\n  \n} else if (aggregatedLatest.length > 0) {\n  // No previous data, all items are new additions\n  aggregatedLatest.forEach(latestItem => {\n    data.push({\n      item_id: latestItem.item_name,\n      quantity: formatQuantity(latestItem.so_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      trigger_source: documentType\n    });\n  });\n}\n\nreturn { data };"
+                  "code": "const soPreviousData = {{workflowparams:previous_data}} || []; // array of item\nconst soLatestData = {{workflowparams:latest_data}} || []; // array of item (null/omitted on cancel -> [] -> negatives)\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched, only in this SO branch)\nconst itemMasterRaw = {{node:sql_node_SoReorderItems.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\n// The conversion fetch returns table_uom_conversion as a JSON_ARRAYAGG string.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => {\n  if (it && it.id)\n    itemMasterMap.set(String(it.id), { ...it, table_uom_conversion: parseConv(it.uom_conversion_json) });\n});\n\n// Convert an SO line qty (in so_item_uom) to the item's base UOM qty\nconst convertToBaseQty = (itemId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(itemId));\n  if (!itemData || !uomId || String(uomId) === String(itemData.based_uom)) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(uomId))\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// Helper function to create composite key for maps\nconst getCompositeKey = (item) => {\n  return `${item.item_name}|${item.plant_id}`;\n};\n\n// Helper function to aggregate items by composite key\nconst aggregateItems = (items) => {\n  if (!items || items.length === 0) return [];\n  \n  const aggregatedMap = new Map();\n  \n  items.forEach(item => {\n    // Skip items without item_name (item_id)\n    if (!item.item_name || item.item_name.trim() === \"\") {\n      return; // Skip this item\n    }\n    \n    const key = getCompositeKey(item);\n    \n    // Convert so_quantity (in so_item_uom) to base UOM qty\n    const quantity = convertToBaseQty(item.item_name, item.so_item_uom, item.so_quantity);\n    \n    if (aggregatedMap.has(key)) {\n      // Sum up the quantity for existing key\n      const existingItem = aggregatedMap.get(key);\n      existingItem.so_quantity += quantity;\n    } else {\n      // Create new entry with a copy of the item\n      aggregatedMap.set(key, {\n        ...item,\n        so_quantity: quantity\n      });\n    }\n  });\n  \n  return Array.from(aggregatedMap.values());\n};\n\n// Helper to format quantity to 3 decimal places\nconst formatQuantity = (value) => {\n  return parseFloat(value.toFixed(3));\n};\n\n// Aggregate previous and latest data\nconst aggregatedPrevious = aggregateItems(soPreviousData);\nconst aggregatedLatest = aggregateItems(soLatestData);\n\nif (aggregatedPrevious.length > 0) {\n  const previousItems = aggregatedPrevious;\n  const latestItems = aggregatedLatest;\n  \n  // Create maps using composite key (item_name + plant_id)\n  const previousMap = new Map(previousItems.map(item => [getCompositeKey(item), item]));\n  const latestMap = new Map(latestItems.map(item => [getCompositeKey(item), item]));\n  \n  // Check for deleted and modified items\n  previousItems.forEach(prevItem => {\n    const compositeKey = getCompositeKey(prevItem);\n    const latestItem = latestMap.get(compositeKey);\n    \n    if (!latestItem) {\n      // Item deleted from that specific plant - quantity is negative (removing stock)\n      data.push({\n        item_id: prevItem.item_name,\n        quantity: formatQuantity(-prevItem.so_quantity),\n        tenant_id: {{system:tenantId}},\n        organization_id: prevItem.organization_id,\n        plant_id: prevItem.plant_id,\n        trigger_source: documentType\n      });\n    } else {\n      // Item exists in same plant, check for quantity changes\n      const quantityDifference = formatQuantity(latestItem.so_quantity - prevItem.so_quantity);\n      \n      if (quantityDifference !== 0) {\n        // Quantity changed - positive for addition, negative for removal\n        data.push({\n          item_id: prevItem.item_name,\n          quantity: quantityDifference,\n          tenant_id: {{system:tenantId}},\n          organization_id: latestItem.organization_id,\n          plant_id: latestItem.plant_id,\n          trigger_source: documentType\n        });\n      }\n    }\n  });\n  \n  // Check for added items (new item or same item in different plant)\n  latestItems.forEach(latestItem => {\n    const compositeKey = getCompositeKey(latestItem);\n    if (!previousMap.has(compositeKey)) {\n      // New item added OR existing item moved to new plant\n      data.push({\n        item_id: latestItem.item_name,\n        quantity: formatQuantity(latestItem.so_quantity),\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        trigger_source: documentType\n      });\n    }\n  });\n  \n} else if (aggregatedLatest.length > 0) {\n  // No previous data, all items are new additions\n  aggregatedLatest.forEach(latestItem => {\n    data.push({\n      item_id: latestItem.item_name,\n      quantity: formatQuantity(latestItem.so_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      trigger_source: documentType\n    });\n  });\n}\n\nreturn { data };"
                 },
                 "response_json": [
                   {
@@ -314,15 +329,15 @@
                 "name": "Collect PP Item IDs",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// Distinct material ids across previous + latest PP (table_to) allocations\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => { if (a && a.material_id) idSet.add(a.material_id); });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\nreturn { itemIDs: Array.from(idSet) };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// Distinct material ids across previous + latest PP (table_to) allocations\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => { if (a && a.material_id) idSet.add(a.material_id); });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\n// Digits only: these ids are interpolated into the conversion fetch's SQL.\nconst itemIDs = Array.from(idSet).map(String).filter((id) => /^[0-9]+$/.test(id));\n\nreturn { itemIdCsv: itemIDs.join(',') };"
                 },
                 "response_json": [
                   {
                     "key": "ppitemids1",
-                    "name": "itemIDs",
-                    "title": "Item IDs",
+                    "name": "itemIdCsv",
+                    "title": "Item ID CSV",
                     "description": "",
-                    "bsonType": "any",
+                    "bsonType": "string",
                     "isExpand": false,
                     "children": []
                   }
@@ -331,41 +346,49 @@
               "blocks": []
             },
             {
-              "id": "search_node_PpReorderItems",
-              "type": "search-node",
+              "id": "sql_node_PpReorderItems",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "level": 1,
-                        "children": [
-                          {
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_PpReorderItemIDs.data.itemIDs}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Primary Key ID",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 200,
+                "database_id": "",
+                "sql": "",
+                "params": {},
                 "title": "Get PP Item Conversion",
                 "isValidator": true,
                 "nodeName": "Get PP Item Conversion",
-                "name": "Get PP Item Conversion"
+                "name": "Get PP Item Conversion",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(i.id AS CHAR) AS id,\n       CAST(i.based_uom AS CHAR) AS based_uom,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'base_qty', u.base_qty))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_PpReorderItemIDs.data.itemIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "pprid00",
+                    "name": "id",
+                    "title": "Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pprbu00",
+                    "name": "based_uom",
+                    "title": "Based UOM",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pprucj0",
+                    "name": "uom_conversion_json",
+                    "title": "UOM Conversion JSON",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
               },
               "blocks": []
             },
@@ -382,7 +405,7 @@
                 "name": "Compare PP Data",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || []; // table_to lines\nconst latestData = {{workflowparams:latest_data}} || []; // table_to lines (null/omitted on cancel -> [] -> negatives)\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). PP lines don't store\n// base_qty, so base conversion needs the item's table_uom_conversion (like SO).\nconst itemMasterRaw = {{node:search_node_PpReorderItems.data.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => { if (it && it.id) itemMasterMap.set(String(it.id), it); });\n\n// Convert a PP allocation qty (in the line's to_order_uom_id) to base UOM qty\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || uomId === itemData.based_uom) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => c.alt_uom_id === uomId)\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// Extract + aggregate temp_qty_data (to_quantity -> base) by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    // Per-line order UOM (all allocations on a PP line share the line's UOM)\n    const lineUom = item.to_order_uom_id;\n\n    tempQtyArray.forEach(qtyItem => {\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = convertToBaseQty(materialId, lineUom, qtyItem.to_quantity);\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).to_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          to_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: formatQuantity(-prevItem.to_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: formatQuantity(latestItem.to_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.to_quantity !== latestItem.to_quantity) {\n    const difference = formatQuantity(latestItem.to_quantity - prevItem.to_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || []; // table_to lines\nconst latestData = {{workflowparams:latest_data}} || []; // table_to lines (null/omitted on cancel -> [] -> negatives)\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). PP lines don't store\n// base_qty, so base conversion needs the item's table_uom_conversion (like SO).\nconst itemMasterRaw = {{node:sql_node_PpReorderItems.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\n// The conversion fetch returns table_uom_conversion as a JSON_ARRAYAGG string.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => {\n  if (it && it.id)\n    itemMasterMap.set(String(it.id), { ...it, table_uom_conversion: parseConv(it.uom_conversion_json) });\n});\n\n// Convert a PP allocation qty (in the line's to_order_uom_id) to base UOM qty\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || String(uomId) === String(itemData.based_uom)) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(uomId))\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// Extract + aggregate temp_qty_data (to_quantity -> base) by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    // Per-line order UOM (all allocations on a PP line share the line's UOM)\n    const lineUom = item.to_order_uom_id;\n\n    tempQtyArray.forEach(qtyItem => {\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = convertToBaseQty(materialId, lineUom, qtyItem.to_quantity);\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).to_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          to_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: formatQuantity(-prevItem.to_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: formatQuantity(latestItem.to_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.to_quantity !== latestItem.to_quantity) {\n    const difference = formatQuantity(latestItem.to_quantity - prevItem.to_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
                 },
                 "response_json": [
                   {
@@ -446,15 +469,15 @@
                 "name": "Collect MSI Item IDs",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// Distinct material ids across previous + latest MSI (stock_movement) allocations.\n// Only Unrestricted allocations affect available stock (HU rows are always Unrestricted).\nconst isUnrestricted = (a) => !a.category || a.category === 'Unrestricted';\n\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => { if (a && a.material_id && isUnrestricted(a)) idSet.add(a.material_id); });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\nreturn { itemIDs: Array.from(idSet) };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// Distinct material ids across previous + latest MSI (stock_movement) allocations.\n// Only Unrestricted allocations affect available stock (HU rows are always Unrestricted).\nconst isUnrestricted = (a) => !a.category || a.category === 'Unrestricted';\n\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => { if (a && a.material_id && isUnrestricted(a)) idSet.add(a.material_id); });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\n// Digits only: these ids are interpolated into the conversion fetch's SQL.\nconst itemIDs = Array.from(idSet).map(String).filter((id) => /^[0-9]+$/.test(id));\n\nreturn { itemIdCsv: itemIDs.join(',') };"
                 },
                 "response_json": [
                   {
                     "key": "msiitemids1",
-                    "name": "itemIDs",
-                    "title": "Item IDs",
+                    "name": "itemIdCsv",
+                    "title": "Item ID CSV",
                     "description": "",
-                    "bsonType": "any",
+                    "bsonType": "string",
                     "isExpand": false,
                     "children": []
                   }
@@ -463,41 +486,49 @@
               "blocks": []
             },
             {
-              "id": "search_node_MsiReorderItems",
-              "type": "search-node",
+              "id": "sql_node_MsiReorderItems",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "level": 1,
-                        "children": [
-                          {
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_MsiReorderItemIDs.data.itemIDs}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Primary Key ID",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 200,
+                "database_id": "",
+                "sql": "",
+                "params": {},
                 "title": "Get MSI Item Conversion",
                 "isValidator": true,
                 "nodeName": "Get MSI Item Conversion",
-                "name": "Get MSI Item Conversion"
+                "name": "Get MSI Item Conversion",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(i.id AS CHAR) AS id,\n       CAST(i.based_uom AS CHAR) AS based_uom,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'base_qty', u.base_qty))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_MsiReorderItemIDs.data.itemIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "msirid00",
+                    "name": "id",
+                    "title": "Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "msirbu00",
+                    "name": "based_uom",
+                    "title": "Based UOM",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "msirucj0",
+                    "name": "uom_conversion_json",
+                    "title": "UOM Conversion JSON",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
               },
               "blocks": []
             },
@@ -514,7 +545,7 @@
                 "name": "Compare MSI Data",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || []; // stock_movement lines\nconst latestData = {{workflowparams:latest_data}} || []; // stock_movement lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). MSI lines don't store\n// base_qty, so base conversion needs the item's table_uom_conversion (like SO/PP).\nconst itemMasterRaw = {{node:search_node_MsiReorderItems.data.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => { if (it && it.id) itemMasterMap.set(String(it.id), it); });\n\n// Convert an MSI allocation qty (in the line's quantity_uom) to base UOM qty\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || uomId === itemData.based_uom) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => c.alt_uom_id === uomId)\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// Only Unrestricted allocations reduce available stock. Reserved was already\n// booked by whatever reserved it; Blocked / Quality Inspection were never\n// available. HU rows carry category \"Unrestricted\" explicitly.\nconst isUnrestricted = (a) => !a.category || a.category === 'Unrestricted';\n\n// Extract + aggregate temp_qty_data (sm_quantity -> base) by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    // Per-line order UOM (all allocations on an MSI line share the line's UOM)\n    const lineUom = item.quantity_uom;\n\n    tempQtyArray.forEach(qtyItem => {\n      if (!isUnrestricted(qtyItem)) return;\n\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = convertToBaseQty(materialId, lineUom, qtyItem.sm_quantity);\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).sm_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          sm_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: formatQuantity(-prevItem.sm_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: formatQuantity(latestItem.sm_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.sm_quantity !== latestItem.sm_quantity) {\n    const difference = formatQuantity(latestItem.sm_quantity - prevItem.sm_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || []; // stock_movement lines\nconst latestData = {{workflowparams:latest_data}} || []; // stock_movement lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). MSI lines don't store\n// base_qty, so base conversion needs the item's table_uom_conversion (like SO/PP).\nconst itemMasterRaw = {{node:sql_node_MsiReorderItems.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\n// The conversion fetch returns table_uom_conversion as a JSON_ARRAYAGG string.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => {\n  if (it && it.id)\n    itemMasterMap.set(String(it.id), { ...it, table_uom_conversion: parseConv(it.uom_conversion_json) });\n});\n\n// Convert an MSI allocation qty (in the line's quantity_uom) to base UOM qty\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || String(uomId) === String(itemData.based_uom)) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(uomId))\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// Only Unrestricted allocations reduce available stock. Reserved was already\n// booked by whatever reserved it; Blocked / Quality Inspection were never\n// available. HU rows carry category \"Unrestricted\" explicitly.\nconst isUnrestricted = (a) => !a.category || a.category === 'Unrestricted';\n\n// Extract + aggregate temp_qty_data (sm_quantity -> base) by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    // Per-line order UOM (all allocations on an MSI line share the line's UOM)\n    const lineUom = item.quantity_uom;\n\n    tempQtyArray.forEach(qtyItem => {\n      if (!isUnrestricted(qtyItem)) return;\n\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = convertToBaseQty(materialId, lineUom, qtyItem.sm_quantity);\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).sm_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          sm_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: formatQuantity(-prevItem.sm_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: formatQuantity(latestItem.sm_quantity),\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.sm_quantity !== latestItem.sm_quantity) {\n    const difference = formatQuantity(latestItem.sm_quantity - prevItem.sm_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
                 },
                 "response_json": [
                   {
@@ -578,15 +609,15 @@
                 "name": "Collect CAT Item IDs",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// A Category Transfer moves stock between inventory categories at the SAME\n// plant + location. Availability only changes when Unrestricted is one side:\n//   Unrestricted -> non-Unrestricted  => +qty (available drops)\n//   non-Unrestricted -> Unrestricted  => -qty (available rises)\n//   neither side Unrestricted         =>  0   (skip entirely)\n// NOTE: CAT allocations carry category_from / category_to — there is NO\n// `category` key (unlike MSI/PT), so the MSI filter must NOT be reused here.\nconst isU = (c) => c === 'Unrestricted';\nconst signOf = (a) => {\n  const from = isU(a.category_from);\n  const to = isU(a.category_to);\n  if (from && !to) return 1;\n  if (!from && to) return -1;\n  return 0;\n};\n\n// Only allocations that actually shift availability need a conversion factor.\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => { if (a && a.material_id && signOf(a) !== 0) idSet.add(a.material_id); });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\nreturn { itemIDs: Array.from(idSet) };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// A Category Transfer moves stock between inventory categories at the SAME\n// plant + location. Availability only changes when Unrestricted is one side:\n//   Unrestricted -> non-Unrestricted  => +qty (available drops)\n//   non-Unrestricted -> Unrestricted  => -qty (available rises)\n//   neither side Unrestricted         =>  0   (skip entirely)\n// NOTE: CAT allocations carry category_from / category_to — there is NO\n// `category` key (unlike MSI/PT), so the MSI filter must NOT be reused here.\nconst isU = (c) => c === 'Unrestricted';\nconst signOf = (a) => {\n  const from = isU(a.category_from);\n  const to = isU(a.category_to);\n  if (from && !to) return 1;\n  if (!from && to) return -1;\n  return 0;\n};\n\n// Only allocations that actually shift availability need a conversion factor.\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => { if (a && a.material_id && signOf(a) !== 0) idSet.add(a.material_id); });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\n// Digits only: these ids are interpolated into the conversion fetch's SQL.\nconst itemIDs = Array.from(idSet).map(String).filter((id) => /^[0-9]+$/.test(id));\n\nreturn { itemIdCsv: itemIDs.join(',') };"
                 },
                 "response_json": [
                   {
                     "key": "catitemids1",
-                    "name": "itemIDs",
-                    "title": "Item IDs",
+                    "name": "itemIdCsv",
+                    "title": "Item ID CSV",
                     "description": "",
-                    "bsonType": "any",
+                    "bsonType": "string",
                     "isExpand": false,
                     "children": []
                   }
@@ -595,41 +626,49 @@
               "blocks": []
             },
             {
-              "id": "search_node_CatReorderItems",
-              "type": "search-node",
+              "id": "sql_node_CatReorderItems",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "level": 1,
-                        "children": [
-                          {
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_CatReorderItemIDs.data.itemIDs}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Primary Key ID",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 200,
+                "database_id": "",
+                "sql": "",
+                "params": {},
                 "title": "Get CAT Item Conversion",
                 "isValidator": true,
                 "nodeName": "Get CAT Item Conversion",
-                "name": "Get CAT Item Conversion"
+                "name": "Get CAT Item Conversion",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(i.id AS CHAR) AS id,\n       CAST(i.based_uom AS CHAR) AS based_uom,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'base_qty', u.base_qty))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_CatReorderItemIDs.data.itemIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "catrid00",
+                    "name": "id",
+                    "title": "Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "catrbu00",
+                    "name": "based_uom",
+                    "title": "Based UOM",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "catrucj0",
+                    "name": "uom_conversion_json",
+                    "title": "UOM Conversion JSON",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
               },
               "blocks": []
             },
@@ -646,7 +685,7 @@
                 "name": "Compare CAT Data",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || []; // stock_movement lines\nconst latestData = {{workflowparams:latest_data}} || []; // stock_movement lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). CAT's quantity_uom is\n// NOT disabled (unlike PT), so sm_quantity can be in an alternate UOM.\nconst itemMasterRaw = {{node:search_node_CatReorderItems.data.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => { if (it && it.id) itemMasterMap.set(String(it.id), it); });\n\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || uomId === itemData.based_uom) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => c.alt_uom_id === uomId)\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// A Category Transfer moves stock between inventory categories at the SAME\n// plant + location. Availability only changes when Unrestricted is one side:\n//   Unrestricted -> non-Unrestricted  => +qty (available drops)\n//   non-Unrestricted -> Unrestricted  => -qty (available rises)\n//   neither side Unrestricted         =>  0   (skip entirely)\n// NOTE: CAT allocations carry category_from / category_to — there is NO\n// `category` key (unlike MSI/PT), so the MSI filter must NOT be reused here.\nconst isU = (c) => c === 'Unrestricted';\nconst signOf = (a) => {\n  const from = isU(a.category_from);\n  const to = isU(a.category_to);\n  if (from && !to) return 1;\n  if (!from && to) return -1;\n  return 0;\n};\n\n// Extract + aggregate the SIGNED base delta by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    const lineUom = item.quantity_uom;\n\n    tempQtyArray.forEach(qtyItem => {\n      const sign = signOf(qtyItem);\n      if (sign === 0) return;\n\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = sign * convertToBaseQty(materialId, lineUom, qtyItem.sm_quantity);\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).sm_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          sm_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    const q = formatQuantity(-prevItem.sm_quantity);\n    if (q === 0) return; // opposite transitions cancelled out\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    const q = formatQuantity(latestItem.sm_quantity);\n    if (q === 0) return; // net-zero: e.g. U->B and B->U of equal qty on the same balance\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.sm_quantity !== latestItem.sm_quantity) {\n    const difference = formatQuantity(latestItem.sm_quantity - prevItem.sm_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || []; // stock_movement lines\nconst latestData = {{workflowparams:latest_data}} || []; // stock_movement lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). CAT's quantity_uom is\n// NOT disabled (unlike PT), so sm_quantity can be in an alternate UOM.\nconst itemMasterRaw = {{node:sql_node_CatReorderItems.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\n// The conversion fetch returns table_uom_conversion as a JSON_ARRAYAGG string.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => {\n  if (it && it.id)\n    itemMasterMap.set(String(it.id), { ...it, table_uom_conversion: parseConv(it.uom_conversion_json) });\n});\n\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || String(uomId) === String(itemData.based_uom)) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(uomId))\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// A Category Transfer moves stock between inventory categories at the SAME\n// plant + location. Availability only changes when Unrestricted is one side:\n//   Unrestricted -> non-Unrestricted  => +qty (available drops)\n//   non-Unrestricted -> Unrestricted  => -qty (available rises)\n//   neither side Unrestricted         =>  0   (skip entirely)\n// NOTE: CAT allocations carry category_from / category_to — there is NO\n// `category` key (unlike MSI/PT), so the MSI filter must NOT be reused here.\nconst isU = (c) => c === 'Unrestricted';\nconst signOf = (a) => {\n  const from = isU(a.category_from);\n  const to = isU(a.category_to);\n  if (from && !to) return 1;\n  if (!from && to) return -1;\n  return 0;\n};\n\n// Extract + aggregate the SIGNED base delta by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    const lineUom = item.quantity_uom;\n\n    tempQtyArray.forEach(qtyItem => {\n      const sign = signOf(qtyItem);\n      if (sign === 0) return;\n\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = sign * convertToBaseQty(materialId, lineUom, qtyItem.sm_quantity);\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).sm_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          sm_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    const q = formatQuantity(-prevItem.sm_quantity);\n    if (q === 0) return; // opposite transitions cancelled out\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    const q = formatQuantity(latestItem.sm_quantity);\n    if (q === 0) return; // net-zero: e.g. U->B and B->U of equal qty on the same balance\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.sm_quantity !== latestItem.sm_quantity) {\n    const difference = formatQuantity(latestItem.sm_quantity - prevItem.sm_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
                 },
                 "response_json": [
                   {
@@ -710,15 +749,15 @@
                 "name": "Collect PRT Item IDs",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// PRT allocation keys differ from MSI/PT/CAT — do NOT reuse those compares:\n//   quantity  -> return_quantity  (legacy alias prt_quantity), not sm_quantity\n//   category  -> inventory_category, not `category`\n//   line UOM  -> return_uom_id, not quantity_uom\n// The MSI filter (!a.category || ...) would accept EVERY PRT allocation,\n// including Blocked/Reserved picks, because PRT has no `category` key at all.\n// Only Unrestricted returns reduce available stock.\nconst isUnrestricted = (a) => !a.inventory_category || a.inventory_category === 'Unrestricted';\nconst allocQty = (a) => (a.return_quantity !== undefined && a.return_quantity !== null)\n  ? a.return_quantity\n  : a.prt_quantity;\nconst isLive = (a) => Number(a.is_deleted) !== 1;\n\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => {\n      if (a && a.material_id && isLive(a) && isUnrestricted(a)) idSet.add(a.material_id);\n    });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\nreturn { itemIDs: Array.from(idSet) };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || [];\nconst latestData = {{workflowparams:latest_data}} || [];\n\n// PRT allocation keys differ from MSI/PT/CAT — do NOT reuse those compares:\n//   quantity  -> return_quantity  (legacy alias prt_quantity), not sm_quantity\n//   category  -> inventory_category, not `category`\n//   line UOM  -> return_uom_id, not quantity_uom\n// The MSI filter (!a.category || ...) would accept EVERY PRT allocation,\n// including Blocked/Reserved picks, because PRT has no `category` key at all.\n// Only Unrestricted returns reduce available stock.\nconst isUnrestricted = (a) => !a.inventory_category || a.inventory_category === 'Unrestricted';\nconst allocQty = (a) => (a.return_quantity !== undefined && a.return_quantity !== null)\n  ? a.return_quantity\n  : a.prt_quantity;\nconst isLive = (a) => Number(a.is_deleted) !== 1;\n\nconst idSet = new Set();\nconst collectIds = (lines) => {\n  lines.forEach(line => {\n    let tqd = line.temp_qty_data;\n    if (typeof tqd === 'string') { try { tqd = JSON.parse(tqd); } catch (e) { return; } }\n    if (!Array.isArray(tqd)) return;\n    tqd.forEach(a => {\n      if (a && a.material_id && isLive(a) && isUnrestricted(a)) idSet.add(a.material_id);\n    });\n  });\n};\ncollectIds(previousData);\ncollectIds(latestData);\n\n// Digits only: these ids are interpolated into the conversion fetch's SQL.\nconst itemIDs = Array.from(idSet).map(String).filter((id) => /^[0-9]+$/.test(id));\n\nreturn { itemIdCsv: itemIDs.join(',') };"
                 },
                 "response_json": [
                   {
                     "key": "prtitemids1",
-                    "name": "itemIDs",
-                    "title": "Item IDs",
+                    "name": "itemIdCsv",
+                    "title": "Item ID CSV",
                     "description": "",
-                    "bsonType": "any",
+                    "bsonType": "string",
                     "isExpand": false,
                     "children": []
                   }
@@ -727,41 +766,49 @@
               "blocks": []
             },
             {
-              "id": "search_node_PrtReorderItems",
-              "type": "search-node",
+              "id": "sql_node_PrtReorderItems",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "level": 1,
-                        "children": [
-                          {
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_PrtReorderItemIDs.data.itemIDs}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Primary Key ID",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 200,
+                "database_id": "",
+                "sql": "",
+                "params": {},
                 "title": "Get PRT Item Conversion",
                 "isValidator": true,
                 "nodeName": "Get PRT Item Conversion",
-                "name": "Get PRT Item Conversion"
+                "name": "Get PRT Item Conversion",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(i.id AS CHAR) AS id,\n       CAST(i.based_uom AS CHAR) AS based_uom,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'base_qty', u.base_qty))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_PrtReorderItemIDs.data.itemIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "prtrid00",
+                    "name": "id",
+                    "title": "Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "prtrbu00",
+                    "name": "based_uom",
+                    "title": "Based UOM",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "prtrucj0",
+                    "name": "uom_conversion_json",
+                    "title": "UOM Conversion JSON",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
               },
               "blocks": []
             },
@@ -778,7 +825,7 @@
                 "name": "Compare PRT Data",
                 "script": {
                   "type": "javascript",
-                  "code": "const previousData = {{workflowparams:previous_data}} || []; // table_prt lines\nconst latestData = {{workflowparams:latest_data}} || []; // table_prt lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). PRT's return_uom_id is\n// disabled in the form but is set to the GR RECEIPT uom (not based_uom), so it\n// can legitimately be an alternate UOM — conversion is required.\nconst itemMasterRaw = {{node:search_node_PrtReorderItems.data.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => { if (it && it.id) itemMasterMap.set(String(it.id), it); });\n\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || uomId === itemData.based_uom) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => c.alt_uom_id === uomId)\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// PRT allocation keys differ from MSI/PT/CAT — do NOT reuse those compares:\n//   quantity  -> return_quantity  (legacy alias prt_quantity), not sm_quantity\n//   category  -> inventory_category, not `category`\n//   line UOM  -> return_uom_id, not quantity_uom\n// The MSI filter (!a.category || ...) would accept EVERY PRT allocation,\n// including Blocked/Reserved picks, because PRT has no `category` key at all.\n// Only Unrestricted returns reduce available stock.\nconst isUnrestricted = (a) => !a.inventory_category || a.inventory_category === 'Unrestricted';\nconst allocQty = (a) => (a.return_quantity !== undefined && a.return_quantity !== null)\n  ? a.return_quantity\n  : a.prt_quantity;\nconst isLive = (a) => Number(a.is_deleted) !== 1;\n\n// Extract + aggregate temp_qty_data (return_quantity -> base) by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    // Per-line return UOM (all allocations on a PRT line share the line's UOM)\n    const lineUom = item.return_uom_id;\n\n    tempQtyArray.forEach(qtyItem => {\n      if (!isLive(qtyItem)) return;\n      if (!isUnrestricted(qtyItem)) return;\n\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = convertToBaseQty(materialId, lineUom, allocQty(qtyItem));\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).return_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          return_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    const q = formatQuantity(-prevItem.return_quantity);\n    if (q === 0) return;\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    const q = formatQuantity(latestItem.return_quantity);\n    if (q === 0) return;\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.return_quantity !== latestItem.return_quantity) {\n    const difference = formatQuantity(latestItem.return_quantity - prevItem.return_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
+                  "code": "const previousData = {{workflowparams:previous_data}} || []; // table_prt lines\nconst latestData = {{workflowparams:latest_data}} || []; // table_prt lines\nconst documentType = {{workflowparams:document_type}};\nlet data = [];\n\n// Item-master conversion factors (fetched once, batched). PRT's return_uom_id is\n// disabled in the form but is set to the GR RECEIPT uom (not based_uom), so it\n// can legitimately be an alternate UOM — conversion is required.\nconst itemMasterRaw = {{node:sql_node_PrtReorderItems.data}} || [];\nconst itemMasterArr = Array.isArray(itemMasterRaw) ? itemMasterRaw : [itemMasterRaw];\n// The conversion fetch returns table_uom_conversion as a JSON_ARRAYAGG string.\nconst parseConv = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst itemMasterMap = new Map();\nitemMasterArr.forEach(it => {\n  if (it && it.id)\n    itemMasterMap.set(String(it.id), { ...it, table_uom_conversion: parseConv(it.uom_conversion_json) });\n});\n\nconst convertToBaseQty = (materialId, uomId, qty) => {\n  const q = parseFloat(qty) || 0;\n  const itemData = itemMasterMap.get(String(materialId));\n  if (!itemData || !uomId || String(uomId) === String(itemData.based_uom)) return q;\n  const conv = Array.isArray(itemData.table_uom_conversion)\n    ? itemData.table_uom_conversion.find(c => String(c.alt_uom_id) === String(uomId))\n    : null;\n  const factor = (conv && conv.base_qty) ? parseFloat(conv.base_qty) : 1;\n  return q * factor;\n};\n\n// PRT allocation keys differ from MSI/PT/CAT — do NOT reuse those compares:\n//   quantity  -> return_quantity  (legacy alias prt_quantity), not sm_quantity\n//   category  -> inventory_category, not `category`\n//   line UOM  -> return_uom_id, not quantity_uom\n// The MSI filter (!a.category || ...) would accept EVERY PRT allocation,\n// including Blocked/Reserved picks, because PRT has no `category` key at all.\n// Only Unrestricted returns reduce available stock.\nconst isUnrestricted = (a) => !a.inventory_category || a.inventory_category === 'Unrestricted';\nconst allocQty = (a) => (a.return_quantity !== undefined && a.return_quantity !== null)\n  ? a.return_quantity\n  : a.prt_quantity;\nconst isLive = (a) => Number(a.is_deleted) !== 1;\n\n// Extract + aggregate temp_qty_data (return_quantity -> base) by material_id|location_id\nconst extractTempQtyData = (items) => {\n  if (!items || items.length === 0) return [];\n  const aggregatedMap = new Map();\n  items.forEach(item => {\n    if (!item.temp_qty_data) return;\n    let tempQtyArray = item.temp_qty_data;\n    if (typeof tempQtyArray === 'string') {\n      try { tempQtyArray = JSON.parse(tempQtyArray); } catch (e) { return; }\n    }\n    if (!Array.isArray(tempQtyArray)) return;\n\n    // Per-line return UOM (all allocations on a PRT line share the line's UOM)\n    const lineUom = item.return_uom_id;\n\n    tempQtyArray.forEach(qtyItem => {\n      if (!isLive(qtyItem)) return;\n      if (!isUnrestricted(qtyItem)) return;\n\n      const materialId = qtyItem.material_id;\n      const locationId = qtyItem.location_id;\n      if (!materialId || !locationId) return;\n\n      const key = `${materialId}|${locationId}`;\n      const baseQty = convertToBaseQty(materialId, lineUom, allocQty(qtyItem));\n\n      if (aggregatedMap.has(key)) {\n        aggregatedMap.get(key).return_quantity += baseQty;\n      } else {\n        aggregatedMap.set(key, {\n          material_id: materialId,\n          location_id: locationId,\n          plant_id: qtyItem.plant_id,\n          organization_id: qtyItem.organization_id,\n          return_quantity: baseQty,\n          batch_id: qtyItem.batch_id\n        });\n      }\n    });\n  });\n  return Array.from(aggregatedMap.values());\n};\n\nconst formatQuantity = (value) => Math.round(value * 1000) / 1000;\nconst getKey = (item) => `${item.material_id}|${item.location_id}`;\n\nconst prevAggregated = extractTempQtyData(previousData);\nconst latestAggregated = extractTempQtyData(latestData);\n\nconst prevMap = new Map(prevAggregated.map(item => [getKey(item), item]));\nconst latestMap = new Map(latestAggregated.map(item => [getKey(item), item]));\n\nconst allKeys = new Set([...prevMap.keys(), ...latestMap.keys()]);\n\nallKeys.forEach(key => {\n  const prevItem = prevMap.get(key);\n  const latestItem = latestMap.get(key);\n\n  if (prevItem && !latestItem) {\n    const q = formatQuantity(-prevItem.return_quantity);\n    if (q === 0) return;\n    data.push({\n      item_id: prevItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: prevItem.organization_id,\n      plant_id: prevItem.plant_id,\n      location_id: prevItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (!prevItem && latestItem) {\n    const q = formatQuantity(latestItem.return_quantity);\n    if (q === 0) return;\n    data.push({\n      item_id: latestItem.material_id,\n      quantity: q,\n      tenant_id: {{system:tenantId}},\n      organization_id: latestItem.organization_id,\n      plant_id: latestItem.plant_id,\n      location_id: latestItem.location_id,\n      trigger_source: documentType\n    });\n  } else if (prevItem && latestItem && prevItem.return_quantity !== latestItem.return_quantity) {\n    const difference = formatQuantity(latestItem.return_quantity - prevItem.return_quantity);\n    if (difference !== 0) {\n      data.push({\n        item_id: prevItem.material_id,\n        quantity: difference,\n        tenant_id: {{system:tenantId}},\n        organization_id: latestItem.organization_id,\n        plant_id: latestItem.plant_id,\n        location_id: latestItem.location_id,\n        trigger_source: documentType\n      });\n    }\n  }\n});\n\nreturn { data };"
                 },
                 "response_json": [
                   {
@@ -866,8 +913,12 @@
           "data": {
             "title": "Other",
             "isDefault": true,
-            "filter": { "list": [] },
-            "expression": { "code": "" },
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            },
             "displayContent": "sdk.form.otherCondition"
           },
           "blocks": []
@@ -939,7 +990,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],

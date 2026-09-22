@@ -83,41 +83,85 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
-      "id": "search_node_9kQx2Vt7",
-      "type": "search-node",
+      "id": "code_node_BulkItemIDs",
+      "type": "code-node",
       "data": {
-        "table_id": {
-          "source": "Item:Table:1901546842240438273",
-          "rules": {
-            "collectionId": "1901546842240438273",
-            "list": [
-              {
-                "id": 1785312440101,
-                "parentId": 1785312440100,
-                "isTop": true,
-                "prop": "id",
-                "operator": "equalAny",
-                "valueType": "field",
-                "value": "{{workflowparams:item_id}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "Equal Any"
-              }
-            ]
-          }
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Item IDs",
+        "isValidator": true,
+        "nodeName": "Map Item IDs",
+        "name": "Map Item IDs",
+        "script": {
+          "type": "javascript",
+          "code": "const rawItemIds = {{workflowparams:item_id}};\n\n// Accept a scalar id as well as the array form, matching Build Descriptions.\nlet requested = [];\nif (Array.isArray(rawItemIds)) requested = rawItemIds;\nelse if (rawItemIds != null && rawItemIds !== \"\") requested = [rawItemIds];\n\n// Digits only: these ids are interpolated into Get Items' SQL.\nconst itemIDs = [...new Set(requested.map((v) => String(v == null ? \"\" : v).trim()))].filter(\n  (id) => /^[0-9]+$/.test(id)\n);\n\nreturn { itemIdCsv: itemIDs.join(',') };\n"
         },
-        "condition": {},
+        "response_json": [
+          {
+            "key": "bkitmcsv",
+            "name": "itemIdCsv",
+            "title": "Item ID CSV",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_ItemBinds",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
         "title": "Get Items",
         "isValidator": true,
         "nodeName": "Get Items",
         "name": "Get Items",
-        "limit": 1000
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(i.id AS CHAR) AS id,\n       i.material_desc,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'customer_id', CAST(b.customer_id AS CHAR),\n                      'item_desc', b.item_desc))\n           FROM item_l1gn7kim_sub b\n           WHERE b.Item_id = i.id\n             AND b.is_deleted = 0\n       ), '[]') AS cust_item_bind_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_BulkItemIDs.data.itemIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "bk1id000",
+            "name": "id",
+            "title": "Item ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bk2mdesc",
+            "name": "material_desc",
+            "title": "Material Desc",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bk3bndjs",
+            "name": "cust_item_bind_json",
+            "title": "Cust Item Bind JSON",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
       },
       "blocks": []
     },
@@ -134,7 +178,7 @@
         "name": "Build Descriptions",
         "script": {
           "type": "javascript",
-          "code": "const rows = {{node:search_node_9kQx2Vt7.data.data}} || [];\nconst rawItemIds = {{workflowparams:item_id}};\nconst customerId = {{workflowparams:customer_id}};\n\n// search-node rows sit one level deeper than a get-node's, at .data.data\nconst items = Array.isArray(rows) ? rows : [];\n\nconst itemById = {};\nfor (const r of items) {\n  if (r && r.id != null) itemById[String(r.id)] = r;\n}\n\n// Accept a scalar id as well as the array form, so a caller passing a plain\n// string still works.\nlet requested = [];\nif (Array.isArray(rawItemIds)) requested = rawItemIds;\nelse if (rawItemIds != null && rawItemIds !== \"\") requested = [rawItemIds];\n\nconst wanted = customerId == null ? \"\" : String(customerId).trim();\n\n// table_cust_item_bind is a subform array stored on the Item record itself --\n// it has no collection of its own, so the single Item search above is all the\n// data access needed. Bind rows store the Customer's primary id; compare as\n// trimmed strings.\nconst buildDescriptions = (item) => {\n  const out = [];\n  if (!item) return out;\n  const binds = Array.isArray(item.table_cust_item_bind) ? item.table_cust_item_bind : [];\n  for (const row of binds) {\n    if (!row) continue;\n    const rowCust = row.customer_id == null ? \"\" : String(row.customer_id).trim();\n    if (!wanted || rowCust !== wanted) continue;\n    const d = row.item_desc == null ? \"\" : String(row.item_desc).trim();\n    // One customer may have several rows; skip blanks and duplicates.\n    if (d && out.indexOf(d) === -1) out.push(d);\n  }\n  // No customer-specific description -> fall back to the item's own description.\n  if (out.length === 0) {\n    const fallback = item.material_desc == null ? \"\" : String(item.material_desc).trim();\n    if (fallback) out.push(fallback);\n  }\n  return out;\n};\n\n// One row per REQUESTED id, in request order -- an id matching no Item still\n// gets an entry with an empty list, so callers can map by index or by id.\n// descCache keeps a repeated id from being rebuilt.\nconst descCache = {};\nconst result = [];\nfor (const raw of requested) {\n  const id = raw == null ? \"\" : String(raw).trim();\n  if (!id) {\n    result.push({ item_id: \"\", descriptions: [] });\n    continue;\n  }\n  if (!descCache[id]) descCache[id] = buildDescriptions(itemById[id]);\n  result.push({ item_id: id, descriptions: descCache[id] });\n}\n\nreturn { result };"
+          "code": "const rows = {{node:sql_node_ItemBinds.data}} || [];\nconst rawItemIds = {{workflowparams:item_id}};\nconst customerId = {{workflowparams:customer_id}};\n\n// sql-node rows sit at .data, and one row comes back bare rather than in an array.\nconst items = Array.isArray(rows) ? rows : (rows ? [rows] : []);\n\n// Get Items returns table_cust_item_bind as a JSON_ARRAYAGG string.\nconst parseBinds = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\n\nconst itemById = {};\nfor (const r of items) {\n  if (r && r.id != null)\n    itemById[String(r.id)] = { ...r, table_cust_item_bind: parseBinds(r.cust_item_bind_json) };\n}\n\n// Accept a scalar id as well as the array form, so a caller passing a plain\n// string still works.\nlet requested = [];\nif (Array.isArray(rawItemIds)) requested = rawItemIds;\nelse if (rawItemIds != null && rawItemIds !== \"\") requested = [rawItemIds];\n\nconst wanted = customerId == null ? \"\" : String(customerId).trim();\n\n// table_cust_item_bind is a subform array stored on the Item record itself --\n// it has no collection of its own, so the single Item search above is all the\n// data access needed. Bind rows store the Customer's primary id; compare as\n// trimmed strings.\nconst buildDescriptions = (item) => {\n  const out = [];\n  if (!item) return out;\n  const binds = Array.isArray(item.table_cust_item_bind) ? item.table_cust_item_bind : [];\n  for (const row of binds) {\n    if (!row) continue;\n    const rowCust = row.customer_id == null ? \"\" : String(row.customer_id).trim();\n    if (!wanted || rowCust !== wanted) continue;\n    const d = row.item_desc == null ? \"\" : String(row.item_desc).trim();\n    // One customer may have several rows; skip blanks and duplicates.\n    if (d && out.indexOf(d) === -1) out.push(d);\n  }\n  // No customer-specific description -> fall back to the item's own description.\n  if (out.length === 0) {\n    const fallback = item.material_desc == null ? \"\" : String(item.material_desc).trim();\n    if (fallback) out.push(fallback);\n  }\n  return out;\n};\n\n// One row per REQUESTED id, in request order -- an id matching no Item still\n// gets an entry with an empty list, so callers can map by index or by id.\n// descCache keeps a repeated id from being rebuilt.\nconst descCache = {};\nconst result = [];\nfor (const raw of requested) {\n  const id = raw == null ? \"\" : String(raw).trim();\n  if (!id) {\n    result.push({ item_id: \"\", descriptions: [] });\n    continue;\n  }\n  if (!descCache[id]) descCache[id] = buildDescriptions(itemById[id]);\n  result.push({ item_id: id, descriptions: descCache[id] });\n}\n\nreturn { result };"
         },
         "response_json": [
           {
@@ -220,7 +264,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
