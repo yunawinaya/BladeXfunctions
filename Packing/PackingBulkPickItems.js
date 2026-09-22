@@ -59,9 +59,31 @@
       "|" +
       String(batch == null ? "" : batch);
 
+    // gd_id is varchar, but legacy rows hold a STRINGIFIED array ('["123"]') and
+    // some callers hand over a real array -- gudzrvMQ normalises the same way on
+    // create. Passing either straight to .doc() throws.
+    const firstId = (v) => {
+      if (Array.isArray(v)) return v.filter(Boolean)[0] || "";
+      if (typeof v === "string" && v.charAt(0) === "[") {
+        try {
+          const a = JSON.parse(v);
+          return Array.isArray(a) ? a.filter(Boolean)[0] || "" : v;
+        } catch (e) {
+          return v;
+        }
+      }
+      return v || "";
+    };
+
     const pickedMap = {};
-    if (data.gd_id) {
-      const gdRes = await db.collection("goods_delivery").doc(data.gd_id).get();
+    // Stays false when there is no GD (a Sales-Order-based packing has none) or
+    // the read fails, and the guard below is then SKIPPED rather than blocking:
+    // an empty map would read as "nothing picked" and refuse everything.
+    let pickedCheckReady = false;
+    const gdId = firstId(data.gd_id);
+    if (gdId) {
+      try {
+      const gdRes = await db.collection("goods_delivery").doc(gdId).get();
       const gd = gdRes?.data?.[0];
       // table_gd is a tree: an item bundle is one parent row with its real lines
       // under `children`.
@@ -98,6 +120,17 @@
           pickedMap[k] = (pickedMap[k] || 0) + (Number(e.gd_quantity) || 0);
         }
       }
+      pickedCheckReady = true;
+      } catch (e) {
+        // Fail OPEN. A flaky read must not strand a packer on a legitimately
+        // picked order, and this runs on every pick tap. onSave_Completed
+        // re-reads the GD and still refuses to complete while any line is
+        // unpicked, so an item slipped in here cannot ship.
+        console.error("Picked-qty check unavailable:", e);
+        this.$message.warning(
+          "Pick check skipped \u2014 could not read the Goods Delivery.",
+        );
+      }
     }
 
     // picked_qty is what PackingRecomputeSource just wrote: already packed.
@@ -127,7 +160,7 @@
         continue;
       }
       const packable = packableOf(sourceRow);
-      if (qtyToPick > packable) {
+      if (pickedCheckReady && qtyToPick > packable) {
         skipped.push({
           code: sourceRow.item_code,
           reason:

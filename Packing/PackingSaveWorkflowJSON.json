@@ -347,6 +347,187 @@
                   },
                   "blocks": [
                     {
+                      "id": "code_node_PkPickId",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Resolve GD Id",
+                        "isValidator": true,
+                        "nodeName": "Resolve GD Id",
+                        "name": "Resolve GD Id",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// The web form checks this too, but that runs in the BROWSER -- mobile calls this\n// workflow directly, so the picking gate has to live here or one client can\n// complete a Packing for goods nobody picked.\n// gd_id is varchar, but legacy rows hold a stringified array ('[\"123\"]') and some\n// callers pass a real array. Either shape breaks the lookup that follows.\nconst entry = {{workflowparams:entry}} || {};\nconst raw = entry.gd_id;\nlet gdId = \"\";\nif (Array.isArray(raw)) {\n  gdId = raw.filter(Boolean)[0] || \"\";\n} else if (typeof raw === \"string\" && raw.charAt(0) === \"[\") {\n  try {\n    const a = JSON.parse(raw);\n    gdId = Array.isArray(a) ? a.filter(Boolean)[0] || \"\" : raw;\n  } catch (e) {\n    gdId = raw;\n  }\n} else {\n  gdId = raw || \"\";\n}\nreturn { gdId: String(gdId) };\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "pkpckid1",
+                            "name": "gdId",
+                            "title": "gdId",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "get_node_PkPickGd",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Goods Delivery:Table:1902054888473481218",
+                          "rules": {
+                            "collectionId": "1902054888473481218",
+                            "list": [
+                              {
+                                "id": 1776852814326,
+                                "parentId": 1776852814325,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_PkPickId.data.gdId}}",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get GD For Pick Check",
+                        "isValidator": true,
+                        "nodeName": "Get GD For Pick Check",
+                        "name": "Get GD For Pick Check"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_PkPickChk",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Validate Fully Picked",
+                        "isValidator": true,
+                        "nodeName": "Validate Fully Picked",
+                        "name": "Validate Fully Picked",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Blocks Save as Completed while any GD line is still unpicked. A Sales-Order\n// based packing has no GD, so an empty fetch passes -- there is nothing to check.\nconst raw = {{node:get_node_PkPickGd.data.data}};\nconst gd = Array.isArray(raw) ? raw[0] : raw;\n\nif (!gd || !Array.isArray(gd.table_gd)) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\n// table_gd is a tree: a bundle is ONE parent row with its real lines under\n// `children`, and that parent carries no material_id. Read flat, a bundle's\n// lines are never checked at all.\nconst lines = gd.table_gd.flatMap(function (row) {\n  return [row].concat(Array.isArray(row.children) ? row.children : []);\n});\n\nconst errors = [];\nfor (const line of lines) {\n  if (!line.material_id) continue;\n  if (line.picking_status === \"Cancelled\") continue;\n  if ((parseFloat(line.gd_qty) || 0) <= 0) continue;\n  // picking_status is the source of truth in BOTH flows: normal picking sets it\n  // Completed once the line is fully picked, and under allow_full_picking it only\n  // reaches Completed when cumulative picked_qty >= gd_qty across sibling\n  // Pickings. The picked_qty scalar is written ONLY when allow_full_picking is\n  // on, so gating on that would falsely block every normal-flow packing.\n  if (line.picking_status !== \"Completed\") {\n    errors.push(\n      (line.material_name || line.material_id) +\n        \" (\" + (line.picking_status || \"Open\") + \")\"\n    );\n  }\n}\n\nif (errors.length === 0) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\nconst preview = errors.slice(0, 3).join(\"; \");\nconst suffix = errors.length > 3 ? \" (+\" + (errors.length - 3) + \" more)\" : \"\";\nreturn {\n  notPicked: 1,\n  pickedMessage:\n    \"Cannot complete packing: these Goods Delivery lines are not fully picked - \" +\n    preview + suffix + \". Pickings still pending.\",\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "pkpcknp1",
+                            "name": "notPicked",
+                            "title": "notPicked",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "pkpckms1",
+                            "name": "pickedMessage",
+                            "title": "pickedMessage",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_PkPickChk",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Not Fully Picked",
+                        "isValidator": true,
+                        "nodeName": "IF Not Fully Picked",
+                        "name": "IF Not Fully Picked",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1,
+                              "parentId": 0,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "code": "'{{node:code_node_PkPickChk.data.notPicked}}' == '1'",
+                          "type": "javascript"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_PkPickChk_t",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "return_node_PkPickChk",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "errorStatus",
+                                      "propLabel": "Error Status",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "\"notFullyPicked\"",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PkPickChk.data.pickedMessage}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0,
+                                "title": "Return Not Fully Picked",
+                                "isValidator": true,
+                                "nodeName": "Return Not Fully Picked",
+                                "name": "Return Not Fully Picked"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_PkPickChk_f",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
                       "id": "code_node_PkFullChk",
                       "type": "code-node",
                       "data": {

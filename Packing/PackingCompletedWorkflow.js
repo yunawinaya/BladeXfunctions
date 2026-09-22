@@ -21,19 +21,37 @@ const showErrors = (errors) => {
     const EPS = 0.001;
 
     // ---- M:N gate: every GD line must be fully picked across all sibling Pickings ----
+    // PRE-FLIGHT ONLY. The authoritative gate is PACKING_SAVE / code_node_PkPickChk,
+    // because this handler runs in the BROWSER and mobile calls that workflow direct.
+    // Kept here anyway: the auto-complete step further down performs real inventory
+    // movements, and a packer must not be put through those only to be refused after.
     // Even if THIS Packing's table_item_source looks complete, sibling Pickings
     // may still be open under allow_full_picking. Block completion until cumulative
     // picked_qty >= gd_qty for every non-Cancelled GD line.
     if (data.gd_id) {
       try {
+        // Legacy rows hold a stringified array in this varchar; .doc() throws on it.
+        const gdIdRaw = data.gd_id;
+        const gdId = Array.isArray(gdIdRaw)
+          ? gdIdRaw.filter(Boolean)[0] || ""
+          : typeof gdIdRaw === "string" && gdIdRaw.charAt(0) === "["
+            ? JSON.parse(gdIdRaw)[0] || ""
+            : gdIdRaw;
         const gdRes = await db
           .collection("goods_delivery")
-          .doc(data.gd_id)
+          .doc(gdId)
           .get();
         const gd = gdRes?.data?.[0];
         if (gd && Array.isArray(gd.table_gd)) {
           const gdLineErrors = [];
-          for (const line of gd.table_gd) {
+          // table_gd is a tree: an item bundle is one parent row with its real
+          // lines under `children`, and that parent carries no material_id --
+          // read flat, a bundle's lines were skipped and never gated at all.
+          const gdLines = gd.table_gd.flatMap((row) => [
+            row,
+            ...(Array.isArray(row.children) ? row.children : []),
+          ]);
+          for (const line of gdLines) {
             if (!line.material_id) continue;
             if (line.picking_status === "Cancelled") continue;
             const gdQty = parseFloat(line.gd_qty) || 0;
@@ -56,7 +74,13 @@ const showErrors = (errors) => {
           }
         }
       } catch (e) {
+        // Swallowing this completed a Packing whose picking state was never
+        // verified -- the exact case the gate exists for.
         console.error("M:N gate check failed:", e);
+        this.$message.error(
+          "Could not verify picking status against the Goods Delivery. Please retry.",
+        );
+        return;
       }
     }
 
